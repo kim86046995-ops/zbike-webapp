@@ -526,22 +526,71 @@ app.post('/api/admin/login', async (c) => {
   const { DB } = c.env
   const { username, password } = await c.req.json()
   
-  // 임시: 기본 비밀번호 체크 (실제로는 bcrypt 사용)
-  if (username === 'admin' && password === 'admin1234') {
-    // 마지막 로그인 시간 업데이트
-    const now = new Date().toISOString()
-    await DB.prepare(`
-      UPDATE admin_users SET last_login = ? WHERE username = ?
-    `).bind(now, username).run()
-    
-    return c.json({ 
-      success: true, 
-      message: '로그인 성공',
-      user: { username, name: '관리자' }
-    })
+  // DB에서 사용자 조회
+  const user = await DB.prepare(`
+    SELECT * FROM admin_users WHERE username = ?
+  `).bind(username).first() as any
+  
+  if (!user) {
+    return c.json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
   }
   
-  return c.json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
+  // 비밀번호 확인 (간단한 비교, 실제로는 bcrypt 사용 권장)
+  if (user.password !== password) {
+    return c.json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
+  }
+  
+  // 마지막 로그인 시간 업데이트
+  const now = new Date().toISOString()
+  await DB.prepare(`
+    UPDATE admin_users SET last_login = ? WHERE username = ?
+  `).bind(now, username).run()
+  
+  return c.json({ 
+    success: true, 
+    message: '로그인 성공',
+    user: { username, name: user.name, email: user.email }
+  })
+})
+
+// 관리자 회원가입
+app.post('/api/admin/register', async (c) => {
+  const { DB } = c.env
+  const { username, password, name, email } = await c.req.json()
+  
+  // 유효성 검사
+  if (!username || !password || !name) {
+    return c.json({ error: '필수 항목을 모두 입력해주세요' }, 400)
+  }
+  
+  if (username.length < 4 || username.length > 20) {
+    return c.json({ error: '아이디는 4-20자여야 합니다' }, 400)
+  }
+  
+  if (password.length < 8) {
+    return c.json({ error: '비밀번호는 최소 8자 이상이어야 합니다' }, 400)
+  }
+  
+  // 아이디 중복 확인
+  const existingUser = await DB.prepare(`
+    SELECT id FROM admin_users WHERE username = ?
+  `).bind(username).first()
+  
+  if (existingUser) {
+    return c.json({ error: '이미 사용 중인 아이디입니다' }, 409)
+  }
+  
+  // 사용자 생성 (비밀번호는 평문 저장, 실제로는 bcrypt 해싱 권장)
+  const result = await DB.prepare(`
+    INSERT INTO admin_users (username, password, name, email, role)
+    VALUES (?, ?, ?, ?, 'admin')
+  `).bind(username, password, name, email || '').run()
+  
+  return c.json({ 
+    success: true,
+    message: '회원가입이 완료되었습니다',
+    user: { id: result.meta.last_row_id, username, name }
+  }, 201)
 })
 
 // ============================================
@@ -621,17 +670,193 @@ app.post('/api/contract-share/:token/sign', async (c) => {
   
   const now = new Date().toISOString()
   
-  const result = await DB.prepare(`
-    UPDATE contract_shares 
-    SET signature_data = ?, id_card_photo = ?, status = 'signed', signed_at = ?, updated_at = ?
-    WHERE share_token = ? AND status = 'pending'
-  `).bind(signature_data, id_card_photo, now, now, token).run()
+  // 공유 계약서 조회
+  const shareData = await DB.prepare(`
+    SELECT * FROM contract_shares WHERE share_token = ? AND status = 'pending'
+  `).bind(token).first() as any
   
-  if (result.success) {
-    return c.json({ success: true, message: '서명이 완료되었습니다' })
+  if (!shareData) {
+    return c.json({ error: '유효하지 않은 계약서입니다' }, 404)
   }
   
-  return c.json({ error: '서명 제출에 실패했습니다' }, 400)
+  // 계약 데이터 파싱
+  const contractInfo = JSON.parse(shareData.contract_data)
+  
+  try {
+    // 1. 고객 정보 저장 (이미 있으면 조회)
+    let customerId = null
+    const existingCustomer = await DB.prepare(`
+      SELECT id FROM customers WHERE phone = ?
+    `).bind(shareData.customer_phone).first() as any
+    
+    if (existingCustomer) {
+      customerId = existingCustomer.id
+      // 고객 정보 업데이트
+      await DB.prepare(`
+        UPDATE customers 
+        SET name = ?, resident_number = ?, address = ?, license_type = ?, updated_at = ?
+        WHERE id = ?
+      `).bind(
+        shareData.customer_name,
+        contractInfo.resident_number || '',
+        contractInfo.address || '',
+        contractInfo.license_type || '',
+        now,
+        customerId
+      ).run()
+    } else {
+      // 신규 고객 생성
+      const customerResult = await DB.prepare(`
+        INSERT INTO customers (name, resident_number, phone, address, license_type)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(
+        shareData.customer_name,
+        contractInfo.resident_number || '',
+        shareData.customer_phone,
+        contractInfo.address || '',
+        contractInfo.license_type || ''
+      ).run()
+      customerId = customerResult.meta.last_row_id
+    }
+    
+    // 2. 계약 타입에 따라 실제 계약서 생성
+    if (shareData.contract_type === 'individual') {
+      // 개인 계약서 생성
+      // 계약번호 생성
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      const countResult = await DB.prepare(`
+        SELECT COUNT(*) as count FROM contracts 
+        WHERE contract_number LIKE ?
+      `).bind(`${today}-%`).first() as any
+      const sequence = String((countResult?.count || 0) + 1).padStart(4, '0')
+      const contractNumber = `${today}-${sequence}`
+      
+      await DB.prepare(`
+        INSERT INTO contracts (
+          contract_number, contract_type, motorcycle_id, customer_id,
+          start_date, end_date, monthly_fee, deposit, special_terms,
+          signature_data, id_card_photo, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+      `).bind(
+        contractNumber,
+        contractInfo.contract_type || 'lease',
+        contractInfo.motorcycle_id,
+        customerId,
+        contractInfo.start_date,
+        contractInfo.end_date,
+        contractInfo.monthly_fee || 0,
+        contractInfo.deposit || 0,
+        contractInfo.special_terms || '',
+        signature_data,
+        id_card_photo
+      ).run()
+      
+      // 오토바이 상태 업데이트
+      await DB.prepare(`
+        UPDATE motorcycles SET status = 'rented' WHERE id = ?
+      `).bind(contractInfo.motorcycle_id).run()
+      
+    } else if (shareData.contract_type === 'business') {
+      // 업체 계약서 생성
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      const countResult = await DB.prepare(`
+        SELECT COUNT(*) as count FROM business_contracts 
+        WHERE contract_number LIKE ?
+      `).bind(`B-${today}-%`).first() as any
+      const sequence = String((countResult?.count || 0) + 1).padStart(4, '0')
+      const contractNumber = `B-${today}-${sequence}`
+      
+      await DB.prepare(`
+        INSERT INTO business_contracts (
+          contract_number, motorcycle_id,
+          company_name, business_number, representative,
+          business_type, business_category, business_phone, business_address,
+          representative_resident_number, representative_phone, representative_address,
+          contract_start_date, contract_end_date,
+          insurance_start_date, insurance_end_date,
+          driving_range, daily_amount, deposit, special_terms,
+          business_license_photo, id_card_photo, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+      `).bind(
+        contractNumber,
+        contractInfo.motorcycle_id,
+        contractInfo.company_name || '',
+        contractInfo.business_number || '',
+        contractInfo.representative || '',
+        contractInfo.business_type || '',
+        contractInfo.business_category || '',
+        contractInfo.business_phone || '',
+        contractInfo.business_address || '',
+        contractInfo.representative_resident_number || '',
+        contractInfo.representative_phone || '',
+        contractInfo.representative_address || '',
+        contractInfo.contract_start_date,
+        contractInfo.contract_end_date,
+        contractInfo.insurance_start_date,
+        contractInfo.insurance_end_date,
+        contractInfo.driving_range || '',
+        contractInfo.daily_amount || 0,
+        contractInfo.deposit || 0,
+        contractInfo.special_terms || '',
+        contractInfo.business_license_photo || '',
+        id_card_photo
+      ).run()
+      
+      // 오토바이 상태 업데이트
+      await DB.prepare(`
+        UPDATE motorcycles SET status = 'rented' WHERE id = ?
+      `).bind(contractInfo.motorcycle_id).run()
+      
+    } else if (shareData.contract_type === 'loan') {
+      // 차용증 생성
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+      const countResult = await DB.prepare(`
+        SELECT COUNT(*) as count FROM loan_contracts 
+        WHERE loan_number LIKE ?
+      `).bind(`L-${today}-%`).first() as any
+      const sequence = String((countResult?.count || 0) + 1).padStart(4, '0')
+      const loanNumber = `L-${today}-${sequence}`
+      
+      await DB.prepare(`
+        INSERT INTO loan_contracts (
+          loan_number, motorcycle_id, borrower_name, borrower_resident_number,
+          borrower_phone, borrower_address,
+          loan_amount, daily_deduction, loan_date, loan_period,
+          repayment_date, borrower_signature, borrower_id_card, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+      `).bind(
+        loanNumber,
+        contractInfo.motorcycle_id,
+        shareData.customer_name,
+        contractInfo.borrower_resident_number || '',
+        shareData.customer_phone,
+        contractInfo.borrower_address || '',
+        contractInfo.loan_amount || 0,
+        contractInfo.daily_deduction || 0,
+        contractInfo.loan_date,
+        contractInfo.loan_period || 0,
+        contractInfo.repayment_date || '',
+        signature_data,
+        id_card_photo
+      ).run()
+    }
+    
+    // 3. 공유 계약서 상태 업데이트
+    await DB.prepare(`
+      UPDATE contract_shares 
+      SET signature_data = ?, id_card_photo = ?, status = 'signed', signed_at = ?, updated_at = ?
+      WHERE share_token = ?
+    `).bind(signature_data, id_card_photo, now, now, token).run()
+    
+    return c.json({ 
+      success: true, 
+      message: '서명이 완료되었습니다. 계약서가 자동으로 등록되었습니다.' 
+    })
+    
+  } catch (error) {
+    console.error('Contract creation error:', error)
+    return c.json({ error: '계약서 생성 중 오류가 발생했습니다' }, 500)
+  }
 })
 
 // 계약서 공유 목록 조회 (관리자용)
@@ -643,6 +868,42 @@ app.get('/api/contract-shares', async (c) => {
   `).all()
   
   return c.json(result.results)
+})
+
+// SMS 전송 API (계약서 공유 링크 전송)
+app.post('/api/send-sms', async (c) => {
+  const { phone, share_url, customer_name, contract_type } = await c.req.json()
+  
+  // SMS 전송 로직 (실제로는 SMS API 연동 필요)
+  // 예: Twilio, Aligo, CoolSMS 등
+  
+  // 임시: SMS 전송 시뮬레이션
+  const message = `[오토바이 계약서]\n\n${customer_name}님, 계약서를 검토하시고 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
+  
+  console.log('SMS 전송 시뮬레이션:')
+  console.log('수신번호:', phone)
+  console.log('메시지:', message)
+  
+  // 실제 SMS API 호출 예시 (주석 처리)
+  // const smsApiKey = c.env.SMS_API_KEY
+  // const response = await fetch('https://api.coolsms.co.kr/sms/2/send', {
+  //   method: 'POST',
+  //   headers: { 'Authorization': `Bearer ${smsApiKey}`, 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({
+  //     to: phone,
+  //     from: '발신번호',
+  //     text: message
+  //   })
+  // })
+  
+  return c.json({ 
+    success: true, 
+    message: 'SMS가 전송되었습니다',
+    // 실제로는 SMS 전송 결과 반환
+    simulation: true,
+    phone,
+    messageLength: message.length
+  })
 })
 
 // 차용증 상세 조회
@@ -1007,6 +1268,23 @@ app.get('/', (c) => {
     </body>
     </html>
   `)
+})
+
+// 관리자 회원가입 페이지
+app.get('/register', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 회원가입</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<iframe src="/static/register.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
 })
 
 // 관리자 로그인 페이지

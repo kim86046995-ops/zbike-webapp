@@ -12,9 +12,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
 );
 
 -- 기본 관리자 계정 추가 (비밀번호: admin1234)
--- bcrypt 해시는 백엔드에서 생성하므로 초기값은 임시
 INSERT INTO admin_users (username, password, name, email, role) 
-VALUES ('admin', 'temp', '관리자', 'admin@example.com', 'super_admin');
+VALUES ('admin', 'admin1234', '관리자', 'admin@example.com', 'super_admin');
 
 -- 계약서 공유 링크 테이블 (카카오톡 전송용)
 CREATE TABLE IF NOT EXISTS contract_shares (
