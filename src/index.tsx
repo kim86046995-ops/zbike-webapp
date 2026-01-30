@@ -57,8 +57,9 @@ app.post('/api/motorcycles', async (c) => {
       plate_number, vehicle_name, chassis_number, mileage, model_year,
       insurance_company, insurance_start_date, insurance_end_date,
       inspection_start_date, inspection_end_date,
-      driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, usage_notes, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, usage_notes, status,
+      certificate_photo
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.plate_number,
     data.vehicle_name,
@@ -76,7 +77,8 @@ app.post('/api/motorcycles', async (c) => {
     data.vehicle_price,
     data.daily_rental_fee || 0,
     data.usage_notes || '',
-    data.status || 'available'
+    data.status || 'available',
+    data.certificate_photo || null
   ).run()
   
   return c.json({ id: result.meta.last_row_id, ...data }, 201)
@@ -95,6 +97,7 @@ app.put('/api/motorcycles/:id', async (c) => {
       insurance_end_date = ?, inspection_start_date = ?, inspection_end_date = ?,
       driving_range = ?, owner_name = ?,
       insurance_fee = ?, vehicle_price = ?, daily_rental_fee = ?, usage_notes = ?, status = ?,
+      certificate_photo = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).bind(
@@ -115,6 +118,7 @@ app.put('/api/motorcycles/:id', async (c) => {
     data.daily_rental_fee || 0,
     data.usage_notes || '',
     data.status,
+    data.certificate_photo || null,
     id
   ).run()
   
