@@ -351,13 +351,32 @@
                                 </span>
                             </div>
                             
+                            <!-- 계약 기간 진행률 (보험 위에 표시) -->
+                            <div class="mb-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100" id="contract-progress-${m.id}">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-bold text-gray-700 flex items-center">
+                                        <i class="fas fa-file-contract mr-2 text-purple-500"></i>계약 기간
+                                    </span>
+                                    <span class="text-xs text-gray-500" id="contract-status-${m.id}">
+                                        <i class="fas fa-spinner fa-spin"></i> 조회중...
+                                    </span>
+                                </div>
+                                <div class="progress-bar-wrapper" id="contract-bar-${m.id}">
+                                    <div class="progress-bar progress-safe" style="width: 0%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-400 mt-1" id="contract-dates-${m.id}">
+                                    <span>-</span>
+                                    <span>-</span>
+                                </div>
+                            </div>
+                            
                             <!-- 보험 기간 진행률 -->
                             <div class="mb-5 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                                 <div class="flex justify-between items-center mb-3">
                                     <span class="text-sm font-bold text-gray-700 flex items-center">
                                         <i class="fas fa-shield-alt mr-2 text-blue-500"></i>보험 기간
                                     </span>
-                                    <span class="text-sm font-bold ${progress.isExpired ? 'text-red-600' : progress.isExpiringSoon ? 'text-yellow-600' : 'text-blue-600'}">
+                                    <span class="text-sm font-bold ${progress.isExpired ? 'text-red-600' : progress.isExpiringSoon ? 'text-red-600' : 'text-blue-600'}">
                                         ${progress.isExpired ? '⚠️ 만료됨' : `🕒 ${progress.remainingDays}일 남음`}
                                     </span>
                                 </div>
@@ -378,8 +397,8 @@
                                         <i class="fas fa-exclamation-triangle mr-2 text-lg"></i>보험이 만료되었습니다! 즉시 갱신 필요
                                     </div>
                                 ` : progress.isExpiringSoon ? `
-                                    <div class="mt-3 bg-gradient-to-r from-yellow-50 to-yellow-100 text-yellow-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2 text-lg"></i>보험 갱신이 곧 필요합니다
+                                    <div class="mt-3 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-2 text-lg"></i>보험 갱신이 곧 필요합니다 (30일 이내)
                                     </div>
                                 ` : ''}
                             </div>
@@ -391,31 +410,24 @@
                                 </h4>
                                 <div class="grid grid-cols-2 gap-3 text-sm">
                                     <div class="flex items-center">
-                                        <i class="fas fa-barcode w-5 text-blue-500 mr-2"></i>
+                                        <i class="fas fa-user w-5 text-blue-500 mr-2"></i>
                                         <div>
-                                            <p class="text-xs text-gray-500">차대번호</p>
-                                            <p class="font-semibold text-gray-700">${m.chassis_number}</p>
+                                            <p class="text-xs text-gray-500">명의자</p>
+                                            <p class="font-semibold text-gray-700">${m.owner_name}</p>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
-                                        <i class="fas fa-tachometer-alt w-5 text-green-500 mr-2"></i>
+                                        <i class="fas fa-id-card w-5 text-green-500 mr-2"></i>
                                         <div>
-                                            <p class="text-xs text-gray-500">주행거리</p>
-                                            <p class="font-semibold text-gray-700">${Number(m.mileage).toLocaleString()} km</p>
+                                            <p class="text-xs text-gray-500">운전연령</p>
+                                            <p class="font-semibold text-gray-700">${m.driving_range}</p>
                                         </div>
                                     </div>
-                                    <div class="flex items-center">
-                                        <i class="fas fa-building w-5 text-purple-500 mr-2"></i>
+                                    <div class="flex items-center" id="contractor-info-${m.id}">
+                                        <i class="fas fa-user-tie w-5 text-purple-500 mr-2"></i>
                                         <div>
-                                            <p class="text-xs text-gray-500">보험사</p>
-                                            <p class="font-semibold text-gray-700">${m.insurance_company}</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <i class="fas fa-won-sign w-5 text-amber-500 mr-2"></i>
-                                        <div>
-                                            <p class="text-xs text-gray-500">차량가</p>
-                                            <p class="font-semibold text-gray-700">${Number(m.vehicle_price).toLocaleString()}원</p>
+                                            <p class="text-xs text-gray-500">계약자</p>
+                                            <p class="font-semibold text-gray-700">-</p>
                                         </div>
                                     </div>
                                 </div>
@@ -434,6 +446,100 @@
                     </div>
                 `;
             }).join('');
+            
+            // 렌더링 후 각 오토바이의 계약 정보 로드
+            motorcycles.forEach(m => {
+                loadContractInfo(m.id);
+            });
+        }
+        
+        // 계약 정보 로드 함수
+        async function loadContractInfo(motorcycleId) {
+            try {
+                const response = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`);
+                const contracts = response.data;
+                
+                // 진행 중인 계약 찾기
+                const activeContract = contracts.find(c => c.status === 'active');
+                
+                if (activeContract) {
+                    // 계약자 정보 업데이트
+                    const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                    if (contractorEl) {
+                        contractorEl.innerHTML = `
+                            <i class="fas fa-user-tie w-5 text-purple-500 mr-2"></i>
+                            <div>
+                                <p class="text-xs text-gray-500">계약자</p>
+                                <p class="font-semibold text-gray-700">${activeContract.customer_name || '-'}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // 계약 기간 프로그레스 바 업데이트
+                    const progress = calculateInsuranceProgress(activeContract.start_date, activeContract.end_date);
+                    
+                    let progressClass = 'progress-safe';
+                    let warningMessage = '';
+                    
+                    // 10일 이내면 빨간색
+                    if (progress.remainingDays <= 10 && progress.remainingDays > 0) {
+                        progressClass = 'progress-danger';
+                        warningMessage = `
+                            <div class="mt-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2 text-lg"></i>계약 종료가 임박했습니다! (10일 이내)
+                            </div>
+                        `;
+                    } else if (progress.isExpired) {
+                        progressClass = 'progress-danger';
+                        warningMessage = `
+                            <div class="mt-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2 text-lg"></i>계약이 만료되었습니다!
+                            </div>
+                        `;
+                    } else if (progress.remainingDays <= 30) {
+                        progressClass = 'progress-warning';
+                    }
+                    
+                    const contractStatusEl = document.getElementById(`contract-status-${motorcycleId}`);
+                    if (contractStatusEl) {
+                        contractStatusEl.innerHTML = `
+                            <span class="font-bold ${progress.remainingDays <= 10 ? 'text-red-600' : progress.remainingDays <= 30 ? 'text-yellow-600' : 'text-blue-600'}">
+                                ${progress.isExpired ? '⚠️ 만료됨' : `🕒 ${progress.remainingDays}일 남음`}
+                            </span>
+                        `;
+                    }
+                    
+                    const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
+                    if (contractBarEl) {
+                        contractBarEl.innerHTML = `
+                            <div class="progress-bar ${progressClass}" style="width: ${progress.percentage}%">
+                                ${progress.percentage > 15 ? `${progress.percentage}%` : ''}
+                            </div>
+                        `;
+                        contractBarEl.insertAdjacentHTML('afterend', warningMessage);
+                    }
+                    
+                    const contractDatesEl = document.getElementById(`contract-dates-${motorcycleId}`);
+                    if (contractDatesEl) {
+                        contractDatesEl.innerHTML = `
+                            <span><i class="far fa-calendar-check mr-1"></i>${activeContract.start_date}</span>
+                            <span><i class="far fa-calendar-times mr-1"></i>${activeContract.end_date}</span>
+                        `;
+                    }
+                } else {
+                    // 진행 중인 계약이 없을 때
+                    const contractProgressEl = document.getElementById(`contract-progress-${motorcycleId}`);
+                    if (contractProgressEl) {
+                        contractProgressEl.innerHTML = `
+                            <div class="text-center text-gray-400 text-xs py-2">
+                                <i class="fas fa-info-circle mr-1"></i>진행 중인 계약이 없습니다
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error(`Error loading contract info for motorcycle ${motorcycleId}:`, error);
+            }
         }
 
         async function showHistory(motorcycleId) {
