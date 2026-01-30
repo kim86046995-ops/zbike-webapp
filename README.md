@@ -17,7 +17,8 @@
   - 키로수, 연식
   - 보험사, 보험기간 (시작일~종료일)
   - 운전범위, 명의자
-  - 보험료, 차량금액
+  - 보험료, 차량금액, **일대여료**
+  - 사용 현황 메모 (usage_notes)
   - 상태 (사용가능/렌트중/정비중)
 - ✅ 오토바이 목록 조회 및 필터링
 - ✅ 오토바이 정보 수정/삭제
@@ -41,8 +42,14 @@
   - 면허종류 (2종 소형, 2종 보통, 1종 보통, 1종 대형)
 - ✅ 계약 상세 정보
   - 계약 기간 (시작일~종료일)
-  - 월 납부금액, 보증금
+  - **일대여료** (daily_rental_fee)
+  - 보증금
   - 특약사항
+- ✅ **신분증 촬영 기능**
+  - 웹캠으로 신분증 촬영
+  - 파일 업로드 지원
+  - 미리보기 및 재촬영
+  - Base64 형식으로 저장
 - ✅ 전자서명 기능 (캔버스 기반)
   - 마우스/터치 서명 지원
   - 서명 이미지 저장 (base64)
@@ -58,7 +65,31 @@
   - 오토바이 상세 정보
   - 계약 상세 내용
   - 서명 이미지
+  - 신분증 사진
 - ✅ 계약 상태 관리 (진행중/완료/취소)
+
+### 4. 차용증 관리 🆕
+- ✅ 차용증 작성
+  - 차용인 정보 (이름, 주민번호, 전화번호, 주소)
+  - 대여인 정보 (이름, 주민번호, 전화번호, 주소)
+  - 차용 금액 및 이자율
+  - 차용일 및 상환일
+  - 상환 방법 (일시불/분할)
+  - 담보 정보
+  - 특약사항
+- ✅ **차용증 약관 (전문적인 법적 조항)**
+  - 제1조: 차용금액 및 기간
+  - 제2조: 상환방법
+  - 제3조: 담보 및 보증
+  - 제4조: 기한의 이익 상실
+  - 제5조: 연체이자 및 지연배상금 (연 15%)
+  - 제6조: 비용 부담
+  - 제7조: 계약의 해석 및 합의
+  - 제8조: 관할 법원
+- ✅ 이중 전자서명 (차용인 + 대여인)
+- ✅ **신분증 촬영 기능**
+- ✅ 차용증 목록 및 상세 보기
+- ✅ 상태 관리 (진행중/완료/연체/취소)
 
 ## 📊 데이터 아키텍처
 
@@ -72,6 +103,8 @@
 - insurance_company (보험사), insurance_start_date, insurance_end_date
 - driving_range (운전범위), owner_name (명의자)
 - insurance_fee (보험료), vehicle_price (차량가격)
+- **daily_rental_fee (일대여료)**
+- **usage_notes (사용 현황 메모)**
 - status (상태: available/rented/maintenance)
 
 **2. customers (고객)**
@@ -82,9 +115,22 @@
 - id, contract_type (리스/렌트), contract_number (계약번호)
 - motorcycle_id, customer_id
 - start_date, end_date (계약기간)
-- monthly_fee (월납부금), deposit (보증금)
-- special_terms (특약사항), signature_data (서명 base64)
+- **daily_rental_fee (일대여료)**, deposit (보증금)
+- special_terms (특약사항)
+- signature_data (서명 base64)
+- **id_card_photo (신분증 사진 base64)**
 - status (상태: active/completed/cancelled)
+
+**4. loan_contracts (차용증) 🆕**
+- id, loan_number (차용증 번호)
+- borrower_name, borrower_resident_number, borrower_phone, borrower_address (차용인)
+- lender_name, lender_resident_number, lender_phone, lender_address (대여인)
+- loan_amount (차용금액), loan_date (차용일), repayment_date (상환일)
+- interest_rate (이자율), repayment_method (상환방법)
+- collateral (담보), special_terms (특약사항)
+- borrower_signature, lender_signature (이중 서명)
+- borrower_id_card_photo (차용인 신분증)
+- status (상태: active/completed/overdue/cancelled)
 
 ### API 엔드포인트
 
@@ -107,6 +153,12 @@
 - `GET /api/contracts/:id` - 상세 조회
 - `POST /api/contracts` - 생성
 - `PATCH /api/contracts/:id/status` - 상태 변경
+
+#### 차용증 API 🆕
+- `GET /api/loan-contracts` - 목록 조회
+- `GET /api/loan-contracts/:id` - 상세 조회
+- `POST /api/loan-contracts` - 생성
+- `PATCH /api/loan-contracts/:id/status` - 상태 변경
 
 ## 📱 사용 가이드
 
@@ -175,16 +227,23 @@ npm run deploy:prod
 
 ## 📝 완료된 기능
 - ✅ 오토바이 정보 등록 및 관리
+- ✅ **일대여료 필드 추가**
+- ✅ **사용 현황 메모 필드 추가**
 - ✅ 보험 기간 진행률 시각화 (프로그레스 바)
 - ✅ 보험 만료 경고 및 알림
 - ✅ 번호판 클릭으로 계약 이력 조회
 - ✅ 고객 정보 관리
 - ✅ 리스/렌트 계약서 작성
+- ✅ **신분증 촬영 기능 (웹캠/파일업로드)**
 - ✅ 전자서명 (캔버스 기반)
 - ✅ 계약서 목록 및 검색
 - ✅ 계약서 상세 보기
 - ✅ 자동 계약번호 생성
 - ✅ 계약 상태 관리
+- ✅ **차용증 작성 및 관리 시스템**
+- ✅ **전문적인 차용증 약관 (8개 조항)**
+- ✅ **이중 전자서명 (차용인/대여인)**
+- ✅ 차용증 목록 및 상세 보기
 
 ## 🔜 향후 개선 사항
 - ⏳ PDF 다운로드 기능 (jsPDF 라이브러리 사용)
