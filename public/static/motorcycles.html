@@ -94,7 +94,7 @@
                     <i class="fas fa-arrow-left mr-2"></i>
                     오토바이 관리
                 </a>
-                <button onclick="showAddModal()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50">
+                <button id="addMotorcycleBtn" onclick="showAddModal()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50" style="display: none;">
                     <i class="fas fa-plus mr-2"></i>오토바이 등록
                 </button>
             </div>
@@ -335,6 +335,7 @@
         let motorcycles = [];
         let motorcycleContracts = {}; // 각 오토바이의 계약자 정보를 저장
         let sessionId = localStorage.getItem('sessionId');
+        let currentUser = null; // 현재 로그인한 사용자 정보
 
         // 인증 체크
         async function checkAuth() {
@@ -344,9 +345,10 @@
             }
 
             try {
-                await axios.get('/api/auth/check', {
+                const response = await axios.get('/api/auth/check', {
                     headers: { 'X-Session-ID': sessionId }
                 });
+                currentUser = response.data.user; // 사용자 정보 저장
                 return true;
             } catch (error) {
                 localStorage.removeItem('sessionId');
@@ -379,6 +381,10 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (await checkAuth()) {
+                // 슈퍼관리자인 경우에만 등록 버튼 표시
+                if (currentUser && currentUser.role === 'super_admin') {
+                    document.getElementById('addMotorcycleBtn').style.display = 'block';
+                }
                 loadMotorcycles();
             }
         });
@@ -675,12 +681,18 @@
 
                             <!-- 버튼 -->
                             <div class="flex gap-1.5">
-                                <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-1.5 rounded-md hover:from-blue-600 hover:to-blue-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
-                                    <i class="fas fa-edit mr-1"></i>수정
-                                </button>
-                                <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-1.5 rounded-md hover:from-red-600 hover:to-red-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
-                                    <i class="fas fa-trash mr-1"></i>삭제
-                                </button>
+                                ${currentUser && currentUser.role === 'super_admin' ? `
+                                    <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-1.5 rounded-md hover:from-blue-600 hover:to-blue-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
+                                        <i class="fas fa-edit mr-1"></i>수정
+                                    </button>
+                                    <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-1.5 rounded-md hover:from-red-600 hover:to-red-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
+                                        <i class="fas fa-trash mr-1"></i>삭제
+                                    </button>
+                                ` : `
+                                    <button class="flex-1 bg-gray-300 text-gray-500 py-1.5 rounded-md cursor-not-allowed text-xs font-semibold" disabled>
+                                        <i class="fas fa-lock mr-1"></i>읽기 전용
+                                    </button>
+                                `}
                             </div>
                         </div>
                     </div>

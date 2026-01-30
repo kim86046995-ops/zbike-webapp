@@ -416,6 +416,7 @@
         let canvas, ctx;
         let isDrawing = false;
         let sessionId = localStorage.getItem('sessionId');
+        let currentUser = null; // 현재 사용자 정보
 
         // 인증 체크
         async function checkAuth() {
@@ -425,9 +426,17 @@
             }
 
             try {
-                await axios.get('/api/auth/check', {
+                const response = await axios.get('/api/auth/check', {
                     headers: { 'X-Session-ID': sessionId }
                 });
+                currentUser = response.data.user;
+                
+                // 슈퍼관리자가 아니면 접근 불가
+                if (currentUser.role !== 'super_admin') {
+                    alert('계약서 작성 권한이 없습니다. 슈퍼관리자만 작성 가능합니다.');
+                    window.location.href = '/';
+                    return false;
+                }
                 return true;
             } catch (error) {
                 localStorage.removeItem('sessionId');

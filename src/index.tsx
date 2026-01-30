@@ -61,6 +61,23 @@ async function authMiddleware(c: any, next: any) {
   await next()
 }
 
+// 슈퍼관리자 전용 미들웨어
+async function superAdminMiddleware(c: any, next: any) {
+  const sessionId = c.req.header('X-Session-ID') || c.req.query('session')
+  const session = await validateSession(c.env.DB, sessionId)
+  
+  if (!session) {
+    return c.json({ error: '인증이 필요합니다' }, 401)
+  }
+  
+  if ((session as any).role !== 'super_admin') {
+    return c.json({ error: '슈퍼관리자 권한이 필요합니다' }, 403)
+  }
+  
+  c.set('user', session)
+  await next()
+}
+
 // ============================================
 // 인증 API
 // ============================================
@@ -233,7 +250,7 @@ app.get('/api/motorcycles/:id', async (c) => {
 })
 
 // 오토바이 등록 (인증 필요)
-app.post('/api/motorcycles', authMiddleware, async (c) => {
+app.post('/api/motorcycles', superAdminMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -270,7 +287,7 @@ app.post('/api/motorcycles', authMiddleware, async (c) => {
 })
 
 // 오토바이 수정 (인증 필요)
-app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
+app.put('/api/motorcycles/:id', superAdminMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const data = await c.req.json()
@@ -311,7 +328,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
 })
 
 // 오토바이 삭제 (인증 필요)
-app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
+app.delete('/api/motorcycles/:id', superAdminMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -473,7 +490,7 @@ app.get('/api/contracts/:id', async (c) => {
 })
 
 // 계약서 생성 (인증 필요)
-app.post('/api/contracts', authMiddleware, async (c) => {
+app.post('/api/contracts', superAdminMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -514,7 +531,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
 })
 
 // 계약서 상태 변경 (인증 필요)
-app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
+app.patch('/api/contracts/:id/status', superAdminMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const { status } = await c.req.json()
@@ -758,9 +775,9 @@ app.post('/api/admin/login', async (c) => {
 })
 
 // 관리자 회원가입
-app.post('/api/admin/register', async (c) => {
+app.post('/api/auth/register', async (c) => {
   const { DB } = c.env
-  const { username, password, name, email } = await c.req.json()
+  const { username, password, name, email, phone } = await c.req.json()
   
   // 유효성 검사
   if (!username || !password || !name) {
@@ -771,24 +788,30 @@ app.post('/api/admin/register', async (c) => {
     return c.json({ error: '아이디는 4-20자여야 합니다' }, 400)
   }
   
-  if (password.length < 8) {
-    return c.json({ error: '비밀번호는 최소 8자 이상이어야 합니다' }, 400)
+  if (password.length < 4) {
+    return c.json({ error: '비밀번호는 최소 4자 이상이어야 합니다' }, 400)
+  }
+  
+  // 관리자 계정 수 확인 (최대 5명)
+  const countResult = await DB.prepare('SELECT COUNT(*) as count FROM users').first()
+  const currentCount = (countResult as any)?.count || 0
+  
+  if (currentCount >= 5) {
+    return c.json({ error: '관리자 계정은 최대 5명까지만 생성 가능합니다' }, 400)
   }
   
   // 아이디 중복 확인
-  const existingUser = await DB.prepare(`
-    SELECT id FROM admin_users WHERE username = ?
-  `).bind(username).first()
+  const existingUser = await DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first()
   
   if (existingUser) {
     return c.json({ error: '이미 사용 중인 아이디입니다' }, 409)
   }
   
-  // 사용자 생성 (비밀번호는 평문 저장, 실제로는 bcrypt 해싱 권장)
+  // 일반 관리자로 생성 (super_admin은 sangchun11만)
   const result = await DB.prepare(`
-    INSERT INTO admin_users (username, password, name, email, role)
-    VALUES (?, ?, ?, ?, 'admin')
-  `).bind(username, password, name, email || '').run()
+    INSERT INTO users (username, password, name, email, phone, role)
+    VALUES (?, ?, ?, ?, ?, 'admin')
+  `).bind(username, password, name, email || '', phone || '').run()
   
   return c.json({ 
     success: true,
