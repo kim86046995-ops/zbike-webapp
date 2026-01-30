@@ -251,6 +251,15 @@
                             <span class="ml-2 text-sm font-bold">위 차용증 약관을 모두 읽었으며 이에 동의합니다 *</span>
                         </label>
                     </div>
+                    
+                    <!-- 계약 생성 날짜/시간 -->
+                    <div class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p class="text-sm text-orange-800">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            <span class="font-bold">차용증 생성 일시:</span>
+                            <span id="contractDateTime" class="ml-2"></span>
+                        </p>
+                    </div>
                 </div>
 
                 <!-- 4. 차용인 서명 -->
@@ -349,6 +358,17 @@
             document.getElementById('dailyDeduction').addEventListener('input', calculateEstimates);
             document.getElementById('loanDate').addEventListener('change', calculateRepaymentDate);
             document.getElementById('loanPeriod').addEventListener('input', calculateRepaymentDate);
+            
+            // 계약 생성 날짜/시간 표시
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
+            document.getElementById('contractDateTime').textContent = dateTimeString;
         });
         
         // 사업자 정보 로드

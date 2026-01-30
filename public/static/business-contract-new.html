@@ -331,6 +331,15 @@
                             </span>
                         </label>
                     </div>
+                    
+                    <!-- 계약 생성 날짜/시간 -->
+                    <div class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <p class="text-sm text-purple-800">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            <span class="font-bold">계약 생성 일시:</span>
+                            <span id="contractDateTime" class="ml-2"></span>
+                        </p>
+                    </div>
                 </div>
 
                 <!-- 6. 서류 첨부 -->
@@ -486,6 +495,17 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('contractStartDate').value = today;
             document.getElementById('insuranceStartDate').value = today;
+            
+            // 계약 생성 날짜/시간 표시
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
+            document.getElementById('contractDateTime').textContent = dateTimeString;
         });
 
         // 사업장 주소 검색

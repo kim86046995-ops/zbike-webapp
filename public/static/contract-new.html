@@ -304,6 +304,15 @@
                             <span class="text-sm font-bold">위 계약 약관을 읽었으며 이에 동의합니다</span>
                         </label>
                     </div>
+                    
+                    <!-- 계약 생성 날짜/시간 -->
+                    <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p class="text-sm text-green-800">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            <span class="font-bold">계약 생성 일시:</span>
+                            <span id="contractDateTime" class="ml-2"></span>
+                        </p>
+                    </div>
                 </div>
 
                 <!-- 6. 전자서명 -->
@@ -433,6 +442,17 @@
             // 오늘 날짜를 계약 시작일의 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('startDate').value = today;
+            
+            // 계약 생성 날짜/시간 표시
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
+            document.getElementById('contractDateTime').textContent = dateTimeString;
         });
         
         // 사업자 정보 로드
