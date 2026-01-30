@@ -1175,11 +1175,38 @@ app.get('/', (c) => {
         <div class="min-h-screen">
             <!-- 헤더 -->
             <header class="bg-blue-600 text-white shadow-lg">
-                <div class="container mx-auto px-4 py-6">
+                <div class="container mx-auto px-4 py-6 flex items-center justify-between">
                     <h1 class="text-3xl font-bold">
                         <i class="fas fa-motorcycle mr-3"></i>
                         오토바이 리스/렌트 전자계약 시스템
                     </h1>
+                    
+                    <!-- 로그인 상태 표시 -->
+                    <div id="loginStatus" class="flex items-center gap-4">
+                        <!-- 로그아웃 상태 -->
+                        <div id="loggedOut" class="flex gap-2">
+                            <a href="/login" class="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold">
+                                <i class="fas fa-sign-in-alt mr-2"></i>로그인
+                            </a>
+                            <a href="/register" class="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition font-semibold">
+                                <i class="fas fa-user-plus mr-2"></i>회원가입
+                            </a>
+                        </div>
+                        
+                        <!-- 로그인 상태 -->
+                        <div id="loggedIn" class="hidden flex items-center gap-4">
+                            <div class="flex items-center bg-blue-700 px-4 py-2 rounded-lg">
+                                <i class="fas fa-user-circle text-2xl mr-2"></i>
+                                <div>
+                                    <p class="text-sm font-semibold" id="userName"></p>
+                                    <p class="text-xs opacity-80" id="userEmail"></p>
+                                </div>
+                            </div>
+                            <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
+                                <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -1265,6 +1292,57 @@ app.get('/', (c) => {
                 </div>
             </main>
         </div>
+        
+        <script>
+            // 로그인 상태 확인 및 표시
+            function checkLoginStatus() {
+                const adminUser = localStorage.getItem('adminUser');
+                const loggedIn = document.getElementById('loggedIn');
+                const loggedOut = document.getElementById('loggedOut');
+                
+                if (adminUser) {
+                    try {
+                        const user = JSON.parse(adminUser);
+                        
+                        // 로그인 상태 표시
+                        document.getElementById('userName').textContent = user.name || user.username;
+                        document.getElementById('userEmail').textContent = user.email || user.username;
+                        
+                        loggedIn.classList.remove('hidden');
+                        loggedIn.classList.add('flex');
+                        loggedOut.classList.add('hidden');
+                    } catch (e) {
+                        // JSON 파싱 실패 시 로그아웃 처리
+                        localStorage.removeItem('adminUser');
+                        showLoggedOut();
+                    }
+                } else {
+                    showLoggedOut();
+                }
+            }
+            
+            // 로그아웃 상태 표시
+            function showLoggedOut() {
+                const loggedIn = document.getElementById('loggedIn');
+                const loggedOut = document.getElementById('loggedOut');
+                
+                loggedIn.classList.add('hidden');
+                loggedIn.classList.remove('flex');
+                loggedOut.classList.remove('hidden');
+                loggedOut.classList.add('flex');
+            }
+            
+            // 로그아웃
+            function logout() {
+                if (confirm('로그아웃 하시겠습니까?')) {
+                    localStorage.removeItem('adminUser');
+                    window.location.href = '/login';
+                }
+            }
+            
+            // 페이지 로드 시 로그인 상태 확인
+            window.addEventListener('DOMContentLoaded', checkLoginStatus);
+        </script>
     </body>
     </html>
   `)

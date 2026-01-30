@@ -170,6 +170,14 @@
     </div>
 
     <script>
+        // 이미 로그인되어 있으면 메인 페이지로 리다이렉트
+        window.addEventListener('DOMContentLoaded', () => {
+            const adminUser = localStorage.getItem('adminUser');
+            if (adminUser) {
+                window.location.href = '/';
+            }
+        });
+        
         // 비밀번호 표시/숨김 토글
         function togglePassword(fieldId) {
             const passwordInput = document.getElementById(fieldId);
