@@ -50,16 +50,31 @@
                 </div>
 
                 <!-- 2. 오토바이 선택 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
+<div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
                         <i class="fas fa-motorcycle mr-2 text-green-600"></i>
                         2. 오토바이 선택
                     </h2>
-                    <div id="motorcycleSelection">
-                        <p class="text-gray-500 text-center py-4">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>
-                            사용 가능한 오토바이 로딩 중...
-                        </p>
+                    <div>
+                        <button type="button" onclick="showMotorcycleModal()" class="w-full bg-green-600 text-white px-6 py-4 rounded-lg hover:bg-green-700 font-bold text-lg transition-colors">
+                            <i class="fas fa-list mr-2"></i>
+                            <span id="selectedMotorcycleText">오토바이 선택하기 (클릭)</span>
+                        </button>
+                        <input type="hidden" id="selectedMotorcycleId">
+                        <div id="selectedMotorcycleInfo" class="mt-4 hidden">
+                            <div class="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm text-gray-600 mb-1">선택된 오토바이</p>
+                                        <p class="text-xl font-bold text-green-800" id="selectedMotorcycleName"></p>
+                                        <p class="text-sm text-gray-600 mt-1" id="selectedMotorcycleDetails"></p>
+                                    </div>
+                                    <button type="button" onclick="showMotorcycleModal()" class="text-green-600 hover:text-green-700">
+                                        <i class="fas fa-edit text-2xl"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -209,6 +224,29 @@
                 </div>
             </form>
         </main>
+
+        <!-- 오토바이 선택 모달 -->
+        <div id="motorcycleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <!-- 모달 헤더 -->
+                <div class="bg-green-600 text-white p-4 flex items-center justify-between">
+                    <h3 class="text-xl font-bold">
+                        <i class="fas fa-motorcycle mr-2"></i>
+                        오토바이 선택
+                    </h3>
+                    <button type="button" onclick="hideMotorcycleModal()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <!-- 모달 본문 -->
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    <div id="motorcycleListModal" class="space-y-3">
+                        <!-- 오토바이 목록이 여기에 렌더링됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -254,55 +292,115 @@
             try {
                 const response = await axios.get('/api/motorcycles?status=available');
                 motorcycles = response.data;
-                renderMotorcycles();
+                
+                // 번호판 순으로 정렬
+                motorcycles.sort((a, b) => {
+                    const aNum = a.plate_number || a.chassis_number || '';
+                    const bNum = b.plate_number || b.chassis_number || '';
+                    return aNum.localeCompare(bNum);
+                });
             } catch (error) {
                 console.error('Error loading motorcycles:', error);
-                document.getElementById('motorcycleSelection').innerHTML = `
-                    <p class="text-red-500 text-center py-4">
-                        오토바이 목록을 불러오는데 실패했습니다
-                    </p>
-                `;
+                alert('오토바이 목록을 불러오는데 실패했습니다');
             }
         }
 
-        function renderMotorcycles() {
-            const container = document.getElementById('motorcycleSelection');
+        function showMotorcycleModal() {
+            const modal = document.getElementById('motorcycleModal');
+            const listContainer = document.getElementById('motorcycleListModal');
             
             if (motorcycles.length === 0) {
-                container.innerHTML = `
+                listContainer.innerHTML = `
                     <div class="text-center py-8">
                         <i class="fas fa-exclamation-circle text-4xl text-yellow-500 mb-3"></i>
                         <p class="text-gray-600 mb-4">사용 가능한 오토바이가 없습니다</p>
-                        <a href="/motorcycles" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <a href="/motorcycles" class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
                             <i class="fas fa-plus mr-2"></i>오토바이 등록하기
                         </a>
                     </div>
                 `;
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    ${motorcycles.map(m => `
-                        <label class="cursor-pointer">
-                            <input type="radio" name="motorcycle_id" value="${m.id}" required class="peer hidden" onchange="selectMotorcycle(${m.id})">
-                            <div class="border-2 border-gray-300 rounded-lg p-4 peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
-                                <h3 class="font-bold text-lg mb-2">${m.vehicle_name}</h3>
-                                <div class="text-sm text-gray-600 space-y-1">
-                                    <p><i class="fas fa-hashtag w-5"></i> ${m.plate_number}</p>
-                                    <p><i class="fas fa-calendar w-5"></i> ${m.model_year}년</p>
-                                    <p><i class="fas fa-tachometer-alt w-5"></i> ${Number(m.mileage).toLocaleString()} km</p>
-                                    <p><i class="fas fa-shield-alt w-5"></i> ${m.insurance_company}</p>
+            } else {
+                listContainer.innerHTML = motorcycles.map(m => {
+                    const displayNumber = m.plate_number || m.chassis_number;
+                    const displayLabel = m.plate_number ? '번호판' : '차대번호';
+                    const isSelected = selectedMotorcycleId === m.id;
+                    
+                    return `
+                        <div onclick="selectMotorcycleFromModal(${m.id})" 
+                             class="border-2 ${isSelected ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-green-400'} rounded-lg p-4 cursor-pointer transition-all active:scale-95">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <h3 class="font-bold text-xl text-gray-800">${m.vehicle_name}</h3>
+                                        ${isSelected ? '<span class="bg-green-600 text-white text-xs px-2 py-1 rounded-full">선택됨</span>' : ''}
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-id-card w-5 text-blue-500"></i>
+                                            <span class="font-semibold">${displayLabel}:</span> ${displayNumber}
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-calendar w-5 text-purple-500"></i>
+                                            <span class="font-semibold">연식:</span> ${m.model_year}년
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-tachometer-alt w-5 text-orange-500"></i>
+                                            <span class="font-semibold">주행:</span> ${Number(m.mileage).toLocaleString()} km
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-shield-alt w-5 text-green-500"></i>
+                                            <span class="font-semibold">보험:</span> ${m.insurance_company}
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-user w-5 text-indigo-500"></i>
+                                            <span class="font-semibold">명의자:</span> ${m.owner_name}
+                                        </p>
+                                        <p class="text-gray-600">
+                                            <i class="fas fa-birthday-cake w-5 text-red-500"></i>
+                                            <span class="font-semibold">운전연령:</span> ${m.driving_range}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <i class="fas fa-chevron-right text-2xl text-gray-400"></i>
                                 </div>
                             </div>
-                        </label>
-                    `).join('')}
-                </div>
-            `;
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            modal.classList.remove('hidden');
         }
 
-        function selectMotorcycle(id) {
+        function hideMotorcycleModal() {
+            document.getElementById('motorcycleModal').classList.add('hidden');
+        }
+
+        function selectMotorcycleFromModal(id) {
+            const motorcycle = motorcycles.find(m => m.id === id);
+            if (!motorcycle) return;
+            
             selectedMotorcycleId = id;
+            document.getElementById('selectedMotorcycleId').value = id;
+            
+            const displayNumber = motorcycle.plate_number || motorcycle.chassis_number;
+            const displayLabel = motorcycle.plate_number ? '번호판' : '차대번호';
+            
+            // 선택 버튼 텍스트 업데이트
+            document.getElementById('selectedMotorcycleText').textContent = '다른 오토바이 선택하기';
+            
+            // 선택된 오토바이 정보 표시
+            document.getElementById('selectedMotorcycleName').textContent = motorcycle.vehicle_name;
+            document.getElementById('selectedMotorcycleDetails').innerHTML = `
+                <span class="mr-3"><i class="fas fa-id-card mr-1"></i>${displayLabel}: ${displayNumber}</span>
+                <span class="mr-3"><i class="fas fa-calendar mr-1"></i>${motorcycle.model_year}년</span>
+                <span><i class="fas fa-tachometer-alt mr-1"></i>${Number(motorcycle.mileage).toLocaleString()} km</span>
+            `;
+            document.getElementById('selectedMotorcycleInfo').classList.remove('hidden');
+            
+            // 모달 닫기
+            hideMotorcycleModal();
         }
 
         function initSignaturePad() {
