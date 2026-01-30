@@ -517,6 +517,134 @@ app.get('/api/loan-contracts', async (c) => {
   return c.json(result.results)
 })
 
+// ============================================
+// 관리자 API
+// ============================================
+
+// 관리자 로그인
+app.post('/api/admin/login', async (c) => {
+  const { DB } = c.env
+  const { username, password } = await c.req.json()
+  
+  // 임시: 기본 비밀번호 체크 (실제로는 bcrypt 사용)
+  if (username === 'admin' && password === 'admin1234') {
+    // 마지막 로그인 시간 업데이트
+    const now = new Date().toISOString()
+    await DB.prepare(`
+      UPDATE admin_users SET last_login = ? WHERE username = ?
+    `).bind(now, username).run()
+    
+    return c.json({ 
+      success: true, 
+      message: '로그인 성공',
+      user: { username, name: '관리자' }
+    })
+  }
+  
+  return c.json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
+})
+
+// ============================================
+// 계약서 공유 API (카카오톡 전송용)
+// ============================================
+
+// 계약서 공유 링크 생성
+app.post('/api/contract-share/create', async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  // 고유 토큰 생성 (UUID 대신 간단한 랜덤 문자열)
+  const shareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  
+  // 만료 시간: 72시간 후
+  const expiresAt = new Date()
+  expiresAt.setHours(expiresAt.getHours() + 72)
+  
+  const result = await DB.prepare(`
+    INSERT INTO contract_shares (
+      share_token, contract_type, contract_data, 
+      customer_name, customer_phone, expires_at, status
+    ) VALUES (?, ?, ?, ?, ?, ?, 'pending')
+  `).bind(
+    shareToken,
+    data.contract_type,
+    JSON.stringify(data.contract_data),
+    data.customer_name,
+    data.customer_phone,
+    expiresAt.toISOString()
+  ).run()
+  
+  // 공유 URL 생성
+  const shareUrl = `/contract-sign?token=${shareToken}`
+  
+  return c.json({ 
+    success: true,
+    share_token: shareToken,
+    share_url: shareUrl,
+    expires_at: expiresAt
+  }, 201)
+})
+
+// 계약서 공유 정보 조회
+app.get('/api/contract-share/:token', async (c) => {
+  const { DB } = c.env
+  const token = c.req.param('token')
+  
+  const result = await DB.prepare(`
+    SELECT * FROM contract_shares WHERE share_token = ?
+  `).bind(token).first()
+  
+  if (!result) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  // 만료 확인
+  const now = new Date()
+  const expiresAt = new Date(result.expires_at as string)
+  
+  if (now > expiresAt) {
+    await DB.prepare(`
+      UPDATE contract_shares SET status = 'expired' WHERE share_token = ?
+    `).bind(token).run()
+    
+    return c.json({ ...result, status: 'expired' })
+  }
+  
+  return c.json(result)
+})
+
+// 계약서 서명 제출
+app.post('/api/contract-share/:token/sign', async (c) => {
+  const { DB } = c.env
+  const token = c.req.param('token')
+  const { signature_data, id_card_photo } = await c.req.json()
+  
+  const now = new Date().toISOString()
+  
+  const result = await DB.prepare(`
+    UPDATE contract_shares 
+    SET signature_data = ?, id_card_photo = ?, status = 'signed', signed_at = ?, updated_at = ?
+    WHERE share_token = ? AND status = 'pending'
+  `).bind(signature_data, id_card_photo, now, now, token).run()
+  
+  if (result.success) {
+    return c.json({ success: true, message: '서명이 완료되었습니다' })
+  }
+  
+  return c.json({ error: '서명 제출에 실패했습니다' }, 400)
+})
+
+// 계약서 공유 목록 조회 (관리자용)
+app.get('/api/contract-shares', async (c) => {
+  const { DB } = c.env
+  
+  const result = await DB.prepare(`
+    SELECT * FROM contract_shares ORDER BY created_at DESC
+  `).all()
+  
+  return c.json(result.results)
+})
+
 // 차용증 상세 조회
 app.get('/api/loan-contracts/:id', async (c) => {
   const { DB } = c.env
@@ -879,6 +1007,40 @@ app.get('/', (c) => {
     </body>
     </html>
   `)
+})
+
+// 관리자 로그인 페이지
+app.get('/login', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<iframe src="/static/login.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
+// 계약서 서명 페이지
+app.get('/contract-sign', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약서 서명</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<iframe src="/static/contract-sign.html${c.req.url.includes('?') ? c.req.url.substring(c.req.url.indexOf('?')) : ''}" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
 })
 
 export default app
