@@ -250,7 +250,7 @@ app.get('/api/motorcycles/:id', async (c) => {
 })
 
 // 오토바이 등록 (인증 필요)
-app.post('/api/motorcycles', superAdminMiddleware, async (c) => {
+app.post('/api/motorcycles', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -287,7 +287,7 @@ app.post('/api/motorcycles', superAdminMiddleware, async (c) => {
 })
 
 // 오토바이 수정 (인증 필요)
-app.put('/api/motorcycles/:id', superAdminMiddleware, async (c) => {
+app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const data = await c.req.json()
@@ -328,7 +328,7 @@ app.put('/api/motorcycles/:id', superAdminMiddleware, async (c) => {
 })
 
 // 오토바이 삭제 (인증 필요)
-app.delete('/api/motorcycles/:id', superAdminMiddleware, async (c) => {
+app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -490,7 +490,7 @@ app.get('/api/contracts/:id', async (c) => {
 })
 
 // 계약서 생성 (인증 필요)
-app.post('/api/contracts', superAdminMiddleware, async (c) => {
+app.post('/api/contracts', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -531,7 +531,7 @@ app.post('/api/contracts', superAdminMiddleware, async (c) => {
 })
 
 // 계약서 상태 변경 (인증 필요)
-app.patch('/api/contracts/:id/status', superAdminMiddleware, async (c) => {
+app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const { status } = await c.req.json()
@@ -1461,10 +1461,15 @@ app.get('/settings', (c) => {
 })
 
 // ============================================
-// 메인 페이지
+// 메인 페이지 - 로그인 페이지로 리디렉션
 // ============================================
 
 app.get('/', (c) => {
+  return c.redirect('/login')
+})
+
+// 대시보드 페이지 (로그인 후)
+app.get('/dashboard', (c) => {
   return c.html(`
     <!DOCTYPE html>
     <html lang="ko">

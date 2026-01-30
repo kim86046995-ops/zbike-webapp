@@ -19,8 +19,59 @@
             <p class="text-gray-600">오토바이 리스/렌트 전자계약 시스템</p>
         </div>
 
+        <!-- 허가번호 확인 모달 -->
+        <div id="authCodeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+                <div class="text-center mb-6">
+                    <div class="inline-block p-4 bg-emerald-100 rounded-full mb-4">
+                        <i class="fas fa-key text-4xl text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">허가번호 입력</h2>
+                    <p class="text-gray-600">관리자 회원가입을 위해 허가번호를 입력하세요</p>
+                </div>
+
+                <form id="authCodeForm" class="space-y-5">
+                    <div>
+                        <label for="authCode" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2 text-emerald-600"></i>허가번호 *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="authCode" 
+                            name="authCode"
+                            required
+                            maxlength="4"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-center text-2xl font-bold tracking-widest"
+                            placeholder="****"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div id="authCodeError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        <span id="authCodeErrorText"></span>
+                    </div>
+
+                    <button 
+                        type="submit"
+                        class="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition font-semibold shadow-lg hover:shadow-xl"
+                    >
+                        <i class="fas fa-check mr-2"></i>확인
+                    </button>
+
+                    <button 
+                        type="button"
+                        onclick="window.location.href='/login'"
+                        class="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold"
+                    >
+                        <i class="fas fa-times mr-2"></i>취소
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- 회원가입 폼 -->
-        <div class="bg-white rounded-2xl shadow-xl p-8">
+        <div id="registerFormContainer" class="bg-white rounded-2xl shadow-xl p-8" style="display: none;">
             <form id="registerForm" class="space-y-5">
                 <!-- 아이디 입력 -->
                 <div>
@@ -185,11 +236,34 @@
     </div>
 
     <script>
-        // 이미 로그인되어 있으면 메인 페이지로 리다이렉트
+        const CORRECT_AUTH_CODE = '6991'; // 허가번호
+        
+        // 이미 로그인되어 있으면 대시보드로 리다이렉트
         window.addEventListener('DOMContentLoaded', () => {
-            const adminUser = localStorage.getItem('adminUser');
-            if (adminUser) {
-                window.location.href = '/';
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                window.location.href = '/dashboard';
+            }
+        });
+        
+        // 허가번호 확인 폼 제출
+        document.getElementById('authCodeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const authCode = document.getElementById('authCode').value.trim();
+            const errorDiv = document.getElementById('authCodeError');
+            const errorText = document.getElementById('authCodeErrorText');
+            
+            if (authCode === CORRECT_AUTH_CODE) {
+                // 허가번호 일치 - 회원가입 폼 표시
+                document.getElementById('authCodeModal').style.display = 'none';
+                document.getElementById('registerFormContainer').style.display = 'block';
+            } else {
+                // 허가번호 불일치
+                errorDiv.classList.remove('hidden');
+                errorText.textContent = '허가번호가 올바르지 않습니다.';
+                document.getElementById('authCode').value = '';
+                document.getElementById('authCode').focus();
             }
         });
         

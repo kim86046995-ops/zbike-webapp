@@ -96,7 +96,7 @@
                 if (response.data.authenticated) {
                     // URL 파라미터에서 redirect 확인
                     const urlParams = new URLSearchParams(window.location.search)
-                    const redirect = urlParams.get('redirect') || '/'
+                    const redirect = urlParams.get('redirect') || '/dashboard'
                     window.location.href = redirect
                 }
             }).catch(() => {
@@ -131,7 +131,7 @@
                     // 리디렉션
                     setTimeout(() => {
                         const urlParams = new URLSearchParams(window.location.search)
-                        const redirect = urlParams.get('redirect') || '/'
+                        const redirect = urlParams.get('redirect') || '/dashboard'
                         window.location.href = redirect
                     }, 500)
                 }

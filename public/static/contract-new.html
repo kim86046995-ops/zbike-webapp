@@ -13,7 +13,7 @@
         <!-- 헤더 -->
         <header class="bg-green-600 text-white shadow-lg">
             <div class="container mx-auto px-4 py-4">
-                <a href="/" class="text-xl font-bold">
+                <a href="/dashboard" class="text-xl font-bold">
                     <i class="fas fa-arrow-left mr-2"></i>
                     계약서 작성
                 </a>
@@ -312,7 +312,7 @@
                     <button type="submit" class="flex-1 bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition">
                         <i class="fas fa-paper-plane mr-2"></i>고객에게 전송
                     </button>
-                    <a href="/" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
+                    <a href="/dashboard" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
                         취소
                     </a>
                 </div>
@@ -430,13 +430,6 @@
                     headers: { 'X-Session-ID': sessionId }
                 });
                 currentUser = response.data.user;
-                
-                // 슈퍼관리자가 아니면 접근 불가
-                if (currentUser.role !== 'super_admin') {
-                    alert('계약서 작성 권한이 없습니다. 슈퍼관리자만 작성 가능합니다.');
-                    window.location.href = '/';
-                    return false;
-                }
                 return true;
             } catch (error) {
                 localStorage.removeItem('sessionId');
