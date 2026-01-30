@@ -326,6 +326,74 @@ app.patch('/api/contracts/:id/status', async (c) => {
 })
 
 // ============================================
+// 사업자 정보 API
+// ============================================
+
+// 사업자 정보 조회
+app.get('/api/company-settings', async (c) => {
+  const { DB } = c.env
+  
+  const result = await DB.prepare('SELECT * FROM company_settings ORDER BY id DESC LIMIT 1').first()
+  
+  if (!result) {
+    return c.json({ 
+      company_name: '배달대행 회사', 
+      business_number: '000-00-00000', 
+      representative_name: '대표자명' 
+    })
+  }
+  
+  return c.json(result)
+})
+
+// 사업자 정보 수정
+app.put('/api/company-settings', async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  // 기존 데이터 확인
+  const existing = await DB.prepare('SELECT * FROM company_settings ORDER BY id DESC LIMIT 1').first()
+  
+  if (existing) {
+    // 업데이트
+    await DB.prepare(`
+      UPDATE company_settings 
+      SET company_name = ?, business_number = ?, representative_name = ?,
+          phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      data.company_name,
+      data.business_number,
+      data.representative_name,
+      data.phone || '',
+      data.address || '',
+      data.bank_name || '',
+      data.account_number || '',
+      data.account_holder || '',
+      (existing as any).id
+    ).run()
+  } else {
+    // 신규 삽입
+    await DB.prepare(`
+      INSERT INTO company_settings (company_name, business_number, representative_name, phone, address, bank_name, account_number, account_holder)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.company_name,
+      data.business_number,
+      data.representative_name,
+      data.phone || '',
+      data.address || '',
+      data.bank_name || '',
+      data.account_number || '',
+      data.account_holder || ''
+    ).run()
+  }
+  
+  return c.json({ message: '사업자 정보가 저장되었습니다' })
+})
+
+// ============================================
 // 차용증 API
 // ============================================
 
@@ -376,7 +444,7 @@ app.post('/api/loan-contracts', async (c) => {
       loan_number, borrower_name, borrower_resident_number, borrower_phone, borrower_address,
       loan_amount, loan_date, loan_period, repayment_date, interest_rate, daily_deduction,
       remaining_amount, total_deducted,
-      collateral, special_terms, borrower_signature, lender_signature, borrower_id_card_photo, status
+      account_number, special_terms, borrower_signature, lender_signature, borrower_id_card_photo, status
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     loanNumber,
@@ -392,7 +460,7 @@ app.post('/api/loan-contracts', async (c) => {
     data.daily_deduction,
     remainingAmount,
     0, // total_deducted
-    data.collateral || '',
+    data.account_number || '',
     data.special_terms || '',
     data.borrower_signature || '',
     data.lender_signature || '',
@@ -555,6 +623,23 @@ app.get('/loans', (c) => {
 </html>`)
 })
 
+// 관리자 설정 페이지
+app.get('/settings', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 설정</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/settings.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
 // ============================================
 // 메인 페이지
 // ============================================
@@ -584,6 +669,13 @@ app.get('/', (c) => {
 
             <!-- 메인 컨텐츠 -->
             <main class="container mx-auto px-4 py-8">
+                <!-- 관리자 설정 링크 -->
+                <div class="mb-6 text-right">
+                    <a href="/settings" class="inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                        <i class="fas fa-cog mr-2"></i>관리자 설정
+                    </a>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- 오토바이 관리 -->
                     <a href="/motorcycles" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">

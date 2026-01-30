@@ -87,8 +87,11 @@
                             <input type="number" id="interestRate" value="0" step="0.1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-bold mb-2">담보</label>
-                            <input type="text" id="collateral" placeholder="담보물이 있는 경우 입력 (예: 오토바이)" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-university mr-1 text-orange-500"></i>계좌번호
+                            </label>
+                            <input type="text" id="accountNumber" placeholder="상환용 계좌번호 입력" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <p class="text-xs text-gray-500 mt-1">일차감 상환 시 사용될 계좌번호</p>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold mb-2">특약사항</label>
@@ -125,6 +128,13 @@
                         3. 차용증 약관
                     </h2>
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 max-h-96 overflow-y-auto">
+                        <!-- 사업자 정보 표기 -->
+                        <div class="text-center mb-4 pb-3 border-b-2 border-gray-300">
+                            <p class="text-xs text-gray-600 mb-1">사업자 상호: <span id="terms-company-name" class="font-bold">로딩중...</span></p>
+                            <p class="text-xs text-gray-600 mb-1">사업자번호: <span id="terms-business-number" class="font-bold">로딩중...</span></p>
+                            <p class="text-xs text-gray-600">대표자: <span id="terms-representative-name" class="font-bold">로딩중...</span></p>
+                        </div>
+                        
                         <h3 class="font-bold text-center text-lg mb-3">배달대행 차용증</h3>
                         
                         <p class="mb-3 text-center text-xs leading-relaxed">
@@ -136,22 +146,22 @@
                             <p class="text-center font-bold text-xs">- 다 음 -</p>
                         </div>
 
-                        <p class="font-bold mt-4 mb-2">제1조 (차용금액 및 기간)</p>
+                        <p class="font-bold mt-4 mb-2">제1조 (차용금액 및 조건)</p>
                         <div class="ml-4 space-y-1 text-xs">
-                            <p>① 차용금액: 위 기재된 차용금액</p>
-                            <p>② 차용일자: 위 기재된 차용일</p>
-                            <p>③ 대여기간: 위 기재된 대여기간 (일수)</p>
-                            <p>④ 상환예정일: 위 기재된 상환예정일</p>
-                            <p>⑤ 이자율: 위 기재된 이자율 (연 이자율)</p>
+                            <p>① 차용인은 위 사업자 상호에 표기된 회사에서 일하는 조건으로 차용금을 대여받으며, 퇴사 시 남아있는 잔액 전부를 일시불로 상환하여야 합니다.</p>
+                            <p>② 차용금액: 위 기재된 차용금액</p>
+                            <p>③ 차용일자: 위 기재된 차용일</p>
+                            <p>④ 대여기간: 위 기재된 대여기간 (일수)</p>
+                            <p>⑤ 상환예정일: 위 기재된 상환예정일</p>
+                            <p>⑥ 이자율: 위 기재된 이자율 (연 이자율)</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제2조 (일차감 상환방식)</p>
                         <div class="ml-4 space-y-1 text-xs">
                             <p>① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 상환합니다.</p>
                             <p>② 일차감 금액: 위 기재된 일차감금액</p>
-                            <p>③ 배달대행 업무를 수행하지 않은 날은 차감이 이루어지지 않습니다.</p>
-                            <p>④ 차감 금액은 차용인의 일당 정산 시 자동으로 공제되어 차용금 상환에 충당됩니다.</p>
-                            <p>⑤ 차용인은 언제든지 잔여 차용금을 일시 상환할 수 있습니다.</p>
+                            <p>③ 차감 금액은 차용인의 일당 정산 시 자동으로 공제되어 차용금 상환에 충당됩니다.</p>
+                            <p>④ 차용인은 언제든지 잔여 차용금을 일시 상환할 수 있습니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제3조 (업무 수행 의무)</p>
@@ -168,10 +178,10 @@
                             <p>③ 차감 내역에 대한 이의가 있을 경우 차용인은 즉시 대여인에게 이의를 제기할 수 있으며, 대여인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제5조 (담보)</p>
+                        <p class="font-bold mt-3 mb-2">제5조 (계좌번호)</p>
                         <div class="ml-4 space-y-1 text-xs">
-                            <p>① 담보제공: 위 기재된 담보물을 제공</p>
-                            <p>② 담보물에 대한 임의처분, 이중담보 설정, 멸실 등의 행위를 하여서는 아니 됩니다.</p>
+                            <p>① 차용인의 계좌번호: 위 기재된 계좌번호</p>
+                            <p>② 차용인은 계좌번호 변경 시 즉시 대여인에게 통보하여야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제6조 (기한의 이익 상실)</p>
@@ -182,11 +192,8 @@
                         <div class="ml-4 space-y-1 text-xs">
                             <p>① 정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우</p>
                             <p>② 배달대행 플랫폼에서 계정이 정지되거나 탈퇴한 경우</p>
-                            <p>③ 담보물에 대한 임의처분, 이중담보 설정 등의 행위를 한 경우</p>
-                            <p>④ 차용인에 대한 파산, 회생절차 개시신청이 있는 경우</p>
-                            <p>⑤ 차용인의 재산에 대하여 강제집행, 가압류, 가처분이 있는 경우</p>
-                            <p>⑥ 차용인이 본 계약상의 의무를 위반한 경우</p>
-                            <p>⑦ 차용인이 대여인에게 허위 정보를 제공한 경우</p>
+                            <p>⑤ 차용인이 본 계약상의 의무를 위반한 경우</p>
+                            <p>⑥ 차용인이 대여인에게 허위 정보를 제공한 경우</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제7조 (이자 및 연체이자)</p>
@@ -325,6 +332,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             initSignaturePads();
+            loadCompanySettings();
             
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('loanDate').value = today;
@@ -335,6 +343,23 @@
             document.getElementById('loanDate').addEventListener('change', calculateRepaymentDate);
             document.getElementById('loanPeriod').addEventListener('input', calculateRepaymentDate);
         });
+        
+        // 사업자 정보 로드
+        async function loadCompanySettings() {
+            try {
+                const response = await axios.get('/api/company-settings');
+                const company = response.data;
+                
+                document.getElementById('terms-company-name').textContent = company.company_name;
+                document.getElementById('terms-business-number').textContent = company.business_number;
+                document.getElementById('terms-representative-name').textContent = company.representative_name;
+            } catch (error) {
+                console.error('Error loading company settings:', error);
+                document.getElementById('terms-company-name').textContent = '정보 없음';
+                document.getElementById('terms-business-number').textContent = '정보 없음';
+                document.getElementById('terms-representative-name').textContent = '정보 없음';
+            }
+        }
         
         // 상환예정일 자동 계산
         function calculateRepaymentDate() {
@@ -553,7 +578,7 @@
                 loan_period: loanPeriod,
                 repayment_date: document.getElementById('repaymentDate').value,
                 interest_rate: parseFloat(document.getElementById('interestRate').value) || 0,
-                collateral: document.getElementById('collateral').value || '',
+                account_number: document.getElementById('accountNumber').value || '',
                 special_terms: document.getElementById('specialTerms').value || '',
                 borrower_signature: borrowerSignatureData,
                 lender_signature: lenderSignatureData,

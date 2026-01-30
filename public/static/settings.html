@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 설정</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-6">
+            <a href="/" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-2"></i>메인으로 돌아가기
+            </a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">
+                <i class="fas fa-cog mr-3 text-blue-600"></i>
+                관리자 설정
+            </h1>
+
+            <!-- 사업자 정보 -->
+            <form id="settingsForm">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-blue-800">
+                        <i class="fas fa-building mr-2"></i>사업자 정보
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        모든 계약서 및 차용증 상단에 표기될 사업자 정보를 입력하세요.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-store mr-1 text-blue-500"></i>사업자 상호 *
+                        </label>
+                        <input type="text" id="companyName" required 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="예: 배달대행 회사">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-id-card mr-1 text-blue-500"></i>사업자번호 *
+                        </label>
+                        <input type="text" id="businessNumber" required 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="000-00-00000">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-user-tie mr-1 text-blue-500"></i>대표자 이름 *
+                        </label>
+                        <input type="text" id="representativeName" required 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="홍길동">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-phone mr-1 text-blue-500"></i>전화번호
+                        </label>
+                        <input type="tel" id="phone" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="02-1234-5678">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-map-marker-alt mr-1 text-blue-500"></i>주소
+                        </label>
+                        <input type="text" id="address" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="서울특별시 강남구 ...">
+                    </div>
+                </div>
+
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 mt-8">
+                    <h2 class="text-xl font-bold mb-4 text-green-800">
+                        <i class="fas fa-university mr-2"></i>계좌 정보
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        차용금 상환 등에 사용될 계좌 정보를 입력하세요.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-building-columns mr-1 text-green-500"></i>은행명
+                        </label>
+                        <input type="text" id="bankName" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                               placeholder="국민은행">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-credit-card mr-1 text-green-500"></i>계좌번호
+                        </label>
+                        <input type="text" id="accountNumber" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                               placeholder="123456-12-123456">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-user mr-1 text-green-500"></i>예금주
+                        </label>
+                        <input type="text" id="accountHolder" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                               placeholder="홍길동">
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-save mr-2"></i>저장
+                    </button>
+                    <a href="/" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // 페이지 로드 시 기존 설정 불러오기
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await axios.get('/api/company-settings');
+                const data = response.data;
+                
+                document.getElementById('companyName').value = data.company_name || '';
+                document.getElementById('businessNumber').value = data.business_number || '';
+                document.getElementById('representativeName').value = data.representative_name || '';
+                document.getElementById('phone').value = data.phone || '';
+                document.getElementById('address').value = data.address || '';
+                document.getElementById('bankName').value = data.bank_name || '';
+                document.getElementById('accountNumber').value = data.account_number || '';
+                document.getElementById('accountHolder').value = data.account_holder || '';
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        });
+
+        // 폼 제출
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const settingsData = {
+                company_name: document.getElementById('companyName').value,
+                business_number: document.getElementById('businessNumber').value,
+                representative_name: document.getElementById('representativeName').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                bank_name: document.getElementById('bankName').value,
+                account_number: document.getElementById('accountNumber').value,
+                account_holder: document.getElementById('accountHolder').value
+            };
+
+            try {
+                await axios.put('/api/company-settings', settingsData);
+                alert('설정이 저장되었습니다!');
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('설정 저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        });
+    </script>
+</body>
+</html>
