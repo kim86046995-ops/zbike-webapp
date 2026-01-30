@@ -305,12 +305,17 @@
                         </label>
                     </div>
                     
-                    <!-- 계약 생성 날짜/시간 -->
+                    <!-- 계약 생성 날짜/시간 및 작성 위치 -->
                     <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p class="text-sm text-green-800">
+                        <p class="text-sm text-green-800 mb-2">
                             <i class="fas fa-calendar-check mr-2"></i>
                             <span class="font-bold">계약 생성 일시:</span>
                             <span id="contractDateTime" class="ml-2"></span>
+                        </p>
+                        <p class="text-sm text-green-800">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span class="font-bold">작성 위치:</span>
+                            <span id="contractLocation" class="ml-2">위치 확인 중...</span>
                         </p>
                     </div>
                 </div>
@@ -453,6 +458,23 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
             document.getElementById('contractDateTime').textContent = dateTimeString;
+            
+            // GPS 위치 정보 가져오기
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lng = position.coords.longitude.toFixed(6);
+                        document.getElementById('contractLocation').textContent = `위도 ${lat}, 경도 ${lng}`;
+                    },
+                    (error) => {
+                        console.error('위치 정보를 가져올 수 없습니다:', error);
+                        document.getElementById('contractLocation').textContent = '위치 정보 사용 불가';
+                    }
+                );
+            } else {
+                document.getElementById('contractLocation').textContent = '브라우저가 위치 서비스를 지원하지 않습니다';
+            }
         });
         
         // 사업자 정보 로드
