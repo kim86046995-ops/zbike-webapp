@@ -368,12 +368,16 @@ app.post('/api/loan-contracts', async (c) => {
   const count = (countResult as any).count + 1
   const loanNumber = `LOAN-${today}-${String(count).padStart(4, '0')}`
   
+  // 남은 차용금은 처음에 차용금액과 동일
+  const remainingAmount = data.loan_amount
+  
   const result = await DB.prepare(`
     INSERT INTO loan_contracts (
       loan_number, borrower_name, borrower_resident_number, borrower_phone, borrower_address,
-      loan_amount, loan_date, repayment_date, interest_rate, repayment_method,
+      loan_amount, loan_date, loan_period, repayment_date, interest_rate, daily_deduction,
+      remaining_amount, total_deducted,
       collateral, special_terms, borrower_signature, lender_signature, borrower_id_card_photo, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     loanNumber,
     data.borrower_name,
@@ -382,9 +386,12 @@ app.post('/api/loan-contracts', async (c) => {
     data.borrower_address,
     data.loan_amount,
     data.loan_date,
+    data.loan_period,
     data.repayment_date,
     data.interest_rate || 0,
-    data.repayment_method || '',
+    data.daily_deduction,
+    remainingAmount,
+    0, // total_deducted
     data.collateral || '',
     data.special_terms || '',
     data.borrower_signature || '',
@@ -406,6 +413,57 @@ app.patch('/api/loan-contracts/:id/status', async (c) => {
     .bind(status, id).run()
   
   return c.json({ message: '상태가 변경되었습니다' })
+})
+
+// 일차감 기록 추가
+app.post('/api/loan-contracts/:id/deduction', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  const { work_amount, deduction_amount, notes } = await c.req.json()
+  
+  // 현재 차용증 정보 조회
+  const loan = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first() as any
+  
+  if (!loan) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  // 남은 차용금 계산
+  const newRemainingAmount = Math.max(0, loan.remaining_amount - deduction_amount)
+  const newTotalDeducted = loan.total_deducted + deduction_amount
+  
+  // 차감 기록 추가
+  await DB.prepare(`
+    INSERT INTO loan_deductions (loan_id, deduction_date, work_amount, deduction_amount, remaining_amount, notes)
+    VALUES (?, DATE('now'), ?, ?, ?, ?)
+  `).bind(id, work_amount, deduction_amount, newRemainingAmount, notes || '').run()
+  
+  // 차용증 상태 업데이트
+  const newStatus = newRemainingAmount === 0 ? 'completed' : loan.status
+  await DB.prepare(`
+    UPDATE loan_contracts 
+    SET remaining_amount = ?, total_deducted = ?, last_deduction_date = DATE('now'), status = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(newRemainingAmount, newTotalDeducted, newStatus, id).run()
+  
+  return c.json({ 
+    message: '차감이 완료되었습니다',
+    remaining_amount: newRemainingAmount,
+    total_deducted: newTotalDeducted,
+    status: newStatus
+  })
+})
+
+// 차감 기록 조회
+app.get('/api/loan-contracts/:id/deductions', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare(`
+    SELECT * FROM loan_deductions WHERE loan_id = ? ORDER BY deduction_date DESC
+  `).bind(id).all()
+  
+  return c.json(result.results)
 })
 
 // ============================================

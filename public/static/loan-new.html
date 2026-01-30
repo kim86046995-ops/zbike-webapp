@@ -48,7 +48,7 @@
                     </div>
                 </div>
 
-                <!-- 2. 차용 상세 정보 -->
+                <!-- 2. 차용 상세 정보 (배달대행 특화) -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
                         <i class="fas fa-file-invoice-dollar mr-2 text-orange-600"></i>
@@ -57,31 +57,63 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold mb-2">차용금액 (원) *</label>
-                            <input type="number" id="loanAmount" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <input type="number" id="loanAmount" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="1000000">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">이자율 (%)</label>
-                            <input type="number" id="interestRate" value="0" step="0.1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-wallet mr-1 text-orange-500"></i>일차감금액 (원) *
+                            </label>
+                            <input type="number" id="dailyDeduction" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="50000">
+                            <p class="text-xs text-gray-500 mt-1">매일 일당에서 차감할 금액</p>
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">차용일 *</label>
                             <input type="date" id="loanDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">상환일 *</label>
-                            <input type="date" id="repaymentDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-calendar-days mr-1 text-orange-500"></i>대여기간 (일) *
+                            </label>
+                            <input type="number" id="loanPeriod" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="30">
+                            <p class="text-xs text-gray-500 mt-1">상환 예정 기간 (일수)</p>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-bold mb-2">상환방법</label>
-                            <input type="text" id="repaymentMethod" placeholder="예: 일시상환, 분할상환" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">상환예정일</label>
+                            <input type="date" id="repaymentDate" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed">
+                            <p class="text-xs text-gray-500 mt-1">차용일 + 대여기간으로 자동 계산</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">이자율 (연%)</label>
+                            <input type="number" id="interestRate" value="0" step="0.1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold mb-2">담보</label>
-                            <input type="text" id="collateral" placeholder="담보물이 있는 경우 입력" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <input type="text" id="collateral" placeholder="담보물이 있는 경우 입력 (예: 오토바이)" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold mb-2">특약사항</label>
                             <textarea id="specialTerms" rows="4" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="추가 특약사항이 있으면 입력하세요"></textarea>
+                        </div>
+                        
+                        <!-- 예상 상환 정보 표시 -->
+                        <div class="md:col-span-2 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                            <h3 class="font-bold text-blue-800 mb-2">
+                                <i class="fas fa-calculator mr-2"></i>예상 상환 정보
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                <div>
+                                    <span class="text-gray-600">예상 상환 일수:</span>
+                                    <span class="font-bold text-blue-800 ml-2" id="estimatedDays">-</span>일
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">총 차감 예정액:</span>
+                                    <span class="font-bold text-blue-800 ml-2" id="estimatedTotal">-</span>원
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">일 차감률:</span>
+                                    <span class="font-bold text-blue-800 ml-2" id="deductionRate">-</span>%
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -93,11 +125,11 @@
                         3. 차용증 약관
                     </h2>
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 max-h-96 overflow-y-auto">
-                        <h3 class="font-bold text-center text-lg mb-3">차 용 증</h3>
+                        <h3 class="font-bold text-center text-lg mb-3">배달대행 차용증</h3>
                         
                         <p class="mb-3 text-center text-xs leading-relaxed">
-                            본인(차용인)은 귀하(대여인)로부터 아래와 같이 금전을 차용하였음을 확인하고,<br>
-                            본 약정 조건에 따라 성실히 상환할 것을 확약합니다.
+                            본인(차용인)은 귀사(대여인)로부터 아래와 같이 금전을 차용하였음을 확인하고,<br>
+                            배달대행 일당에서 매일 차감하는 방식으로 성실히 상환할 것을 확약합니다.
                         </p>
 
                         <div class="border-t border-b border-gray-400 py-2 my-3">
@@ -108,66 +140,88 @@
                         <div class="ml-4 space-y-1 text-xs">
                             <p>① 차용금액: 위 기재된 차용금액</p>
                             <p>② 차용일자: 위 기재된 차용일</p>
-                            <p>③ 상환기일: 위 기재된 상환일</p>
-                            <p>④ 이자율: 위 기재된 이자율 (연 이자율)</p>
+                            <p>③ 대여기간: 위 기재된 대여기간 (일수)</p>
+                            <p>④ 상환예정일: 위 기재된 상환예정일</p>
+                            <p>⑤ 이자율: 위 기재된 이자율 (연 이자율)</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제2조 (상환방법)</p>
+                        <p class="font-bold mt-3 mb-2">제2조 (일차감 상환방식)</p>
                         <div class="ml-4 space-y-1 text-xs">
-                            <p>① 상환방법: 위 기재된 상환방법에 따름</p>
-                            <p>② 상환장소: 대여인이 지정하는 금융기관 계좌 또는 현금</p>
-                            <p>③ 이자 지급: 매월 말일까지 해당 월 이자 선납</p>
-                            <p>④ 상환기일이 공휴일인 경우 그 익일을 상환일로 함</p>
+                            <p>① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 상환합니다.</p>
+                            <p>② 일차감 금액: 위 기재된 일차감금액</p>
+                            <p>③ 배달대행 업무를 수행하지 않은 날은 차감이 이루어지지 않습니다.</p>
+                            <p>④ 차감 금액은 차용인의 일당 정산 시 자동으로 공제되어 차용금 상환에 충당됩니다.</p>
+                            <p>⑤ 차용인은 언제든지 잔여 차용금을 일시 상환할 수 있습니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제3조 (담보 및 보증)</p>
+                        <p class="font-bold mt-3 mb-2">제3조 (업무 수행 의무)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 차용인은 차용금 상환을 위하여 성실히 배달대행 업무를 수행할 의무가 있습니다.</p>
+                            <p>② 차용인이 정당한 사유 없이 3일 이상 연속하여 업무를 수행하지 않는 경우, 대여인은 즉시 잔여 차용금 전액의 상환을 청구할 수 있습니다.</p>
+                            <p>③ 차용인은 배달대행 플랫폼에 등록된 정보(본인 인증 정보, 계좌 정보 등)를 유지할 의무가 있습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제4조 (정산 및 투명성)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 대여인은 차용인의 일당, 차감 금액, 잔여 차용금을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p>② 차용인은 언제든지 본인의 차감 내역과 잔여 차용금을 조회할 수 있습니다.</p>
+                            <p>③ 차감 내역에 대한 이의가 있을 경우 차용인은 즉시 대여인에게 이의를 제기할 수 있으며, 대여인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제5조 (담보)</p>
                         <div class="ml-4 space-y-1 text-xs">
                             <p>① 담보제공: 위 기재된 담보물을 제공</p>
-                            <p>② 차용인은 대여인의 요구가 있을 시 연대보증인을 제공하여야 함</p>
-                            <p>③ 담보물에 대한 임의처분, 이중담보 설정, 멸실 등의 행위를 하여서는 아니 됨</p>
+                            <p>② 담보물에 대한 임의처분, 이중담보 설정, 멸실 등의 행위를 하여서는 아니 됩니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제4조 (기한의 이익 상실)</p>
+                        <p class="font-bold mt-3 mb-2">제6조 (기한의 이익 상실)</p>
                         <p class="ml-4 mb-1 text-xs">
                             차용인이 다음 각 호의 어느 하나에 해당하는 경우 통보 없이 당연히 기한의 이익을 상실하며,<br>
-                            대여인은 즉시 원금과 경과이자 및 연체이자의 전액을 청구할 수 있습니다.
+                            대여인은 즉시 잔여 원금과 경과이자 및 연체이자의 전액을 청구할 수 있습니다.
                         </p>
                         <div class="ml-4 space-y-1 text-xs">
-                            <p>① 원금 또는 이자의 지급을 1회라도 지체한 경우</p>
-                            <p>② 담보물에 대한 임의처분, 이중담보 설정 등의 행위를 한 경우</p>
-                            <p>③ 차용인에 대한 파산, 회생절차 개시신청이 있는 경우</p>
-                            <p>④ 차용인의 재산에 대하여 강제집행, 가압류, 가처분이 있는 경우</p>
-                            <p>⑤ 차용인이 본 계약상의 의무를 위반한 경우</p>
-                            <p>⑥ 차용인의 신용상태가 현저히 악화되어 채권회수가 곤란하다고 인정되는 경우</p>
+                            <p>① 정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우</p>
+                            <p>② 배달대행 플랫폼에서 계정이 정지되거나 탈퇴한 경우</p>
+                            <p>③ 담보물에 대한 임의처분, 이중담보 설정 등의 행위를 한 경우</p>
+                            <p>④ 차용인에 대한 파산, 회생절차 개시신청이 있는 경우</p>
+                            <p>⑤ 차용인의 재산에 대하여 강제집행, 가압류, 가처분이 있는 경우</p>
+                            <p>⑥ 차용인이 본 계약상의 의무를 위반한 경우</p>
+                            <p>⑦ 차용인이 대여인에게 허위 정보를 제공한 경우</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제5조 (연체이자 및 지연배상금)</p>
+                        <p class="font-bold mt-3 mb-2">제7조 (이자 및 연체이자)</p>
                         <div class="ml-4 space-y-1 text-xs">
-                            <p>① 차용인이 원금 또는 이자의 지급을 지체하는 경우, 연체금액에 대하여 연 15%의 연체이자율을 적용하여 지급</p>
-                            <p>② 연체기간 산정은 지체일로부터 실제 변제일까지로 함</p>
-                            <p>③ 연체이자는 원금 상환 시까지 계속 가산됨</p>
+                            <p>① 이자는 위 기재된 이자율을 적용하여 계산됩니다.</p>
+                            <p>② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 연 15%의 연체이자를 부담합니다.</p>
+                            <p>③ 연체기간 산정은 연체 개시일로부터 실제 변제일까지로 합니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제6조 (비용 부담)</p>
+                        <p class="font-bold mt-3 mb-2">제8조 (중도 상환)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 차용인은 언제든지 잔여 차용금을 중도 상환할 수 있으며, 이 경우 별도의 중도상환 수수료는 없습니다.</p>
+                            <p>② 중도 상환 시 경과 이자는 일할 계산하여 정산합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제9조 (비용 부담)</p>
                         <p class="ml-4 mb-2 text-xs">
                             본 차용금의 회수를 위하여 발생하는 일체의 비용(제소비용, 변호사 선임비용 등)은 차용인이 부담합니다.
                         </p>
 
-                        <p class="font-bold mt-3 mb-2">제7조 (계약의 해석 및 합의)</p>
+                        <p class="font-bold mt-3 mb-2">제10조 (계약의 해석 및 합의)</p>
                         <div class="ml-4 space-y-1 text-xs">
-                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따름</p>
-                            <p>② 본 계약의 내용을 변경하고자 할 때는 쌍방 합의 하에 서면으로 작성</p>
-                            <p>③ 특약사항은 위 기재된 특약사항에 따름</p>
+                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
+                            <p>② 본 계약의 내용을 변경하고자 할 때는 쌍방 합의 하에 서면으로 작성하여야 합니다.</p>
+                            <p>③ 특약사항은 위 기재된 특약사항에 따릅니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제8조 (관할 법원)</p>
+                        <p class="font-bold mt-3 mb-2">제11조 (관할 법원)</p>
                         <p class="ml-4 mb-3 text-xs">
                             본 계약으로 인한 분쟁 발생 시 대여인의 주소지 관할 법원을 전속관할로 합니다.
                         </p>
 
                         <div class="border-t border-gray-400 mt-4 pt-3">
                             <p class="text-center text-xs leading-relaxed">
-                                본인은 위 차용금을 위 약정에 따라 성실히 상환할 것을 확약하며,<br>
+                                본인은 위 차용금을 배달대행 일당에서 매일 차감하는 방식으로 성실히 상환할 것을 확약하며,<br>
                                 이를 증명하기 위하여 본 차용증을 작성하고 서명 날인합니다.
                             </p>
                         </div>
@@ -274,7 +328,52 @@
             
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('loanDate').value = today;
+            
+            // 이벤트 리스너 추가: 자동 계산
+            document.getElementById('loanAmount').addEventListener('input', calculateEstimates);
+            document.getElementById('dailyDeduction').addEventListener('input', calculateEstimates);
+            document.getElementById('loanDate').addEventListener('change', calculateRepaymentDate);
+            document.getElementById('loanPeriod').addEventListener('input', calculateRepaymentDate);
         });
+        
+        // 상환예정일 자동 계산
+        function calculateRepaymentDate() {
+            const loanDateStr = document.getElementById('loanDate').value;
+            const loanPeriod = parseInt(document.getElementById('loanPeriod').value) || 0;
+            
+            if (loanDateStr && loanPeriod > 0) {
+                const loanDate = new Date(loanDateStr);
+                loanDate.setDate(loanDate.getDate() + loanPeriod);
+                
+                const year = loanDate.getFullYear();
+                const month = String(loanDate.getMonth() + 1).padStart(2, '0');
+                const day = String(loanDate.getDate()).padStart(2, '0');
+                
+                document.getElementById('repaymentDate').value = `${year}-${month}-${day}`;
+            }
+            
+            calculateEstimates();
+        }
+        
+        // 예상 상환 정보 계산
+        function calculateEstimates() {
+            const loanAmount = parseInt(document.getElementById('loanAmount').value) || 0;
+            const dailyDeduction = parseInt(document.getElementById('dailyDeduction').value) || 0;
+            
+            if (loanAmount > 0 && dailyDeduction > 0) {
+                const estimatedDays = Math.ceil(loanAmount / dailyDeduction);
+                const estimatedTotal = estimatedDays * dailyDeduction;
+                const deductionRate = ((dailyDeduction / loanAmount) * 100).toFixed(2);
+                
+                document.getElementById('estimatedDays').textContent = estimatedDays.toLocaleString();
+                document.getElementById('estimatedTotal').textContent = estimatedTotal.toLocaleString();
+                document.getElementById('deductionRate').textContent = deductionRate;
+            } else {
+                document.getElementById('estimatedDays').textContent = '-';
+                document.getElementById('estimatedTotal').textContent = '-';
+                document.getElementById('deductionRate').textContent = '-';
+            }
+        }
 
         function initSignaturePads() {
             // 차용인 서명
@@ -433,16 +532,27 @@
                 return;
             }
 
+            // 필수 필드 확인
+            const loanAmount = parseInt(document.getElementById('loanAmount').value);
+            const dailyDeduction = parseInt(document.getElementById('dailyDeduction').value);
+            const loanPeriod = parseInt(document.getElementById('loanPeriod').value);
+            
+            if (!loanAmount || !dailyDeduction || !loanPeriod) {
+                alert('차용금액, 일차감금액, 대여기간을 모두 입력해주세요');
+                return;
+            }
+
             const loanData = {
                 borrower_name: document.getElementById('borrowerName').value,
                 borrower_resident_number: document.getElementById('borrowerResidentNumber').value,
                 borrower_phone: document.getElementById('borrowerPhone').value,
                 borrower_address: document.getElementById('borrowerAddress').value,
-                loan_amount: parseInt(document.getElementById('loanAmount').value),
+                loan_amount: loanAmount,
+                daily_deduction: dailyDeduction,
                 loan_date: document.getElementById('loanDate').value,
+                loan_period: loanPeriod,
                 repayment_date: document.getElementById('repaymentDate').value,
                 interest_rate: parseFloat(document.getElementById('interestRate').value) || 0,
-                repayment_method: document.getElementById('repaymentMethod').value || '',
                 collateral: document.getElementById('collateral').value || '',
                 special_terms: document.getElementById('specialTerms').value || '',
                 borrower_signature: borrowerSignatureData,
