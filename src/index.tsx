@@ -211,6 +211,25 @@ app.get('/api/contracts', async (c) => {
   return c.json(result.results)
 })
 
+// 오토바이별 계약 이력 조회
+app.get('/api/motorcycles/:id/contracts', async (c) => {
+  const { DB } = c.env
+  const motorcycleId = c.req.param('id')
+  
+  const result = await DB.prepare(`
+    SELECT 
+      c.*,
+      cu.name as customer_name, cu.resident_number, cu.phone as customer_phone,
+      cu.address as customer_address, cu.license_type
+    FROM contracts c
+    JOIN customers cu ON c.customer_id = cu.id
+    WHERE c.motorcycle_id = ?
+    ORDER BY c.created_at DESC
+  `).bind(motorcycleId).all()
+  
+  return c.json(result.results)
+})
+
 // 계약서 상세 조회
 app.get('/api/contracts/:id', async (c) => {
   const { DB } = c.env

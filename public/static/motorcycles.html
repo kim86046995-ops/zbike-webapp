@@ -6,6 +6,15 @@
     <title>오토바이 관리</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .insurance-progress {
+            transition: width 0.3s ease;
+        }
+        .cursor-pointer:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen">
@@ -126,6 +135,32 @@
         </div>
     </div>
 
+    <!-- 계약 이력 모달 -->
+    <div id="historyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">
+                        <i class="fas fa-history mr-2 text-blue-600"></i>
+                        계약 이력
+                    </h2>
+                    <button onclick="hideHistoryModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <div id="motorcycleInfo" class="bg-blue-50 p-4 rounded-lg mb-6"></div>
+                <div id="contractHistory"></div>
+
+                <div class="mt-6">
+                    <button onclick="hideHistoryModal()" class="w-full bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         let motorcycles = [];
@@ -147,6 +182,35 @@
 
         function filterMotorcycles() {
             loadMotorcycles();
+        }
+
+        function calculateInsuranceProgress(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const today = new Date();
+            
+            const totalDays = (end - start) / (1000 * 60 * 60 * 24);
+            const elapsedDays = (today - start) / (1000 * 60 * 60 * 24);
+            const remainingDays = (end - today) / (1000 * 60 * 60 * 24);
+            
+            const percentage = Math.max(0, Math.min(100, (elapsedDays / totalDays) * 100));
+            const remainingPercentage = 100 - percentage;
+            
+            return {
+                percentage: percentage.toFixed(1),
+                remainingPercentage: remainingPercentage.toFixed(1),
+                remainingDays: Math.ceil(remainingDays),
+                isExpired: today > end,
+                isExpiringSoon: remainingDays <= 30 && remainingDays > 0
+            };
+        }
+
+        function getProgressColor(progress) {
+            if (progress.isExpired) return 'bg-red-500';
+            if (progress.isExpiringSoon) return 'bg-yellow-500';
+            if (progress.remainingPercentage > 50) return 'bg-green-500';
+            if (progress.remainingPercentage > 25) return 'bg-blue-500';
+            return 'bg-orange-500';
         }
 
         function renderMotorcycles() {
@@ -177,35 +241,176 @@
                     'maintenance': '정비중'
                 };
 
+                const progress = calculateInsuranceProgress(m.insurance_start_date, m.insurance_end_date);
+                const progressColor = getProgressColor(progress);
+
                 return `
-                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xl font-bold text-gray-800">${m.vehicle_name}</h3>
-                            <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColors[m.status]}">
-                                ${statusTexts[m.status]}
-                            </span>
-                        </div>
-                        
-                        <div class="space-y-2 text-sm text-gray-600 mb-4">
-                            <p><i class="fas fa-hashtag w-5 text-blue-600"></i> <strong>번호판:</strong> ${m.plate_number}</p>
-                            <p><i class="fas fa-barcode w-5 text-blue-600"></i> <strong>차대번호:</strong> ${m.chassis_number}</p>
-                            <p><i class="fas fa-tachometer-alt w-5 text-blue-600"></i> <strong>주행거리:</strong> ${Number(m.mileage).toLocaleString()} km</p>
-                            <p><i class="fas fa-calendar w-5 text-blue-600"></i> <strong>연식:</strong> ${m.model_year}년</p>
-                            <p><i class="fas fa-shield-alt w-5 text-blue-600"></i> <strong>보험:</strong> ${m.insurance_company}</p>
-                            <p><i class="fas fa-won-sign w-5 text-blue-600"></i> <strong>차량가:</strong> ${Number(m.vehicle_price).toLocaleString()}원</p>
+                    <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all overflow-hidden">
+                        <!-- 상단: 번호판 클릭 영역 -->
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-4 cursor-pointer hover:from-blue-600 hover:to-blue-700 transition-all" onclick="showHistory(${m.id})">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-white text-sm opacity-90">
+                                        <i class="fas fa-hashtag mr-1"></i>번호판
+                                    </p>
+                                    <p class="text-white text-2xl font-bold">${m.plate_number}</p>
+                                </div>
+                                <div class="text-white">
+                                    <i class="fas fa-history text-3xl opacity-80"></i>
+                                    <p class="text-xs mt-1 opacity-90">이력조회</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="flex gap-2">
-                            <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                                <i class="fas fa-edit mr-1"></i>수정
-                            </button>
-                            <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
-                                <i class="fas fa-trash mr-1"></i>삭제
-                            </button>
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-gray-800">${m.vehicle_name}</h3>
+                                <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColors[m.status]}">
+                                    ${statusTexts[m.status]}
+                                </span>
+                            </div>
+                            
+                            <!-- 보험 기간 진행률 -->
+                            <div class="mb-4 bg-gray-100 p-3 rounded-lg">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-bold text-gray-700">
+                                        <i class="fas fa-shield-alt mr-1"></i>보험 기간
+                                    </span>
+                                    <span class="text-xs font-bold ${progress.isExpired ? 'text-red-600' : progress.isExpiringSoon ? 'text-yellow-600' : 'text-blue-600'}">
+                                        ${progress.isExpired ? '만료됨' : `${progress.remainingDays}일 남음`}
+                                    </span>
+                                </div>
+                                
+                                <div class="relative h-6 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="insurance-progress absolute h-full ${progressColor} rounded-full flex items-center justify-end pr-2" style="width: ${progress.percentage}%">
+                                        ${progress.percentage > 10 ? `<span class="text-xs text-white font-bold">${progress.percentage}%</span>` : ''}
+                                    </div>
+                                    ${progress.percentage <= 10 ? `<span class="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-600 font-bold">${progress.percentage}%</span>` : ''}
+                                </div>
+                                
+                                <div class="flex justify-between text-xs text-gray-600 mt-1">
+                                    <span>${m.insurance_start_date}</span>
+                                    <span>${m.insurance_end_date}</span>
+                                </div>
+                                
+                                ${progress.isExpired ? `
+                                    <div class="mt-2 bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-bold">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>보험이 만료되었습니다!
+                                    </div>
+                                ` : progress.isExpiringSoon ? `
+                                    <div class="mt-2 bg-yellow-100 text-yellow-700 px-3 py-1 rounded text-xs font-bold">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>보험 갱신이 필요합니다
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <div class="space-y-2 text-sm text-gray-600 mb-4">
+                                <p><i class="fas fa-barcode w-5 text-blue-600"></i> <strong>차대번호:</strong> ${m.chassis_number}</p>
+                                <p><i class="fas fa-tachometer-alt w-5 text-blue-600"></i> <strong>주행거리:</strong> ${Number(m.mileage).toLocaleString()} km</p>
+                                <p><i class="fas fa-calendar w-5 text-blue-600"></i> <strong>연식:</strong> ${m.model_year}년</p>
+                                <p><i class="fas fa-building w-5 text-blue-600"></i> <strong>보험사:</strong> ${m.insurance_company}</p>
+                                <p><i class="fas fa-won-sign w-5 text-blue-600"></i> <strong>차량가:</strong> ${Number(m.vehicle_price).toLocaleString()}원</p>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                                    <i class="fas fa-edit mr-1"></i>수정
+                                </button>
+                                <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                                    <i class="fas fa-trash mr-1"></i>삭제
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        async function showHistory(motorcycleId) {
+            try {
+                // 오토바이 정보 조회
+                const motorcycleResponse = await axios.get(`/api/motorcycles/${motorcycleId}`);
+                const motorcycle = motorcycleResponse.data;
+                
+                // 계약 이력 조회
+                const historyResponse = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`);
+                const contracts = historyResponse.data;
+                
+                // 오토바이 정보 표시
+                document.getElementById('motorcycleInfo').innerHTML = `
+                    <h3 class="text-lg font-bold mb-2">${motorcycle.vehicle_name}</h3>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <p><strong>번호판:</strong> ${motorcycle.plate_number}</p>
+                        <p><strong>차대번호:</strong> ${motorcycle.chassis_number}</p>
+                        <p><strong>연식:</strong> ${motorcycle.model_year}년</p>
+                        <p><strong>주행거리:</strong> ${Number(motorcycle.mileage).toLocaleString()} km</p>
+                    </div>
+                `;
+                
+                // 계약 이력 표시
+                if (contracts.length === 0) {
+                    document.getElementById('contractHistory').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2 opacity-50"></i>
+                            <p>계약 이력이 없습니다</p>
+                        </div>
+                    `;
+                } else {
+                    const statusColors = {
+                        'active': 'bg-green-100 text-green-800',
+                        'completed': 'bg-gray-100 text-gray-800',
+                        'cancelled': 'bg-red-100 text-red-800'
+                    };
+                    const statusTexts = {
+                        'active': '진행중',
+                        'completed': '완료',
+                        'cancelled': '취소'
+                    };
+                    const typeTexts = {
+                        'lease': '리스',
+                        'rent': '렌트'
+                    };
+                    
+                    document.getElementById('contractHistory').innerHTML = `
+                        <div class="space-y-4">
+                            <h4 class="font-bold text-gray-700">총 ${contracts.length}건의 계약</h4>
+                            ${contracts.map(contract => `
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p class="font-bold text-gray-800">${contract.contract_number}</p>
+                                            <p class="text-sm text-gray-600">${contract.customer_name} (${contract.customer_phone})</p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[contract.status]}">
+                                                ${statusTexts[contract.status]}
+                                            </span>
+                                            <span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                                                ${typeTexts[contract.contract_type]}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                        <p><strong>계약기간:</strong> ${contract.start_date} ~ ${contract.end_date}</p>
+                                        <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
+                                        <p><strong>보증금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
+                                        <p><strong>작성일:</strong> ${new Date(contract.created_at).toLocaleDateString('ko-KR')}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('historyModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading contract history:', error);
+                alert('계약 이력을 불러오는데 실패했습니다');
+            }
+        }
+
+        function hideHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
         }
 
         function showAddModal() {
