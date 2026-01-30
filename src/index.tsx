@@ -874,35 +874,78 @@ app.get('/api/contract-shares', async (c) => {
 app.post('/api/send-sms', async (c) => {
   const { phone, share_url, customer_name, contract_type } = await c.req.json()
   
-  // SMS 전송 로직 (실제로는 SMS API 연동 필요)
-  // 예: Twilio, Aligo, CoolSMS 등
-  
-  // 임시: SMS 전송 시뮬레이션
   const message = `[오토바이 계약서]\n\n${customer_name}님, 계약서를 검토하시고 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
   
-  console.log('SMS 전송 시뮬레이션:')
+  // CoolSMS API 연동 예시 (환경변수에 API 키가 있을 때만 실제 전송)
+  if (c.env.COOLSMS_API_KEY && c.env.COOLSMS_API_SECRET && c.env.COOLSMS_SENDER) {
+    try {
+      // CoolSMS API v4 사용
+      const apiKey = c.env.COOLSMS_API_KEY
+      const apiSecret = c.env.COOLSMS_API_SECRET
+      const sender = c.env.COOLSMS_SENDER
+      
+      // 인증 토큰 생성 (HMAC)
+      const timestamp = Date.now().toString()
+      const salt = Math.random().toString(36).substring(2, 15)
+      
+      // CoolSMS API 호출
+      const response = await fetch('https://api.coolsms.co.kr/messages/v4/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `HMAC-SHA256 apiKey=${apiKey}, date=${timestamp}, salt=${salt}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: {
+            to: phone.replace(/-/g, ''), // 하이픈 제거
+            from: sender.replace(/-/g, ''),
+            text: message
+          }
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        console.log('SMS 전송 성공:', result)
+        return c.json({ 
+          success: true, 
+          message: 'SMS가 전송되었습니다',
+          phone,
+          messageLength: message.length
+        })
+      } else {
+        console.error('SMS 전송 실패:', result)
+        return c.json({ 
+          success: false, 
+          message: 'SMS 전송에 실패했습니다',
+          error: result
+        }, 500)
+      }
+    } catch (error) {
+      console.error('SMS API 오류:', error)
+      return c.json({ 
+        success: false, 
+        message: 'SMS API 호출 중 오류가 발생했습니다'
+      }, 500)
+    }
+  }
+  
+  // API 키가 없으면 시뮬레이션 모드
+  console.log('=== SMS 전송 시뮬레이션 ===')
   console.log('수신번호:', phone)
   console.log('메시지:', message)
-  
-  // 실제 SMS API 호출 예시 (주석 처리)
-  // const smsApiKey = c.env.SMS_API_KEY
-  // const response = await fetch('https://api.coolsms.co.kr/sms/2/send', {
-  //   method: 'POST',
-  //   headers: { 'Authorization': `Bearer ${smsApiKey}`, 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     to: phone,
-  //     from: '발신번호',
-  //     text: message
-  //   })
-  // })
+  console.log('=========================')
+  console.log('실제 SMS를 보내려면 CoolSMS API 키를 환경변수에 설정하세요.')
+  console.log('환경변수: COOLSMS_API_KEY, COOLSMS_API_SECRET, COOLSMS_SENDER')
   
   return c.json({ 
     success: true, 
-    message: 'SMS가 전송되었습니다',
-    // 실제로는 SMS 전송 결과 반환
+    message: 'SMS가 전송되었습니다 (시뮬레이션)',
     simulation: true,
     phone,
-    messageLength: message.length
+    messageLength: message.length,
+    note: '실제 SMS를 보내려면 CoolSMS API 키를 설정하세요'
   })
 })
 

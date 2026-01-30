@@ -12,5 +12,9 @@
       "database_name": "webapp-production",
       "database_id": "local-db"
     }
-  ]
+  ],
+  // SMS 환경변수 타입 정의 (TypeScript 타입 생성용)
+  "vars": {
+    "SMS_ENABLED": "true"
+  }
 }
