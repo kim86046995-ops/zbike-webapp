@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약서 작성</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen pb-20">
+        <!-- 헤더 -->
+        <header class="bg-green-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <a href="/" class="text-xl font-bold">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    계약서 작성
+                </a>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="container mx-auto px-4 py-8 max-w-4xl">
+            <form id="contractForm" class="space-y-6">
+                <!-- 1. 계약 타입 선택 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-contract mr-2 text-green-600"></i>
+                        1. 계약 타입
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="contract_type" value="lease" required class="peer hidden">
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                <i class="fas fa-calendar-alt text-3xl text-green-600 mb-2"></i>
+                                <p class="font-bold text-lg">리스</p>
+                                <p class="text-sm text-gray-600 mt-2">장기 렌탈 계약</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="contract_type" value="rent" required class="peer hidden">
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                <i class="fas fa-clock text-3xl text-green-600 mb-2"></i>
+                                <p class="font-bold text-lg">렌트</p>
+                                <p class="text-sm text-gray-600 mt-2">단기 대여 계약</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. 오토바이 선택 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-motorcycle mr-2 text-green-600"></i>
+                        2. 오토바이 선택
+                    </h2>
+                    <div id="motorcycleSelection">
+                        <p class="text-gray-500 text-center py-4">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            사용 가능한 오토바이 로딩 중...
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 3. 고객 정보 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-user mr-2 text-green-600"></i>
+                        3. 고객 정보
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">이름 *</label>
+                            <input type="text" id="customerName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">주민번호 *</label>
+                            <input type="text" id="residentNumber" required placeholder="000000-0000000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">전화번호 *</label>
+                            <input type="tel" id="phone" required placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">면허종류 *</label>
+                            <select id="licenseType" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                                <option value="">선택하세요</option>
+                                <option value="2종 소형">2종 소형</option>
+                                <option value="2종 보통">2종 보통</option>
+                                <option value="1종 보통">1종 보통</option>
+                                <option value="1종 대형">1종 대형</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">주소 *</label>
+                            <input type="text" id="address" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 계약 상세 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-invoice mr-2 text-green-600"></i>
+                        4. 계약 상세 정보
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">계약 시작일 *</label>
+                            <input type="date" id="startDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">계약 종료일 *</label>
+                            <input type="date" id="endDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">월 납부금액 (원) *</label>
+                            <input type="number" id="monthlyFee" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">보증금 (원)</label>
+                            <input type="number" id="deposit" value="0" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">특약사항</label>
+                            <textarea id="specialTerms" rows="4" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" placeholder="추가 특약사항이 있으면 입력하세요"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. 전자서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-green-600"></i>
+                        5. 전자서명
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">아래 서명 박스에 고객의 서명을 받아주세요</p>
+                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                        <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <button type="button" onclick="clearSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-eraser mr-1"></i>서명 지우기
+                    </button>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition">
+                        <i class="fas fa-check-circle mr-2"></i>계약서 생성
+                    </button>
+                    <a href="/" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        let motorcycles = [];
+        let selectedMotorcycleId = null;
+        let canvas, ctx;
+        let isDrawing = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMotorcycles();
+            initSignaturePad();
+            
+            // 오늘 날짜를 계약 시작일의 기본값으로 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+        });
+
+        async function loadMotorcycles() {
+            try {
+                const response = await axios.get('/api/motorcycles?status=available');
+                motorcycles = response.data;
+                renderMotorcycles();
+            } catch (error) {
+                console.error('Error loading motorcycles:', error);
+                document.getElementById('motorcycleSelection').innerHTML = `
+                    <p class="text-red-500 text-center py-4">
+                        오토바이 목록을 불러오는데 실패했습니다
+                    </p>
+                `;
+            }
+        }
+
+        function renderMotorcycles() {
+            const container = document.getElementById('motorcycleSelection');
+            
+            if (motorcycles.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-circle text-4xl text-yellow-500 mb-3"></i>
+                        <p class="text-gray-600 mb-4">사용 가능한 오토바이가 없습니다</p>
+                        <a href="/motorcycles" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-2"></i>오토바이 등록하기
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${motorcycles.map(m => `
+                        <label class="cursor-pointer">
+                            <input type="radio" name="motorcycle_id" value="${m.id}" required class="peer hidden" onchange="selectMotorcycle(${m.id})">
+                            <div class="border-2 border-gray-300 rounded-lg p-4 peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                <h3 class="font-bold text-lg mb-2">${m.vehicle_name}</h3>
+                                <div class="text-sm text-gray-600 space-y-1">
+                                    <p><i class="fas fa-hashtag w-5"></i> ${m.plate_number}</p>
+                                    <p><i class="fas fa-calendar w-5"></i> ${m.model_year}년</p>
+                                    <p><i class="fas fa-tachometer-alt w-5"></i> ${Number(m.mileage).toLocaleString()} km</p>
+                                    <p><i class="fas fa-shield-alt w-5"></i> ${m.insurance_company}</p>
+                                </div>
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function selectMotorcycle(id) {
+            selectedMotorcycleId = id;
+        }
+
+        function initSignaturePad() {
+            canvas = document.getElementById('signatureCanvas');
+            ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // 터치 이벤트 지원
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mouseup', {});
+                canvas.dispatchEvent(mouseEvent);
+            });
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        document.getElementById('contractForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 필수 항목 확인
+            const contractType = document.querySelector('input[name="contract_type"]:checked')?.value;
+            if (!contractType) {
+                alert('계약 타입을 선택해주세요');
+                return;
+            }
+
+            if (!selectedMotorcycleId) {
+                alert('오토바이를 선택해주세요');
+                return;
+            }
+
+            // 서명 데이터 확인
+            const signatureData = canvas.toDataURL('image/png');
+            const isSignatureEmpty = ctx.getImageData(0, 0, canvas.width, canvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
+            
+            if (isSignatureEmpty) {
+                alert('서명을 해주세요');
+                return;
+            }
+
+            // 고객 정보 생성
+            const customerData = {
+                name: document.getElementById('customerName').value,
+                resident_number: document.getElementById('residentNumber').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                license_type: document.getElementById('licenseType').value
+            };
+
+            try {
+                // 1. 고객 정보 저장
+                const customerResponse = await axios.post('/api/customers', customerData);
+                const customerId = customerResponse.data.id;
+
+                // 2. 계약서 생성
+                const contractData = {
+                    contract_type: contractType,
+                    motorcycle_id: selectedMotorcycleId,
+                    customer_id: customerId,
+                    start_date: document.getElementById('startDate').value,
+                    end_date: document.getElementById('endDate').value,
+                    monthly_fee: parseInt(document.getElementById('monthlyFee').value),
+                    deposit: parseInt(document.getElementById('deposit').value) || 0,
+                    special_terms: document.getElementById('specialTerms').value || '',
+                    signature_data: signatureData
+                };
+
+                const contractResponse = await axios.post('/api/contracts', contractData);
+                
+                alert(`계약서가 생성되었습니다!\n계약번호: ${contractResponse.data.contract_number}`);
+                window.location.href = '/contracts';
+            } catch (error) {
+                console.error('Error creating contract:', error);
+                alert('계약서 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        });
+    </script>
+</body>
+</html>

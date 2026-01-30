@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오토바이 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- 헤더 -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+                <a href="/" class="text-xl font-bold">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    오토바이 관리
+                </a>
+                <button onclick="showAddModal()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50">
+                    <i class="fas fa-plus mr-2"></i>오토바이 등록
+                </button>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- 필터 -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <label class="block text-sm font-bold mb-2">상태 필터</label>
+                <select id="statusFilter" onchange="filterMotorcycles()" class="w-full md:w-64 px-3 py-2 border rounded-lg">
+                    <option value="">전체</option>
+                    <option value="available">사용가능</option>
+                    <option value="rented">렌트중</option>
+                    <option value="maintenance">정비중</option>
+                </select>
+            </div>
+
+            <!-- 오토바이 목록 -->
+            <div id="motorcycleList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 로딩 중... -->
+                <div class="col-span-full text-center py-8 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                    <p class="mt-2">로딩 중...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 등록/수정 모달 -->
+    <div id="motorcycleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
+            <div class="p-6">
+                <h2 id="modalTitle" class="text-2xl font-bold mb-6">오토바이 등록</h2>
+                <form id="motorcycleForm" class="space-y-4">
+                    <input type="hidden" id="motorcycleId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">번호판 *</label>
+                            <input type="text" id="plateNumber" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차량이름 *</label>
+                            <input type="text" id="vehicleName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차대번호 *</label>
+                            <input type="text" id="chassisNumber" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">키로수 *</label>
+                            <input type="number" id="mileage" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">연식 *</label>
+                            <input type="number" id="modelYear" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="예: 2023">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">보험사 *</label>
+                            <input type="text" id="insuranceCompany" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">보험 시작일 *</label>
+                            <input type="date" id="insuranceStartDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">보험 종료일 *</label>
+                            <input type="date" id="insuranceEndDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">운전범위 *</label>
+                            <input type="text" id="drivingRange" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="예: 전국">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">명의자 *</label>
+                            <input type="text" id="ownerName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">보험료 (원) *</label>
+                            <input type="number" id="insuranceFee" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차량금액 (원) *</label>
+                            <input type="number" id="vehiclePrice" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">상태 *</label>
+                            <select id="status" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="available">사용가능</option>
+                                <option value="rented">렌트중</option>
+                                <option value="maintenance">정비중</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                            <i class="fas fa-save mr-2"></i>저장
+                        </button>
+                        <button type="button" onclick="hideModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400 transition">
+                            취소
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        let motorcycles = [];
+
+        window.addEventListener('DOMContentLoaded', loadMotorcycles);
+
+        async function loadMotorcycles() {
+            try {
+                const status = document.getElementById('statusFilter').value;
+                const url = status ? `/api/motorcycles?status=${status}` : '/api/motorcycles';
+                const response = await axios.get(url);
+                motorcycles = response.data;
+                renderMotorcycles();
+            } catch (error) {
+                console.error('Error loading motorcycles:', error);
+                alert('오토바이 목록을 불러오는데 실패했습니다');
+            }
+        }
+
+        function filterMotorcycles() {
+            loadMotorcycles();
+        }
+
+        function renderMotorcycles() {
+            const listEl = document.getElementById('motorcycleList');
+            
+            if (motorcycles.length === 0) {
+                listEl.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
+                        <p class="text-lg">등록된 오토바이가 없습니다</p>
+                        <button onclick="showAddModal()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-2"></i>첫 오토바이 등록하기
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = motorcycles.map(m => {
+                const statusColors = {
+                    'available': 'bg-green-100 text-green-800',
+                    'rented': 'bg-blue-100 text-blue-800',
+                    'maintenance': 'bg-yellow-100 text-yellow-800'
+                };
+                const statusTexts = {
+                    'available': '사용가능',
+                    'rented': '렌트중',
+                    'maintenance': '정비중'
+                };
+
+                return `
+                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">${m.vehicle_name}</h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColors[m.status]}">
+                                ${statusTexts[m.status]}
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm text-gray-600 mb-4">
+                            <p><i class="fas fa-hashtag w-5 text-blue-600"></i> <strong>번호판:</strong> ${m.plate_number}</p>
+                            <p><i class="fas fa-barcode w-5 text-blue-600"></i> <strong>차대번호:</strong> ${m.chassis_number}</p>
+                            <p><i class="fas fa-tachometer-alt w-5 text-blue-600"></i> <strong>주행거리:</strong> ${Number(m.mileage).toLocaleString()} km</p>
+                            <p><i class="fas fa-calendar w-5 text-blue-600"></i> <strong>연식:</strong> ${m.model_year}년</p>
+                            <p><i class="fas fa-shield-alt w-5 text-blue-600"></i> <strong>보험:</strong> ${m.insurance_company}</p>
+                            <p><i class="fas fa-won-sign w-5 text-blue-600"></i> <strong>차량가:</strong> ${Number(m.vehicle_price).toLocaleString()}원</p>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-edit mr-1"></i>수정
+                            </button>
+                            <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                                <i class="fas fa-trash mr-1"></i>삭제
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = '오토바이 등록';
+            document.getElementById('motorcycleForm').reset();
+            document.getElementById('motorcycleId').value = '';
+            document.getElementById('motorcycleModal').classList.remove('hidden');
+        }
+
+        async function editMotorcycle(id) {
+            try {
+                const response = await axios.get(`/api/motorcycles/${id}`);
+                const m = response.data;
+
+                document.getElementById('modalTitle').textContent = '오토바이 수정';
+                document.getElementById('motorcycleId').value = m.id;
+                document.getElementById('plateNumber').value = m.plate_number;
+                document.getElementById('vehicleName').value = m.vehicle_name;
+                document.getElementById('chassisNumber').value = m.chassis_number;
+                document.getElementById('mileage').value = m.mileage;
+                document.getElementById('modelYear').value = m.model_year;
+                document.getElementById('insuranceCompany').value = m.insurance_company;
+                document.getElementById('insuranceStartDate').value = m.insurance_start_date;
+                document.getElementById('insuranceEndDate').value = m.insurance_end_date;
+                document.getElementById('drivingRange').value = m.driving_range;
+                document.getElementById('ownerName').value = m.owner_name;
+                document.getElementById('insuranceFee').value = m.insurance_fee;
+                document.getElementById('vehiclePrice').value = m.vehicle_price;
+                document.getElementById('status').value = m.status;
+
+                document.getElementById('motorcycleModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading motorcycle:', error);
+                alert('오토바이 정보를 불러오는데 실패했습니다');
+            }
+        }
+
+        async function deleteMotorcycle(id) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+
+            try {
+                await axios.delete(`/api/motorcycles/${id}`);
+                alert('삭제되었습니다');
+                loadMotorcycles();
+            } catch (error) {
+                console.error('Error deleting motorcycle:', error);
+                alert('삭제에 실패했습니다');
+            }
+        }
+
+        function hideModal() {
+            document.getElementById('motorcycleModal').classList.add('hidden');
+        }
+
+        document.getElementById('motorcycleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('motorcycleId').value;
+            const data = {
+                plate_number: document.getElementById('plateNumber').value,
+                vehicle_name: document.getElementById('vehicleName').value,
+                chassis_number: document.getElementById('chassisNumber').value,
+                mileage: parseInt(document.getElementById('mileage').value),
+                model_year: parseInt(document.getElementById('modelYear').value),
+                insurance_company: document.getElementById('insuranceCompany').value,
+                insurance_start_date: document.getElementById('insuranceStartDate').value,
+                insurance_end_date: document.getElementById('insuranceEndDate').value,
+                driving_range: document.getElementById('drivingRange').value,
+                owner_name: document.getElementById('ownerName').value,
+                insurance_fee: parseInt(document.getElementById('insuranceFee').value),
+                vehicle_price: parseInt(document.getElementById('vehiclePrice').value),
+                status: document.getElementById('status').value
+            };
+
+            try {
+                if (id) {
+                    await axios.put(`/api/motorcycles/${id}`, data);
+                    alert('수정되었습니다');
+                } else {
+                    await axios.post('/api/motorcycles', data);
+                    alert('등록되었습니다');
+                }
+                hideModal();
+                loadMotorcycles();
+            } catch (error) {
+                console.error('Error saving motorcycle:', error);
+                alert('저장에 실패했습니다');
+            }
+        });
+    </script>
+</body>
+</html>
