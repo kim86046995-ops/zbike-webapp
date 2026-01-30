@@ -32,6 +32,7 @@
                         <option value="">전체</option>
                         <option value="lease">리스</option>
                         <option value="rent">렌트</option>
+                        <option value="business">업체리스/렌트</option>
                     </select>
                 </div>
                 <div>
@@ -148,11 +149,13 @@
             listEl.innerHTML = filteredContracts.map(c => {
                 const typeColors = {
                     'lease': 'bg-blue-100 text-blue-800',
-                    'rent': 'bg-green-100 text-green-800'
+                    'rent': 'bg-green-100 text-green-800',
+                    'business': 'bg-purple-100 text-purple-800'
                 };
                 const typeTexts = {
                     'lease': '리스',
-                    'rent': '렌트'
+                    'rent': '렌트',
+                    'business': '업체리스/렌트'
                 };
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
@@ -217,7 +220,7 @@
 
         function renderDetail() {
             const c = currentContract;
-            const typeTexts = { 'lease': '리스', 'rent': '렌트' };
+            const typeTexts = { 'lease': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
             const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
 
             const html = `

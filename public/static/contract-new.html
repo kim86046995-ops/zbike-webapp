@@ -29,7 +29,7 @@
                         <i class="fas fa-file-contract mr-2 text-green-600"></i>
                         1. 계약 타입
                     </h2>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label class="cursor-pointer">
                             <input type="radio" name="contract_type" value="lease" required class="peer hidden">
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
@@ -44,6 +44,14 @@
                                 <i class="fas fa-clock text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">렌트</p>
                                 <p class="text-sm text-gray-600 mt-2">단기 대여 계약</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="contract_type" value="business" required class="peer hidden">
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                <i class="fas fa-building text-3xl text-green-600 mb-2"></i>
+                                <p class="font-bold text-lg">업체리스/렌트</p>
+                                <p class="text-sm text-gray-600 mt-2">업체 대상 계약</p>
                             </div>
                         </label>
                     </div>
