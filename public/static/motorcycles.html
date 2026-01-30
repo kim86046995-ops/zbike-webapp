@@ -113,6 +113,10 @@
                             <input type="number" id="vehiclePrice" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
+                            <label class="block text-sm font-bold mb-2">일대여료 (원) *</label>
+                            <input type="number" id="dailyRentalFee" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="1일 대여 금액">
+                        </div>
+                        <div>
                             <label class="block text-sm font-bold mb-2">상태 *</label>
                             <select id="status" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                                 <option value="available">사용가능</option>
@@ -439,6 +443,7 @@
                 document.getElementById('ownerName').value = m.owner_name;
                 document.getElementById('insuranceFee').value = m.insurance_fee;
                 document.getElementById('vehiclePrice').value = m.vehicle_price;
+                document.getElementById('dailyRentalFee').value = m.daily_rental_fee || 0;
                 document.getElementById('status').value = m.status;
 
                 document.getElementById('motorcycleModal').classList.remove('hidden');
@@ -482,6 +487,7 @@
                 owner_name: document.getElementById('ownerName').value,
                 insurance_fee: parseInt(document.getElementById('insuranceFee').value),
                 vehicle_price: parseInt(document.getElementById('vehiclePrice').value),
+                daily_rental_fee: parseInt(document.getElementById('dailyRentalFee').value) || 0,
                 status: document.getElementById('status').value
             };
 

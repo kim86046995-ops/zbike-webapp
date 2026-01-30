@@ -143,6 +143,47 @@
                     </button>
                 </div>
 
+                <!-- 6. 신분증 촬영 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-id-card mr-2 text-green-600"></i>
+                        6. 신분증 촬영
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">고객의 신분증을 촬영하거나 업로드하세요</p>
+                    
+                    <!-- 웹캠 미리보기 영역 -->
+                    <div id="cameraSection" class="hidden mb-4">
+                        <video id="video" width="640" height="480" autoplay class="w-full border rounded-lg"></video>
+                        <button type="button" onclick="capturePhoto()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-camera mr-2"></i>촬영하기
+                        </button>
+                        <button type="button" onclick="stopCamera()" class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                            <i class="fas fa-times mr-2"></i>카메라 닫기
+                        </button>
+                    </div>
+
+                    <!-- 촬영된 사진 미리보기 -->
+                    <div id="photoPreview" class="hidden mb-4">
+                        <img id="capturedPhoto" class="w-full border rounded-lg">
+                        <button type="button" onclick="clearPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash mr-1"></i>사진 삭제
+                        </button>
+                    </div>
+
+                    <!-- 촬영 버튼들 -->
+                    <div class="flex gap-3">
+                        <button type="button" onclick="startCamera()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
+                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                        </button>
+                        <label class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 cursor-pointer text-center">
+                            <i class="fas fa-upload mr-2"></i>파일 업로드
+                            <input type="file" id="idCardFile" accept="image/*" onchange="handleFileUpload(event)" class="hidden">
+                        </label>
+                    </div>
+                    
+                    <canvas id="photoCanvas" class="hidden"></canvas>
+                </div>
+
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
                     <button type="submit" class="flex-1 bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition">
@@ -291,6 +332,80 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
+        // 신분증 촬영 관련 변수
+        let stream = null;
+        let idCardPhotoData = null;
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                document.getElementById('cameraSection').classList.remove('hidden');
+                document.getElementById('photoPreview').classList.add('hidden');
+            } catch (error) {
+                console.error('카메라 접근 오류:', error);
+                alert('카메라에 접근할 수 없습니다. 권한을 확인해주세요.');
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const photoCanvas = document.getElementById('photoCanvas');
+            const capturedPhoto = document.getElementById('capturedPhoto');
+            
+            photoCanvas.width = video.videoWidth;
+            photoCanvas.height = video.videoHeight;
+            
+            const photoCtx = photoCanvas.getContext('2d');
+            photoCtx.drawImage(video, 0, 0);
+            
+            idCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.8);
+            capturedPhoto.src = idCardPhotoData;
+            
+            stopCamera();
+            document.getElementById('photoPreview').classList.remove('hidden');
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('cameraSection').classList.add('hidden');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                idCardPhotoData = e.target.result;
+                document.getElementById('capturedPhoto').src = idCardPhotoData;
+                document.getElementById('photoPreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearPhoto() {
+            idCardPhotoData = null;
+            document.getElementById('photoPreview').classList.add('hidden');
+            document.getElementById('idCardFile').value = '';
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
         document.getElementById('contractForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -339,7 +454,8 @@
                     monthly_fee: parseInt(document.getElementById('monthlyFee').value),
                     deposit: parseInt(document.getElementById('deposit').value) || 0,
                     special_terms: document.getElementById('specialTerms').value || '',
-                    signature_data: signatureData
+                    signature_data: signatureData,
+                    id_card_photo: idCardPhotoData || ''
                 };
 
                 const contractResponse = await axios.post('/api/contracts', contractData);

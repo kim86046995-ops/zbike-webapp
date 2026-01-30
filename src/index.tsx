@@ -56,8 +56,8 @@ app.post('/api/motorcycles', async (c) => {
     INSERT INTO motorcycles (
       plate_number, vehicle_name, chassis_number, mileage, model_year,
       insurance_company, insurance_start_date, insurance_end_date,
-      driving_range, owner_name, insurance_fee, vehicle_price, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.plate_number,
     data.vehicle_name,
@@ -71,6 +71,7 @@ app.post('/api/motorcycles', async (c) => {
     data.owner_name,
     data.insurance_fee,
     data.vehicle_price,
+    data.daily_rental_fee || 0,
     data.status || 'available'
   ).run()
   
@@ -88,7 +89,7 @@ app.put('/api/motorcycles/:id', async (c) => {
       plate_number = ?, vehicle_name = ?, chassis_number = ?, mileage = ?,
       model_year = ?, insurance_company = ?, insurance_start_date = ?,
       insurance_end_date = ?, driving_range = ?, owner_name = ?,
-      insurance_fee = ?, vehicle_price = ?, status = ?,
+      insurance_fee = ?, vehicle_price = ?, daily_rental_fee = ?, status = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).bind(
@@ -104,6 +105,7 @@ app.put('/api/motorcycles/:id', async (c) => {
     data.owner_name,
     data.insurance_fee,
     data.vehicle_price,
+    data.daily_rental_fee || 0,
     data.status,
     id
   ).run()
@@ -271,8 +273,8 @@ app.post('/api/contracts', async (c) => {
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
-      monthly_fee, deposit, special_terms, signature_data, contract_number, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
     data.motorcycle_id,
@@ -283,6 +285,7 @@ app.post('/api/contracts', async (c) => {
     data.deposit || 0,
     data.special_terms || '',
     data.signature_data || '',
+    data.id_card_photo || '',
     contractNumber,
     'active'
   ).run()
@@ -316,6 +319,89 @@ app.patch('/api/contracts/:id/status', async (c) => {
     await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
       .bind('available', (contract as any).motorcycle_id).run()
   }
+  
+  return c.json({ message: '상태가 변경되었습니다' })
+})
+
+// ============================================
+// 차용증 API
+// ============================================
+
+// 차용증 목록 조회
+app.get('/api/loan-contracts', async (c) => {
+  const { DB } = c.env
+  
+  const result = await DB.prepare(`
+    SELECT * FROM loan_contracts ORDER BY created_at DESC
+  `).all()
+  
+  return c.json(result.results)
+})
+
+// 차용증 상세 조회
+app.get('/api/loan-contracts/:id', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
+// 차용증 생성
+app.post('/api/loan-contracts', async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  // 차용증 번호 생성 (LOAN-YYYYMMDD-XXXX 형식)
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const countResult = await DB.prepare(
+    `SELECT COUNT(*) as count FROM loan_contracts WHERE loan_number LIKE ?`
+  ).bind(`LOAN-${today}-%`).first()
+  
+  const count = (countResult as any).count + 1
+  const loanNumber = `LOAN-${today}-${String(count).padStart(4, '0')}`
+  
+  const result = await DB.prepare(`
+    INSERT INTO loan_contracts (
+      loan_number, borrower_name, borrower_resident_number, borrower_phone, borrower_address,
+      loan_amount, loan_date, repayment_date, interest_rate, repayment_method,
+      collateral, special_terms, borrower_signature, lender_signature, borrower_id_card_photo, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    loanNumber,
+    data.borrower_name,
+    data.borrower_resident_number,
+    data.borrower_phone,
+    data.borrower_address,
+    data.loan_amount,
+    data.loan_date,
+    data.repayment_date,
+    data.interest_rate || 0,
+    data.repayment_method || '',
+    data.collateral || '',
+    data.special_terms || '',
+    data.borrower_signature || '',
+    data.lender_signature || '',
+    data.borrower_id_card_photo || '',
+    'active'
+  ).run()
+  
+  return c.json({ id: result.meta.last_row_id, loan_number: loanNumber, ...data }, 201)
+})
+
+// 차용증 상태 변경
+app.patch('/api/loan-contracts/:id/status', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  const { status } = await c.req.json()
+  
+  await DB.prepare('UPDATE loan_contracts SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .bind(status, id).run()
   
   return c.json({ message: '상태가 변경되었습니다' })
 })
@@ -375,6 +461,40 @@ app.get('/contracts', (c) => {
 </html>`)
 })
 
+// 차용증 작성 페이지
+app.get('/loan/new', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차용증 작성</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/loan-new.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
+// 차용증 목록 페이지
+app.get('/loans', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차용증 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/loans.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
 // ============================================
 // 메인 페이지
 // ============================================
@@ -404,7 +524,7 @@ app.get('/', (c) => {
 
             <!-- 메인 컨텐츠 -->
             <main class="container mx-auto px-4 py-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- 오토바이 관리 -->
                     <a href="/motorcycles" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
                         <div class="flex items-center mb-4">
@@ -437,6 +557,17 @@ app.get('/', (c) => {
                         </div>
                         <p class="text-gray-600">계약 내역 조회 및 관리</p>
                     </a>
+
+                    <!-- 차용증 관리 -->
+                    <a href="/loans" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-orange-100 p-3 rounded-full">
+                                <i class="fas fa-money-bill-wave text-orange-600 text-2xl"></i>
+                            </div>
+                            <h2 class="text-xl font-bold ml-4">차용증 관리</h2>
+                        </div>
+                        <p class="text-gray-600">차용증 작성 및 조회</p>
+                    </a>
                 </div>
 
                 <!-- 시스템 안내 -->
@@ -450,6 +581,7 @@ app.get('/', (c) => {
                         <li><i class="fas fa-check text-green-600 mr-2"></i>리스/렌트 계약서를 전자로 작성할 수 있습니다</li>
                         <li><i class="fas fa-check text-green-600 mr-2"></i>전자서명을 통해 계약을 체결할 수 있습니다</li>
                         <li><i class="fas fa-check text-green-600 mr-2"></i>계약 내역을 조회하고 관리할 수 있습니다</li>
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>차용증을 작성하고 관리할 수 있습니다</li>
                     </ul>
                 </div>
             </main>
