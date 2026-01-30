@@ -2,11 +2,22 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2563eb">
     <title>오토바이 관리</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
         .insurance-progress {
             transition: width 0.3s ease;
         }
@@ -15,8 +26,8 @@
             border-left: 4px solid #3b82f6;
         }
         .motorcycle-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
         .motorcycle-card.status-available {
             border-left-color: #10b981;
@@ -29,21 +40,21 @@
         }
         .progress-bar-wrapper {
             position: relative;
-            height: 24px;
+            height: 16px;
             background: #e5e7eb;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
         }
         .progress-bar {
             height: 100%;
-            border-radius: 12px;
+            border-radius: 8px;
             transition: width 0.5s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
         }
         .progress-bar.progress-safe {
             background: linear-gradient(90deg, #10b981, #34d399);
@@ -328,137 +339,137 @@
                 else if (progress.remainingPercentage < 50) progressClass = 'progress-warning';
 
                 return `
-                    <div class="motorcycle-card ${status.border} bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="motorcycle-card ${status.border} bg-white rounded-lg shadow-md overflow-hidden">
                         <!-- 상단: 번호판 클릭 영역 -->
-                        <div class="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-5 cursor-pointer hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all" onclick="showHistory(${m.id})">
+                        <div class="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-3 cursor-pointer hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all active:scale-95" onclick="showHistory(${m.id})">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="text-blue-100 text-xs font-semibold uppercase tracking-wide mb-1">
+                                    <p class="text-blue-100 text-xs font-semibold mb-0.5">
                                         <i class="fas fa-id-card mr-1"></i>번호판
                                     </p>
-                                    <p class="text-white text-3xl font-black tracking-tight">${m.plate_number}</p>
+                                    <p class="text-white text-2xl font-black tracking-tight">${m.plate_number}</p>
                                 </div>
                                 <div class="flex flex-col items-center">
-                                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-history text-2xl text-white"></i>
+                                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-history text-lg text-white"></i>
                                     </div>
-                                    <p class="text-white text-xs mt-1 font-medium">계약이력</p>
+                                    <p class="text-white text-xs mt-0.5 font-medium">이력</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="p-4 bg-gradient-to-br from-white to-gray-50">
+                        <div class="p-2.5 bg-gradient-to-br from-white to-gray-50">
                             <!-- 차량명 및 상태 -->
-                            <div class="flex justify-between items-start mb-3">
+                            <div class="flex justify-between items-start mb-2">
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800 mb-1">${m.vehicle_name}</h3>
+                                    <h3 class="text-base font-bold text-gray-800">${m.vehicle_name}</h3>
                                     <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year}년식</p>
                                 </div>
-                                <span class="info-badge ${status.bg} ${status.text}">
+                                <span class="info-badge ${status.bg} ${status.text} text-xs">
                                     <i class="fas ${status.icon} mr-1"></i>${status.label}
                                 </span>
                             </div>
                             
                             <!-- 계약 기간 진행률 -->
-                            <div class="mb-2 bg-white p-3 rounded-lg shadow-sm border border-gray-100" id="contract-progress-${m.id}">
-                                <div class="flex justify-between items-center mb-1.5">
+                            <div class="mb-1.5 bg-white p-2 rounded-md shadow-sm border border-gray-100" id="contract-progress-${m.id}">
+                                <div class="flex justify-between items-center mb-1">
                                     <span class="text-xs font-bold text-gray-700 flex items-center">
-                                        <i class="fas fa-file-contract mr-1.5 text-purple-500"></i>계약 기간
+                                        <i class="fas fa-file-contract mr-1 text-purple-500"></i>계약
                                     </span>
                                     <span class="text-xs text-gray-500" id="contract-status-${m.id}">-</span>
                                 </div>
-                                <div class="progress-bar-wrapper" style="height: 20px;" id="contract-bar-${m.id}">
+                                <div class="progress-bar-wrapper" id="contract-bar-${m.id}">
                                     <div class="progress-bar progress-safe" style="width: 0%"></div>
                                 </div>
-                                <div class="flex justify-between text-xs text-gray-400 mt-1" id="contract-dates-${m.id}">
+                                <div class="flex justify-between text-xs text-gray-400 mt-0.5" id="contract-dates-${m.id}">
                                     <span>-</span>
                                     <span>-</span>
                                 </div>
                             </div>
                             
                             <!-- 보험 기간 진행률 -->
-                            <div class="mb-2 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                                <div class="flex justify-between items-center mb-1.5">
+                            <div class="mb-1.5 bg-white p-2 rounded-md shadow-sm border border-gray-100">
+                                <div class="flex justify-between items-center mb-1">
                                     <span class="text-xs font-bold text-gray-700 flex items-center">
-                                        <i class="fas fa-shield-alt mr-1.5 text-blue-500"></i>보험 기간
+                                        <i class="fas fa-shield-alt mr-1 text-blue-500"></i>보험
                                     </span>
                                     <span class="text-xs font-bold ${progress.isExpired ? 'text-red-600' : progress.isExpiringSoon ? 'text-red-600' : 'text-blue-600'}">
                                         ${progress.isExpired ? '⚠️ 만료' : `${progress.remainingDays}일`}
                                     </span>
                                 </div>
                                 
-                                <div class="progress-bar-wrapper" style="height: 20px;">
+                                <div class="progress-bar-wrapper">
                                     <div class="progress-bar ${progressClass}" style="width: ${progress.percentage}%">
-                                        ${progress.percentage > 15 ? `${progress.percentage}%` : ''}
+                                        ${progress.percentage > 20 ? `${progress.percentage}%` : ''}
                                     </div>
                                 </div>
                                 
-                                <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <div class="flex justify-between text-xs text-gray-400 mt-0.5">
                                     <span>${m.insurance_start_date}</span>
                                     <span>${m.insurance_end_date}</span>
                                 </div>
                                 
                                 ${progress.isExpired ? `
-                                    <div class="mt-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold flex items-center">
-                                        <i class="fas fa-exclamation-triangle mr-1"></i>만료됨
+                                    <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>만료
                                     </div>
                                 ` : progress.isExpiringSoon ? `
-                                    <div class="mt-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-1"></i>갱신 필요
+                                    <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>갱신필요
                                     </div>
                                 ` : ''}
                             </div>
                             
                             <!-- 검사 기간 진행률 -->
-                            <div class="mb-3 bg-white p-3 rounded-lg shadow-sm border border-gray-100" id="inspection-progress-${m.id}">
-                                <div class="flex justify-between items-center mb-1.5">
+                            <div class="mb-2 bg-white p-2 rounded-md shadow-sm border border-gray-100" id="inspection-progress-${m.id}">
+                                <div class="flex justify-between items-center mb-1">
                                     <span class="text-xs font-bold text-gray-700 flex items-center">
-                                        <i class="fas fa-clipboard-check mr-1.5 text-green-500"></i>검사 기간
+                                        <i class="fas fa-clipboard-check mr-1 text-green-500"></i>검사
                                     </span>
                                     <span class="text-xs text-gray-500" id="inspection-status-${m.id}">-</span>
                                 </div>
-                                <div class="progress-bar-wrapper" style="height: 20px;" id="inspection-bar-${m.id}">
+                                <div class="progress-bar-wrapper" id="inspection-bar-${m.id}">
                                     <div class="progress-bar progress-safe" style="width: 0%"></div>
                                 </div>
-                                <div class="flex justify-between text-xs text-gray-400 mt-1" id="inspection-dates-${m.id}">
+                                <div class="flex justify-between text-xs text-gray-400 mt-0.5" id="inspection-dates-${m.id}">
                                     <span>-</span>
                                     <span>-</span>
                                 </div>
                             </div>
 
                             <!-- 차량 상세 정보 -->
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
-                                <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="bg-white p-2 rounded-md shadow-sm border border-gray-100 mb-2">
+                                <div class="grid grid-cols-2 gap-1.5 text-xs">
                                     <div class="flex items-center">
-                                        <i class="fas fa-user w-4 text-blue-500 mr-1.5"></i>
+                                        <i class="fas fa-user w-3 text-blue-500 mr-1"></i>
                                         <div>
                                             <p class="text-xs text-gray-500">명의자</p>
-                                            <p class="font-semibold text-gray-700">${m.owner_name}</p>
+                                            <p class="font-semibold text-gray-700 truncate">${m.owner_name}</p>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
-                                        <i class="fas fa-id-card w-4 text-green-500 mr-1.5"></i>
+                                        <i class="fas fa-id-card w-3 text-green-500 mr-1"></i>
                                         <div>
-                                            <p class="text-xs text-gray-500">운전연령</p>
-                                            <p class="font-semibold text-gray-700">${m.driving_range}</p>
+                                            <p class="text-xs text-gray-500">연령</p>
+                                            <p class="font-semibold text-gray-700 text-xs">${m.driving_range}</p>
                                         </div>
                                     </div>
                                     <div class="flex items-center col-span-2" id="contractor-info-${m.id}">
-                                        <i class="fas fa-user-tie w-4 text-purple-500 mr-1.5"></i>
+                                        <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
                                         <div>
                                             <p class="text-xs text-gray-500">계약자</p>
-                                            <p class="font-semibold text-gray-700">-</p>
+                                            <p class="font-semibold text-gray-700 truncate">-</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- 버튼 -->
-                            <div class="flex gap-2">
-                                <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg text-sm font-semibold">
+                            <div class="flex gap-1.5">
+                                <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-1.5 rounded-md hover:from-blue-600 hover:to-blue-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
                                     <i class="fas fa-edit mr-1"></i>수정
                                 </button>
-                                <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg text-sm font-semibold">
+                                <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-1.5 rounded-md hover:from-red-600 hover:to-red-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
                                     <i class="fas fa-trash mr-1"></i>삭제
                                 </button>
                             </div>
@@ -486,15 +497,15 @@
                 if (progress.remainingDays <= 20 && progress.remainingDays > 0) {
                     progressClass = 'progress-danger';
                     warningMessage = `
-                        <div class="mt-1.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold flex items-center">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>검사 임박 (20일 이내)
+                        <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>검사임박
                         </div>
                     `;
                 } else if (progress.isExpired) {
                     progressClass = 'progress-danger';
                     warningMessage = `
-                        <div class="mt-1.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold flex items-center">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>검사 만료
+                        <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>만료
                         </div>
                     `;
                 } else if (progress.remainingDays <= 30) {
@@ -546,10 +557,10 @@
                     const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
                     if (contractorEl) {
                         contractorEl.innerHTML = `
-                            <i class="fas fa-user-tie w-5 text-purple-500 mr-2"></i>
+                            <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
                             <div>
                                 <p class="text-xs text-gray-500">계약자</p>
-                                <p class="font-semibold text-gray-700">${activeContract.customer_name || '-'}</p>
+                                <p class="font-semibold text-gray-700 truncate">${activeContract.customer_name || '-'}</p>
                             </div>
                         `;
                     }
@@ -564,15 +575,15 @@
                     if (progress.remainingDays <= 10 && progress.remainingDays > 0) {
                         progressClass = 'progress-danger';
                         warningMessage = `
-                            <div class="mt-1.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold flex items-center">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>계약 종료 임박
+                            <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>종료임박
                             </div>
                         `;
                     } else if (progress.isExpired) {
                         progressClass = 'progress-danger';
                         warningMessage = `
-                            <div class="mt-1.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold flex items-center">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>계약 만료
+                            <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>만료
                             </div>
                         `;
                     } else if (progress.remainingDays <= 30) {
