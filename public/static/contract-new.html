@@ -29,7 +29,7 @@
                         <i class="fas fa-file-contract mr-2 text-green-600"></i>
                         1. 계약 타입
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label class="cursor-pointer">
                             <input type="radio" name="contract_type" value="lease" required class="peer hidden">
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
@@ -46,12 +46,6 @@
                                 <p class="text-sm text-gray-600 mt-2">단기 대여 계약</p>
                             </div>
                         </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="business" required class="peer hidden">
-                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
-                                <i class="fas fa-building text-3xl text-green-600 mb-2"></i>
-                                <p class="font-bold text-lg">업체리스/렌트</p>
-                                <p class="text-sm text-gray-600 mt-2">업체 대상 계약</p>
                             </div>
                         </label>
                     </div>
@@ -106,13 +100,16 @@
                             <input type="tel" id="phone" required placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">면허종류 *</label>
-                            <select id="licenseType" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <label class="block text-sm font-bold mb-2">운전범위 *</label>
+                            <select id="drivingRange" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
                                 <option value="">선택하세요</option>
-                                <option value="2종 소형">2종 소형</option>
-                                <option value="2종 보통">2종 보통</option>
-                                <option value="1종 보통">1종 보통</option>
-                                <option value="1종 대형">1종 대형</option>
+                                <option value="전연령">전연령</option>
+                                <option value="만 19세 이상">만 19세 이상</option>
+                                <option value="만 21세 이상">만 21세 이상</option>
+                                <option value="만 24세 이상">만 24세 이상</option>
+                                <option value="만 26세 이상">만 26세 이상</option>
+                                <option value="만 30세 이상">만 30세 이상</option>
+                                <option value="만 35세 이상">만 35세 이상</option>
                             </select>
                         </div>
                         <div class="md:col-span-2">
@@ -210,7 +207,7 @@
                         <div class="ml-4 space-y-1 text-xs">
                             <p>① 차용인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
                             <p>② 차용인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
-                            <p>③ 오토바이는 대여인이 지정한 면허종류 및 운전연령 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                            <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
@@ -297,14 +294,6 @@
                         </p>
                     </div>
                     
-                    <!-- 약관 동의 체크박스 -->
-                    <div class="mt-4">
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="checkbox" id="agreeTerms" required class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                            <span class="text-sm font-bold">위 계약 약관을 읽었으며 이에 동의합니다</span>
-                        </label>
-                    </div>
-                    
                     <!-- 계약 생성 날짜/시간 및 작성 위치 -->
                     <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                         <p class="text-sm text-green-800 mb-2">
@@ -320,66 +309,10 @@
                     </div>
                 </div>
 
-                <!-- 6. 전자서명 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">
-                        <i class="fas fa-signature mr-2 text-green-600"></i>
-                        6. 전자서명
-                    </h2>
-                    <p class="text-sm text-gray-600 mb-4">아래 서명 박스에 고객의 서명을 받아주세요</p>
-                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                        <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
-                    </div>
-                    <button type="button" onclick="clearSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-eraser mr-1"></i>서명 지우기
-                    </button>
-                </div>
-
-                <!-- 7. 신분증 촬영 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">
-                        <i class="fas fa-id-card mr-2 text-green-600"></i>
-                        7. 신분증 촬영
-                    </h2>
-                    <p class="text-sm text-gray-600 mb-4">고객의 신분증을 촬영하거나 업로드하세요</p>
-                    
-                    <!-- 웹캠 미리보기 영역 -->
-                    <div id="cameraSection" class="hidden mb-4">
-                        <video id="video" width="640" height="480" autoplay class="w-full border rounded-lg"></video>
-                        <button type="button" onclick="capturePhoto()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                            <i class="fas fa-camera mr-2"></i>촬영하기
-                        </button>
-                        <button type="button" onclick="stopCamera()" class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
-                            <i class="fas fa-times mr-2"></i>카메라 닫기
-                        </button>
-                    </div>
-
-                    <!-- 촬영된 사진 미리보기 -->
-                    <div id="photoPreview" class="hidden mb-4">
-                        <img id="capturedPhoto" class="w-full border rounded-lg">
-                        <button type="button" onclick="clearPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-800">
-                            <i class="fas fa-trash mr-1"></i>사진 삭제
-                        </button>
-                    </div>
-
-                    <!-- 촬영 버튼들 -->
-                    <div class="flex gap-3">
-                        <button type="button" onclick="startCamera()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
-                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                        </button>
-                        <label class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 cursor-pointer text-center">
-                            <i class="fas fa-upload mr-2"></i>파일 업로드
-                            <input type="file" id="idCardFile" accept="image/*" onchange="handleFileUpload(event)" class="hidden">
-                        </label>
-                    </div>
-                    
-                    <canvas id="photoCanvas" class="hidden"></canvas>
-                </div>
-
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
                     <button type="submit" class="flex-1 bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition">
-                        <i class="fas fa-check-circle mr-2"></i>계약서 생성
+                        <i class="fas fa-paper-plane mr-2"></i>고객에게 전송
                     </button>
                     <a href="/" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
                         취소
@@ -387,6 +320,52 @@
                 </div>
             </form>
         </main>
+
+        <!-- SMS/카카오톡 전송 모달 -->
+        <div id="sendModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                <div class="bg-green-600 text-white p-4 flex items-center justify-between rounded-t-lg">
+                    <h3 class="text-xl font-bold">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        계약서 전송
+                    </h3>
+                    <button type="button" onclick="hideSendModal()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-gray-700 mb-4">
+                        고객에게 계약서를 전송하여 서명 및 신분증을 받으시겠습니까?
+                    </p>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-gray-700">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            <strong>고객 정보:</strong>
+                        </p>
+                        <p class="text-sm text-gray-600 mt-2">
+                            이름: <span id="modal-customer-name" class="font-semibold"></span>
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            전화번호: <span id="modal-customer-phone" class="font-semibold"></span>
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button type="button" onclick="sendViaSMS()" class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                            <i class="fas fa-sms mr-2"></i>문자(SMS)로 전송
+                        </button>
+                        <button type="button" onclick="sendViaKakao()" class="w-full bg-yellow-400 text-gray-800 px-6 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold">
+                            <i class="fas fa-comment mr-2"></i>카카오톡으로 전송
+                        </button>
+                        <button type="button" onclick="saveWithoutSending()" class="w-full bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
+                            <i class="fas fa-save mr-2"></i>전송하지 않고 저장만
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- 오토바이 선택 모달 -->
         <div id="motorcycleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -820,6 +799,9 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
+        // 전역 변수
+        let pendingContractData = null;
+
         document.getElementById('contractForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -835,20 +817,8 @@
                 return;
             }
 
-            // 약관 동의 확인
-            if (!document.getElementById('agreeTerms').checked) {
-                alert('계약 약관에 동의해주세요');
-                return;
-            }
-
-            // 서명 데이터 확인
-            const signatureData = canvas.toDataURL('image/png');
-            const isSignatureEmpty = ctx.getImageData(0, 0, canvas.width, canvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
-            
-            if (isSignatureEmpty) {
-                alert('서명을 해주세요');
-                return;
-            }
+            // 약관 동의는 확인하지 않음 (고객이 서명 시 확인)
+            // 서명과 신분증도 확인하지 않음 (고객이 직접 작성)
 
             // 고객 정보 생성
             const postcode = document.getElementById('postcode').value;
@@ -856,42 +826,99 @@
             const detailAddress = document.getElementById('detailAddress').value;
             const fullAddress = `[${postcode}] ${baseAddress}${detailAddress ? ' ' + detailAddress : ''}`;
             
-            const customerData = {
-                name: document.getElementById('customerName').value,
+            const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('phone').value;
+            
+            // 계약 데이터 준비 (서명과 신분증 제외)
+            pendingContractData = {
+                contract_type: contractType,
+                motorcycle_id: selectedMotorcycleId,
+                start_date: document.getElementById('startDate').value,
+                end_date: document.getElementById('endDate').value,
+                monthly_fee: parseInt(document.getElementById('dailyFee').value),
+                deposit: parseInt(document.getElementById('deposit').value) || 0,
+                special_terms: document.getElementById('specialTerms').value || '',
                 resident_number: document.getElementById('residentNumber').value,
-                phone: document.getElementById('phone').value,
                 address: fullAddress,
-                license_type: document.getElementById('licenseType').value
+                license_type: document.getElementById('drivingRange').value,
+                customer_name: customerName,
+                customer_phone: customerPhone
             };
 
-            try {
-                // 1. 고객 정보 저장
-                const customerResponse = await axios.post('/api/customers', customerData);
-                const customerId = customerResponse.data.id;
+            // 모달에 고객 정보 표시
+            document.getElementById('modal-customer-name').textContent = customerName;
+            document.getElementById('modal-customer-phone').textContent = customerPhone;
 
-                // 2. 계약서 생성
-                const contractData = {
-                    contract_type: contractType,
-                    motorcycle_id: selectedMotorcycleId,
-                    customer_id: customerId,
-                    start_date: document.getElementById('startDate').value,
-                    end_date: document.getElementById('endDate').value,
-                    monthly_fee: parseInt(document.getElementById('dailyFee').value),
-                    deposit: parseInt(document.getElementById('deposit').value) || 0,
-                    special_terms: document.getElementById('specialTerms').value || '',
-                    signature_data: signatureData,
-                    id_card_photo: idCardPhotoData || ''
-                };
-
-                const contractResponse = await axios.post('/api/contracts', contractData);
-                
-                alert(`계약서가 생성되었습니다!\n계약번호: ${contractResponse.data.contract_number}`);
-                window.location.href = '/contracts';
-            } catch (error) {
-                console.error('Error creating contract:', error);
-                alert('계약서 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
-            }
+            // 전송 모달 표시
+            document.getElementById('sendModal').classList.remove('hidden');
         });
+
+        // 모달 닫기
+        function hideSendModal() {
+            document.getElementById('sendModal').classList.add('hidden');
+        }
+
+        // SMS로 전송
+        async function sendViaSMS() {
+            await createShareLinkAndSend('sms');
+        }
+
+        // 카카오톡으로 전송
+        async function sendViaKakao() {
+            await createShareLinkAndSend('kakao');
+        }
+
+        // 전송하지 않고 저장만
+        async function saveWithoutSending() {
+            await createShareLinkAndSend('none');
+        }
+
+        // 공유 링크 생성 및 전송
+        async function createShareLinkAndSend(method) {
+            try {
+                // 공유 링크 생성
+                const response = await axios.post('/api/contract-share/create', {
+                    contract_type: 'individual',
+                    contract_data: JSON.stringify(pendingContractData),
+                    customer_name: pendingContractData.customer_name,
+                    customer_phone: pendingContractData.customer_phone
+                });
+
+                const shareToken = response.data.share_token;
+                const shareUrl = window.location.origin + response.data.share_url;
+
+                // 전송 방법에 따라 처리
+                if (method === 'sms') {
+                    // SMS 전송
+                    await axios.post('/api/send-sms', {
+                        phone: pendingContractData.customer_phone,
+                        share_url: shareUrl,
+                        customer_name: pendingContractData.customer_name,
+                        contract_type: 'individual'
+                    });
+                    alert(`SMS가 전송되었습니다!\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}`);
+                } else if (method === 'kakao') {
+                    // 카카오톡 전송 (현재는 링크 복사)
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert(`카카오톡 전송용 링크가 복사되었습니다!\n\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}\n\n카카오톡으로 링크를 전송해주세요.`);
+                } else {
+                    // 저장만
+                    alert(`계약서 공유 링크가 생성되었습니다!\n\n링크: ${shareUrl}\n\n고객에게 직접 전달해주세요.`);
+                }
+
+                // 모달 닫기
+                hideSendModal();
+
+                // 계약서 목록으로 이동
+                setTimeout(() => {
+                    window.location.href = '/contracts';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error creating share link:', error);
+                alert('공유 링크 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
     </script>
 </body>
 </html>
