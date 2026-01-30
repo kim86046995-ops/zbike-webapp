@@ -15,7 +15,118 @@ app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './public' }))
 
 // ============================================
-// 오토바이 API
+// 인증 헬퍼 함수
+// ============================================
+
+function generateSessionId() {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+}
+
+async function createSession(DB: D1Database, userId: number) {
+  const sessionId = generateSessionId()
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24시간
+  
+  await DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
+    .bind(sessionId, userId, expiresAt).run()
+  
+  return sessionId
+}
+
+async function validateSession(DB: D1Database, sessionId: string | undefined) {
+  if (!sessionId) return null
+  
+  const session = await DB.prepare(`
+    SELECT s.*, u.username, u.name, u.role 
+    FROM sessions s 
+    JOIN users u ON s.user_id = u.id 
+    WHERE s.id = ? AND s.expires_at > datetime('now')
+  `).bind(sessionId).first()
+  
+  return session
+}
+
+// ============================================
+// 인증 미들웨어
+// ============================================
+
+async function authMiddleware(c: any, next: any) {
+  const sessionId = c.req.header('X-Session-ID') || c.req.query('session')
+  const session = await validateSession(c.env.DB, sessionId)
+  
+  if (!session) {
+    return c.json({ error: '인증이 필요합니다' }, 401)
+  }
+  
+  c.set('user', session)
+  await next()
+}
+
+// ============================================
+// 인증 API
+// ============================================
+
+// 로그인
+app.post('/api/auth/login', async (c) => {
+  const { DB } = c.env
+  const { username, password } = await c.req.json()
+  
+  const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?')
+    .bind(username, password).first()
+  
+  if (!user) {
+    return c.json({ error: '아이디 또는 비밀번호가 잘못되었습니다' }, 401)
+  }
+  
+  const sessionId = await createSession(DB, (user as any).id)
+  
+  return c.json({
+    success: true,
+    sessionId,
+    user: {
+      id: (user as any).id,
+      username: (user as any).username,
+      name: (user as any).name,
+      role: (user as any).role
+    }
+  })
+})
+
+// 로그아웃
+app.post('/api/auth/logout', async (c) => {
+  const { DB } = c.env
+  const sessionId = c.req.header('X-Session-ID')
+  
+  if (sessionId) {
+    await DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run()
+  }
+  
+  return c.json({ success: true })
+})
+
+// 세션 확인
+app.get('/api/auth/check', async (c) => {
+  const { DB } = c.env
+  const sessionId = c.req.header('X-Session-ID') || c.req.query('session')
+  
+  const session = await validateSession(DB, sessionId)
+  
+  if (!session) {
+    return c.json({ authenticated: false }, 401)
+  }
+  
+  return c.json({
+    authenticated: true,
+    user: {
+      id: (session as any).user_id,
+      username: (session as any).username,
+      name: (session as any).name,
+      role: (session as any).role
+    }
+  })
+})
+
+// ============================================
+// 오토바이 API (인증 필요)
 // ============================================
 
 // 오토바이 목록 조회
@@ -47,8 +158,8 @@ app.get('/api/motorcycles/:id', async (c) => {
   return c.json(result)
 })
 
-// 오토바이 등록
-app.post('/api/motorcycles', async (c) => {
+// 오토바이 등록 (인증 필요)
+app.post('/api/motorcycles', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -84,8 +195,8 @@ app.post('/api/motorcycles', async (c) => {
   return c.json({ id: result.meta.last_row_id, ...data }, 201)
 })
 
-// 오토바이 수정
-app.put('/api/motorcycles/:id', async (c) => {
+// 오토바이 수정 (인증 필요)
+app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const data = await c.req.json()
@@ -125,14 +236,33 @@ app.put('/api/motorcycles/:id', async (c) => {
   return c.json({ id, ...data })
 })
 
-// 오토바이 삭제
-app.delete('/api/motorcycles/:id', async (c) => {
+// 오토바이 삭제 (인증 필요)
+app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
   await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
   
   return c.json({ message: '삭제되었습니다' })
+})
+
+// 오토바이별 계약 이력 조회
+app.get('/api/motorcycles/:id/contracts', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare(`
+    SELECT 
+      c.*,
+      cu.name as customer_name, cu.phone as customer_phone,
+      cu.resident_number, cu.address, cu.license_type
+    FROM contracts c
+    JOIN customers cu ON c.customer_id = cu.id
+    WHERE c.motorcycle_id = ?
+    ORDER BY c.created_at DESC
+  `).bind(id).all()
+  
+  return c.json(result.results)
 })
 
 // ============================================
@@ -268,8 +398,8 @@ app.get('/api/contracts/:id', async (c) => {
   return c.json(result)
 })
 
-// 계약서 생성
-app.post('/api/contracts', async (c) => {
+// 계약서 생성 (인증 필요)
+app.post('/api/contracts', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -309,8 +439,8 @@ app.post('/api/contracts', async (c) => {
   return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, ...data }, 201)
 })
 
-// 계약서 상태 변경
-app.patch('/api/contracts/:id/status', async (c) => {
+// 계약서 상태 변경 (인증 필요)
+app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const { status } = await c.req.json()
@@ -1079,6 +1209,23 @@ app.get('/api/loan-contracts/:id/deductions', async (c) => {
 // 프론트엔드 페이지 라우트
 // ============================================
 
+// 로그인 페이지
+app.get('/login', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/login.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
 // 오토바이 관리 페이지
 app.get('/motorcycles', (c) => {
   return c.html(`<!DOCTYPE html>
@@ -1336,27 +1483,35 @@ app.get('/', (c) => {
             </main>
         </div>
         
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script>
             // 로그인 상태 확인 및 표시
-            function checkLoginStatus() {
-                const adminUser = localStorage.getItem('adminUser');
+            async function checkLoginStatus() {
+                const sessionId = localStorage.getItem('sessionId');
+                const user = localStorage.getItem('user');
                 const loggedIn = document.getElementById('loggedIn');
                 const loggedOut = document.getElementById('loggedOut');
                 
-                if (adminUser) {
+                if (sessionId && user) {
                     try {
-                        const user = JSON.parse(adminUser);
+                        // 세션 유효성 확인
+                        await axios.get('/api/auth/check', {
+                            headers: { 'X-Session-ID': sessionId }
+                        });
+                        
+                        const userData = JSON.parse(user);
                         
                         // 로그인 상태 표시
-                        document.getElementById('userName').textContent = user.name || user.username;
-                        document.getElementById('userEmail').textContent = user.email || user.username;
+                        document.getElementById('userName').textContent = userData.name || userData.username;
+                        document.getElementById('userEmail').textContent = userData.username;
                         
                         loggedIn.classList.remove('hidden');
                         loggedIn.classList.add('flex');
                         loggedOut.classList.add('hidden');
                     } catch (e) {
-                        // JSON 파싱 실패 시 로그아웃 처리
-                        localStorage.removeItem('adminUser');
+                        // 세션 만료 시 로그아웃 처리
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('user');
                         showLoggedOut();
                     }
                 } else {
@@ -1376,9 +1531,22 @@ app.get('/', (c) => {
             }
             
             // 로그아웃
-            function logout() {
+            async function logout() {
                 if (confirm('로그아웃 하시겠습니까?')) {
-                    localStorage.removeItem('adminUser');
+                    const sessionId = localStorage.getItem('sessionId');
+                    
+                    if (sessionId) {
+                        try {
+                            await axios.post('/api/auth/logout', {}, {
+                                headers: { 'X-Session-ID': sessionId }
+                            });
+                        } catch (e) {
+                            console.error('Logout error:', e);
+                        }
+                    }
+                    
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
                     window.location.href = '/login';
                 }
             }

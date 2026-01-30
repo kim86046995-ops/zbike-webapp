@@ -334,8 +334,54 @@
     <script>
         let motorcycles = [];
         let motorcycleContracts = {}; // 각 오토바이의 계약자 정보를 저장
+        let sessionId = localStorage.getItem('sessionId');
 
-        window.addEventListener('DOMContentLoaded', loadMotorcycles);
+        // 인증 체크
+        async function checkAuth() {
+            if (!sessionId) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+
+            try {
+                await axios.get('/api/auth/check', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                return true;
+            } catch (error) {
+                localStorage.removeItem('sessionId');
+                localStorage.removeItem('user');
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+        }
+
+        // Axios 인터셉터 설정 - 모든 요청에 세션 ID 추가
+        axios.interceptors.request.use(config => {
+            if (sessionId) {
+                config.headers['X-Session-ID'] = sessionId;
+            }
+            return config;
+        });
+
+        // 401 에러 처리
+        axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (await checkAuth()) {
+                loadMotorcycles();
+            }
+        });
 
         async function loadMotorcycles() {
             try {

@@ -415,11 +415,55 @@
         let selectedMotorcycleId = null;
         let canvas, ctx;
         let isDrawing = false;
+        let sessionId = localStorage.getItem('sessionId');
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadMotorcycles();
-            initSignaturePad();
-            loadCompanySettings();
+        // 인증 체크
+        async function checkAuth() {
+            if (!sessionId) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+
+            try {
+                await axios.get('/api/auth/check', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                return true;
+            } catch (error) {
+                localStorage.removeItem('sessionId');
+                localStorage.removeItem('user');
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+        }
+
+        // Axios 인터셉터 설정
+        axios.interceptors.request.use(config => {
+            if (sessionId) {
+                config.headers['X-Session-ID'] = sessionId;
+            }
+            return config;
+        });
+
+        axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (await checkAuth()) {
+                loadMotorcycles();
+                initSignaturePad();
+                loadCompanySettings();
+            }
+            
             
             // 오늘 날짜를 계약 시작일의 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
