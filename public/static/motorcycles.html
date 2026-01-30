@@ -102,16 +102,52 @@
 
         <!-- 메인 컨텐츠 -->
         <main class="container mx-auto px-4 py-8">
-            <!-- 필터 -->
+            <!-- 검색 및 필터 -->
             <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-                <label class="block text-sm font-bold mb-2">상태 필터</label>
-                <select id="statusFilter" onchange="filterMotorcycles()" class="w-full md:w-64 px-3 py-2 border rounded-lg">
-                    <option value="">전체</option>
-                    <option value="available">사용가능</option>
-                    <option value="rented">렌트중</option>
-                    <option value="maintenance">정비중</option>
-                    <option value="scrapped">폐지</option>
-                </select>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- 검색창 -->
+                    <div>
+                        <label class="block text-sm font-bold mb-2">
+                            <i class="fas fa-search mr-1 text-blue-500"></i>검색
+                        </label>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="번호판/계약자/명의자 검색..." 
+                            oninput="filterAndSortMotorcycles()"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+                    
+                    <!-- 상태 필터 -->
+                    <div>
+                        <label class="block text-sm font-bold mb-2">
+                            <i class="fas fa-filter mr-1 text-green-500"></i>상태 필터
+                        </label>
+                        <select id="statusFilter" onchange="filterAndSortMotorcycles()" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">전체</option>
+                            <option value="available">사용가능</option>
+                            <option value="rented">렌트중</option>
+                            <option value="maintenance">정비중</option>
+                            <option value="scrapped">폐지</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 정렬 -->
+                    <div>
+                        <label class="block text-sm font-bold mb-2">
+                            <i class="fas fa-sort mr-1 text-purple-500"></i>정렬
+                        </label>
+                        <select id="sortOrder" onchange="filterAndSortMotorcycles()" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="created_desc">입력순 (최신)</option>
+                            <option value="created_asc">입력순 (오래된)</option>
+                            <option value="plate_asc">번호 빠른순</option>
+                            <option value="plate_desc">번호 늦은순</option>
+                            <option value="insurance_exp">보험 만료일순</option>
+                            <option value="inspection_exp">검사 가까운순</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <!-- 오토바이 목록 -->
@@ -297,24 +333,97 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         let motorcycles = [];
+        let motorcycleContracts = {}; // 각 오토바이의 계약자 정보를 저장
 
         window.addEventListener('DOMContentLoaded', loadMotorcycles);
 
         async function loadMotorcycles() {
             try {
-                const status = document.getElementById('statusFilter').value;
-                const url = status ? `/api/motorcycles?status=${status}` : '/api/motorcycles';
-                const response = await axios.get(url);
+                const response = await axios.get('/api/motorcycles');
                 motorcycles = response.data;
-                renderMotorcycles();
+                
+                // 각 오토바이의 계약자 정보를 미리 로드
+                for (const m of motorcycles) {
+                    try {
+                        const contractResponse = await axios.get(`/api/motorcycles/${m.id}/contracts`);
+                        const activeContract = contractResponse.data.find(c => c.status === 'active');
+                        motorcycleContracts[m.id] = activeContract ? activeContract.customer_name : '';
+                    } catch (err) {
+                        motorcycleContracts[m.id] = '';
+                    }
+                }
+                
+                filterAndSortMotorcycles();
             } catch (error) {
                 console.error('Error loading motorcycles:', error);
                 alert('오토바이 목록을 불러오는데 실패했습니다');
             }
         }
 
-        function filterMotorcycles() {
-            loadMotorcycles();
+        function filterAndSortMotorcycles() {
+            // 검색어
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            // 상태 필터
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            // 정렬 기준
+            const sortOrder = document.getElementById('sortOrder').value;
+            
+            // 필터링
+            let filtered = motorcycles.filter(m => {
+                // 상태 필터
+                if (statusFilter && m.status !== statusFilter) {
+                    return false;
+                }
+                
+                // 검색어 필터 (번호판, 계약자, 명의자)
+                if (searchTerm) {
+                    const plateNumber = (m.plate_number || '').toLowerCase();
+                    const chassisNumber = (m.chassis_number || '').toLowerCase();
+                    const ownerName = (m.owner_name || '').toLowerCase();
+                    const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
+                    
+                    return plateNumber.includes(searchTerm) || 
+                           chassisNumber.includes(searchTerm) ||
+                           ownerName.includes(searchTerm) || 
+                           contractorName.includes(searchTerm);
+                }
+                
+                return true;
+            });
+            
+            // 정렬
+            filtered.sort((a, b) => {
+                switch(sortOrder) {
+                    case 'created_desc':
+                        return b.id - a.id; // ID가 클수록 최신
+                    case 'created_asc':
+                        return a.id - b.id; // ID가 작을수록 오래된
+                    case 'plate_asc':
+                        return (a.plate_number || a.chassis_number || '').localeCompare(
+                               (b.plate_number || b.chassis_number || '')
+                        );
+                    case 'plate_desc':
+                        return (b.plate_number || b.chassis_number || '').localeCompare(
+                               (a.plate_number || a.chassis_number || '')
+                        );
+                    case 'insurance_exp':
+                        // 보험 만료일이 가까운 순
+                        const aInsurance = a.insurance_end_date || '9999-12-31';
+                        const bInsurance = b.insurance_end_date || '9999-12-31';
+                        return aInsurance.localeCompare(bInsurance);
+                    case 'inspection_exp':
+                        // 검사 만료일이 가까운 순
+                        const aInspection = a.inspection_end_date || '9999-12-31';
+                        const bInspection = b.inspection_end_date || '9999-12-31';
+                        return aInspection.localeCompare(bInspection);
+                    default:
+                        return b.id - a.id;
+                }
+            });
+            
+            renderMotorcycles(filtered);
         }
 
         function calculateInsuranceProgress(startDate, endDate) {
@@ -346,23 +455,23 @@
             return 'bg-orange-500';
         }
 
-        function renderMotorcycles() {
+        function renderMotorcycles(filteredMotorcycles = motorcycles) {
             const listEl = document.getElementById('motorcycleList');
             
-            if (motorcycles.length === 0) {
+            if (filteredMotorcycles.length === 0) {
                 listEl.innerHTML = `
                     <div class="col-span-full text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
-                        <p class="text-lg">등록된 오토바이가 없습니다</p>
+                        <p class="text-lg">검색 결과가 없습니다</p>
                         <button onclick="showAddModal()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                            <i class="fas fa-plus mr-2"></i>첫 오토바이 등록하기
+                            <i class="fas fa-plus mr-2"></i>오토바이 등록하기
                         </button>
                     </div>
                 `;
                 return;
             }
 
-            listEl.innerHTML = motorcycles.map(m => {
+            listEl.innerHTML = filteredMotorcycles.map(m => {
                 const statusConfig = {
                     'available': { bg: 'bg-green-100', text: 'text-green-800', icon: 'fa-check-circle', label: '사용가능', border: 'status-available' },
                     'rented': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'fa-motorcycle', label: '렌트중', border: 'status-rented' },
