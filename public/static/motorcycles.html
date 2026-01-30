@@ -155,8 +155,17 @@
                             <input type="date" id="insuranceEndDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">운전범위 *</label>
-                            <input type="text" id="drivingRange" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="예: 전국">
+                            <label class="block text-sm font-bold mb-2">운전연령 *</label>
+                            <select id="drivingRange" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">선택하세요</option>
+                                <option value="전연령">전연령</option>
+                                <option value="만19세이상">만19세이상</option>
+                                <option value="만21세이상">만21세이상</option>
+                                <option value="만24세이상">만24세이상</option>
+                                <option value="만26세이상">만26세이상</option>
+                                <option value="만30세이상">만30세이상</option>
+                                <option value="만35세이상">만35세이상</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">명의자 *</label>
