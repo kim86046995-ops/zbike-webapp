@@ -125,6 +125,80 @@ app.get('/api/auth/check', async (c) => {
   })
 })
 
+// 아이디 찾기 (이름과 전화번호로)
+app.post('/api/auth/find-username', async (c) => {
+  const { DB } = c.env
+  const { name, phone } = await c.req.json()
+  
+  const user = await DB.prepare('SELECT username, created_at FROM users WHERE name = ? AND phone = ?')
+    .bind(name, phone).first()
+  
+  if (!user) {
+    return c.json({ error: '일치하는 사용자를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json({
+    success: true,
+    username: (user as any).username,
+    created_at: (user as any).created_at
+  })
+})
+
+// 비밀번호 재설정 토큰 생성 (아이디, 이름, 전화번호로 확인)
+app.post('/api/auth/request-reset', async (c) => {
+  const { DB } = c.env
+  const { username, name, phone } = await c.req.json()
+  
+  const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND name = ? AND phone = ?')
+    .bind(username, name, phone).first()
+  
+  if (!user) {
+    return c.json({ error: '일치하는 사용자를 찾을 수 없습니다' }, 404)
+  }
+  
+  // 토큰 생성 (6자리 숫자)
+  const token = Math.floor(100000 + Math.random() * 900000).toString()
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30분
+  
+  await DB.prepare('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)')
+    .bind((user as any).id, token, expiresAt).run()
+  
+  return c.json({
+    success: true,
+    token,
+    message: '인증번호가 생성되었습니다. 30분 이내에 입력해주세요.'
+  })
+})
+
+// 비밀번호 재설정
+app.post('/api/auth/reset-password', async (c) => {
+  const { DB } = c.env
+  const { token, new_password } = await c.req.json()
+  
+  // 토큰 확인
+  const resetToken = await DB.prepare(`
+    SELECT * FROM password_reset_tokens 
+    WHERE token = ? AND used = 0 AND expires_at > datetime('now')
+  `).bind(token).first()
+  
+  if (!resetToken) {
+    return c.json({ error: '유효하지 않거나 만료된 인증번호입니다' }, 400)
+  }
+  
+  // 비밀번호 업데이트
+  await DB.prepare('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .bind(new_password, (resetToken as any).user_id).run()
+  
+  // 토큰 사용 처리
+  await DB.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?')
+    .bind((resetToken as any).id).run()
+  
+  return c.json({
+    success: true,
+    message: '비밀번호가 재설정되었습니다'
+  })
+})
+
 // ============================================
 // 오토바이 API (인증 필요)
 // ============================================
@@ -1222,6 +1296,23 @@ app.get('/login', (c) => {
 </head>
 <body class="bg-gray-50">
 <iframe src="/static/login.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
+// 아이디/비밀번호 찾기 페이지
+app.get('/find-account', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아이디/비밀번호 찾기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/find-account.html" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
