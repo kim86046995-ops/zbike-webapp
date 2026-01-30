@@ -257,26 +257,11 @@
                     </button>
                 </div>
 
-                <!-- 5. 대여인 서명 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">
-                        <i class="fas fa-signature mr-2 text-orange-600"></i>
-                        5. 대여인 서명
-                    </h2>
-                    <p class="text-sm text-gray-600 mb-4">대여인의 서명을 받아주세요</p>
-                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                        <canvas id="lenderSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
-                    </div>
-                    <button type="button" onclick="clearLenderSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-eraser mr-1"></i>서명 지우기
-                    </button>
-                </div>
-
-                <!-- 6. 차용인 신분증 촬영 -->
+                <!-- 5. 차용인 신분증 촬영 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
                         <i class="fas fa-id-card mr-2 text-orange-600"></i>
-                        6. 차용인 신분증 촬영
+                        5. 차용인 신분증 촬영
                     </h2>
                     <p class="text-sm text-gray-600 mb-4">차용인의 신분증을 촬영하거나 업로드하세요</p>
                     
@@ -326,7 +311,6 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         let borrowerCanvas, borrowerCtx, borrowerIsDrawing = false;
-        let lenderCanvas, lenderCtx, lenderIsDrawing = false;
         let loanStream = null;
         let loanIdCardPhotoData = null;
 
@@ -409,59 +393,34 @@
             borrowerCtx.lineCap = 'round';
             borrowerCtx.lineJoin = 'round';
 
-            borrowerCanvas.addEventListener('mousedown', (e) => startDrawing(e, 'borrower'));
-            borrowerCanvas.addEventListener('mousemove', (e) => draw(e, 'borrower'));
-            borrowerCanvas.addEventListener('mouseup', () => stopDrawing('borrower'));
-            borrowerCanvas.addEventListener('mouseout', () => stopDrawing('borrower'));
-
-            // 대여인 서명
-            lenderCanvas = document.getElementById('lenderSignatureCanvas');
-            lenderCtx = lenderCanvas.getContext('2d');
-            lenderCtx.strokeStyle = '#000';
-            lenderCtx.lineWidth = 2;
-            lenderCtx.lineCap = 'round';
-            lenderCtx.lineJoin = 'round';
-
-            lenderCanvas.addEventListener('mousedown', (e) => startDrawing(e, 'lender'));
-            lenderCanvas.addEventListener('mousemove', (e) => draw(e, 'lender'));
-            lenderCanvas.addEventListener('mouseup', () => stopDrawing('lender'));
-            lenderCanvas.addEventListener('mouseout', () => stopDrawing('lender'));
+            borrowerCanvas.addEventListener('mousedown', (e) => startDrawing(e));
+            borrowerCanvas.addEventListener('mousemove', (e) => draw(e));
+            borrowerCanvas.addEventListener('mouseup', () => stopDrawing());
+            borrowerCanvas.addEventListener('mouseout', () => stopDrawing());
         }
 
-        function startDrawing(e, type) {
-            const canvas = type === 'borrower' ? borrowerCanvas : lenderCanvas;
-            const ctx = type === 'borrower' ? borrowerCtx : lenderCtx;
+        function startDrawing(e) {
+            borrowerIsDrawing = true;
             
-            if (type === 'borrower') borrowerIsDrawing = true;
-            else lenderIsDrawing = true;
-            
-            const rect = canvas.getBoundingClientRect();
-            ctx.beginPath();
-            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            const rect = borrowerCanvas.getBoundingClientRect();
+            borrowerCtx.beginPath();
+            borrowerCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
         }
 
-        function draw(e, type) {
-            const isDrawing = type === 'borrower' ? borrowerIsDrawing : lenderIsDrawing;
-            if (!isDrawing) return;
+        function draw(e) {
+            if (!borrowerIsDrawing) return;
             
-            const canvas = type === 'borrower' ? borrowerCanvas : lenderCanvas;
-            const ctx = type === 'borrower' ? borrowerCtx : lenderCtx;
-            const rect = canvas.getBoundingClientRect();
-            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            ctx.stroke();
+            const rect = borrowerCanvas.getBoundingClientRect();
+            borrowerCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            borrowerCtx.stroke();
         }
 
-        function stopDrawing(type) {
-            if (type === 'borrower') borrowerIsDrawing = false;
-            else lenderIsDrawing = false;
+        function stopDrawing() {
+            borrowerIsDrawing = false;
         }
 
         function clearBorrowerSignature() {
             borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
-        }
-
-        function clearLenderSignature() {
-            lenderCtx.clearRect(0, 0, lenderCanvas.width, lenderCanvas.height);
         }
 
         // 신분증 촬영 관련 함수
@@ -542,18 +501,11 @@
 
             // 서명 확인
             const borrowerSignatureData = borrowerCanvas.toDataURL('image/png');
-            const lenderSignatureData = lenderCanvas.toDataURL('image/png');
             
             const borrowerSignatureEmpty = borrowerCtx.getImageData(0, 0, borrowerCanvas.width, borrowerCanvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
-            const lenderSignatureEmpty = lenderCtx.getImageData(0, 0, lenderCanvas.width, lenderCanvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
             
             if (borrowerSignatureEmpty) {
                 alert('차용인 서명을 해주세요');
-                return;
-            }
-            
-            if (lenderSignatureEmpty) {
-                alert('대여인 서명을 해주세요');
                 return;
             }
 
@@ -581,7 +533,7 @@
                 account_number: document.getElementById('accountNumber').value || '',
                 special_terms: document.getElementById('specialTerms').value || '',
                 borrower_signature: borrowerSignatureData,
-                lender_signature: lenderSignatureData,
+                lender_signature: '',
                 borrower_id_card_photo: loanIdCardPhotoData || ''
             };
 
