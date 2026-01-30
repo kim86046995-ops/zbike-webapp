@@ -404,6 +404,105 @@ app.put('/api/company-settings', async (c) => {
 })
 
 // ============================================
+// 업체 계약서 API
+// ============================================
+
+// 업체 계약서 생성
+app.post('/api/business-contracts', async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  // 계약서 번호 생성 (B-YYYYMMDD-XXXX 형식)
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const countResult = await DB.prepare(
+    `SELECT COUNT(*) as count FROM business_contracts WHERE contract_number LIKE ?`
+  ).bind(`B-${today}-%`).first()
+  
+  const count = (countResult as any).count + 1
+  const contractNumber = `B-${today}-${String(count).padStart(4, '0')}`
+  
+  const result = await DB.prepare(`
+    INSERT INTO business_contracts (
+      motorcycle_id, contract_number,
+      company_name, business_number, representative, business_type, business_category,
+      business_phone, business_address,
+      representative_resident_number, representative_phone, representative_address,
+      contract_start_date, contract_end_date, insurance_start_date, insurance_end_date,
+      driving_age, daily_amount, deposit, special_terms,
+      business_license_photo, id_card_photo, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    data.motorcycle_id,
+    contractNumber,
+    data.company_name,
+    data.business_number,
+    data.representative,
+    data.business_type,
+    data.business_category,
+    data.business_phone,
+    data.business_address,
+    data.representative_resident_number,
+    data.representative_phone,
+    data.representative_address,
+    data.contract_start_date,
+    data.contract_end_date,
+    data.insurance_start_date,
+    data.insurance_end_date,
+    data.driving_age,
+    data.daily_amount,
+    data.deposit || 0,
+    data.special_terms || '',
+    data.business_license_photo || '',
+    data.id_card_photo || '',
+    'active'
+  ).run()
+  
+  // 오토바이 상태를 'rented'로 변경
+  await DB.prepare(
+    `UPDATE motorcycles SET status = 'rented' WHERE id = ?`
+  ).bind(data.motorcycle_id).run()
+  
+  return c.json({ id: result.meta.last_row_id, contract_number: contractNumber }, 201)
+})
+
+// 업체 계약서 목록 조회
+app.get('/api/business-contracts', async (c) => {
+  const { DB } = c.env
+  
+  const result = await DB.prepare(`
+    SELECT 
+      bc.*,
+      m.plate_number, m.vehicle_name, m.chassis_number
+    FROM business_contracts bc
+    JOIN motorcycles m ON bc.motorcycle_id = m.id
+    ORDER BY bc.created_at DESC
+  `).all()
+  
+  return c.json(result.results)
+})
+
+// 업체 계약서 상세 조회
+app.get('/api/business-contracts/:id', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare(`
+    SELECT 
+      bc.*,
+      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage
+    FROM business_contracts bc
+    JOIN motorcycles m ON bc.motorcycle_id = m.id
+    WHERE bc.id = ?
+  `).bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
+// ============================================
 // 차용증 API
 // ============================================
 
@@ -582,6 +681,24 @@ app.get('/contract/new', (c) => {
 </html>`)
 })
 
+// 업체 계약서 작성 페이지
+app.get('/business-contract/new', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>업체 계약서 작성</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/business-contract-new.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
+
 // 계약서 목록 페이지
 app.get('/contracts', (c) => {
   return c.html(`<!DOCTYPE html>
@@ -686,7 +803,7 @@ app.get('/', (c) => {
                     </a>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- 오토바이 관리 -->
                     <a href="/motorcycles" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
                         <div class="flex items-center mb-4">
@@ -698,22 +815,33 @@ app.get('/', (c) => {
                         <p class="text-gray-600">오토바이 등록 및 관리</p>
                     </a>
 
-                    <!-- 계약서 작성 -->
+                    <!-- 개인 계약서 작성 -->
                     <a href="/contract/new" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
                         <div class="flex items-center mb-4">
                             <div class="bg-green-100 p-3 rounded-full">
                                 <i class="fas fa-file-signature text-green-600 text-2xl"></i>
                             </div>
-                            <h2 class="text-xl font-bold ml-4">계약서 작성</h2>
+                            <h2 class="text-xl font-bold ml-4">개인 계약서</h2>
                         </div>
-                        <p class="text-gray-600">리스/렌트 계약서 작성</p>
+                        <p class="text-gray-600">개인 리스/렌트 계약서</p>
+                    </a>
+
+                    <!-- 업체 계약서 작성 -->
+                    <a href="/business-contract/new" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-purple-100 p-3 rounded-full">
+                                <i class="fas fa-building text-purple-600 text-2xl"></i>
+                            </div>
+                            <h2 class="text-xl font-bold ml-4">업체 계약서</h2>
+                        </div>
+                        <p class="text-gray-600">업체 리스/렌트 계약서</p>
                     </a>
 
                     <!-- 계약서 목록 -->
                     <a href="/contracts" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
                         <div class="flex items-center mb-4">
-                            <div class="bg-purple-100 p-3 rounded-full">
-                                <i class="fas fa-list text-purple-600 text-2xl"></i>
+                            <div class="bg-indigo-100 p-3 rounded-full">
+                                <i class="fas fa-list text-indigo-600 text-2xl"></i>
                             </div>
                             <h2 class="text-xl font-bold ml-4">계약서 목록</h2>
                         </div>
