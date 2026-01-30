@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS business_contracts (
   contract_end_date TEXT NOT NULL,
   insurance_start_date TEXT NOT NULL,
   insurance_end_date TEXT NOT NULL,
-  driving_age TEXT NOT NULL,
+  license_type TEXT NOT NULL,
   daily_amount INTEGER NOT NULL,
   deposit INTEGER DEFAULT 0,
   special_terms TEXT,

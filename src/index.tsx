@@ -428,7 +428,7 @@ app.post('/api/business-contracts', async (c) => {
       business_phone, business_address,
       representative_resident_number, representative_phone, representative_address,
       contract_start_date, contract_end_date, insurance_start_date, insurance_end_date,
-      driving_age, daily_amount, deposit, special_terms,
+      license_type, daily_amount, deposit, special_terms,
       business_license_photo, id_card_photo, status
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
@@ -448,7 +448,7 @@ app.post('/api/business-contracts', async (c) => {
     data.contract_end_date,
     data.insurance_start_date,
     data.insurance_end_date,
-    data.driving_age,
+    data.license_type,
     data.daily_amount,
     data.deposit || 0,
     data.special_terms || '',

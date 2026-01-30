@@ -156,13 +156,13 @@
                             <input type="date" id="insuranceEndDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">운전연령 *</label>
-                            <select id="drivingAge" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-sm font-bold mb-2">면허종류 *</label>
+                            <select id="licenseType" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                                 <option value="">선택하세요</option>
-                                <option value="21">만 21세 이상</option>
-                                <option value="23">만 23세 이상</option>
-                                <option value="26">만 26세 이상</option>
-                                <option value="all">연령무관</option>
+                                <option value="2종 소형">2종 소형</option>
+                                <option value="2종 보통">2종 보통</option>
+                                <option value="1종 보통">1종 보통</option>
+                                <option value="1종 대형">1종 대형</option>
                             </select>
                         </div>
                         <div>
@@ -186,11 +186,171 @@
                     </div>
                 </div>
 
-                <!-- 5. 서류 첨부 -->
+                <!-- 5. 업체 계약 약관 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-contract mr-2 text-purple-600"></i>
+                        5. 업체 계약 약관
+                    </h2>
+                    
+                    <!-- 약관 내용 -->
+                    <div class="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto text-sm space-y-3">
+                        <p class="font-bold text-base text-purple-800 mb-3">
+                            <i class="fas fa-building mr-2"></i>업체 리스/렌트 계약서
+                        </p>
+                        
+                        <p class="text-xs text-gray-600">
+                            본 계약은 대여인(사업자)과 차용인(업체) 간의 오토바이 리스/렌트 형태의 계약입니다.
+                        </p>
+
+                        <p class="font-bold mt-4 mb-2 text-purple-700">
+                            <i class="fas fa-star mr-1 text-yellow-500"></i>특별 안내
+                        </p>
+                        <div class="ml-4 space-y-1 text-xs bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                            <p class="font-bold text-yellow-800">
+                                <i class="fas fa-info-circle mr-1"></i>업체 계약 간소화 제도
+                            </p>
+                            <p class="text-gray-700">
+                                대표자가 최초 1회 계약 체결 시 업체 정보, 대표자 정보, 서류를 등록하시면, 
+                                <span class="font-bold text-purple-700">이후 추가 오토바이 출고 시에는 별도의 계약서 작성 없이 자동으로 모든 계약서 서식이 완성</span>됩니다.
+                            </p>
+                            <p class="text-gray-700 mt-2">
+                                ✓ 최초 등록 정보 재사용<br>
+                                ✓ 간편한 추가 출고 절차<br>
+                                ✓ 동일한 약관 및 조건 적용
+                            </p>
+                        </div>
+
+                        <p class="font-bold mt-4 mb-2">제1조 (목적 및 계약 내용)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 본 계약은 업체 배달대행 목적의 리스/렌트 계약입니다.</p>
+                            <p>② 계약 타입: 위 기재된 계약 타입</p>
+                            <p>③ 계약 기간: 위 기재된 계약 기간</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제2조 (인도 및 관리)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 대여인은 계약 시작일에 오토바이를 업체에 인도하며, 업체는 선량한 관리자의 주의로 관리해야 합니다.</p>
+                            <p>② 업체는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 오토바이는 업체의 배달대행 업무에만 사용할 수 있습니다.</p>
+                            <p>② 업체는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
+                            <p>③ 오토바이는 대여인이 지정한 면허종류 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 업체는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
+                            <p>② 일차감 금액: 위 기재된 일차감금액</p>
+                            <p>③ 보증금: 위 기재된 보증금</p>
+                            <p>④ 차감 금액은 업체의 일당 정산 시 대여인의 전산 프로그램을 통해 자동으로 공제됩니다.</p>
+                            <p>⑤ 업체는 일당 발생 시마다 자동 차감되며, 별도의 월 납부 의무는 없습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 대여인은 업체의 일당, 차감 금액, 누적 차감 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p>② 업체는 언제든 본인의 차감 내역 및 납부 현황을 조회할 수 있습니다.</p>
+                            <p>③ 차감 내역에 이의가 있는 경우, 업체는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 대여인은 오토바이에 대한 자동차보험(유상운송보험)에 가입하여야 합니다.</p>
+                            <p>② 사고 발생 시 업체는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
+                            <p>③ 업체의 고의 또는 과실로 발생한 사고의 자기부담금은 업체가 부담합니다.</p>
+                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체가 전액 배상합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체가 전액 부담합니다.</p>
+                            <p>② 정비 및 수리가 필요한 경우, 업체는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 대여인은 다음 각 호의 경우 계약을 즉시 해지할 수 있습니다:</p>
+                            <p class="ml-4">- 업체가 정당한 사유 없이 3일 이상 연속으로 배달대행 업무를 수행하지 않는 경우</p>
+                            <p class="ml-4">- 음주운전 등 중대한 법규 위반이 있는 경우</p>
+                            <p class="ml-4">- 오토바이를 임의로 개조하거나 제3자에게 재대여한 경우</p>
+                            <p class="ml-4">- 업체가 허위 정보를 제공한 경우</p>
+                            <p>② 해지 시 업체는 즉시 오토바이를 반환하며, 미차감 대여료 및 손해액은 보증금에서 공제됩니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 업체는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
+                            <p>② 중도 해지 시, 위약금(일차감금액의 30일분)은 보증금에서 공제 후 반환합니다.</p>
+                            <p>③ 리스 계약의 경우, 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부해야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제10조 (계약 종료 시 반환)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 계약 종료 시 업체는 오토바이를 원상태로 반환해야 합니다.</p>
+                            <p>② 오토바이에 손상이 있는 경우, 수리비는 보증금에서 공제됩니다. 보증금이 없을 시 일차감분에서 일괄 차감합니다.</p>
+                            <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료됩니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제11조 (무상정비 항목 - 특약)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 대여인은 계약 기간 중 다음 항목을 무상으로 제공합니다:</p>
+                            <p class="ml-4">- 엔진오일 교환 (주행거리 1,000km마다)</p>
+                            <p class="ml-4">- 브레이크패드 교체 (마모 시)</p>
+                            <p class="ml-4">- 타이어 교체 (마모 또는 손상 시, 업체 과실 제외)</p>
+                            <p class="ml-4">- 정기 점검 (계기판 점검, 등화장치, 제동장치 등)</p>
+                            <p>② 무상정비 제외 항목:</p>
+                            <p class="ml-4">- 엔진, 미션, 구동계 관련 수리</p>
+                            <p class="ml-4">- 무상정비 항목 이외의 모든 소모품</p>
+                            <p class="ml-4">- 운전자 과실에 의한 제반 수리비</p>
+                            <p>③ 무상정비는 대여인이 지정한 정비소에서만 가능하며, 임의 정비 시 비용은 업체가 부담합니다.</p>
+                            <p>④ 업체의 고의 또는 과실로 인한 부품 손상은 무상정비 대상에서 제외됩니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제12조 (추가 오토바이 출고)</p>
+                        <div class="ml-4 space-y-1 text-xs bg-purple-50 p-3 rounded border border-purple-200">
+                            <p class="font-bold text-purple-800">① 간소화된 계약 절차</p>
+                            <p>대표자가 최초 계약 체결 시 등록한 업체 정보, 대표자 정보 및 제출 서류는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
+                            <p class="font-bold text-purple-800 mt-2">② 자동 계약서 생성</p>
+                            <p>추가 오토바이 출고 시, 업체는 오토바이 선택 및 계약 조건(기간, 금액 등)만 입력하면 모든 계약서 서식이 자동으로 완성됩니다.</p>
+                            <p class="font-bold text-purple-800 mt-2">③ 동일한 약관 적용</p>
+                            <p>추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
+                            <p class="font-bold text-purple-800 mt-2">④ 정보 변경</p>
+                            <p>업체 정보 또는 대표자 정보가 변경된 경우, 업체는 즉시 대여인에게 서면으로 통지하고 변경된 서류를 제출해야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제13조 (분쟁 해결 및 기타)</p>
+                        <div class="ml-4 space-y-1 text-xs">
+                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
+                            <p>② 본 계약으로 인한 분쟁 발생 시 대여인의 주소지 관할 법원을 전속관할로 합니다.</p>
+                            <p>③ 특약사항에 기재된 사항이 있는 경우 우선 적용됩니다.</p>
+                        </div>
+
+                        <p class="mt-4 text-xs text-center text-gray-600">
+                            위 내용을 충분히 이해하고 계약서에 기재된 내용에 동의합니다.
+                        </p>
+                    </div>
+
+                    <!-- 약관 동의 체크박스 -->
+                    <div class="mt-4">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="agreeTerms" required class="w-5 h-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                            <span class="text-sm font-bold">
+                                <i class="fas fa-check-circle text-purple-600 mr-1"></i>
+                                위 계약 약관을 모두 읽었으며 이에 동의합니다 *
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 6. 서류 첨부 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
                         <i class="fas fa-paperclip mr-2 text-purple-600"></i>
-                        5. 서류 첨부
+                        6. 서류 첨부
                     </h2>
                     
                     <!-- 사업자등록증 -->
@@ -603,6 +763,12 @@
                 return;
             }
 
+            // 약관 동의 확인
+            if (!document.getElementById('agreeTerms').checked) {
+                alert('계약 약관에 동의해주세요');
+                return;
+            }
+
             // 사업자등록증 확인
             const businessLicensePhoto = document.getElementById('businessLicensePhoto').value;
             if (!businessLicensePhoto) {
@@ -644,7 +810,7 @@
                 contract_end_date: document.getElementById('contractEndDate').value,
                 insurance_start_date: document.getElementById('insuranceStartDate').value,
                 insurance_end_date: document.getElementById('insuranceEndDate').value,
-                driving_age: document.getElementById('drivingAge').value,
+                license_type: document.getElementById('licenseType').value,
                 daily_amount: parseInt(document.getElementById('dailyAmount').value),
                 deposit: parseInt(document.getElementById('deposit').value),
                 special_terms: document.getElementById('specialTerms').value,
