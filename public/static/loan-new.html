@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차용증 작성</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen pb-20">
+        <!-- 헤더 -->
+        <header class="bg-orange-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <a href="/" class="text-xl font-bold">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    차용증 작성
+                </a>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="container mx-auto px-4 py-8 max-w-4xl">
+            <form id="loanForm" class="space-y-6">
+                <!-- 1. 차용인 정보 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-user mr-2 text-orange-600"></i>
+                        1. 차용인 정보
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">이름 *</label>
+                            <input type="text" id="borrowerName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">주민번호 *</label>
+                            <input type="text" id="borrowerResidentNumber" required placeholder="000000-0000000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">전화번호 *</label>
+                            <input type="tel" id="borrowerPhone" required placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-bold mb-2">주소 *</label>
+                            <input type="text" id="borrowerAddress" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 차용 상세 정보 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-invoice-dollar mr-2 text-orange-600"></i>
+                        2. 차용 상세 정보
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차용금액 (원) *</label>
+                            <input type="number" id="loanAmount" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">이자율 (%)</label>
+                            <input type="number" id="interestRate" value="0" step="0.1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차용일 *</label>
+                            <input type="date" id="loanDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">상환일 *</label>
+                            <input type="date" id="repaymentDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">상환방법</label>
+                            <input type="text" id="repaymentMethod" placeholder="예: 일시상환, 분할상환" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">담보</label>
+                            <input type="text" id="collateral" placeholder="담보물이 있는 경우 입력" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">특약사항</label>
+                            <textarea id="specialTerms" rows="4" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="추가 특약사항이 있으면 입력하세요"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 차용증 약관 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-contract mr-2 text-orange-600"></i>
+                        3. 차용증 약관
+                    </h2>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-3 max-h-96 overflow-y-auto">
+                        <p class="font-bold text-center text-lg">금전차용증서</p>
+                        
+                        <p class="font-bold mt-4">제1조 (차용금)</p>
+                        <p>차용인은 대여인으로부터 위 기재 금액을 차용하였음을 확인합니다.</p>
+                        
+                        <p class="font-bold mt-4">제2조 (차용 기간 및 이자)</p>
+                        <p>1. 차용인은 위 기재된 차용일로부터 상환일까지 차용금을 사용할 수 있습니다.</p>
+                        <p>2. 차용금에 대한 이자는 위 기재된 이자율에 따라 계산됩니다.</p>
+                        <p>3. 이자는 매월 말일에 후불로 지급하는 것을 원칙으로 합니다.</p>
+                        
+                        <p class="font-bold mt-4">제3조 (상환)</p>
+                        <p>1. 차용인은 상환일에 원금과 이자를 대여인에게 상환하여야 합니다.</p>
+                        <p>2. 상환방법은 위 기재된 방법에 따릅니다.</p>
+                        <p>3. 차용인은 상환일 이전이라도 대여인의 동의 없이 조기 상환할 수 있습니다.</p>
+                        
+                        <p class="font-bold mt-4">제4조 (기한의 이익 상실)</p>
+                        <p>차용인이 다음 각 호의 어느 하나에 해당하는 경우에는 기한의 이익을 상실하고 대여인의 청구 즉시 원리금을 변제하여야 합니다.</p>
+                        <p>1. 차용인이 이자를 2회 이상 연속 지급하지 않은 경우</p>
+                        <p>2. 차용인의 재산에 대하여 가압류, 압류, 경매 신청이 있는 경우</p>
+                        <p>3. 차용인이 파산, 회생절차 개시신청을 한 경우</p>
+                        <p>4. 차용인이 본 계약의 중요한 사항을 위반한 경우</p>
+                        
+                        <p class="font-bold mt-4">제5조 (담보)</p>
+                        <p>차용인은 차용금 채무의 담보로 위 기재된 담보를 제공합니다.</p>
+                        
+                        <p class="font-bold mt-4">제6조 (연체 이자)</p>
+                        <p>차용인이 상환일에 원리금을 변제하지 않은 경우 연체된 원리금에 대하여 연 10%의 연체이자를 부담합니다.</p>
+                        
+                        <p class="font-bold mt-4">제7조 (비용 부담)</p>
+                        <p>본 차용증과 관련하여 발생하는 인지세, 공증비용 등 일체의 비용은 차용인이 부담합니다.</p>
+                        
+                        <p class="font-bold mt-4">제8조 (관할 법원)</p>
+                        <p>본 차용증과 관련한 분쟁에 대하여는 대여인의 주소지 관할 법원을 전속 관할로 합니다.</p>
+                        
+                        <p class="font-bold mt-4">제9조 (특약사항)</p>
+                        <p>위에 기재된 특약사항은 본 차용증의 일부를 구성합니다.</p>
+                        
+                        <p class="mt-4">차용인과 대여인은 위 내용을 확인하고 이에 동의하여 본 차용증을 작성합니다.</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="agreeTerms" required class="w-4 h-4 text-orange-600 rounded focus:ring-orange-500">
+                            <span class="ml-2 text-sm font-bold">위 차용증 약관을 모두 읽었으며 이에 동의합니다 *</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 4. 차용인 서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-orange-600"></i>
+                        4. 차용인 서명
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">차용인의 서명을 받아주세요</p>
+                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                        <canvas id="borrowerSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <button type="button" onclick="clearBorrowerSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-eraser mr-1"></i>서명 지우기
+                    </button>
+                </div>
+
+                <!-- 5. 대여인 서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-orange-600"></i>
+                        5. 대여인 서명
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">대여인의 서명을 받아주세요</p>
+                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                        <canvas id="lenderSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <button type="button" onclick="clearLenderSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-eraser mr-1"></i>서명 지우기
+                    </button>
+                </div>
+
+                <!-- 6. 차용인 신분증 촬영 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-id-card mr-2 text-orange-600"></i>
+                        6. 차용인 신분증 촬영
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">차용인의 신분증을 촬영하거나 업로드하세요</p>
+                    
+                    <div id="loanCameraSection" class="hidden mb-4">
+                        <video id="loanVideo" width="640" height="480" autoplay class="w-full border rounded-lg"></video>
+                        <button type="button" onclick="captureLoanPhoto()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-camera mr-2"></i>촬영하기
+                        </button>
+                        <button type="button" onclick="stopLoanCamera()" class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                            <i class="fas fa-times mr-2"></i>카메라 닫기
+                        </button>
+                    </div>
+
+                    <div id="loanPhotoPreview" class="hidden mb-4">
+                        <img id="loanCapturedPhoto" class="w-full border rounded-lg">
+                        <button type="button" onclick="clearLoanPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash mr-1"></i>사진 삭제
+                        </button>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button type="button" onclick="startLoanCamera()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
+                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                        </button>
+                        <label class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 cursor-pointer text-center">
+                            <i class="fas fa-upload mr-2"></i>파일 업로드
+                            <input type="file" id="loanIdCardFile" accept="image/*" onchange="handleLoanFileUpload(event)" class="hidden">
+                        </label>
+                    </div>
+                    
+                    <canvas id="loanPhotoCanvas" class="hidden"></canvas>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-orange-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-orange-700 transition">
+                        <i class="fas fa-check-circle mr-2"></i>차용증 생성
+                    </button>
+                    <a href="/" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        let borrowerCanvas, borrowerCtx, borrowerIsDrawing = false;
+        let lenderCanvas, lenderCtx, lenderIsDrawing = false;
+        let loanStream = null;
+        let loanIdCardPhotoData = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initSignaturePads();
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('loanDate').value = today;
+        });
+
+        function initSignaturePads() {
+            // 차용인 서명
+            borrowerCanvas = document.getElementById('borrowerSignatureCanvas');
+            borrowerCtx = borrowerCanvas.getContext('2d');
+            borrowerCtx.strokeStyle = '#000';
+            borrowerCtx.lineWidth = 2;
+            borrowerCtx.lineCap = 'round';
+            borrowerCtx.lineJoin = 'round';
+
+            borrowerCanvas.addEventListener('mousedown', (e) => startDrawing(e, 'borrower'));
+            borrowerCanvas.addEventListener('mousemove', (e) => draw(e, 'borrower'));
+            borrowerCanvas.addEventListener('mouseup', () => stopDrawing('borrower'));
+            borrowerCanvas.addEventListener('mouseout', () => stopDrawing('borrower'));
+
+            // 대여인 서명
+            lenderCanvas = document.getElementById('lenderSignatureCanvas');
+            lenderCtx = lenderCanvas.getContext('2d');
+            lenderCtx.strokeStyle = '#000';
+            lenderCtx.lineWidth = 2;
+            lenderCtx.lineCap = 'round';
+            lenderCtx.lineJoin = 'round';
+
+            lenderCanvas.addEventListener('mousedown', (e) => startDrawing(e, 'lender'));
+            lenderCanvas.addEventListener('mousemove', (e) => draw(e, 'lender'));
+            lenderCanvas.addEventListener('mouseup', () => stopDrawing('lender'));
+            lenderCanvas.addEventListener('mouseout', () => stopDrawing('lender'));
+        }
+
+        function startDrawing(e, type) {
+            const canvas = type === 'borrower' ? borrowerCanvas : lenderCanvas;
+            const ctx = type === 'borrower' ? borrowerCtx : lenderCtx;
+            
+            if (type === 'borrower') borrowerIsDrawing = true;
+            else lenderIsDrawing = true;
+            
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function draw(e, type) {
+            const isDrawing = type === 'borrower' ? borrowerIsDrawing : lenderIsDrawing;
+            if (!isDrawing) return;
+            
+            const canvas = type === 'borrower' ? borrowerCanvas : lenderCanvas;
+            const ctx = type === 'borrower' ? borrowerCtx : lenderCtx;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+        }
+
+        function stopDrawing(type) {
+            if (type === 'borrower') borrowerIsDrawing = false;
+            else lenderIsDrawing = false;
+        }
+
+        function clearBorrowerSignature() {
+            borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+        }
+
+        function clearLenderSignature() {
+            lenderCtx.clearRect(0, 0, lenderCanvas.width, lenderCanvas.height);
+        }
+
+        // 신분증 촬영 관련 함수
+        async function startLoanCamera() {
+            try {
+                loanStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                const video = document.getElementById('loanVideo');
+                video.srcObject = loanStream;
+                
+                document.getElementById('loanCameraSection').classList.remove('hidden');
+                document.getElementById('loanPhotoPreview').classList.add('hidden');
+            } catch (error) {
+                console.error('카메라 접근 오류:', error);
+                alert('카메라에 접근할 수 없습니다. 권한을 확인해주세요.');
+            }
+        }
+
+        function captureLoanPhoto() {
+            const video = document.getElementById('loanVideo');
+            const photoCanvas = document.getElementById('loanPhotoCanvas');
+            const capturedPhoto = document.getElementById('loanCapturedPhoto');
+            
+            photoCanvas.width = video.videoWidth;
+            photoCanvas.height = video.videoHeight;
+            
+            const photoCtx = photoCanvas.getContext('2d');
+            photoCtx.drawImage(video, 0, 0);
+            
+            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.8);
+            capturedPhoto.src = loanIdCardPhotoData;
+            
+            stopLoanCamera();
+            document.getElementById('loanPhotoPreview').classList.remove('hidden');
+        }
+
+        function stopLoanCamera() {
+            if (loanStream) {
+                loanStream.getTracks().forEach(track => track.stop());
+                loanStream = null;
+            }
+            document.getElementById('loanCameraSection').classList.add('hidden');
+        }
+
+        function handleLoanFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                loanIdCardPhotoData = e.target.result;
+                document.getElementById('loanCapturedPhoto').src = loanIdCardPhotoData;
+                document.getElementById('loanPhotoPreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearLoanPhoto() {
+            loanIdCardPhotoData = null;
+            document.getElementById('loanPhotoPreview').classList.add('hidden');
+            document.getElementById('loanIdCardFile').value = '';
+        }
+
+        document.getElementById('loanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 약관 동의 확인
+            if (!document.getElementById('agreeTerms').checked) {
+                alert('차용증 약관에 동의해주세요');
+                return;
+            }
+
+            // 서명 확인
+            const borrowerSignatureData = borrowerCanvas.toDataURL('image/png');
+            const lenderSignatureData = lenderCanvas.toDataURL('image/png');
+            
+            const borrowerSignatureEmpty = borrowerCtx.getImageData(0, 0, borrowerCanvas.width, borrowerCanvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
+            const lenderSignatureEmpty = lenderCtx.getImageData(0, 0, lenderCanvas.width, lenderCanvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
+            
+            if (borrowerSignatureEmpty) {
+                alert('차용인 서명을 해주세요');
+                return;
+            }
+            
+            if (lenderSignatureEmpty) {
+                alert('대여인 서명을 해주세요');
+                return;
+            }
+
+            const loanData = {
+                borrower_name: document.getElementById('borrowerName').value,
+                borrower_resident_number: document.getElementById('borrowerResidentNumber').value,
+                borrower_phone: document.getElementById('borrowerPhone').value,
+                borrower_address: document.getElementById('borrowerAddress').value,
+                loan_amount: parseInt(document.getElementById('loanAmount').value),
+                loan_date: document.getElementById('loanDate').value,
+                repayment_date: document.getElementById('repaymentDate').value,
+                interest_rate: parseFloat(document.getElementById('interestRate').value) || 0,
+                repayment_method: document.getElementById('repaymentMethod').value || '',
+                collateral: document.getElementById('collateral').value || '',
+                special_terms: document.getElementById('specialTerms').value || '',
+                borrower_signature: borrowerSignatureData,
+                lender_signature: lenderSignatureData,
+                borrower_id_card_photo: loanIdCardPhotoData || ''
+            };
+
+            try {
+                const response = await axios.post('/api/loan-contracts', loanData);
+                alert(`차용증이 생성되었습니다!\n차용증번호: ${response.data.loan_number}`);
+                window.location.href = '/loans';
+            } catch (error) {
+                console.error('Error creating loan contract:', error);
+                alert('차용증 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        });
+    </script>
+</body>
+</html>

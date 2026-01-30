@@ -114,8 +114,8 @@
                             <input type="date" id="endDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">월 납부금액 (원) *</label>
-                            <input type="number" id="monthlyFee" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <label class="block text-sm font-bold mb-2">일대여료 (원) *</label>
+                            <input type="number" id="dailyFee" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" placeholder="1일 대여 금액">
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">보증금 (원)</label>
@@ -451,7 +451,7 @@
                     customer_id: customerId,
                     start_date: document.getElementById('startDate').value,
                     end_date: document.getElementById('endDate').value,
-                    monthly_fee: parseInt(document.getElementById('monthlyFee').value),
+                    monthly_fee: parseInt(document.getElementById('dailyFee').value),
                     deposit: parseInt(document.getElementById('deposit').value) || 0,
                     special_terms: document.getElementById('specialTerms').value || '',
                     signature_data: signatureData,

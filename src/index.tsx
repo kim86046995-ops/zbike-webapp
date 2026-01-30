@@ -56,8 +56,8 @@ app.post('/api/motorcycles', async (c) => {
     INSERT INTO motorcycles (
       plate_number, vehicle_name, chassis_number, mileage, model_year,
       insurance_company, insurance_start_date, insurance_end_date,
-      driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, usage_notes, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.plate_number,
     data.vehicle_name,
@@ -72,6 +72,7 @@ app.post('/api/motorcycles', async (c) => {
     data.insurance_fee,
     data.vehicle_price,
     data.daily_rental_fee || 0,
+    data.usage_notes || '',
     data.status || 'available'
   ).run()
   
@@ -89,7 +90,7 @@ app.put('/api/motorcycles/:id', async (c) => {
       plate_number = ?, vehicle_name = ?, chassis_number = ?, mileage = ?,
       model_year = ?, insurance_company = ?, insurance_start_date = ?,
       insurance_end_date = ?, driving_range = ?, owner_name = ?,
-      insurance_fee = ?, vehicle_price = ?, daily_rental_fee = ?, status = ?,
+      insurance_fee = ?, vehicle_price = ?, daily_rental_fee = ?, usage_notes = ?, status = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).bind(
@@ -106,6 +107,7 @@ app.put('/api/motorcycles/:id', async (c) => {
     data.insurance_fee,
     data.vehicle_price,
     data.daily_rental_fee || 0,
+    data.usage_notes || '',
     data.status,
     id
   ).run()
