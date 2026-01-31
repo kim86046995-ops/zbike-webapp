@@ -238,8 +238,27 @@
                 const statusBadge = {
                     available: '<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold"><i class="fas fa-check-circle mr-1"></i>사용가능</span>',
                     rented: '<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold"><i class="fas fa-clock mr-1"></i>렌트중</span>',
-                    maintenance: '<span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold"><i class="fas fa-wrench mr-1"></i>정비중</span>'
+                    maintenance: '<span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold"><i class="fas fa-wrench mr-1"></i>정비중</span>',
+                    scrapped: '<span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold"><i class="fas fa-ban mr-1"></i>폐지</span>'
                 };
+                
+                // 계약 상태 표시
+                let contractBadge = '';
+                if (m.contract_id) {
+                    const contractTypeLabel = {
+                        'individual': '리스/렌트',
+                        'temp_rent': '임시렌트',
+                        'loan': '차용증'
+                    };
+                    const typeText = contractTypeLabel[m.contract_type] || m.contract_type;
+                    contractBadge = `<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold"><i class="fas fa-file-contract mr-1"></i>${typeText} 진행중</span>`;
+                } else if (m.status === 'maintenance') {
+                    contractBadge = '<span class="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold"><i class="fas fa-wrench mr-1"></i>수리중</span>';
+                } else if (m.status === 'scrapped') {
+                    contractBadge = '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold"><i class="fas fa-ban mr-1"></i>폐지</span>';
+                } else {
+                    contractBadge = '<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold"><i class="fas fa-inbox mr-1"></i>계약자 없음</span>';
+                }
 
                 return `
                     <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden border border-gray-200">
@@ -251,14 +270,17 @@
                                         <i class="fas fa-motorcycle text-2xl"></i>
                                         <h3 class="text-xl font-bold">${m.vehicle_name}</h3>
                                     </div>
-                                    <button onclick="showContracts(${m.id}, '${m.plate_number}')" 
-                                            class="text-white hover:text-blue-100 font-semibold flex items-center gap-2 text-lg">
-                                        <i class="fas fa-id-card"></i>
-                                        ${m.plate_number}
-                                        <i class="fas fa-chevron-right text-sm"></i>
-                                    </button>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <button onclick="showContracts(${m.id}, '${m.plate_number}')" 
+                                                class="text-white hover:text-blue-100 font-semibold flex items-center gap-2 text-lg">
+                                            <i class="fas fa-id-card"></i>
+                                            ${m.plate_number}
+                                            <i class="fas fa-chevron-right text-sm"></i>
+                                        </button>
+                                        ${contractBadge}
+                                    </div>
                                 </div>
-                                ${statusBadge[m.status]}
+                                ${statusBadge[m.status] || ''}
                             </div>
                             <p class="text-sm opacity-90">연식: ${m.model_year}년 | 키로수: ${m.mileage.toLocaleString()} km</p>
                         </div>

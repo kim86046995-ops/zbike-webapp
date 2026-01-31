@@ -225,11 +225,25 @@ app.get('/api/motorcycles', async (c) => {
   const { DB } = c.env
   const status = c.req.query('status')
   
-  let query = 'SELECT * FROM motorcycles'
+  let query = `
+    SELECT 
+      m.*,
+      c.id as contract_id,
+      c.contract_type,
+      c.status as contract_status,
+      c.customer_name,
+      c.start_date,
+      c.end_date
+    FROM motorcycles m
+    LEFT JOIN contracts c ON m.id = c.motorcycle_id 
+      AND c.status = 'active'
+      AND date(c.end_date) >= date('now')
+  `
+  
   if (status) {
-    query += ` WHERE status = '${status}'`
+    query += ` WHERE m.status = '${status}'`
   }
-  query += ' ORDER BY created_at DESC'
+  query += ' ORDER BY m.created_at DESC'
   
   const result = await DB.prepare(query).all()
   return c.json(result.results)
