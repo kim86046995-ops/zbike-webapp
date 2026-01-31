@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <title>계약서 검토 및 서명</title>
+    <title>Z-BIKE 전자계약서</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -14,8 +14,8 @@
             <!-- 헤더 -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="text-center">
-                    <i class="fas fa-file-contract text-4xl text-indigo-600 mb-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-800 mb-2">계약서 검토 및 서명</h1>
+                    <i class="fas fa-motorcycle text-4xl text-indigo-600 mb-3"></i>
+                    <h1 id="pageTitle" class="text-2xl font-bold text-gray-800 mb-2">Z-BIKE 전자계약서</h1>
                     <p class="text-gray-600">아래 계약 내용을 확인하시고 서명해주세요</p>
                 </div>
             </div>
@@ -197,21 +197,81 @@
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('contractContent').classList.remove('hidden');
             
+            // 계약 타입에 따라 페이지 제목 변경
+            const pageTitle = document.getElementById('pageTitle');
+            if (data.contract_type === 'loan') {
+                pageTitle.innerHTML = '<i class="fas fa-file-invoice-dollar mr-2"></i>Z-BIKE 대여금 계약서';
+            } else {
+                pageTitle.innerHTML = '<i class="fas fa-motorcycle mr-2"></i>Z-BIKE 오토바이 계약서';
+            }
+            
             // 계약 정보 표시
             const contractInfo = document.getElementById('contractInfo');
             const info = JSON.parse(data.contract_data);
             
-            let infoHTML = `
-                <p><span class="font-semibold">고객명:</span> ${data.customer_name}</p>
-                <p><span class="font-semibold">연락처:</span> ${data.customer_phone}</p>
-                <p><span class="font-semibold">계약 타입:</span> ${getContractTypeName(data.contract_type)}</p>
-            `;
+            let infoHTML = '';
             
-            // 계약 상세 정보 추가
-            for (const [key, value] of Object.entries(info)) {
-                if (key !== 'signature_data' && key !== 'id_card_photo') {
-                    infoHTML += `<p><span class="font-semibold">${formatFieldName(key)}:</span> ${value}</p>`;
-                }
+            // 차용증일 경우
+            if (data.contract_type === 'loan') {
+                infoHTML = `
+                    <div class="space-y-3">
+                        <div class="border-b pb-2">
+                            <p class="text-lg font-bold text-gray-800 mb-2">차주 정보</p>
+                            <p><span class="font-semibold">성명:</span> ${data.customer_name}</p>
+                            <p><span class="font-semibold">연락처:</span> ${data.customer_phone}</p>
+                            ${info.resident_number ? `<p><span class="font-semibold">주민등록번호:</span> ${info.resident_number}</p>` : ''}
+                            ${info.address ? `<p><span class="font-semibold">주소:</span> ${info.address}</p>` : ''}
+                        </div>
+                        <div class="border-b pb-2">
+                            <p class="text-lg font-bold text-gray-800 mb-2">대여금 정보</p>
+                            ${info.loan_amount ? `<p><span class="font-semibold">대여금액:</span> ${parseInt(info.loan_amount).toLocaleString()}원</p>` : ''}
+                            ${info.daily_deduction ? `<p><span class="font-semibold">일 차감액:</span> ${parseInt(info.daily_deduction).toLocaleString()}원</p>` : ''}
+                            ${info.start_date ? `<p><span class="font-semibold">대여일:</span> ${info.start_date}</p>` : ''}
+                            ${info.end_date ? `<p><span class="font-semibold">만기일:</span> ${info.end_date}</p>` : ''}
+                        </div>
+                        ${info.special_terms ? `
+                        <div>
+                            <p class="text-lg font-bold text-gray-800 mb-2">특약사항</p>
+                            <p class="text-gray-700">${info.special_terms}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            } 
+            // 오토바이 계약서 (리스/렌트/임시렌트)
+            else {
+                infoHTML = `
+                    <div class="space-y-3">
+                        <div class="border-b pb-2">
+                            <p class="text-lg font-bold text-gray-800 mb-2">고객 정보</p>
+                            <p><span class="font-semibold">성명:</span> ${data.customer_name}</p>
+                            <p><span class="font-semibold">연락처:</span> ${data.customer_phone}</p>
+                            ${info.resident_number ? `<p><span class="font-semibold">주민등록번호:</span> ${info.resident_number}</p>` : ''}
+                            ${info.address ? `<p><span class="font-semibold">주소:</span> ${info.address}</p>` : ''}
+                        </div>
+                        <div class="border-b pb-2">
+                            <p class="text-lg font-bold text-gray-800 mb-2">오토바이 정보</p>
+                            ${info.motorcycle_plate ? `<p><span class="font-semibold">차량번호:</span> ${info.motorcycle_plate}</p>` : ''}
+                            ${info.motorcycle_name ? `<p><span class="font-semibold">차량명:</span> ${info.motorcycle_name}</p>` : ''}
+                            ${info.chassis_number ? `<p><span class="font-semibold">차대번호:</span> ${info.chassis_number}</p>` : ''}
+                        </div>
+                        <div class="border-b pb-2">
+                            <p class="text-lg font-bold text-gray-800 mb-2">계약 정보</p>
+                            ${info.start_date ? `<p><span class="font-semibold">계약 시작일:</span> ${info.start_date}</p>` : ''}
+                            ${info.end_date ? `<p><span class="font-semibold">계약 종료일:</span> ${info.end_date}</p>` : ''}
+                            ${info.monthly_fee ? `<p><span class="font-semibold">월 대여료:</span> ${parseInt(info.monthly_fee).toLocaleString()}원</p>` : ''}
+                            ${info.daily_fee ? `<p><span class="font-semibold">일 차감액:</span> ${parseInt(info.daily_fee).toLocaleString()}원</p>` : ''}
+                            ${info.deposit ? `<p><span class="font-semibold">보증금:</span> ${parseInt(info.deposit).toLocaleString()}원</p>` : ''}
+                            ${info.driving_range ? `<p><span class="font-semibold">운전연령:</span> ${info.driving_range}</p>` : ''}
+                        </div>
+                        ${info.special_terms ? `
+                        <div>
+                            <p class="text-lg font-bold text-gray-800 mb-2">특약사항</p>
+                            <p class="text-gray-700">${info.special_terms}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
             }
             
             contractInfo.innerHTML = infoHTML;
