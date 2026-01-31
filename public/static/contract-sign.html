@@ -277,16 +277,52 @@
                             </div>
                         </div>
                         <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
-                            <p class="text-xl font-bold text-blue-900 mb-3">🏍️ 오토바이 제원</p>
-                            <div class="space-y-2 text-gray-800">
-                                ${info.motorcycle_plate ? `<p><span class="font-semibold">차량번호:</span> ${info.motorcycle_plate}</p>` : ''}
-                                ${info.motorcycle_name ? `<p><span class="font-semibold">차량명:</span> ${info.motorcycle_name}</p>` : ''}
-                                ${info.chassis_number ? `<p><span class="font-semibold">차대번호:</span> ${info.chassis_number}</p>` : ''}
-                                ${info.mileage ? `<p><span class="font-semibold">주행거리:</span> ${parseInt(info.mileage).toLocaleString()}km</p>` : ''}
-                                ${info.model_year ? `<p><span class="font-semibold">연식:</span> ${info.model_year}년</p>` : ''}
-                                ${info.color ? `<p><span class="font-semibold">색상:</span> ${info.color}</p>` : ''}
-                                ${info.displacement ? `<p><span class="font-semibold">배기량:</span> ${info.displacement}cc</p>` : ''}
-                                ${info.fuel_type ? `<p><span class="font-semibold">연료:</span> ${info.fuel_type}</p>` : ''}
+                            <p class="text-xl font-bold text-blue-900 mb-4">🏍️ 오토바이 제원</p>
+                            <div class="bg-white rounded-lg overflow-hidden border border-blue-200">
+                                <table class="w-full">
+                                    <tbody>
+                                        ${info.motorcycle_plate ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">차량번호</td>
+                                            <td class="px-4 py-3 text-gray-800">${info.motorcycle_plate}</td>
+                                        </tr>` : ''}
+                                        ${info.motorcycle_name ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">차량명</td>
+                                            <td class="px-4 py-3 text-gray-800">${info.motorcycle_name}</td>
+                                        </tr>` : ''}
+                                        ${info.chassis_number ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">차대번호</td>
+                                            <td class="px-4 py-3 text-gray-800 font-mono">${info.chassis_number}</td>
+                                        </tr>` : ''}
+                                        ${info.mileage ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">주행거리</td>
+                                            <td class="px-4 py-3 text-gray-800">${parseInt(info.mileage).toLocaleString()} km</td>
+                                        </tr>` : ''}
+                                        ${info.model_year ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">연식</td>
+                                            <td class="px-4 py-3 text-gray-800">${info.model_year}년</td>
+                                        </tr>` : ''}
+                                        ${info.color ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">색상</td>
+                                            <td class="px-4 py-3 text-gray-800">${info.color}</td>
+                                        </tr>` : ''}
+                                        ${info.displacement ? `
+                                        <tr class="border-b border-blue-100">
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">배기량</td>
+                                            <td class="px-4 py-3 text-gray-800">${info.displacement} cc</td>
+                                        </tr>` : ''}
+                                        ${info.fuel_type ? `
+                                        <tr>
+                                            <td class="px-4 py-3 bg-blue-100 font-semibold text-blue-900 w-1/3">연료</td>
+                                            <td class="px-4 py-3 text-gray-800">${info.fuel_type}</td>
+                                        </tr>` : ''}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                         <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-600">
