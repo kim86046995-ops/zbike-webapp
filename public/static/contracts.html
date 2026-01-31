@@ -214,41 +214,41 @@
                 };
 
                 return `
-                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all">
-                        <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
+                    <div class="bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-all">
+                        <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
                             <div>
-                                <h3 class="text-xl font-bold text-gray-800 mb-2">
+                                <h3 class="text-lg font-bold text-gray-800 mb-1">
                                     ${c.contract_number}
                                 </h3>
-                                <div class="flex gap-2">
-                                    <span class="px-3 py-1 rounded-full text-sm font-bold ${typeColors[c.contract_type]}">
+                                <div class="flex gap-1">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${typeColors[c.contract_type]}">
                                         ${typeTexts[c.contract_type]}
                                     </span>
-                                    <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColors[c.status]}">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[c.status]}">
                                         ${statusTexts[c.status]}
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="showDetail(${c.id})" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                                    <i class="fas fa-eye mr-2"></i>상세보기
+                            <div class="flex gap-1">
+                                <button onclick="showDetail(${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
+                                    <i class="fas fa-eye mr-1"></i>상세
                                 </button>
-                                <button onclick="deleteContract(${c.id})" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
-                                    <i class="fas fa-trash mr-2"></i>삭제
+                                <button onclick="deleteContract(${c.id})" class="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
                             <div>
-                                <p class="mb-2"><i class="fas fa-user w-5 text-purple-600"></i> <strong>고객:</strong> ${c.customer_name}</p>
-                                <p class="mb-2"><i class="fas fa-phone w-5 text-purple-600"></i> <strong>연락처:</strong> ${c.customer_phone}</p>
-                                <p><i class="fas fa-motorcycle w-5 text-purple-600"></i> <strong>오토바이:</strong> ${c.vehicle_name} (${c.plate_number})</p>
+                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> ${c.customer_name}</p>
+                                <p class="mb-1"><i class="fas fa-phone w-4 text-purple-600"></i> ${c.customer_phone}</p>
+                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> ${c.vehicle_name} (${c.plate_number})</p>
                             </div>
                             <div>
-                                <p class="mb-2"><i class="fas fa-calendar w-5 text-purple-600"></i> <strong>기간:</strong> ${c.start_date} ~ ${c.end_date}</p>
-                                <p class="mb-2"><i class="fas fa-won-sign w-5 text-purple-600"></i> <strong>일대여료:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
-                                <p><i class="fas fa-clock w-5 text-purple-600"></i> <strong>작성일:</strong> ${new Date(c.created_at).toLocaleString('ko-KR')}</p>
+                                <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.start_date} ~ ${c.end_date}</p>
+                                <p class="mb-1"><i class="fas fa-won-sign w-4 text-purple-600"></i> ${Number(c.monthly_fee).toLocaleString()}원</p>
+                                <p><i class="fas fa-clock w-4 text-purple-600"></i> ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
                             </div>
                         </div>
                     </div>
