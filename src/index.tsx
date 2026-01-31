@@ -598,6 +598,80 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, ...data }, 201)
 })
 
+// 관리자 계약서 저장 (인증 필요, 고객에게 전송하지 않음)
+app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  try {
+    // 1. 고객 정보 저장 또는 찾기
+    let customerId;
+    const existingCustomer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
+      .bind(data.customer_phone).first()
+    
+    if (existingCustomer) {
+      customerId = (existingCustomer as any).id
+      // 고객 정보 업데이트
+      await DB.prepare(`
+        UPDATE customers SET name = ?, resident_number = ?, address = ? WHERE id = ?
+      `).bind(data.customer_name, data.resident_number || '', data.address || '', customerId).run()
+    } else {
+      // 신규 고객 등록
+      const customerResult = await DB.prepare(`
+        INSERT INTO customers (name, phone, resident_number, address) VALUES (?, ?, ?, ?)
+      `).bind(data.customer_name, data.customer_phone, data.resident_number || '', data.address || '').run()
+      customerId = customerResult.meta.last_row_id
+    }
+    
+    // 2. 계약서 번호 생성
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const countResult = await DB.prepare(
+      `SELECT COUNT(*) as count FROM contracts WHERE contract_number LIKE ?`
+    ).bind(`${today}-%`).first()
+    
+    const count = (countResult as any).count + 1
+    const contractNumber = `${today}-${String(count).padStart(4, '0')}`
+    
+    // 3. 계약서 저장
+    const result = await DB.prepare(`
+      INSERT INTO contracts (
+        contract_type, motorcycle_id, customer_id, start_date, end_date,
+        monthly_fee, deposit, special_terms, signature_data, id_card_photo, 
+        contract_number, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.contract_type,
+      data.motorcycle_id,
+      customerId,
+      data.start_date,
+      data.end_date,
+      data.monthly_fee,
+      data.deposit || 0,
+      data.special_terms || '',
+      data.admin_signature || '',
+      data.admin_id_card_photo || '',
+      contractNumber,
+      data.status || 'pending'
+    ).run()
+    
+    // 4. 오토바이 상태 업데이트
+    if (data.status === 'active') {
+      await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+        .bind('rented', data.motorcycle_id).run()
+    }
+    
+    return c.json({ 
+      id: result.meta.last_row_id, 
+      contract_number: contractNumber,
+      customer_id: customerId,
+      success: true 
+    }, 201)
+  } catch (error) {
+    console.error('계약서 저장 오류:', error)
+    return c.json({ error: '계약서 저장에 실패했습니다', details: error.message }, 500)
+  }
+})
+
 // 계약서 상태 변경 (인증 필요)
 app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   const { DB } = c.env

@@ -523,8 +523,50 @@
                     </div>
                 </div>
 
+                <!-- 약관 동의 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-contract mr-2 text-green-600"></i>
+                        7. 계약 약관
+                    </h2>
+                    <div id="adminContractTerms" class="p-4 bg-gray-50 rounded-lg border border-gray-300 text-sm mb-4 max-h-96 overflow-y-auto"></div>
+                    
+                    <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded">
+                        <input 
+                            type="checkbox" 
+                            id="adminAgreeTerms" 
+                            class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                            required
+                        >
+                        <label for="adminAgreeTerms" class="ml-3 text-base font-bold text-gray-800">
+                            위 계약 약관을 모두 확인하였으며, 고객에게 정확히 안내하였습니다 <span class="text-red-600">*</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 관리자 서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-green-600"></i>
+                        8. 관리자 서명
+                    </h2>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
+                    <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
+                        <canvas id="adminSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <div class="mt-3 flex justify-between items-center">
+                        <button type="button" onclick="clearAdminSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
+                            <i class="fas fa-eraser mr-1"></i>서명 지우기
+                        </button>
+                        <p class="text-xs text-gray-500">서명일: <span id="adminSignDate"></span></p>
+                    </div>
+                </div>
+
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
+                    <button type="button" onclick="saveContractToDatabase()" class="flex-1 bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-save mr-2"></i>계약서 저장
+                    </button>
                     <button type="submit" class="flex-1 bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition">
                         <i class="fas fa-paper-plane mr-2"></i>고객에게 전송
                     </button>
@@ -733,7 +775,9 @@
                 loadMotorcycles();
                 initSignaturePad();
                 initTempSignatureCanvas(); // 임시렌트 서명 캔버스 초기화
+                initAdminSignatureCanvas(); // 관리자 서명 캔버스 초기화
                 loadCompanySettings();
+                loadAdminContractTerms(); // 관리자 약관 로딩
             }
             
             
@@ -756,6 +800,13 @@
             const contractDateTimeEl = document.getElementById('contractDateTime');
             if (contractDateTimeEl) {
                 contractDateTimeEl.textContent = dateTimeString;
+            }
+            
+            // 관리자 서명일 표시
+            const adminSignDateEl = document.getElementById('adminSignDate');
+            if (adminSignDateEl) {
+                const signDateString = `${year}년 ${month}월 ${day}일`;
+                adminSignDateEl.textContent = signDateString;
             }
         });
         
@@ -1578,6 +1629,272 @@
             } catch (error) {
                 console.error('임시렌트 계약서 생성 실패:', error);
                 alert('계약서 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+        
+        // 관리자 서명 캔버스 초기화
+        let adminSignatureCanvas = null;
+        let adminSignatureCtx = null;
+        let adminIsDrawing = false;
+        
+        function initAdminSignatureCanvas() {
+            adminSignatureCanvas = document.getElementById('adminSignatureCanvas');
+            if (!adminSignatureCanvas) return;
+            
+            adminSignatureCtx = adminSignatureCanvas.getContext('2d');
+            adminSignatureCtx.strokeStyle = '#000';
+            adminSignatureCtx.lineWidth = 2;
+            adminSignatureCtx.lineCap = 'round';
+            
+            // 마우스 이벤트
+            adminSignatureCanvas.addEventListener('mousedown', startAdminDrawing);
+            adminSignatureCanvas.addEventListener('mousemove', drawAdmin);
+            adminSignatureCanvas.addEventListener('mouseup', stopAdminDrawing);
+            adminSignatureCanvas.addEventListener('mouseout', stopAdminDrawing);
+            
+            // 터치 이벤트
+            adminSignatureCanvas.addEventListener('touchstart', handleAdminTouchStart);
+            adminSignatureCanvas.addEventListener('touchmove', handleAdminTouchMove);
+            adminSignatureCanvas.addEventListener('touchend', stopAdminDrawing);
+        }
+        
+        function startAdminDrawing(e) {
+            adminIsDrawing = true;
+            const rect = adminSignatureCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            adminSignatureCtx.beginPath();
+            adminSignatureCtx.moveTo(x, y);
+        }
+        
+        function drawAdmin(e) {
+            if (!adminIsDrawing) return;
+            const rect = adminSignatureCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            adminSignatureCtx.lineTo(x, y);
+            adminSignatureCtx.stroke();
+        }
+        
+        function stopAdminDrawing() {
+            adminIsDrawing = false;
+        }
+        
+        function handleAdminTouchStart(e) {
+            e.preventDefault();
+            adminIsDrawing = true;
+            const touch = e.touches[0];
+            const rect = adminSignatureCanvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            adminSignatureCtx.beginPath();
+            adminSignatureCtx.moveTo(x, y);
+        }
+        
+        function handleAdminTouchMove(e) {
+            e.preventDefault();
+            if (!adminIsDrawing) return;
+            const touch = e.touches[0];
+            const rect = adminSignatureCanvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            adminSignatureCtx.lineTo(x, y);
+            adminSignatureCtx.stroke();
+        }
+        
+        function clearAdminSignature() {
+            if (adminSignatureCtx && adminSignatureCanvas) {
+                adminSignatureCtx.clearRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+            }
+        }
+        
+        function getAdminSignatureData() {
+            if (!adminSignatureCanvas) return '';
+            return adminSignatureCanvas.toDataURL('image/png');
+        }
+        
+        // 관리자 약관 로딩
+        async function loadAdminContractTerms() {
+            const termsDiv = document.getElementById('adminContractTerms');
+            if (!termsDiv) return;
+            
+            try {
+                const response = await axios.get('/api/company-settings');
+                const company = response.data;
+                
+                // 약관 HTML 생성
+                const termsHTML = `
+                    <div class="space-y-4 text-sm leading-relaxed">
+                        <div class="bg-indigo-50 p-3 rounded border border-indigo-200">
+                            <h4 class="font-bold text-indigo-900 mb-2">[ 업체 정보 ]</h4>
+                            <p><strong>상호명:</strong> ${company.company_name || 'Z-BIKE'}</p>
+                            <p><strong>사업자등록번호:</strong> ${company.business_number || '-'}</p>
+                            <p><strong>대표자:</strong> ${company.representative || '-'}</p>
+                            <p><strong>주소:</strong> ${company.address || '-'}</p>
+                            <p><strong>연락처:</strong> ${company.phone || '-'}</p>
+                        </div>
+                        
+                        <div class="border-t-2 border-gray-300 pt-4">
+                            <h4 class="font-bold text-gray-800 mb-3">오토바이 대여 계약 약관</h4>
+                            
+                            <div class="space-y-3">
+                                <div>
+                                    <p class="font-bold">제1조 (목적)</p>
+                                    <p class="text-gray-700">본 계약은 임대인과 임차인 간의 오토바이 대여에 관한 조건과 절차를 정함을 목적으로 합니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제2조 (대여 기간 및 요금)</p>
+                                    <p class="text-gray-700">① 대여 기간은 계약서에 명시된 기간으로 하며, 연장 시 사전 협의가 필요합니다.<br>
+                                    ② 대여료는 월 단위 또는 일 단위로 산정하며, 계약서에 명시된 금액을 지급합니다.<br>
+                                    ③ 대여료 미납 시 일 차감액이 자동으로 차감됩니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제3조 (차량 관리 의무)</p>
+                                    <p class="text-gray-700">① 임차인은 차량을 선량한 관리자의 주의로 사용·보관하여야 합니다.<br>
+                                    ② 고의 또는 과실로 인한 손상 시 수리 비용은 임차인이 부담합니다.<br>
+                                    ③ 차량의 정기 점검 및 소모품 교체는 임대인의 지시에 따릅니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제4조 (사고 및 보험)</p>
+                                    <p class="text-gray-700">① 사고 발생 시 즉시 임대인에게 연락하고 필요한 조치를 취해야 합니다.<br>
+                                    ② 보험 처리는 계약서에 명시된 보험사를 통해 진행합니다.<br>
+                                    ③ 임차인의 과실로 인한 사고는 자기부담금이 발생할 수 있습니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제5조 (계약 해지)</p>
+                                    <p class="text-gray-700">① 다음 각 호의 경우 임대인은 계약을 해지할 수 있습니다:<br>
+                                    - 대여료를 2회 이상 연속 미납한 경우<br>
+                                    - 차량을 부당하게 사용하거나 제3자에게 대여한 경우<br>
+                                    - 중대한 계약 위반 행위가 있는 경우<br>
+                                    ② 중도 해지 시 위약금이 발생할 수 있습니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제6조 (차량 반환)</p>
+                                    <p class="text-gray-700">① 계약 종료 시 차량을 원상태로 반환해야 합니다.<br>
+                                    ② 반환 시 차량 상태를 점검하며, 손상이 있을 경우 수리 비용이 청구됩니다.<br>
+                                    ③ 보증금은 차량 상태 확인 후 반환됩니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제7조 (분쟁 해결)</p>
+                                    <p class="text-gray-700">본 계약과 관련하여 분쟁이 발생할 경우 상호 협의하여 해결하며, 협의가 이루어지지 않을 경우 관할 법원의 판결에 따릅니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제8조 (무상 정비 항목)</p>
+                                    <p class="text-gray-700">① 오일 교환 (주기적)<br>
+                                    ② 브레이크 패드 교체 (마모 시)<br>
+                                    ③ 타이어 교체 (마모 시, 펑크 제외)<br>
+                                    ④ 전구 교체<br>
+                                    ⑤ 체인 조정 및 주유<br>
+                                    ⑥ 기타 정상 사용으로 인한 소모품 교체</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제9조 (유상 정비 항목)</p>
+                                    <p class="text-gray-700">① 사고로 인한 파손 수리<br>
+                                    ② 부주의로 인한 고장 수리<br>
+                                    ③ 임차인의 과실로 인한 부품 교체<br>
+                                    ④ 불법 개조 복구</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제10조 (중도 해지 시 위약금)</p>
+                                    <p class="text-gray-700">계약 기간 중 임차인의 사유로 계약을 해지할 경우, 남은 기간에 대한 월 대여료의 30%를 위약금으로 지불해야 합니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제11조 (특약사항)</p>
+                                    <p class="text-gray-700">계약서에 별도로 명시된 특약사항이 있을 경우, 해당 특약사항이 우선 적용됩니다.</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-bold">제12조 (기타)</p>
+                                    <p class="text-gray-700">본 약관에 명시되지 않은 사항은 관계 법령 및 상관례에 따릅니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                termsDiv.innerHTML = termsHTML;
+            } catch (error) {
+                console.error('약관 로드 실패:', error);
+                termsDiv.innerHTML = '<p class="text-red-600">약관을 불러오는데 실패했습니다.</p>';
+            }
+        }
+        
+        // 계약서 저장 (DB에만 저장, 고객에게 전송하지 않음)
+        async function saveContractToDatabase() {
+            try {
+                // 약관 동의 확인
+                if (!document.getElementById('adminAgreeTerms').checked) {
+                    alert('계약 약관에 동의해주세요.');
+                    return;
+                }
+                
+                // 관리자 서명 확인
+                const adminSignature = getAdminSignatureData();
+                if (!adminSignature || adminSignature === adminSignatureCanvas.toDataURL('image/png', 0)) {
+                    alert('관리자 서명을 해주세요.');
+                    return;
+                }
+                
+                // 일반 폼 데이터 수집 (normalContractForm과 동일한 로직)
+                const contractType = document.querySelector('input[name="contract_type"]:checked')?.value;
+                if (!contractType || contractType === 'temp_rent') {
+                    alert('계약 타입을 선택해주세요 (임시렌트는 별도 저장)');
+                    return;
+                }
+                
+                if (!selectedMotorcycleId) {
+                    alert('오토바이를 선택해주세요.');
+                    return;
+                }
+                
+                const customerName = document.getElementById('customerName').value;
+                const customerPhone = document.getElementById('customerPhone').value;
+                
+                if (!customerName || !customerPhone) {
+                    alert('고객 이름과 연락처를 입력해주세요.');
+                    return;
+                }
+                
+                // 계약 데이터 수집
+                const contractData = {
+                    contract_type: contractType === 'lease' ? 'individual' : contractType,
+                    motorcycle_id: selectedMotorcycleId,
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    resident_number: document.getElementById('residentNumber').value,
+                    address: document.getElementById('address').value,
+                    start_date: document.getElementById('startDate').value,
+                    end_date: document.getElementById('endDate').value,
+                    monthly_fee: document.getElementById('monthlyFee').value,
+                    daily_fee: document.getElementById('dailyFee').value,
+                    deposit: document.getElementById('deposit').value || '0',
+                    special_terms: document.getElementById('specialTerms').value,
+                    admin_signature: adminSignature,
+                    admin_id_card_photo: adminIdPhotoData,
+                    status: 'pending'
+                };
+                
+                // API 호출하여 저장
+                const response = await axios.post('/api/contracts-admin-save', contractData);
+                
+                alert(`✅ 계약서가 저장되었습니다!\\n\\n계약번호: ${response.data.contract_number}`);
+                
+                // 계약서 목록으로 이동
+                window.location.href = '/contracts';
+                
+            } catch (error) {
+                console.error('계약서 저장 실패:', error);
+                alert('계약서 저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
     </script>
