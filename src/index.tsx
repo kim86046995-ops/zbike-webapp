@@ -508,6 +508,7 @@ app.get('/api/contracts', async (c) => {
     FROM contracts c
     JOIN motorcycles m ON c.motorcycle_id = m.id
     JOIN customers cu ON c.customer_id = cu.id
+    WHERE c.deleted_at IS NULL
     ORDER BY c.created_at DESC
   `).all()
   
@@ -699,6 +700,83 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   }
   
   return c.json({ message: '상태가 변경되었습니다' })
+})
+
+// 계약서 삭제 (소프트 삭제) (인증 필요)
+app.delete('/api/contracts/:id', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  try {
+    // 계약서 존재 확인
+    const contract = await DB.prepare('SELECT * FROM contracts WHERE id = ? AND deleted_at IS NULL').bind(id).first()
+    
+    if (!contract) {
+      return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+    }
+    
+    // 소프트 삭제 (deleted_at에 현재 시간 설정)
+    await DB.prepare('UPDATE contracts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(id).run()
+    
+    return c.json({ message: '계약서가 삭제되었습니다. 사용 이력에서는 계속 조회할 수 있습니다.' })
+  } catch (error) {
+    console.error('계약서 삭제 오류:', error)
+    return c.json({ error: '계약서 삭제에 실패했습니다', details: error.message }, 500)
+  }
+})
+
+// 오토바이 사용 이력 조회 (번호판 또는 차대번호로 검색)
+app.get('/api/motorcycles/history/search', async (c) => {
+  const { DB } = c.env
+  const searchTerm = c.req.query('q') || ''
+  
+  if (!searchTerm) {
+    return c.json({ error: '검색어를 입력해주세요' }, 400)
+  }
+  
+  try {
+    // 오토바이 정보 조회 (번호판 또는 차대번호로 검색)
+    const motorcycle = await DB.prepare(`
+      SELECT * FROM motorcycles 
+      WHERE plate_number LIKE ? OR chassis_number LIKE ?
+      LIMIT 1
+    `).bind(`%${searchTerm}%`, `%${searchTerm}%`).first()
+    
+    if (!motorcycle) {
+      return c.json({ error: '해당 오토바이를 찾을 수 없습니다' }, 404)
+    }
+    
+    // 모든 계약 이력 조회 (삭제된 것 포함)
+    const contracts = await DB.prepare(`
+      SELECT 
+        c.id,
+        c.contract_number,
+        c.contract_type,
+        c.start_date,
+        c.end_date,
+        c.monthly_fee,
+        c.deposit,
+        c.special_terms,
+        c.status,
+        c.created_at,
+        c.deleted_at,
+        cu.name as customer_name,
+        cu.phone as customer_phone,
+        cu.resident_number
+      FROM contracts c
+      JOIN customers cu ON c.customer_id = cu.id
+      WHERE c.motorcycle_id = ?
+      ORDER BY c.created_at DESC
+    `).bind((motorcycle as any).id).all()
+    
+    return c.json({
+      motorcycle: motorcycle,
+      history: contracts.results
+    })
+  } catch (error) {
+    console.error('사용 이력 조회 오류:', error)
+    return c.json({ error: '사용 이력 조회에 실패했습니다', details: error.message }, 500)
+  }
 })
 
 // ============================================

@@ -229,9 +229,14 @@
                                     </span>
                                 </div>
                             </div>
-                            <button onclick="showDetail(${c.id})" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                                <i class="fas fa-eye mr-2"></i>상세보기
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="showDetail(${c.id})" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                                    <i class="fas fa-eye mr-2"></i>상세보기
+                                </button>
+                                <button onclick="deleteContract(${c.id})" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                                    <i class="fas fa-trash mr-2"></i>삭제
+                                </button>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
@@ -344,6 +349,21 @@
         function hideDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
             currentContract = null;
+        }
+
+        async function deleteContract(id) {
+            if (!confirm('정말로 이 계약서를 삭제하시겠습니까?\n\n삭제된 계약서는 목록에서 사라지지만,\n오토바이 사용 이력에서는 계속 조회할 수 있습니다.')) {
+                return;
+            }
+
+            try {
+                await axios.delete(`/api/contracts/${id}`);
+                alert('계약서가 삭제되었습니다.\n\n※ 오토바이 번호판이나 차대번호로\n사용 이력은 계속 조회할 수 있습니다.');
+                loadContracts(); // 목록 새로고침
+            } catch (error) {
+                console.error('Error deleting contract:', error);
+                alert('계약서 삭제에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
         }
 
         function downloadPDF() {
