@@ -440,6 +440,41 @@
                     </div>
                 </div>
 
+                <!-- 관리자용 신분증 촬영/업로드 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-id-card mr-2 text-blue-600"></i>
+                        신분증 촬영 (선택사항)
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        관리자가 직접 고객의 신분증을 촬영하거나 업로드할 수 있습니다. (선택사항)
+                    </p>
+                    
+                    <!-- 촬영/업로드 버튼 -->
+                    <div class="flex gap-3 mb-4">
+                        <button type="button" onclick="startAdminIdCamera()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                        </button>
+                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                            <i class="fas fa-upload mr-2"></i>파일 선택
+                        </button>
+                        <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
+                    </div>
+                    
+                    <!-- 미리보기 영역 -->
+                    <div id="adminIdPreview" class="hidden">
+                        <div class="relative border-2 border-gray-300 rounded-lg p-2 bg-gray-50">
+                            <img id="adminIdImage" src="" alt="신분증" class="w-full h-auto rounded">
+                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
+                                <i class="fas fa-trash mr-1"></i>삭제
+                            </button>
+                        </div>
+                        <p class="text-sm text-green-600 mt-2">
+                            <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
                     <button type="button" onclick="window.location.href='/'" class="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-bold">
@@ -451,6 +486,35 @@
                 </div>
             </form>
         </main>
+    </div>
+
+    <!-- 관리자 신분증 카메라 모달 -->
+    <div id="adminIdCameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="bg-blue-600 text-white p-4 flex items-center justify-between rounded-t-lg">
+                <h3 class="text-xl font-bold">
+                    <i class="fas fa-camera mr-2"></i>
+                    신분증 촬영
+                </h3>
+                <button type="button" onclick="stopAdminIdCamera()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <video id="adminIdVideo" autoplay playsinline class="w-full rounded-lg border-2 border-gray-300"></video>
+                <canvas id="adminIdCanvas" class="hidden"></canvas>
+                
+                <div class="flex gap-3 mt-4">
+                    <button type="button" onclick="captureAdminId()" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-camera mr-2"></i>촬영
+                    </button>
+                    <button type="button" onclick="stopAdminIdCamera()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
+                        <i class="fas fa-times mr-2"></i>취소
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 오토바이 선택 모달 -->
@@ -836,6 +900,111 @@
                 alert('계약서 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         });
+
+        // ===== 관리자용 신분증 촬영 기능 =====
+        let adminIdStream = null;
+        let adminIdPhotoData = null;
+
+        // 관리자 신분증 카메라 시작
+        async function startAdminIdCamera() {
+            try {
+                // 먼저 기본 제약 조건으로 시도
+                try {
+                    adminIdStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: { ideal: 'environment' },
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        } 
+                    });
+                } catch (e) {
+                    console.log('고급 설정 실패, 기본 설정으로 시도:', e);
+                    adminIdStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: true 
+                    });
+                }
+                
+                const video = document.getElementById('adminIdVideo');
+                video.srcObject = adminIdStream;
+                
+                // 비디오가 로드될 때까지 대기
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        resolve();
+                    };
+                });
+                
+                document.getElementById('adminIdCameraModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('카메라 접근 오류:', error);
+                let errorMsg = '카메라에 접근할 수 없습니다.';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '카메라를 찾을 수 없습니다.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = '카메라가 다른 앱에서 사용 중입니다.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = 'HTTPS 연결이 필요합니다.';
+                }
+                
+                alert(errorMsg);
+            }
+        }
+
+        // 관리자 신분증 촬영
+        function captureAdminId() {
+            const video = document.getElementById('adminIdVideo');
+            const canvas = document.getElementById('adminIdCanvas');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0);
+            
+            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.95);
+            
+            // 카메라 중지
+            stopAdminIdCamera();
+            
+            // 미리보기 표시
+            document.getElementById('adminIdImage').src = adminIdPhotoData;
+            document.getElementById('adminIdPreview').classList.remove('hidden');
+        }
+
+        // 관리자 신분증 카메라 중지
+        function stopAdminIdCamera() {
+            if (adminIdStream) {
+                adminIdStream.getTracks().forEach(track => track.stop());
+                adminIdStream = null;
+            }
+            document.getElementById('adminIdCameraModal').classList.add('hidden');
+        }
+
+        // 관리자 신분증 파일 업로드
+        function handleAdminIdUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                adminIdPhotoData = e.target.result;
+                document.getElementById('adminIdImage').src = adminIdPhotoData;
+                document.getElementById('adminIdPreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 관리자 신분증 사진 삭제
+        function removeAdminIdPhoto() {
+            adminIdPhotoData = null;
+            document.getElementById('adminIdImage').src = '';
+            document.getElementById('adminIdPreview').classList.add('hidden');
+            document.getElementById('adminIdUpload').value = '';
+        }
     </script>
 </body>
 </html>
