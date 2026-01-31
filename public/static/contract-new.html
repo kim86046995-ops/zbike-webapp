@@ -660,6 +660,7 @@
     <script>
         let motorcycles = [];
         let selectedMotorcycleId = null;
+        let selectedMotorcycle = null; // 선택된 오토바이 전체 정보
         let canvas, ctx;
         let isDrawing = false;
         let sessionId = localStorage.getItem('sessionId');
@@ -942,6 +943,7 @@
             if (!motorcycle) return;
             
             selectedMotorcycleId = id;
+            selectedMotorcycle = motorcycle; // 전체 오토바이 객체 저장
             document.getElementById('selectedMotorcycleId').value = id;
             
             const displayNumber = motorcycle.plate_number || motorcycle.chassis_number;
@@ -1164,11 +1166,24 @@
             pendingContractData = {
                 contract_type: contractType,
                 motorcycle_id: selectedMotorcycleId,
+                // 오토바이 제원 정보 추가
+                motorcycle_plate: selectedMotorcycle?.plate_number || '',
+                motorcycle_name: selectedMotorcycle?.vehicle_name || '',
+                chassis_number: selectedMotorcycle?.chassis_number || '',
+                mileage: selectedMotorcycle?.mileage || 0,
+                model_year: selectedMotorcycle?.model_year || '',
+                color: selectedMotorcycle?.color || '',
+                displacement: selectedMotorcycle?.displacement || '',
+                fuel_type: selectedMotorcycle?.fuel_type || '',
+                // 계약 정보
                 start_date: document.getElementById('startDate').value,
                 end_date: document.getElementById('endDate').value,
                 monthly_fee: parseInt(document.getElementById('dailyFee').value),
+                daily_fee: parseInt(document.getElementById('dailyFee').value),
                 deposit: parseInt(document.getElementById('deposit').value) || 0,
+                driving_range: document.getElementById('drivingRange').value,
                 special_terms: document.getElementById('specialTerms').value || '',
+                // 고객 정보
                 resident_number: document.getElementById('residentNumber').value,
                 address: fullAddress,
                 license_type: document.getElementById('drivingRange').value,
