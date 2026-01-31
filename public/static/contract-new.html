@@ -722,12 +722,21 @@
             const normalForm = document.getElementById('normalContractForm');
             const tempForm = document.getElementById('tempRentForm');
             
+            console.log('Contract type selected:', contractType); // 디버깅용
+            
+            if (!normalForm || !tempForm) {
+                console.error('Form elements not found');
+                return;
+            }
+            
             if (contractType === 'temp_rent') {
                 normalForm.classList.add('hidden');
                 tempForm.classList.remove('hidden');
-            } else {
+                console.log('Showing temp rent form');
+            } else if (contractType === 'lease' || contractType === 'rent') {
                 normalForm.classList.remove('hidden');
                 tempForm.classList.add('hidden');
+                console.log('Showing normal form');
             }
         }
 
