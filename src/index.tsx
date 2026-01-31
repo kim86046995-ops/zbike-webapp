@@ -2213,4 +2213,59 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
   return c.json({ success, failed })
 })
 
+// KnoxHub 쿠키로 데이터 가져오기 API
+app.post('/api/import/knox-cookie', authMiddleware, async (c) => {
+  const { cookie } = await c.req.json()
+
+  if (!cookie) {
+    return c.json({ error: '쿠키 값이 필요합니다' }, 400)
+  }
+
+  try {
+    // KnoxHub에 접속해서 데이터 가져오기
+    // 실제 구현은 KnoxHub의 페이지 구조에 따라 달라집니다
+    // 여기서는 데모 데이터를 반환합니다
+    
+    // TODO: 실제로는 crawler 도구를 사용하여 KnoxHub 페이지를 파싱해야 합니다
+    // const url = `https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/motorcycles.php`
+    // const html = await crawler(url, { cookie: `PHPSESSID=${cookie}` })
+    // 그 다음 HTML을 파싱하여 데이터 추출
+    
+    // 현재는 데모 데이터 반환
+    const demoData = {
+      motorcycles: [
+        {
+          plate_number: '서울12가3456',
+          vehicle_name: '혼다 PCX 150',
+          chassis_number: 'MLHJE1234567890',
+          mileage: 15000,
+          model_year: 2022
+        },
+        {
+          plate_number: '경기34나7890',
+          vehicle_name: '야마하 XMAX 300',
+          chassis_number: 'JYACK0987654321',
+          mileage: 8000,
+          model_year: 2023
+        }
+      ],
+      contracts: [
+        {
+          customer_name: '김철수',
+          customer_phone: '010-1234-5678',
+          vehicle_name: '혼다 PCX 150',
+          monthly_rent: 250000,
+          deposit: 1000000,
+          contract_period: 24
+        }
+      ]
+    }
+
+    return c.json(demoData)
+  } catch (error) {
+    console.error('KnoxHub 데이터 가져오기 실패:', error)
+    return c.json({ error: '데이터 가져오기에 실패했습니다' }, 500)
+  }
+})
+
 export default app

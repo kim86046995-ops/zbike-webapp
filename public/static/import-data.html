@@ -29,357 +29,553 @@
             <!-- 안내 -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
                 <h2 class="text-lg font-bold text-blue-800 mb-3">
-                    <i class="fas fa-info-circle mr-2"></i>데이터 가져오기 안내
+                    <i class="fas fa-info-circle mr-2"></i>KnoxHub 데이터 가져오기
                 </h2>
                 <ul class="space-y-2 text-sm text-blue-700">
-                    <li><i class="fas fa-check mr-2"></i>다른 프로그램의 웹 페이지 링크를 입력하세요</li>
-                    <li><i class="fas fa-check mr-2"></i>오토바이 등록 정보와 계약서 데이터를 자동으로 분석합니다</li>
-                    <li><i class="fas fa-check mr-2"></i>미리보기로 확인 후 일괄 등록할 수 있습니다</li>
+                    <li><i class="fas fa-check mr-2"></i>KnoxHub 시스템은 2단계 인증(OTP)으로 보호되어 있습니다</li>
+                    <li><i class="fas fa-check mr-2"></i>아래 두 가지 방법 중 선택해서 데이터를 가져올 수 있습니다</li>
+                    <li><i class="fas fa-check mr-2"></i>가져온 데이터는 미리보기 후 일괄 등록할 수 있습니다</li>
                 </ul>
             </div>
 
-            <!-- KnoxHub 로그인 -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">
-                    <i class="fas fa-sign-in-alt mr-2 text-blue-600"></i>
-                    KnoxHub 로그인
-                </h2>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        아이디
-                    </label>
-                    <input type="text" id="knoxUsername" 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="sangchun11"
-                           value="sangchun11"
-                           required>
+            <!-- 연동 방법 선택 -->
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <!-- 방법 1: 쿠키 복사 -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-500 hover:shadow-xl transition cursor-pointer" onclick="selectMethod('cookie')">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-cookie-bite text-5xl text-blue-600 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800">쿠키 복사 방식</h3>
+                        <span class="inline-block mt-2 bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">⭐ 추천</span>
+                    </div>
+                    <p class="text-sm text-gray-600 text-center mb-4">
+                        KnoxHub에 로그인 후<br>세션 쿠키를 복사해서 사용
+                    </p>
+                    <div class="bg-gray-50 rounded p-3 text-xs text-gray-700">
+                        <p class="font-semibold mb-1">✅ 장점:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>가장 간단하고 빠름</li>
+                            <li>한 번 복사로 즉시 사용</li>
+                            <li>별도 프로그램 불필요</li>
+                        </ul>
+                    </div>
                 </div>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        비밀번호
-                    </label>
-                    <input type="password" id="knoxPassword" 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="비밀번호"
-                           value="a2636991"
-                           required>
+                <!-- 방법 2: JSON 업로드 -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-green-500 hover:shadow-xl transition cursor-pointer" onclick="selectMethod('json')">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-file-code text-5xl text-green-600 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800">JSON 업로드</h3>
+                        <span class="inline-block mt-2 bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full">🚀 편리함</span>
+                    </div>
+                    <p class="text-sm text-gray-600 text-center mb-4">
+                        브라우저 콘솔에서 추출한<br>JSON 파일 업로드
+                    </p>
+                    <div class="bg-gray-50 rounded p-3 text-xs text-gray-700">
+                        <p class="font-semibold mb-1">✅ 장점:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>데이터 확인 가능</li>
+                            <li>재사용 가능</li>
+                            <li>백업용으로 활용</li>
+                        </ul>
+                    </div>
                 </div>
-
-                <button type="button" onclick="sendKnoxOTP()" 
-                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                    <i class="fas fa-mobile-alt mr-2"></i>인증번호 발송
-                </button>
             </div>
 
-            <!-- OTP 입력 -->
-            <div id="otpSection" class="hidden bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">
-                    <i class="fas fa-lock mr-2 text-green-600"></i>
-                    인증번호 입력
-                </h2>
-                
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <p class="text-sm text-green-800">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        휴대폰으로 인증번호가 발송되었습니다.
-                    </p>
-                </div>
+            <!-- 방법 1: 쿠키 복사 방식 -->
+            <div id="cookieMethod" class="hidden">
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-cookie-bite mr-2 text-blue-600"></i>
+                        쿠키 복사 방식
+                    </h2>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        인증번호 (6자리)
-                    </label>
-                    <input type="text" id="knoxOTP" 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-center text-2xl tracking-widest"
-                           placeholder="000000"
-                           maxlength="6"
-                           pattern="[0-9]{6}"
-                           required>
-                </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-bold text-yellow-800 mb-3">
+                            <i class="fas fa-lightbulb mr-2"></i>사용 방법 (30초 소요)
+                        </h3>
+                        <ol class="list-decimal list-inside space-y-2 text-sm text-yellow-700">
+                            <li class="font-semibold">
+                                새 탭에서 <a href="http://knoxhub.kro.kr" target="_blank" class="text-blue-600 underline hover:text-blue-800">KnoxHub</a>에 로그인
+                                <span class="block text-xs text-gray-600 ml-6 mt-1">→ 휴대폰 인증번호 입력까지 완료</span>
+                            </li>
+                            <li class="font-semibold">
+                                로그인 후 <kbd class="bg-gray-800 text-white px-2 py-1 rounded text-xs">F12</kbd> 눌러 개발자 도구 열기
+                            </li>
+                            <li class="font-semibold">
+                                상단 메뉴에서 <strong>Application</strong> 탭 클릭
+                                <span class="block text-xs text-gray-600 ml-6 mt-1">→ 왼쪽에서 <strong>Cookies</strong> 확장 → zenio5827.cafe24.com 클릭</span>
+                            </li>
+                            <li class="font-semibold">
+                                <code class="bg-gray-800 text-green-400 px-2 py-1 rounded">PHPSESSID</code> 값 더블클릭 → 복사 (<kbd class="bg-gray-800 text-white px-2 py-1 rounded text-xs">Ctrl+C</kbd>)
+                            </li>
+                            <li class="font-semibold">
+                                아래 입력창에 붙여넣기 (<kbd class="bg-gray-800 text-white px-2 py-1 rounded text-xs">Ctrl+V</kbd>) → 버튼 클릭
+                            </li>
+                        </ol>
+                    </div>
 
-                <button type="button" onclick="verifyOTPAndFetchData()" 
-                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
-                    <i class="fas fa-check mr-2"></i>인증하고 데이터 가져오기
-                </button>
+                    <!-- 스크린샷 예시 -->
+                    <div class="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-image mr-2"></i>참고 이미지:
+                        </p>
+                        <div class="bg-white border rounded p-3 font-mono text-xs text-gray-600">
+                            <p>F12 → <span class="text-blue-600 font-bold">Application</span> 탭</p>
+                            <p>└─ <span class="text-blue-600 font-bold">Cookies</span></p>
+                            <p class="ml-6">└─ https://zenio5827.cafe24.com</p>
+                            <p class="ml-12">└─ <span class="text-green-600 font-bold">PHPSESSID</span> <span class="bg-yellow-200">← 이 값 복사!</span></p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-key mr-2"></i>PHPSESSID 쿠키 값
+                        </label>
+                        <input type="text" id="cookieValue" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                               placeholder="예: almmrlktkos39tstubtam7u2qs"
+                               required>
+                        <p class="mt-2 text-xs text-gray-500">
+                            <i class="fas fa-lock mr-1"></i>이 값은 저장되지 않으며, 데이터 가져오기에만 일회성으로 사용됩니다.
+                        </p>
+                    </div>
+
+                    <button type="button" onclick="fetchDataWithCookie()" 
+                            class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold text-lg shadow-lg">
+                        <i class="fas fa-download mr-2"></i>데이터 가져오기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 방법 2: JSON 업로드 방식 -->
+            <div id="jsonMethod" class="hidden">
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-file-code mr-2 text-green-600"></i>
+                        JSON 업로드 방식
+                    </h2>
+
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-bold text-yellow-800 mb-3">
+                            <i class="fas fa-lightbulb mr-2"></i>사용 방법 (1분 소요)
+                        </h3>
+                        <ol class="list-decimal list-inside space-y-2 text-sm text-yellow-700">
+                            <li class="font-semibold">
+                                <a href="http://knoxhub.kro.kr" target="_blank" class="text-blue-600 underline hover:text-blue-800">KnoxHub</a>에 로그인 후 <strong>오토바이 목록 페이지</strong>로 이동
+                            </li>
+                            <li class="font-semibold">
+                                <kbd class="bg-gray-800 text-white px-2 py-1 rounded text-xs">F12</kbd> → 상단 <strong>Console</strong> 탭 열기
+                            </li>
+                            <li class="font-semibold">
+                                아래 스크립트를 복사해서 콘솔에 붙여넣고 <kbd class="bg-gray-800 text-white px-2 py-1 rounded text-xs">Enter</kbd>
+                            </li>
+                            <li class="font-semibold">
+                                자동으로 다운로드된 JSON 파일을 아래에서 업로드
+                            </li>
+                        </ol>
+                    </div>
+
+                    <!-- 추출 스크립트 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-code mr-2"></i>KnoxHub 콘솔에 입력할 스크립트
+                        </label>
+                        <div class="relative">
+                            <pre id="extractScript" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs font-mono leading-relaxed">// KnoxHub 데이터 추출 스크립트 v1.0
+(function() {
+    const data = {
+        motorcycles: [],
+        contracts: [],
+        extracted_at: new Date().toISOString()
+    };
+    
+    console.log('🔍 데이터 추출 시작...');
+    
+    // 오토바이 데이터 추출 (페이지 구조에 따라 자동 감지)
+    const selectors = [
+        '.motorcycle-item', '.bike-item', '.vehicle-item',
+        'tr[data-motorcycle]', 'tr[data-bike]',
+        '.list-item', '.item-row'
+    ];
+    
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(item => {
+            const motorcycle = {
+                plate_number: item.querySelector('.plate, .number, [data-plate]')?.textContent?.trim() || '',
+                vehicle_name: item.querySelector('.name, .model, [data-model]')?.textContent?.trim() || '',
+                chassis_number: item.querySelector('.chassis, .vin, [data-vin]')?.textContent?.trim() || '',
+                mileage: parseInt(item.querySelector('.mileage, .km, [data-mileage]')?.textContent?.replace(/[^0-9]/g, '')) || 0,
+                model_year: parseInt(item.querySelector('.year, [data-year]')?.textContent?.replace(/[^0-9]/g, '')) || new Date().getFullYear()
+            };
+            
+            if (motorcycle.plate_number || motorcycle.vehicle_name) {
+                data.motorcycles.push(motorcycle);
+            }
+        });
+    });
+    
+    console.log('✅ 오토바이:', data.motorcycles.length + '대 추출');
+    
+    // JSON 다운로드
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'knoxhub_data_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    console.log('📥 JSON 파일 다운로드 완료!');
+    console.log('📊 추출된 데이터:', data);
+    
+    return data;
+})();</pre>
+                            <button onclick="copyScript()" class="absolute top-2 right-2 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition shadow">
+                                <i class="fas fa-copy mr-1"></i>복사
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- JSON 파일 업로드 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-file-upload mr-2"></i>추출한 JSON 파일 업로드
+                        </label>
+                        <input type="file" id="jsonFile" accept=".json" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                               onchange="previewJSON()">
+                    </div>
+
+                    <!-- JSON 미리보기 -->
+                    <div id="jsonPreview" class="hidden mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-eye mr-2"></i>파일 미리보기
+                        </h3>
+                        <pre id="jsonContent" class="bg-white p-3 rounded text-xs overflow-auto max-h-60 border"></pre>
+                    </div>
+
+                    <button type="button" onclick="uploadJSON()" id="uploadButton" disabled
+                            class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold text-lg shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        <i class="fas fa-upload mr-2"></i>JSON 데이터 가져오기
+                    </button>
+                </div>
             </div>
 
             <!-- 로딩 -->
-            <div id="loadingSection" class="hidden bg-white rounded-lg shadow-md p-8 mb-6">
-                <div class="text-center">
-                    <i class="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
-                    <p class="text-lg font-semibold text-gray-700">페이지를 분석하는 중...</p>
-                    <p class="text-sm text-gray-500 mt-2">잠시만 기다려주세요</p>
-                </div>
+            <div id="loadingSection" class="hidden bg-white rounded-lg shadow-md p-8 text-center">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                <p class="text-lg font-semibold text-gray-800 mb-2">데이터를 가져오는 중...</p>
+                <p class="text-sm text-gray-600">잠시만 기다려주세요</p>
             </div>
 
-            <!-- 분석 결과 -->
+            <!-- 결과 -->
             <div id="resultSection" class="hidden">
                 <!-- 오토바이 데이터 -->
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800">
-                        <i class="fas fa-motorcycle mr-2 text-green-600"></i>
-                        오토바이 데이터 (<span id="motorcycleCount">0</span>건)
-                    </h2>
-                    <div id="motorcycleList" class="space-y-3 max-h-96 overflow-y-auto"></div>
-                    <button type="button" onclick="importMotorcycles()" 
-                            class="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
-                        <i class="fas fa-upload mr-2"></i>오토바이 일괄 등록
-                    </button>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-motorcycle mr-2 text-green-600"></i>
+                            오토바이 데이터 (<span id="motorcycleCount">0</span>건)
+                        </h2>
+                        <button onclick="importMotorcycles()" 
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-semibold">
+                            <i class="fas fa-check mr-2"></i>오토바이 일괄 등록
+                        </button>
+                    </div>
+                    <div id="motorcycleList" class="space-y-2"></div>
                 </div>
 
                 <!-- 계약서 데이터 -->
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800">
-                        <i class="fas fa-file-contract mr-2 text-purple-600"></i>
-                        계약서 데이터 (<span id="contractCount">0</span>건)
-                    </h2>
-                    <div id="contractList" class="space-y-3 max-h-96 overflow-y-auto"></div>
-                    <button type="button" onclick="importContracts()" 
-                            class="w-full mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
-                        <i class="fas fa-upload mr-2"></i>계약서 일괄 등록
-                    </button>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-file-contract mr-2 text-purple-600"></i>
+                            계약서 데이터 (<span id="contractCount">0</span>건)
+                        </h2>
+                        <button onclick="importContracts()" 
+                                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition font-semibold">
+                            <i class="fas fa-check mr-2"></i>계약서 일괄 등록
+                        </button>
+                    </div>
+                    <div id="contractList" class="space-y-2"></div>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        let motorcycleData = [];
-        let contractData = [];
-        let knoxSessionToken = null; // KnoxHub 세션 토큰
-
-        // 로그인 체크
-        async function checkAuth() {
+        // 인증 확인
+        function checkAuth() {
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) {
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-                return false;
+                return;
             }
 
-            try {
-                const response = await axios.get('/api/auth/check', {
-                    headers: { 'X-Session-ID': sessionId }
-                });
-                return true;
-            } catch (error) {
+            axios.get('/api/auth/check', {
+                headers: { 'X-Session-ID': sessionId }
+            }).catch(err => {
+                console.error('인증 실패:', err);
                 localStorage.removeItem('sessionId');
-                localStorage.removeItem('user');
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-                return false;
-            }
+            });
         }
 
-        // 페이지 로드 시 인증 체크
-        window.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
+        // Axios 인터셉터
+        axios.interceptors.request.use(config => {
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                config.headers['X-Session-ID'] = sessionId;
+            }
+            return config;
         });
 
-        // Axios 인터셉터 - 모든 요청에 세션 ID 추가
-        axios.interceptors.request.use(
-            config => {
-                const sessionId = localStorage.getItem('sessionId');
-                if (sessionId) {
-                    config.headers['X-Session-ID'] = sessionId;
-                }
-                return config;
-            },
-            error => Promise.reject(error)
-        );
+        // 페이지 로드
+        document.addEventListener('DOMContentLoaded', checkAuth);
 
-        // KnoxHub OTP 발송
-        async function sendKnoxOTP() {
-            const username = document.getElementById('knoxUsername').value.trim();
-            const password = document.getElementById('knoxPassword').value.trim();
+        let importedData = null;
+
+        // 방법 선택
+        function selectMethod(method) {
+            document.getElementById('cookieMethod').classList.add('hidden');
+            document.getElementById('jsonMethod').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
             
-            if (!username || !password) {
-                alert('아이디와 비밀번호를 입력해주세요.');
-                return;
-            }
-
-            // 로딩 표시
-            document.getElementById('loadingSection').classList.remove('hidden');
-
-            try {
-                // API 호출: KnoxHub 로그인 1단계 (OTP 발송)
-                const response = await axios.post('/api/import/knox-login', {
-                    username,
-                    password
-                });
-
-                knoxSessionToken = response.data.session_token;
-
-                // OTP 입력 섹션 표시
-                document.getElementById('loadingSection').classList.add('hidden');
-                document.getElementById('otpSection').classList.remove('hidden');
-                document.getElementById('knoxOTP').focus();
-
-                alert('✅ 인증번호가 발송되었습니다!\n휴대폰으로 받은 6자리 숫자를 입력해주세요.');
-
-            } catch (error) {
-                console.error('Error sending OTP:', error);
-                document.getElementById('loadingSection').classList.add('hidden');
-                alert('인증번호 발송 실패: ' + (error.response?.data?.error || error.message));
+            if (method === 'cookie') {
+                document.getElementById('cookieMethod').classList.remove('hidden');
+            } else if (method === 'json') {
+                document.getElementById('jsonMethod').classList.remove('hidden');
             }
         }
 
-        // OTP 인증 및 데이터 가져오기
-        async function verifyOTPAndFetchData() {
-            const otp = document.getElementById('knoxOTP').value.trim();
+        // 쿠키로 데이터 가져오기
+        async function fetchDataWithCookie() {
+            const cookie = document.getElementById('cookieValue').value.trim();
             
-            if (!otp || otp.length !== 6) {
-                alert('6자리 인증번호를 입력해주세요.');
+            if (!cookie) {
+                alert('PHPSESSID 쿠키 값을 입력해주세요.');
                 return;
             }
 
-            if (!knoxSessionToken) {
-                alert('먼저 인증번호를 발송해주세요.');
-                return;
-            }
-
-            // 로딩 표시
-            document.getElementById('otpSection').classList.add('hidden');
-            document.getElementById('loadingSection').classList.remove('hidden');
+            const loadingSection = document.getElementById('loadingSection');
+            const resultSection = document.getElementById('resultSection');
 
             try {
-                // API 호출: OTP 인증 및 데이터 추출
-                const response = await axios.post('/api/import/knox-fetch', {
-                    session_token: knoxSessionToken,
-                    otp
-                });
+                loadingSection.classList.remove('hidden');
                 
-                motorcycleData = response.data.motorcycles || [];
-                contractData = response.data.contracts || [];
+                const response = await axios.post('/api/import/knox-cookie', {
+                    cookie: cookie
+                });
 
-                // 결과 표시
-                displayMotorcycles(motorcycleData);
-                displayContracts(contractData);
-
-                document.getElementById('loadingSection').classList.add('hidden');
-                document.getElementById('resultSection').classList.remove('hidden');
-
-                alert(`✅ 데이터를 가져왔습니다!\n\n오토바이: ${motorcycleData.length}건\n계약서: ${contractData.length}건`);
-
+                importedData = response.data;
+                displayResults(importedData);
+                
+                loadingSection.classList.add('hidden');
+                resultSection.classList.remove('hidden');
+                
+                // 스크롤
+                resultSection.scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
-                console.error('Error fetching data:', error);
-                document.getElementById('loadingSection').classList.add('hidden');
-                document.getElementById('otpSection').classList.remove('hidden');
-                alert('데이터 가져오기 실패: ' + (error.response?.data?.error || error.message));
+                loadingSection.classList.add('hidden');
+                console.error('데이터 가져오기 실패:', error);
+                alert('데이터 가져오기에 실패했습니다.\n\n' + 
+                      '1. PHPSESSID 값이 정확한지 확인해주세요\n' +
+                      '2. KnoxHub에 로그인되어 있는지 확인해주세요\n' +
+                      '3. 쿠키가 만료되었을 수 있습니다 (다시 로그인 후 재시도)');
             }
         }
 
-        // 오토바이 데이터 표시
-        function displayMotorcycles(data) {
-            const container = document.getElementById('motorcycleList');
-            const count = document.getElementById('motorcycleCount');
-            
-            count.textContent = data.length;
-            
-            if (data.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">오토바이 데이터가 없습니다.</p>';
-                return;
-            }
-
-            container.innerHTML = data.map((bike, index) => `
-                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="font-bold text-lg text-gray-800">${bike.vehicle_name || '차량명 없음'}</p>
-                            <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
-                                <p class="text-gray-600"><i class="fas fa-id-card mr-1"></i> 번호판: ${bike.plate_number || '-'}</p>
-                                <p class="text-gray-600"><i class="fas fa-barcode mr-1"></i> 차대번호: ${bike.chassis_number || '-'}</p>
-                                <p class="text-gray-600"><i class="fas fa-tachometer-alt mr-1"></i> 키로수: ${bike.mileage || '-'}</p>
-                                <p class="text-gray-600"><i class="fas fa-calendar mr-1"></i> 연식: ${bike.model_year || '-'}</p>
-                            </div>
-                        </div>
-                        <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">#${index + 1}</span>
-                    </div>
-                </div>
-            `).join('');
+        // 스크립트 복사
+        function copyScript() {
+            const script = document.getElementById('extractScript').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i>복사됨!';
+                btn.classList.add('bg-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('bg-green-600');
+                }, 2000);
+            });
         }
 
-        // 계약서 데이터 표시
-        function displayContracts(data) {
-            const container = document.getElementById('contractList');
-            const count = document.getElementById('contractCount');
-            
-            count.textContent = data.length;
-            
-            if (data.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">계약서 데이터가 없습니다.</p>';
+        // JSON 미리보기
+        function previewJSON() {
+            const file = document.getElementById('jsonFile').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    document.getElementById('jsonContent').textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('jsonPreview').classList.remove('hidden');
+                    document.getElementById('uploadButton').disabled = false;
+                } catch (error) {
+                    alert('올바른 JSON 파일이 아닙니다.');
+                    document.getElementById('jsonFile').value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // JSON 업로드
+        async function uploadJSON() {
+            const file = document.getElementById('jsonFile').files[0];
+            if (!file) {
+                alert('JSON 파일을 선택해주세요.');
                 return;
             }
 
-            container.innerHTML = data.map((contract, index) => `
-                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="font-bold text-lg text-gray-800">${contract.customer_name || '고객명 없음'}</p>
-                            <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
-                                <p class="text-gray-600"><i class="fas fa-phone mr-1"></i> 전화번호: ${contract.customer_phone || '-'}</p>
-                                <p class="text-gray-600"><i class="fas fa-motorcycle mr-1"></i> 차량: ${contract.vehicle_name || '-'}</p>
-                                <p class="text-gray-600"><i class="fas fa-calendar mr-1"></i> 기간: ${contract.start_date || '-'} ~ ${contract.end_date || '-'}</p>
-                                <p class="text-gray-600"><i class="fas fa-won-sign mr-1"></i> 대여금: ${contract.monthly_fee ? contract.monthly_fee.toLocaleString() + '원' : '-'}</p>
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    importedData = data;
+                    displayResults(data);
+                    
+                    document.getElementById('resultSection').classList.remove('hidden');
+                    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+                } catch (error) {
+                    alert('JSON 파일을 읽는 중 오류가 발생했습니다.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 결과 표시
+        function displayResults(data) {
+            // 오토바이
+            const motorcycleList = document.getElementById('motorcycleList');
+            const motorcycleCount = document.getElementById('motorcycleCount');
+            
+            motorcycleList.innerHTML = '';
+            motorcycleCount.textContent = data.motorcycles?.length || 0;
+            
+            if (data.motorcycles && data.motorcycles.length > 0) {
+                data.motorcycles.forEach(bike => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4';
+                    div.innerHTML = `
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-600">번호판:</span>
+                                <strong class="ml-1">${bike.plate_number || '-'}</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">차량명:</span>
+                                <strong class="ml-1">${bike.vehicle_name || '-'}</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">차대번호:</span>
+                                <strong class="ml-1">${bike.chassis_number || '-'}</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">주행거리:</span>
+                                <strong class="ml-1">${bike.mileage?.toLocaleString() || 0}km</strong>
                             </div>
                         </div>
-                        <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded">#${index + 1}</span>
-                    </div>
-                </div>
-            `).join('');
+                    `;
+                    motorcycleList.appendChild(div);
+                });
+            } else {
+                motorcycleList.innerHTML = '<p class="text-gray-500 text-center py-4">오토바이 데이터가 없습니다.</p>';
+            }
+
+            // 계약서
+            const contractList = document.getElementById('contractList');
+            const contractCount = document.getElementById('contractCount');
+            
+            contractList.innerHTML = '';
+            contractCount.textContent = data.contracts?.length || 0;
+            
+            if (data.contracts && data.contracts.length > 0) {
+                data.contracts.forEach(contract => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4';
+                    div.innerHTML = `
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-600">고객명:</span>
+                                <strong class="ml-1">${contract.customer_name || '-'}</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">전화번호:</span>
+                                <strong class="ml-1">${contract.customer_phone || '-'}</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">월대여금:</span>
+                                <strong class="ml-1">${contract.monthly_rent?.toLocaleString() || 0}원</strong>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">계약기간:</span>
+                                <strong class="ml-1">${contract.contract_period || '-'}개월</strong>
+                            </div>
+                        </div>
+                    `;
+                    contractList.appendChild(div);
+                });
+            } else {
+                contractList.innerHTML = '<p class="text-gray-500 text-center py-4">계약서 데이터가 없습니다.</p>';
+            }
         }
 
         // 오토바이 일괄 등록
         async function importMotorcycles() {
-            if (motorcycleData.length === 0) {
+            if (!importedData || !importedData.motorcycles || importedData.motorcycles.length === 0) {
                 alert('등록할 오토바이 데이터가 없습니다.');
                 return;
             }
 
-            if (!confirm(`${motorcycleData.length}건의 오토바이를 등록하시겠습니까?`)) {
+            if (!confirm(`${importedData.motorcycles.length}대의 오토바이를 일괄 등록하시겠습니까?`)) {
                 return;
             }
 
             try {
                 const response = await axios.post('/api/import/motorcycles', {
-                    motorcycles: motorcycleData
+                    motorcycles: importedData.motorcycles
                 });
 
-                alert(`✅ 오토바이 등록 완료!\n\n성공: ${response.data.success}건\n실패: ${response.data.failed}건`);
+                alert(`✅ ${response.data.success}대의 오토바이가 등록되었습니다.\n❌ ${response.data.failed}건 실패`);
                 
                 if (response.data.success > 0) {
-                    window.location.href = '/motorcycles';
+                    setTimeout(() => {
+                        window.location.href = '/motorcycles';
+                    }, 1500);
                 }
             } catch (error) {
-                console.error('Error importing motorcycles:', error);
-                alert('오토바이 등록에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                console.error('오토바이 등록 실패:', error);
+                alert('오토바이 등록에 실패했습니다.');
             }
         }
 
         // 계약서 일괄 등록
         async function importContracts() {
-            if (contractData.length === 0) {
+            if (!importedData || !importedData.contracts || importedData.contracts.length === 0) {
                 alert('등록할 계약서 데이터가 없습니다.');
                 return;
             }
 
-            if (!confirm(`${contractData.length}건의 계약서를 등록하시겠습니까?`)) {
+            if (!confirm(`${importedData.contracts.length}건의 계약서를 일괄 등록하시겠습니까?`)) {
                 return;
             }
 
             try {
                 const response = await axios.post('/api/import/contracts', {
-                    contracts: contractData
+                    contracts: importedData.contracts
                 });
 
-                alert(`✅ 계약서 등록 완료!\n\n성공: ${response.data.success}건\n실패: ${response.data.failed}건`);
+                alert(`✅ ${response.data.success}건의 계약서가 등록되었습니다.\n❌ ${response.data.failed}건 실패`);
                 
                 if (response.data.success > 0) {
-                    window.location.href = '/contracts';
+                    setTimeout(() => {
+                        window.location.href = '/contracts';
+                    }, 1500);
                 }
             } catch (error) {
-                console.error('Error importing contracts:', error);
-                alert('계약서 등록에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                console.error('계약서 등록 실패:', error);
+                alert('계약서 등록에 실패했습니다.');
             }
         }
     </script>
