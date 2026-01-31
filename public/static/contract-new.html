@@ -1333,8 +1333,8 @@
             canvas.height = 240;
             context.drawImage(video, 0, 0, 320, 240);
             
-            // JPEG 품질을 20%로 낮춤 (파일 크기 감소)
-            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.2);
+            // JPEG 품질을 60%로 설정 (화질과 크기 균형)
+            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.6);
             
             // 카메라 중지
             stopAdminIdCamera();
@@ -1368,7 +1368,7 @@
                     canvas.height = 240;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, 320, 240);
-                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.2);
+                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.6);
                     document.getElementById('adminIdImage').src = adminIdPhotoData;
                     document.getElementById('adminIdPreview').classList.remove('hidden');
                 };
@@ -1722,8 +1722,8 @@
         
         function getAdminSignatureData() {
             if (!adminSignatureCanvas) return '';
-            // JPEG 포맷으로 변경하고 품질을 50%로 낮춤 (파일 크기 감소)
-            return adminSignatureCanvas.toDataURL('image/jpeg', 0.5);
+            // JPEG 포맷으로 변경하고 품질을 70%로 설정 (화질과 크기 균형)
+            return adminSignatureCanvas.toDataURL('image/jpeg', 0.7);
         }
         
         // 관리자 약관 로딩

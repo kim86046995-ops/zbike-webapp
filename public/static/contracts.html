@@ -242,7 +242,7 @@
                             </div>
                             <div>
                                 <p class="mb-2"><i class="fas fa-calendar w-5 text-purple-600"></i> <strong>기간:</strong> ${c.start_date} ~ ${c.end_date}</p>
-                                <p class="mb-2"><i class="fas fa-won-sign w-5 text-purple-600"></i> <strong>월납부금:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
+                                <p class="mb-2"><i class="fas fa-won-sign w-5 text-purple-600"></i> <strong>일대여료:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
                                 <p><i class="fas fa-clock w-5 text-purple-600"></i> <strong>작성일:</strong> ${new Date(c.created_at).toLocaleString('ko-KR')}</p>
                             </div>
                         </div>
@@ -315,7 +315,7 @@
                         <h3 class="font-bold text-lg mb-3">계약 상세</h3>
                         <div class="grid grid-cols-2 gap-3 text-sm">
                             <p><strong>계약기간:</strong> ${c.start_date} ~ ${c.end_date}</p>
-                            <p><strong>월 납부금액:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
+                            <p><strong>일 대여료:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
                             <p><strong>보증금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
                         </div>
                         ${c.special_terms ? `
