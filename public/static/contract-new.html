@@ -31,7 +31,7 @@
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" onchange="toggleContractType()">
+                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" onchange="toggleContractType()" checked>
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-calendar-alt text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">리스</p>
@@ -818,6 +818,9 @@
                 const signDateString = `${year}년 ${month}월 ${day}일`;
                 adminSignDateEl.textContent = signDateString;
             }
+            
+            // 기본 계약 타입 폼 표시
+            toggleContractType();
             
             // 임차인 정보 미리보기 업데이트 이벤트 리스너
             const customerNameInput = document.getElementById('customerName');
