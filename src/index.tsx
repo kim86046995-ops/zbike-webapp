@@ -2158,59 +2158,126 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
 
   let success = 0
   let failed = 0
+  const results = {
+    lease: 0,
+    rent: 0,
+    loan: 0,
+    temp_rent: 0
+  }
 
   for (const contract of contracts) {
     try {
-      // 먼저 고객 생성 (있으면 가져오기)
-      let customer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
-        .bind(contract.customer_phone).first()
+      // 계약 타입 결정 (기본값: individual)
+      let contractType = contract.contract_type || 'individual'
       
-      let customerId
-      if (!customer) {
-        const result = await DB.prepare(`
-          INSERT INTO customers (name, phone, created_at)
-          VALUES (?, ?, datetime('now'))
-        `).bind(contract.customer_name, contract.customer_phone).run()
-        customerId = result.meta.last_row_id
-      } else {
-        customerId = customer.id
+      // 타입 매핑
+      const typeMap = {
+        'lease': 'individual', // 리스
+        'rent': 'individual',  // 렌트
+        'loan': 'loan',        // 차용증
+        'temp_rent': 'temp_rent' // 임시렌트
+      }
+      
+      const finalType = typeMap[contractType] || 'individual'
+      
+      // 먼저 고객 생성 (있으면 가져오기)
+      let customerId = null
+      if (contract.customer_phone) {
+        let customer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
+          .bind(contract.customer_phone).first()
+        
+        if (!customer) {
+          const result = await DB.prepare(`
+            INSERT INTO customers (name, phone, resident_number, address, created_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+          `).bind(
+            contract.customer_name || '미입력',
+            contract.customer_phone,
+            contract.resident_number || '',
+            contract.address || ''
+          ).run()
+          customerId = result.meta.last_row_id
+        } else {
+          customerId = customer.id
+        }
       }
 
-      // 오토바이 찾기 (차량명으로)
-      const motorcycle = await DB.prepare('SELECT id FROM motorcycles WHERE vehicle_name = ?')
-        .bind(contract.vehicle_name).first()
+      // 오토바이 찾기 (번호판 또는 차량명으로)
+      let motorcycle = null
+      if (contract.plate_number) {
+        motorcycle = await DB.prepare('SELECT id FROM motorcycles WHERE plate_number = ?')
+          .bind(contract.plate_number).first()
+      }
+      
+      if (!motorcycle && contract.vehicle_name) {
+        motorcycle = await DB.prepare('SELECT id FROM motorcycles WHERE vehicle_name LIKE ?')
+          .bind('%' + contract.vehicle_name + '%').first()
+      }
       
       if (!motorcycle) {
-        failed++
-        continue
+        // 오토바이가 없으면 자동 생성
+        const result = await DB.prepare(`
+          INSERT INTO motorcycles (
+            plate_number, vehicle_name, status, created_at
+          ) VALUES (?, ?, 'active', datetime('now'))
+        `).bind(
+          contract.plate_number || '미등록',
+          contract.vehicle_name || '미입력'
+        ).run()
+        
+        motorcycle = { id: result.meta.last_row_id }
+      }
+
+      // 계약 번호 생성
+      const prefixMap = {
+        'individual': 'C',
+        'loan': 'L',
+        'temp_rent': 'TR'
+      }
+      const prefix = prefixMap[finalType] || 'C'
+      const contractNumber = prefix + Date.now() + Math.random().toString(36).substring(2, 5)
+
+      // 계약 데이터 구성
+      const contractData = {
+        contract_type: contractType,
+        source: contract.source || 'import',
+        original_data: contract
       }
 
       // 계약서 생성
-      const contractNumber = 'C' + Date.now()
       await DB.prepare(`
         INSERT INTO contracts (
           contract_number, contract_type, motorcycle_id, customer_id,
           start_date, end_date, monthly_fee, deposit,
-          status, created_at
-        ) VALUES (?, 'individual', ?, ?, ?, ?, ?, ?, 'active', datetime('now'))
+          contract_data, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'))
       `).bind(
         contractNumber,
+        finalType,
         motorcycle.id,
         customerId,
-        contract.start_date || '',
-        contract.end_date || '',
-        contract.monthly_fee || 0,
-        contract.deposit || 0
+        contract.start_date || new Date().toISOString().split('T')[0],
+        contract.end_date || new Date().toISOString().split('T')[0],
+        contract.monthly_rent || contract.daily_fee || 0,
+        contract.deposit || 0,
+        JSON.stringify(contractData)
       ).run()
       
       success++
+      results[contractType] = (results[contractType] || 0) + 1
+      
     } catch (error) {
       console.error('Error importing contract:', error)
       failed++
     }
   }
 
-  return c.json({ success, failed })
+  return c.json({ 
+    success, 
+    failed,
+    details: results,
+    message: `리스: ${results.lease}건, 렌트: ${results.rent}건, 차용증: ${results.loan}건, 임시렌트: ${results.temp_rent}건`
+  })
 })
 
 // 임시렌트 계약서 생성 API
@@ -2401,6 +2468,70 @@ app.post('/api/import/knox-cookie', authMiddleware, async (c) => {
     console.error('KnoxHub 데이터 가져오기 실패:', error)
     return c.json({ 
       error: '데이터 가져오기에 실패했습니다. JSON 업로드 방식을 사용해주세요.',
+      motorcycles: [],
+      contracts: []
+    }, 500)
+  }
+})
+
+// PDF 계약서 분석 API
+app.post('/api/import/analyze-pdfs', authMiddleware, async (c) => {
+  try {
+    // TODO: 실제 PDF 파일 파싱 구현
+    // Cloudflare Workers에서는 FormData 처리가 제한적이므로
+    // 현재는 데모 데이터를 반환합니다
+    
+    // 실제 구현 시:
+    // 1. FormData에서 PDF 파일들 추출
+    // 2. PDF 텍스트 추출 (pdf-parse 등 라이브러리 사용)
+    // 3. AI/정규식으로 계약 타입 분석:
+    //    - "리스" 키워드 → lease
+    //    - "렌트", "대여" 키워드 → rent  
+    //    - "차용증" 키워드 → loan
+    //    - "임시", "단기" 키워드 → temp_rent
+    // 4. 계약 정보 추출 (고객명, 전화번호, 번호판, 금액 등)
+    
+    // 데모 데이터
+    const demoData = {
+      motorcycles: [
+        {
+          plate_number: '12가3456',
+          vehicle_name: '혼다 PCX 150',
+          chassis_number: 'MLHJE1234567890',
+          mileage: 10000,
+          model_year: 2023,
+          status: 'active'
+        }
+      ],
+      contracts: [
+        {
+          contract_type: 'lease', // PDF에서 "리스" 감지
+          customer_name: '홍길동',
+          customer_phone: '010-1234-5678',
+          resident_number: '900101-1234567',
+          vehicle_name: '혼다 PCX 150',
+          plate_number: '12가3456',
+          start_date: '2024-01-01',
+          end_date: '2024-12-31',
+          monthly_rent: 350000,
+          deposit: 1000000,
+          daily_fee: 15000,
+          address: '서울시 강남구 테헤란로 123',
+          special_terms: 'PDF에서 추출된 특약사항',
+          source: 'pdf_upload'
+        }
+      ],
+      analyzed_files: 1,
+      success: true,
+      message: 'PDF 분석이 완료되었습니다. 실제 구현 시 PDF 파싱 로직이 추가됩니다.'
+    }
+    
+    return c.json(demoData)
+    
+  } catch (error) {
+    console.error('PDF 분석 실패:', error)
+    return c.json({ 
+      error: 'PDF 분석에 실패했습니다: ' + error.message,
       motorcycles: [],
       contracts: []
     }, 500)
