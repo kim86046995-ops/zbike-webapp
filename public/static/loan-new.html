@@ -144,7 +144,8 @@
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">이자율 (연%)</label>
-                            <input type="number" id="interestRate" value="0" step="0.1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <input type="number" id="interestRate" value="20" step="0.1" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100 focus:ring-2 focus:ring-orange-500 cursor-not-allowed">
+                            <p class="text-xs text-orange-600 mt-1 font-bold"><i class="fas fa-info-circle mr-1"></i>고정 이자율: 연 20%</p>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold mb-2">
@@ -216,7 +217,7 @@
                             <p>③ 차용일자: 위 기재된 차용일</p>
                             <p>④ 대여기간: 위 기재된 대여기간 (일수)</p>
                             <p>⑤ 상환예정일: 위 기재된 상환예정일</p>
-                            <p>⑥ 이자율: 위 기재된 이자율 (연 이자율)</p>
+                            <p>⑥ 이자율: <strong class="text-orange-700">연 20% (고정)</strong></p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제2조 (일차감 상환방식)</p>
@@ -261,8 +262,8 @@
 
                         <p class="font-bold mt-3 mb-2">제7조 (이자 및 연체이자)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 이자는 위 기재된 이자율을 적용하여 계산됩니다.</p>
-                            <p>② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 연 15%의 연체이자를 부담합니다.</p>
+                            <p>① 이자는 <strong class="text-orange-700">연 20% (고정)</strong>를 적용하여 계산됩니다.</p>
+                            <p>② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 <strong class="text-red-600">연 15%의 연체이자</strong>를 부담합니다.</p>
                             <p>③ 연체기간 산정은 연체 개시일로부터 실제 변제일까지로 합니다.</p>
                         </div>
 
