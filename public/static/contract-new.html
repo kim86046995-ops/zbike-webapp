@@ -1083,16 +1083,6 @@
             });
 
             canvas.addEventListener('touchend', (e) => {
-                const mouseEvent = new MouseEvent('mouseup', {});
-                canvas.dispatchEvent(mouseEvent);
-            });
-        }
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
-            });
-
-            canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 const mouseEvent = new MouseEvent('mouseup', {});
                 canvas.dispatchEvent(mouseEvent);
