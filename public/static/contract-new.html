@@ -356,6 +356,16 @@
                         5. 약관 동의
                     </h2>
                     
+                    <!-- 사업자 정보 -->
+                    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">
+                        <h3 class="font-bold text-indigo-900 mb-2">임대인 (사업자) 정보</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                            <p><strong>상호:</strong> 대성</p>
+                            <p><strong>사업자등록번호:</strong> 487-39-01128</p>
+                            <p><strong>대표자:</strong> 김상춘</p>
+                        </div>
+                    </div>
+                    
                     <!-- 약관 내용 표시 -->
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 max-h-96 overflow-y-auto mb-4">
                         <h3 class="font-bold text-center text-lg mb-3">오토바이 리스/렌트 계약 약관</h3>
@@ -1711,7 +1721,14 @@
                 
                 // 계약자 서명 확인
                 const adminSignature = getAdminSignatureData();
-                if (!adminSignature || adminSignature === adminSignatureCanvas.toDataURL('image/png', 0)) {
+                if (!adminSignature) {
+                    alert('계약자 서명을 해주세요.');
+                    return;
+                }
+                
+                // 빈 캔버스 체크
+                const isBlank = !adminSignatureCtx.getImageData(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height).data.some(channel => channel !== 0);
+                if (isBlank) {
                     alert('계약자 서명을 해주세요.');
                     return;
                 }
