@@ -7,6 +7,55 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    
+    <style>
+        /* A4 출력 스타일 */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* 약관 영역 A4 페이지 분할 */
+            .contract-terms {
+                page-break-inside: auto;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            .contract-terms > * {
+                page-break-inside: avoid;
+            }
+            
+            .contract-terms p.font-bold {
+                page-break-after: avoid;
+            }
+            
+            /* A4 페이지 크기 설정 */
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+            
+            /* 출력 시 불필요한 요소 숨김 */
+            nav, .no-print, button:not(.print-only), header {
+                display: none !important;
+            }
+            
+            /* 약관 섹션만 출력 시 강조 */
+            .contract-terms {
+                border: none;
+                background: white;
+                padding: 0;
+            }
+        }
+        
+        /* 화면 표시용 - 스크롤 제거, 전체 내용 보이기 */
+        .contract-terms {
+            max-height: none;
+            overflow-y: visible;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen pb-20">
@@ -138,7 +187,7 @@
                         <i class="fas fa-file-contract mr-2 text-orange-600"></i>
                         3. 차용증 약관
                     </h2>
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 max-h-96 overflow-y-auto">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 contract-terms" style="font-size: 0.95rem;">
                         <!-- 사업자 정보 표기 -->
                         <div class="text-center mb-4 pb-3 border-b-2 border-gray-300">
                             <p class="text-xs text-gray-600 mb-1">사업자 상호: <span id="terms-company-name" class="font-bold">로딩중...</span></p>
