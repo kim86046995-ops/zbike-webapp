@@ -356,11 +356,11 @@
                         5. 계약 약관
                     </h2>
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 max-h-96 overflow-y-auto">
-                        <!-- 사업자 정보 표기 -->
+                        <!-- 임차인 정보 표기 -->
                         <div class="text-center mb-4 pb-3 border-b-2 border-gray-300">
-                            <p class="text-xs text-gray-600 mb-1">사업자 상호: <span id="contract-company-name" class="font-bold">로딩중...</span></p>
-                            <p class="text-xs text-gray-600 mb-1">사업자번호: <span id="contract-business-number" class="font-bold">로딩중...</span></p>
-                            <p class="text-xs text-gray-600">대표자: <span id="contract-representative-name" class="font-bold">로딩중...</span></p>
+                            <p class="text-xs text-gray-600 mb-1">임차인 성명: <span id="preview-customer-name" class="font-bold">입력 후 표시</span></p>
+                            <p class="text-xs text-gray-600 mb-1">연락처: <span id="preview-customer-phone" class="font-bold">입력 후 표시</span></p>
+                            <p class="text-xs text-gray-600">주민등록번호: <span id="preview-resident-number" class="font-bold">입력 후 표시</span></p>
                         </div>
                         
                         <h3 class="font-bold text-center text-lg mb-3">오토바이 리스/렌트 계약서</h3>
@@ -488,6 +488,45 @@
                     </div>
                 </div>
 
+                <!-- 약관 동의 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-check-square mr-2 text-green-600"></i>
+                        약관 동의
+                    </h2>
+                    <div id="adminContractTerms" class="p-4 bg-gray-50 rounded-lg border border-gray-300 text-sm mb-4 max-h-96 overflow-y-auto"></div>
+                    
+                    <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded">
+                        <input 
+                            type="checkbox" 
+                            id="adminAgreeTerms" 
+                            class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                            required
+                        >
+                        <label for="adminAgreeTerms" class="ml-3 text-base font-bold text-gray-800">
+                            위 계약 약관을 모두 확인하였으며, 고객에게 정확히 안내하였습니다 <span class="text-red-600">*</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 관리자 서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-green-600"></i>
+                        관리자 서명
+                    </h2>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
+                    <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
+                        <canvas id="adminSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <div class="mt-3 flex justify-between items-center">
+                        <button type="button" onclick="clearAdminSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
+                            <i class="fas fa-eraser mr-1"></i>서명 지우기
+                        </button>
+                        <p class="text-xs text-gray-500">서명일: <span id="adminSignDate"></span></p>
+                    </div>
+                </div>
+
                 <!-- 관리자용 신분증 촬영/업로드 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4 text-gray-800">
@@ -523,44 +562,7 @@
                     </div>
                 </div>
 
-                <!-- 약관 동의 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">
-                        <i class="fas fa-file-contract mr-2 text-green-600"></i>
-                        7. 계약 약관
-                    </h2>
-                    <div id="adminContractTerms" class="p-4 bg-gray-50 rounded-lg border border-gray-300 text-sm mb-4 max-h-96 overflow-y-auto"></div>
-                    
-                    <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded">
-                        <input 
-                            type="checkbox" 
-                            id="adminAgreeTerms" 
-                            class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                            required
-                        >
-                        <label for="adminAgreeTerms" class="ml-3 text-base font-bold text-gray-800">
-                            위 계약 약관을 모두 확인하였으며, 고객에게 정확히 안내하였습니다 <span class="text-red-600">*</span>
-                        </label>
-                    </div>
-                </div>
 
-                <!-- 관리자 서명 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">
-                        <i class="fas fa-signature mr-2 text-green-600"></i>
-                        8. 관리자 서명
-                    </h2>
-                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
-                    <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
-                        <canvas id="adminSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
-                    </div>
-                    <div class="mt-3 flex justify-between items-center">
-                        <button type="button" onclick="clearAdminSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
-                            <i class="fas fa-eraser mr-1"></i>서명 지우기
-                        </button>
-                        <p class="text-xs text-gray-500">서명일: <span id="adminSignDate"></span></p>
-                    </div>
-                </div>
 
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
@@ -776,7 +778,6 @@
                 initSignaturePad();
                 initTempSignatureCanvas(); // 임시렌트 서명 캔버스 초기화
                 initAdminSignatureCanvas(); // 관리자 서명 캔버스 초기화
-                loadCompanySettings();
                 loadAdminContractTerms(); // 관리자 약관 로딩
             }
             
@@ -808,23 +809,36 @@
                 const signDateString = `${year}년 ${month}월 ${day}일`;
                 adminSignDateEl.textContent = signDateString;
             }
+            
+            // 임차인 정보 미리보기 업데이트 이벤트 리스너
+            const customerNameInput = document.getElementById('customerName');
+            const customerPhoneInput = document.getElementById('customerPhone');
+            const residentNumberInput = document.getElementById('residentNumber');
+            
+            if (customerNameInput) {
+                customerNameInput.addEventListener('input', updateContractPreview);
+            }
+            if (customerPhoneInput) {
+                customerPhoneInput.addEventListener('input', updateContractPreview);
+            }
+            if (residentNumberInput) {
+                residentNumberInput.addEventListener('input', updateContractPreview);
+            }
         });
         
-        // 사업자 정보 로드
-        async function loadCompanySettings() {
-            try {
-                const response = await axios.get('/api/company-settings');
-                const company = response.data;
-                
-                document.getElementById('contract-company-name').textContent = company.company_name;
-                document.getElementById('contract-business-number').textContent = company.business_number;
-                document.getElementById('contract-representative-name').textContent = company.representative_name;
-            } catch (error) {
-                console.error('Error loading company settings:', error);
-                document.getElementById('contract-company-name').textContent = '정보 없음';
-                document.getElementById('contract-business-number').textContent = '정보 없음';
-                document.getElementById('contract-representative-name').textContent = '정보 없음';
-            }
+        // 임차인 정보 미리보기 업데이트
+        function updateContractPreview() {
+            const name = document.getElementById('customerName')?.value || '입력 후 표시';
+            const phone = document.getElementById('customerPhone')?.value || '입력 후 표시';
+            const resident = document.getElementById('residentNumber')?.value || '입력 후 표시';
+            
+            const previewName = document.getElementById('preview-customer-name');
+            const previewPhone = document.getElementById('preview-customer-phone');
+            const previewResident = document.getElementById('preview-resident-number');
+            
+            if (previewName) previewName.textContent = name;
+            if (previewPhone) previewPhone.textContent = phone;
+            if (previewResident) previewResident.textContent = resident;
         }
         
         // 우편번호 검색 함수
