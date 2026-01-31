@@ -277,11 +277,16 @@
                             </div>
                         </div>
                         <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
-                            <p class="text-xl font-bold text-blue-900 mb-3">🏍️ 오토바이 정보</p>
+                            <p class="text-xl font-bold text-blue-900 mb-3">🏍️ 오토바이 제원</p>
                             <div class="space-y-2 text-gray-800">
                                 ${info.motorcycle_plate ? `<p><span class="font-semibold">차량번호:</span> ${info.motorcycle_plate}</p>` : ''}
                                 ${info.motorcycle_name ? `<p><span class="font-semibold">차량명:</span> ${info.motorcycle_name}</p>` : ''}
                                 ${info.chassis_number ? `<p><span class="font-semibold">차대번호:</span> ${info.chassis_number}</p>` : ''}
+                                ${info.mileage ? `<p><span class="font-semibold">주행거리:</span> ${parseInt(info.mileage).toLocaleString()}km</p>` : ''}
+                                ${info.model_year ? `<p><span class="font-semibold">연식:</span> ${info.model_year}년</p>` : ''}
+                                ${info.color ? `<p><span class="font-semibold">색상:</span> ${info.color}</p>` : ''}
+                                ${info.displacement ? `<p><span class="font-semibold">배기량:</span> ${info.displacement}cc</p>` : ''}
+                                ${info.fuel_type ? `<p><span class="font-semibold">연료:</span> ${info.fuel_type}</p>` : ''}
                             </div>
                         </div>
                         <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-600">
@@ -359,6 +364,10 @@
                         </div>
                     </div>
                     
+                    <div class="border-t border-b border-gray-400 py-2 my-4">
+                        <p class="text-center font-bold text-sm">- 다 음 -</p>
+                    </div>
+                    
                     <h3 class="font-bold text-lg mb-3">금전소비대차 약관</h3>
                     
                     <div class="space-y-4">
@@ -394,15 +403,22 @@
                         
                         <div>
                             <h4 class="font-bold mb-2">제7조 (분쟁 해결)</h4>
-                            <p class="text-gray-700">본 계약과 관련한 분쟁은 당사자 간 협의로 해결하며, 협의가 이루어지지 않을 경우 관할 법원의 판결에 따릅니다.</p>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
+                                <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 대주의 주소지 관할 법원을 전속관할로 합니다.</p>
+                            </div>
                         </div>
                     </div>
+                    
+                    <p class="mt-6 text-center font-bold">
+                        본 계약을 증명하기 위하여 계약서를 작성하고 차주가 서명합니다.
+                    </p>
                 `;
             } else {
-                // 오토바이 계약 약관
+                // 오토바이 계약 약관 (관리자 페이지와 동일)
                 return `
                     <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
-                        <h3 class="font-bold text-lg mb-3">업체 정보</h3>
+                        <h3 class="font-bold text-lg mb-3">대여인 (업체) 정보</h3>
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
                             <p><span class="font-semibold">사업자등록번호:</span> ${businessNumber}</p>
@@ -412,44 +428,141 @@
                         </div>
                     </div>
                     
-                    <h3 class="font-bold text-lg mb-3">오토바이 대여 약관</h3>
+                    <div class="border-t border-b border-gray-400 py-2 my-4">
+                        <p class="text-center font-bold text-sm">- 다 음 -</p>
+                    </div>
+                    
+                    <h3 class="font-bold text-lg mb-3">오토바이 리스/렌트 계약 약관</h3>
                     
                     <div class="space-y-4">
                         <div>
-                            <h4 class="font-bold mb-2">제1조 (목적)</h4>
-                            <p class="text-gray-700">본 약관은 오토바이 대여 계약에 관한 조건을 정함을 목적으로 합니다.</p>
+                            <h4 class="font-bold mb-2">제1조 (계약의 목적)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 본 계약은 대여인이 소유한 오토바이를 차용인에게 리스 또는 렌트하는 조건과 절차를 정함을 목적으로 합니다.</p>
+                                <p class="text-gray-700">② 계약 타입: 위 기재된 계약 타입 (리스/렌트)</p>
+                                <p class="text-gray-700">③ 계약 기간: 위 기재된 계약 시작일부터 종료일까지</p>
+                            </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-bold mb-2">제2조 (대여 기간 및 요금)</h4>
-                            <p class="text-gray-700">대여 기간과 요금은 계약서에 명시된 조건에 따르며, 임차인은 이를 준수해야 합니다.</p>
+                            <h4 class="font-bold mb-2">제2조 (오토바이의 인도 및 관리)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 대여인은 계약 체결 시 오토바이를 정상 작동 상태로 차용인에게 인도합니다.</p>
+                                <p class="text-gray-700">② 차용인은 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
+                                <p class="text-gray-700">③ 차용인은 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
+                            </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-bold mb-2">제3조 (차량 관리 의무)</h4>
-                            <p class="text-gray-700">임차인은 선량한 관리자의 주의로 차량을 관리하고, 정기적인 점검 및 유지보수를 실시해야 합니다.</p>
+                            <h4 class="font-bold mb-2">제3조 (사용 제한)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 차용인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
+                                <p class="text-gray-700">② 차용인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
+                                <p class="text-gray-700">③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                            </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-bold mb-2">제4조 (사고 및 보험)</h4>
-                            <p class="text-gray-700">사고 발생 시 즉시 업체에 통보해야 하며, 보험 처리는 계약 조건에 따릅니다. 임차인의 과실로 인한 손해는 임차인이 부담합니다.</p>
+                            <h4 class="font-bold mb-2">제4조 (일차감 대여료 납부 방식)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
+                                <p class="text-gray-700">② 일차감 금액: 위 기재된 일차감금액</p>
+                                <p class="text-gray-700">③ 보증금: 위 기재된 보증금</p>
+                                <p class="text-gray-700">④ 차감 금액은 차용인의 일당 정산 시 대여인의 전산 프로그램을 통해 자동으로 공제됩니다.</p>
+                                <p class="text-gray-700">⑤ 차용인은 일당 발생 시마다 자동 차감되며, 별도의 월 납부 의무는 없습니다.</p>
+                            </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-bold mb-2">제5조 (계약 해지)</h4>
-                            <p class="text-gray-700">계약 위반 시 업체는 계약을 해지할 수 있으며, 임차인은 위약금을 부담할 수 있습니다.</p>
+                            <h4 class="font-bold mb-2">제5조 (정산 및 투명성)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 대여인은 차용인의 일당, 차감 금액, 누적 차감 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                                <p class="text-gray-700">② 차용인은 언제든지 본인의 차감 내역과 납부 현황을 조회할 수 있습니다.</p>
+                                <p class="text-gray-700">③ 차감 내역에 대한 이의가 있을 경우 차용인은 즉시 대여인에게 이의를 제기할 수 있으며, 대여인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
+                            </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-bold mb-2">제6조 (반환)</h4>
-                            <p class="text-gray-700">계약 종료 시 차량을 원상태로 반환해야 하며, 손상이 있을 경우 수리 비용을 부담해야 합니다.</p>
+                            <h4 class="font-bold mb-2">제6조 (보험 및 사고 처리)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 대여인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
+                                <p class="text-gray-700">② 사고 발생 시 차용인은 즉시 대여인에게 통보하고 보험사에 신고하여야 합니다.</p>
+                                <p class="text-gray-700">③ 차용인의 고의 또는 과실로 발생한 사고의 자기부담금은 차용인이 부담합니다.</p>
+                                <p class="text-gray-700">④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 차용인이 전액 배상하여야 합니다.</p>
+                            </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-bold mb-2">제7조 (분쟁 해결)</h4>
-                            <p class="text-gray-700">본 계약과 관련한 분쟁은 당사자 간 협의로 해결하며, 협의가 이루어지지 않을 경우 관할 법원의 판결에 따릅니다.</p>
+                            <h4 class="font-bold mb-2">제7조 (정비 및 소모품)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 차용인이 전액 부담합니다.</p>
+                                <p class="text-gray-700">② 무상정비 제외 항목: 엔진, 미션, 구동계</p>
+                                <p class="text-gray-700">③ 무상정비 항목 제외 소모품: 차용인 부담</p>
+                                <p class="text-gray-700">④ 운전자 과실에 의한 제반 수리비: 차용인 전액 부담</p>
+                                <p class="text-gray-700">⑤ 차용인은 정비가 필요한 경우 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제8조 (계약의 해지)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 차용인이 다음 각 호에 해당하는 경우 대여인은 계약을 즉시 해지할 수 있습니다:</p>
+                                <p class="text-gray-700 ml-4">- 정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우</p>
+                                <p class="text-gray-700 ml-4">- 음주운전, 무면허 운전 등 중대한 법규 위반 시</p>
+                                <p class="text-gray-700 ml-4">- 오토바이를 임의로 개조하거나 제3자에게 재대여한 경우</p>
+                                <p class="text-gray-700 ml-4">- 허위 정보를 제공한 경우</p>
+                                <p class="text-gray-700">② 계약 해지 시 차용인은 오토바이를 즉시 반환하여야 하며, 미차감 대여료 및 손해액을 보증금에서 공제합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제9조 (중도 해지)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 차용인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있습니다.</p>
+                                <p class="text-gray-700">② 중도 해지 시 보증금에서 위약금(일차감금액의 30일분)을 공제 후 반환합니다.</p>
+                                <p class="text-gray-700">③ 리스 계약의 경우 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부하여야 합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제10조 (계약 종료 시 반환)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 계약 종료 시 차용인은 오토바이를 원상태로 반환하여야 합니다.</p>
+                                <p class="text-gray-700">② 대여인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 보증금에서 공제합니다. 보증금이 없을 시 일차감분에서 일괄 차감합니다.</p>
+                                <p class="text-gray-700">③ 보증금 정산은 반환일로부터 7영업일 이내에 완료합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제11조 (무상정비 항목 - 특약)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 대여인은 계약 기간 중 다음 항목에 대하여 무상으로 정비 서비스를 제공합니다:</p>
+                                <p class="text-gray-700 ml-4">- 엔진오일 교환 (주행거리 1,000km마다)</p>
+                                <p class="text-gray-700 ml-4">- 브레이크패드 교체 (마모 시)</p>
+                                <p class="text-gray-700 ml-4">- 타이어 교체 (마모 또는 손상 시, 단 차용인 과실 제외)</p>
+                                <p class="text-gray-700 ml-4">- 정기 점검 (계기판 점검, 등화장치, 제동장치 등)</p>
+                                <p class="text-gray-700">② 무상정비 제외 항목:</p>
+                                <p class="text-gray-700 ml-4">- 엔진, 미션, 구동계 관련 수리</p>
+                                <p class="text-gray-700 ml-4">- 무상정비 항목 이외의 모든 소모품</p>
+                                <p class="text-gray-700 ml-4">- 운전자 과실에 의한 제반 수리비</p>
+                                <p class="text-gray-700">③ 무상정비는 대여인이 지정한 정비소에서만 가능하며, 임의 정비 시 비용은 차용인이 부담합니다.</p>
+                                <p class="text-gray-700">④ 차용인의 고의 또는 과실로 인한 부품 손상은 무상정비 대상에서 제외됩니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제12조 (분쟁 해결 및 기타)</h4>
+                            <div class="ml-4 space-y-1">
+                                <p class="text-gray-700">① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
+                                <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 대여인의 주소지 관할 법원을 전속관할로 합니다.</p>
+                                <p class="text-gray-700">③ 위 기재된 특약사항이 있는 경우 특약사항이 본 계약서에 우선합니다.</p>
+                            </div>
                         </div>
                     </div>
+                    
+                    <p class="mt-6 text-center font-bold">
+                        본 계약을 증명하기 위하여 계약서를 작성하고 차용인이 서명합니다.
+                    </p>
                 `;
             }
         }
