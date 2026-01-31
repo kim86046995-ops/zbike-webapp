@@ -1340,9 +1340,19 @@
                     
                     // 시뮬레이션 모드 체크
                     if (smsResult.data.simulation) {
-                        alert(`⚠️ SMS 시뮬레이션 모드\n\n실제 문자는 전송되지 않았습니다.\nCoolSMS API 키를 설정하면 실제 전송됩니다.\n\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}\n\n📖 README.md의 'SMS 설정 가이드'를 참고하세요.`);
+                        try {
+                            await navigator.clipboard.writeText(shareUrl);
+                            alert(`⚠️ SMS 시뮬레이션 모드\n\n✅ 링크가 클립보드에 복사되었습니다!\n\n실제 문자는 전송되지 않았습니다.\nCoolSMS API 키를 설정하면 실제 전송됩니다.\n\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}\n\n📖 README.md의 'SMS 설정 가이드'를 참고하세요.`);
+                        } catch (err) {
+                            alert(`⚠️ SMS 시뮬레이션 모드\n\n실제 문자는 전송되지 않았습니다.\nCoolSMS API 키를 설정하면 실제 전송됩니다.\n\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}\n\n(자동 복사 실패 - 링크를 수동으로 복사해주세요)\n\n📖 README.md의 'SMS 설정 가이드'를 참고하세요.`);
+                        }
                     } else {
-                        alert(`✅ SMS가 전송되었습니다!\n\n고객: ${pendingContractData.customer_name}\n전화번호: ${pendingContractData.customer_phone}\n링크: ${shareUrl}`);
+                        try {
+                            await navigator.clipboard.writeText(shareUrl);
+                            alert(`✅ SMS가 전송되었습니다!\n\n📋 링크가 클립보드에 복사되었습니다!\n\n고객: ${pendingContractData.customer_name}\n전화번호: ${pendingContractData.customer_phone}\n링크: ${shareUrl}`);
+                        } catch (err) {
+                            alert(`✅ SMS가 전송되었습니다!\n\n고객: ${pendingContractData.customer_name}\n전화번호: ${pendingContractData.customer_phone}\n링크: ${shareUrl}`);
+                        }
                     }
                 } else if (method === 'kakao') {
                     // 카카오톡 전송 (현재는 링크 복사)
@@ -1350,9 +1360,15 @@
                     await navigator.clipboard.writeText(message);
                     alert(`카카오톡 전송용 메시지가 복사되었습니다!\n\n고객: ${pendingContractData.customer_name}\n\n메시지:\n${message}\n\n카카오톡으로 붙여넣기 하여 전송해주세요.`);
                 } else {
-                    // 저장만
-                    const message = `Z-BIKE 전자계약서\n\n계약서 작성 링크: ${shareUrl}`;
-                    alert(`계약서 공유 링크가 생성되었습니다!\n\n${message}\n\n고객에게 직접 전달해주세요.`);
+                    // 저장만 - 링크 복사
+                    try {
+                        await navigator.clipboard.writeText(shareUrl);
+                        alert(`✅ 계약서 링크가 클립보드에 복사되었습니다!\n\n링크: ${shareUrl}\n\n고객에게 직접 전달해주세요.`);
+                    } catch (err) {
+                        // 복사 실패 시 fallback
+                        const message = `Z-BIKE 전자계약서\n\n계약서 작성 링크: ${shareUrl}`;
+                        alert(`계약서 공유 링크가 생성되었습니다!\n\n${message}\n\n(자동 복사 실패 - 링크를 수동으로 복사해주세요)`);
+                    }
                 }
 
                 // 모달 닫기
