@@ -154,9 +154,10 @@
         let idCardPhoto = '';
         let shareToken = '';
         let contractData = null;
+        let companySettings = null;
 
         // URL에서 토큰 가져오기
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             shareToken = urlParams.get('token');
             
@@ -165,9 +166,29 @@
                 return;
             }
             
+            // 업체 정보 먼저 로드
+            await loadCompanySettings();
             loadContract();
             initSignaturePad();
         });
+
+        // 업체 정보 로드
+        async function loadCompanySettings() {
+            try {
+                const response = await axios.get('/api/company-settings');
+                companySettings = response.data;
+            } catch (error) {
+                console.error('업체 정보 로드 실패:', error);
+                // 기본값 설정
+                companySettings = {
+                    company_name: 'Z-BIKE',
+                    business_number: '123-45-67890',
+                    representative: '대표자',
+                    address: '서울시',
+                    phone: '02-1234-5678'
+                };
+            }
+        }
 
         // 계약서 불러오기
         async function loadContract() {
@@ -318,17 +339,119 @@
 
         // 약관 내용
         function getContractTerms(type) {
-            // 간단한 약관 (실제로는 더 상세해야 함)
-            return `
-                <h3 class="font-bold mb-2">제1조 (목적)</h3>
-                <p class="mb-4">본 계약은 오토바이 대여에 관한 조건을 정함을 목적으로 합니다.</p>
-                
-                <h3 class="font-bold mb-2">제2조 (계약 내용)</h3>
-                <p class="mb-4">위에 명시된 조건으로 계약을 체결합니다.</p>
-                
-                <h3 class="font-bold mb-2">제3조 (책임)</h3>
-                <p class="mb-4">계약 당사자는 계약 조건을 성실히 이행해야 합니다.</p>
-            `;
+            const companyName = companySettings?.company_name || 'Z-BIKE';
+            const businessNumber = companySettings?.business_number || '사업자등록번호';
+            const representative = companySettings?.representative || '대표자';
+            const companyAddress = companySettings?.address || '주소';
+            const companyPhone = companySettings?.phone || '연락처';
+            
+            if (type === 'loan') {
+                // 차용증 약관
+                return `
+                    <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                        <h3 class="font-bold text-lg mb-3">대주 정보</h3>
+                        <div class="space-y-1 text-gray-800">
+                            <p><span class="font-semibold">상호명:</span> ${companyName}</p>
+                            <p><span class="font-semibold">사업자등록번호:</span> ${businessNumber}</p>
+                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
+                            <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
+                        </div>
+                    </div>
+                    
+                    <h3 class="font-bold text-lg mb-3">금전소비대차 약관</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold mb-2">제1조 (목적)</h4>
+                            <p class="text-gray-700">본 약관은 대주와 차주 간의 금전 대여에 관한 권리와 의무를 명확히 하여 원활한 거래를 도모함을 목적으로 합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제2조 (대여금의 지급)</h4>
+                            <p class="text-gray-700">대주는 차주에게 계약서에 명시된 금액을 대여하며, 지급 방법은 현금 또는 계좌이체로 합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제3조 (상환 방법)</h4>
+                            <p class="text-gray-700">차주는 매일 명시된 일차감액을 차감하는 방식으로 대여금을 상환합니다. 상환 기한을 준수해야 하며, 지연 시 연체료가 부과될 수 있습니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제4조 (이자)</h4>
+                            <p class="text-gray-700">이자율은 법정 최고 이자율을 초과하지 않으며, 구체적인 이자 조건은 계약서에 명시된 바에 따릅니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제5조 (기한의 이익 상실)</h4>
+                            <p class="text-gray-700">차주가 약정 상환을 2회 이상 연체하거나 허위 정보를 제공한 경우, 대주는 기한의 이익을 상실시키고 즉시 전액 상환을 청구할 수 있습니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제6조 (담보 및 보증)</h4>
+                            <p class="text-gray-700">본 대여는 무담보 대여이며, 별도의 담보나 보증인이 요구될 수 있습니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제7조 (분쟁 해결)</h4>
+                            <p class="text-gray-700">본 계약과 관련한 분쟁은 당사자 간 협의로 해결하며, 협의가 이루어지지 않을 경우 관할 법원의 판결에 따릅니다.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // 오토바이 계약 약관
+                return `
+                    <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                        <h3 class="font-bold text-lg mb-3">업체 정보</h3>
+                        <div class="space-y-1 text-gray-800">
+                            <p><span class="font-semibold">상호명:</span> ${companyName}</p>
+                            <p><span class="font-semibold">사업자등록번호:</span> ${businessNumber}</p>
+                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
+                            <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
+                        </div>
+                    </div>
+                    
+                    <h3 class="font-bold text-lg mb-3">오토바이 대여 약관</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold mb-2">제1조 (목적)</h4>
+                            <p class="text-gray-700">본 약관은 오토바이 대여 계약에 관한 조건을 정함을 목적으로 합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제2조 (대여 기간 및 요금)</h4>
+                            <p class="text-gray-700">대여 기간과 요금은 계약서에 명시된 조건에 따르며, 임차인은 이를 준수해야 합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제3조 (차량 관리 의무)</h4>
+                            <p class="text-gray-700">임차인은 선량한 관리자의 주의로 차량을 관리하고, 정기적인 점검 및 유지보수를 실시해야 합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제4조 (사고 및 보험)</h4>
+                            <p class="text-gray-700">사고 발생 시 즉시 업체에 통보해야 하며, 보험 처리는 계약 조건에 따릅니다. 임차인의 과실로 인한 손해는 임차인이 부담합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제5조 (계약 해지)</h4>
+                            <p class="text-gray-700">계약 위반 시 업체는 계약을 해지할 수 있으며, 임차인은 위약금을 부담할 수 있습니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제6조 (반환)</h4>
+                            <p class="text-gray-700">계약 종료 시 차량을 원상태로 반환해야 하며, 손상이 있을 경우 수리 비용을 부담해야 합니다.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold mb-2">제7조 (분쟁 해결)</h4>
+                            <p class="text-gray-700">본 계약과 관련한 분쟁은 당사자 간 협의로 해결하며, 협의가 이루어지지 않을 경우 관할 법원의 판결에 따릅니다.</p>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         // 서명 패드 초기화
