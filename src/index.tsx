@@ -2213,6 +2213,98 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
   return c.json({ success, failed })
 })
 
+// 임시렌트 계약서 생성 API
+app.post('/api/temp-rent-contracts', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+
+  try {
+    // 계약 번호 생성
+    const contractNumber = 'TR' + Date.now()
+
+    // 오토바이 정보 가져오기
+    const motorcycle = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?')
+      .bind(data.motorcycle_id).first()
+
+    if (!motorcycle) {
+      return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+    }
+
+    // 고객 정보 생성 또는 가져오기 (전화번호가 있는 경우만)
+    let customerId = null
+    if (data.phone) {
+      let customer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
+        .bind(data.phone).first()
+      
+      if (!customer) {
+        const result = await DB.prepare(`
+          INSERT INTO customers (name, phone, resident_number, created_at)
+          VALUES (?, ?, ?, datetime('now'))
+        `).bind(data.customer_name, data.phone, data.resident_number || '').run()
+        customerId = result.meta.last_row_id
+      } else {
+        customerId = customer.id
+      }
+    }
+
+    // 계약서 데이터를 JSON으로 저장
+    const contractData = {
+      contract_type: 'temp_rent',
+      contract_number: contractNumber,
+      motorcycle: {
+        id: motorcycle.id,
+        plate_number: motorcycle.plate_number,
+        vehicle_name: motorcycle.vehicle_name
+      },
+      customer: {
+        name: data.customer_name,
+        phone: data.phone,
+        resident_number: data.resident_number
+      },
+      period: {
+        start_date: data.start_date,
+        end_date: data.end_date
+      },
+      fees: {
+        daily_fee: parseInt(data.daily_fee) || 0
+      },
+      special_terms: data.special_terms,
+      signature: data.signature,
+      admin_id_card_photo: data.admin_id_card_photo,
+      status: data.status || 'active',
+      created_at: new Date().toISOString()
+    }
+
+    // contracts 테이블에 임시렌트 계약 저장
+    await DB.prepare(`
+      INSERT INTO contracts (
+        contract_number, contract_type, motorcycle_id, customer_id,
+        start_date, end_date, monthly_fee, deposit,
+        contract_data, signature, status, created_at
+      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, 'active', datetime('now'))
+    `).bind(
+      contractNumber,
+      data.motorcycle_id,
+      customerId,
+      data.start_date || new Date().toISOString().split('T')[0],
+      data.end_date || new Date().toISOString().split('T')[0],
+      parseInt(data.daily_fee) || 0,
+      JSON.stringify(contractData),
+      data.signature || ''
+    ).run()
+
+    return c.json({
+      success: true,
+      contract_number: contractNumber,
+      message: '임시렌트 계약서가 생성되었습니다'
+    })
+
+  } catch (error) {
+    console.error('임시렌트 계약서 생성 실패:', error)
+    return c.json({ error: '계약서 생성에 실패했습니다: ' + error.message }, 500)
+  }
+})
+
 // KnoxHub 쿠키로 데이터 가져오기 API
 app.post('/api/import/knox-cookie', authMiddleware, async (c) => {
   const { cookie } = await c.req.json()

@@ -29,9 +29,9 @@
                         <i class="fas fa-file-contract mr-2 text-green-600"></i>
                         1. 계약 타입
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="lease" required class="peer hidden">
+                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" onchange="toggleContractType()">
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-calendar-alt text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">리스</p>
@@ -39,11 +39,19 @@
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="rent" required class="peer hidden">
+                            <input type="radio" name="contract_type" value="rent" required class="peer hidden" onchange="toggleContractType()">
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-clock text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">렌트</p>
                                 <p class="text-sm text-gray-600 mt-2">단기 대여 계약</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="contract_type" value="temp_rent" required class="peer hidden" onchange="toggleContractType()">
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-blue-400 transition">
+                                <i class="fas fa-bolt text-3xl text-blue-600 mb-2"></i>
+                                <p class="font-bold text-lg">임시렌트</p>
+                                <p class="text-sm text-gray-600 mt-2">단기 임시 대여</p>
                             </div>
                         </label>
                     </div>
@@ -78,6 +86,184 @@
                     </div>
                 </div>
 
+                <!-- 임시렌트 전용 폼 -->
+                <div id="tempRentForm" class="hidden space-y-6">
+                    <!-- 3-1. 임시렌트 고객 정보 -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">
+                            <i class="fas fa-user mr-2 text-blue-600"></i>
+                            3. 고객 정보 (임시렌트)
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2">이름</label>
+                                <input type="text" id="tempCustomerName" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="고객 이름">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">전화번호</label>
+                                <input type="tel" id="tempPhone" placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold mb-2">주민번호</label>
+                                <input type="text" id="tempResidentNumber" placeholder="000000-0000000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3-2. 임시렌트 계약 정보 -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">
+                            <i class="fas fa-file-invoice mr-2 text-blue-600"></i>
+                            4. 렌트 정보
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2">렌트 시작일</label>
+                                <input type="date" id="tempStartDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">렌트 종료일</label>
+                                <input type="date" id="tempEndDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold mb-2">
+                                    <i class="fas fa-won-sign mr-1 text-blue-500"></i>일차감금액 (원)
+                                </label>
+                                <input type="number" id="tempDailyFee" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="하루 렌트 비용">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold mb-2">특약사항</label>
+                                <textarea id="tempSpecialTerms" rows="4" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="추가 특약사항이 있으면 입력하세요"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3-3. 임시렌트 약관 -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">
+                            <i class="fas fa-file-contract mr-2 text-blue-600"></i>
+                            5. 임시렌트 약관
+                        </h2>
+                        <div class="bg-gray-50 p-6 rounded-lg border max-h-96 overflow-y-auto">
+                            <h3 class="font-bold text-lg mb-4">오토바이 임시렌트 계약 약관</h3>
+                            
+                            <div class="space-y-4 text-sm">
+                                <div>
+                                    <h4 class="font-bold mb-2">제1조 (목적)</h4>
+                                    <p class="text-gray-700">본 약관은 임시렌트 계약에 관한 사항을 규정함을 목적으로 합니다.</p>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-bold mb-2">제2조 (렌트 기간)</h4>
+                                    <p class="text-gray-700">렌트 기간은 계약서에 명시된 시작일부터 종료일까지이며, 연장이 필요한 경우 사전 협의가 필요합니다.</p>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-bold mb-2">제3조 (렌트 비용)</h4>
+                                    <p class="text-gray-700">렌트 비용은 일차감금액으로 계산되며, 계약 시 선불 또는 계약서에 명시된 방법으로 지불합니다.</p>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-bold mb-2">제4조 (차량 관리)</h4>
+                                    <p class="text-gray-700">임차인은 차량을 선량한 관리자의 주의로 사용·보관하여야 하며, 고의 또는 과실로 인한 손상 시 수리 비용을 부담합니다.</p>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-bold mb-2">제5조 (사고 및 보험)</h4>
+                                    <p class="text-gray-700">사고 발생 시 즉시 대여인에게 통보하여야 하며, 보험 처리는 계약서에 명시된 바에 따릅니다.</p>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-bold mb-2">제6조 (반납)</h4>
+                                    <p class="text-gray-700">계약 종료 시 차량을 원상태로 반납하여야 하며, 연료는 인수 시 상태로 반납합니다.</p>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-bold mb-2">제7조 (해지)</h4>
+                                    <p class="text-gray-700">계약 위반 시 대여인은 계약을 해지할 수 있으며, 이 경우 위약금이 발생할 수 있습니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="tempAgreeTerms" class="w-5 h-5 text-blue-600 mr-3">
+                                <span class="font-bold">위 약관을 모두 읽었으며 동의합니다</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 3-4. 임시렌트 서명 -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">
+                            <i class="fas fa-signature mr-2 text-blue-600"></i>
+                            6. 고객 서명
+                        </h2>
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-3">아래 영역에 서명해주세요</p>
+                            <canvas id="tempSignatureCanvas" class="border-2 border-gray-300 rounded-lg w-full cursor-crosshair" style="height: 200px; touch-action: none;"></canvas>
+                            <button type="button" onclick="clearTempSignature()" class="mt-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                                <i class="fas fa-eraser mr-2"></i>서명 지우기
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3-5. 임시렌트 신분증 촬영 -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">
+                            <i class="fas fa-id-card mr-2 text-blue-600"></i>
+                            7. 관리자용 신분증 촬영 (선택사항)
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <div class="flex gap-3">
+                                <button type="button" onclick="startTempCamera()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                                    <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                                </button>
+                                <button type="button" onclick="document.getElementById('tempIdCardFile').click()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold">
+                                    <i class="fas fa-upload mr-2"></i>갤러리에서 선택
+                                </button>
+                            </div>
+                            <input type="file" id="tempIdCardFile" accept="image/*" class="hidden" onchange="uploadTempIdCard(event)">
+                            
+                            <!-- 카메라 섹션 -->
+                            <div id="tempCameraSection" class="hidden">
+                                <video id="tempCameraVideo" class="w-full rounded-lg border-2 border-blue-500" autoplay playsinline></video>
+                                <div class="mt-3 flex gap-3">
+                                    <button type="button" onclick="captureTempPhoto()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                                        <i class="fas fa-camera mr-2"></i>촬영하기
+                                    </button>
+                                    <button type="button" onclick="stopTempCamera()" class="flex-1 bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600 font-semibold">
+                                        <i class="fas fa-times mr-2"></i>취소
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- 미리보기 섹션 -->
+                            <div id="tempPhotoPreview" class="hidden">
+                                <img id="tempPhotoPreviewImg" class="w-full rounded-lg border-2 border-green-500">
+                                <div class="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <p class="text-green-800 font-semibold">
+                                        <i class="fas fa-check-circle mr-2"></i>신분증이 등록되었습니다
+                                    </p>
+                                </div>
+                                <button type="button" onclick="deleteTempIdCard()" class="mt-3 w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 font-semibold">
+                                    <i class="fas fa-trash mr-2"></i>삭제하고 다시 촬영
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3-6. 임시렌트 제출 -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <button type="button" onclick="submitTempRentContract()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 font-bold text-lg">
+                            <i class="fas fa-check mr-2"></i>임시렌트 계약서 생성
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 일반 계약 폼 (리스/렌트) -->
+                <div id="normalContractForm" class="hidden space-y-6">
                 <!-- 3. 고객 정보 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
@@ -346,6 +532,8 @@
                         취소
                     </a>
                 </div>
+                </div>
+                <!-- /normalContractForm 끝 -->
             </form>
         </main>
 
@@ -476,6 +664,27 @@
         let isDrawing = false;
         let sessionId = localStorage.getItem('sessionId');
         let currentUser = null; // 현재 사용자 정보
+        
+        // 임시렌트 전용 변수
+        let tempCanvas, tempCtx;
+        let tempIsDrawing = false;
+        let tempStream = null;
+        let tempIdCardPhotoData = null;
+
+        // 계약 타입 토글 함수
+        function toggleContractType() {
+            const contractType = document.querySelector('input[name="contract_type"]:checked')?.value;
+            const normalForm = document.getElementById('normalContractForm');
+            const tempForm = document.getElementById('tempRentForm');
+            
+            if (contractType === 'temp_rent') {
+                normalForm.classList.add('hidden');
+                tempForm.classList.remove('hidden');
+            } else {
+                normalForm.classList.remove('hidden');
+                tempForm.classList.add('hidden');
+            }
+        }
 
         // 인증 체크
         async function checkAuth() {
@@ -522,6 +731,7 @@
             if (await checkAuth()) {
                 loadMotorcycles();
                 initSignaturePad();
+                initTempSignatureCanvas(); // 임시렌트 서명 캔버스 초기화
                 loadCompanySettings();
             }
             
@@ -529,6 +739,9 @@
             // 오늘 날짜를 계약 시작일의 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('startDate').value = today;
+            if (document.getElementById('tempStartDate')) {
+                document.getElementById('tempStartDate').value = today;
+            }
             
             // 계약 생성 날짜/시간 표시
             const now = new Date();
@@ -539,7 +752,10 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
-            document.getElementById('contractDateTime').textContent = dateTimeString;
+            const contractDateTimeEl = document.getElementById('contractDateTime');
+            if (contractDateTimeEl) {
+                contractDateTimeEl.textContent = dateTimeString;
+            }
         });
         
         // 사업자 정보 로드
@@ -1150,6 +1366,187 @@
             } catch (error) {
                 console.error('Error creating share link:', error);
                 alert('공유 링크 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+        
+        // ==================== 임시렌트 전용 함수들 ====================
+        
+        // 임시렌트 서명 캔버스 초기화
+        function initTempSignatureCanvas() {
+            tempCanvas = document.getElementById('tempSignatureCanvas');
+            if (!tempCanvas) return;
+            
+            tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = tempCanvas.offsetWidth;
+            tempCanvas.height = 200;
+            
+            tempCtx.strokeStyle = '#000';
+            tempCtx.lineWidth = 2;
+            tempCtx.lineCap = 'round';
+            
+            // 마우스 이벤트
+            tempCanvas.addEventListener('mousedown', (e) => {
+                tempIsDrawing = true;
+                const rect = tempCanvas.getBoundingClientRect();
+                tempCtx.beginPath();
+                tempCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            });
+            
+            tempCanvas.addEventListener('mousemove', (e) => {
+                if (!tempIsDrawing) return;
+                const rect = tempCanvas.getBoundingClientRect();
+                tempCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                tempCtx.stroke();
+            });
+            
+            tempCanvas.addEventListener('mouseup', () => {
+                tempIsDrawing = false;
+            });
+            
+            // 터치 이벤트
+            tempCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                tempIsDrawing = true;
+                const rect = tempCanvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                tempCtx.beginPath();
+                tempCtx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            });
+            
+            tempCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!tempIsDrawing) return;
+                const rect = tempCanvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                tempCtx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                tempCtx.stroke();
+            });
+            
+            tempCanvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                tempIsDrawing = false;
+            });
+        }
+        
+        // 임시렌트 서명 지우기
+        function clearTempSignature() {
+            if (tempCtx && tempCanvas) {
+                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            }
+        }
+        
+        // 임시렌트 카메라 시작
+        async function startTempCamera() {
+            try {
+                tempStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: 1920, height: 1080 } 
+                });
+                const video = document.getElementById('tempCameraVideo');
+                video.srcObject = tempStream;
+                document.getElementById('tempCameraSection').classList.remove('hidden');
+            } catch (error) {
+                console.error('카메라 접근 실패:', error);
+                alert('카메라를 사용할 수 없습니다. 권한을 확인해주세요.');
+            }
+        }
+        
+        // 임시렌트 카메라 정지
+        function stopTempCamera() {
+            if (tempStream) {
+                tempStream.getTracks().forEach(track => track.stop());
+                tempStream = null;
+            }
+            document.getElementById('tempCameraSection').classList.add('hidden');
+        }
+        
+        // 임시렌트 사진 촬영
+        function captureTempPhoto() {
+            const video = document.getElementById('tempCameraVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            tempIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.95);
+            
+            document.getElementById('tempPhotoPreviewImg').src = tempIdCardPhotoData;
+            document.getElementById('tempPhotoPreview').classList.remove('hidden');
+            
+            stopTempCamera();
+        }
+        
+        // 임시렌트 파일 업로드
+        function uploadTempIdCard(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                tempIdCardPhotoData = e.target.result;
+                document.getElementById('tempPhotoPreviewImg').src = tempIdCardPhotoData;
+                document.getElementById('tempPhotoPreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 임시렌트 신분증 삭제
+        function deleteTempIdCard() {
+            tempIdCardPhotoData = null;
+            document.getElementById('tempPhotoPreview').classList.add('hidden');
+            document.getElementById('tempIdCardFile').value = '';
+        }
+        
+        // 임시렌트 계약서 제출
+        async function submitTempRentContract() {
+            try {
+                // 오토바이 선택 확인
+                if (!selectedMotorcycleId) {
+                    alert('오토바이를 선택해주세요.');
+                    return;
+                }
+                
+                // 서명 데이터 가져오기
+                let signatureData = null;
+                if (tempCanvas) {
+                    signatureData = tempCanvas.toDataURL('image/png');
+                    // 빈 캔버스 체크
+                    const isBlank = !tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data.some(channel => channel !== 0);
+                    if (isBlank) {
+                        signatureData = null;
+                    }
+                }
+                
+                // 계약 데이터 생성 (모든 필드 optional)
+                const contractData = {
+                    contract_type: 'temp_rent',
+                    motorcycle_id: selectedMotorcycleId,
+                    customer_name: document.getElementById('tempCustomerName').value || '미입력',
+                    phone: document.getElementById('tempPhone').value || '',
+                    resident_number: document.getElementById('tempResidentNumber').value || '',
+                    start_date: document.getElementById('tempStartDate').value || new Date().toISOString().split('T')[0],
+                    end_date: document.getElementById('tempEndDate').value || new Date().toISOString().split('T')[0],
+                    daily_fee: document.getElementById('tempDailyFee').value || '0',
+                    special_terms: document.getElementById('tempSpecialTerms').value || '',
+                    signature: signatureData,
+                    admin_id_card_photo: tempIdCardPhotoData,
+                    status: 'active',
+                    created_at: new Date().toISOString()
+                };
+                
+                console.log('임시렌트 계약 데이터:', contractData);
+                
+                // API 전송
+                const response = await axios.post('/api/temp-rent-contracts', contractData);
+                
+                alert(`✅ 임시렌트 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}`);
+                
+                // 계약서 목록으로 이동
+                window.location.href = '/contracts';
+                
+            } catch (error) {
+                console.error('임시렌트 계약서 생성 실패:', error);
+                alert('계약서 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
     </script>
