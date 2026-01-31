@@ -1722,6 +1722,17 @@ app.get('/dashboard', (c) => {
                         </div>
                         <p class="text-gray-600">차용증 작성 및 조회</p>
                     </a>
+
+                    <!-- 데이터 가져오기 -->
+                    <a href="/import-data" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow border-2 border-cyan-200">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-cyan-100 p-3 rounded-full">
+                                <i class="fas fa-download text-cyan-600 text-2xl"></i>
+                            </div>
+                            <h2 class="text-xl font-bold ml-4">데이터 가져오기</h2>
+                        </div>
+                        <p class="text-gray-600">웹 페이지에서 데이터 불러오기</p>
+                    </a>
                 </div>
 
                 <!-- 시스템 안내 -->
@@ -1907,6 +1918,184 @@ app.get('/contract-sign', (c) => {
 <iframe src="/static/contract-sign.html${c.req.url.includes('?') ? c.req.url.substring(c.req.url.indexOf('?')) : ''}" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
+})
+
+// ============================================
+// 데이터 가져오기 API
+// ============================================
+
+// 데이터 가져오기 페이지
+app.get('/import-data', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 가져오기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<iframe src="/static/import-data.html" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
+// 웹 페이지 분석 API
+app.post('/api/import/analyze', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const { url } = await c.req.json()
+
+  if (!url) {
+    return c.json({ error: 'URL이 필요합니다' }, 400)
+  }
+
+  try {
+    // 웹 페이지 가져오기 (crawler 도구 사용)
+    // 실제로는 사용자가 제공한 URL의 HTML을 파싱해야 합니다
+    
+    // 임시 데모 데이터 (실제로는 웹 페이지를 크롤링하여 추출)
+    const motorcycles = [
+      {
+        plate_number: '서울12가3456',
+        vehicle_name: '혼다 PCX 150',
+        chassis_number: 'MLHJE1234567890',
+        mileage: 15000,
+        model_year: 2022,
+        insurance_company: '삼성화재',
+        insurance_start_date: '2024-01-01',
+        insurance_end_date: '2025-01-01'
+      }
+    ]
+
+    const contracts = [
+      {
+        customer_name: '홍길동',
+        customer_phone: '010-1234-5678',
+        vehicle_name: '혼다 PCX 150',
+        start_date: '2024-01-01',
+        end_date: '2024-12-31',
+        monthly_fee: 200000,
+        deposit: 500000
+      }
+    ]
+
+    return c.json({
+      success: true,
+      motorcycles,
+      contracts
+    })
+  } catch (error: any) {
+    console.error('Error analyzing page:', error)
+    return c.json({ error: '페이지 분석 실패: ' + error.message }, 500)
+  }
+})
+
+// 오토바이 일괄 등록 API
+app.post('/api/import/motorcycles', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const { motorcycles } = await c.req.json()
+
+  if (!motorcycles || !Array.isArray(motorcycles)) {
+    return c.json({ error: '오토바이 데이터가 필요합니다' }, 400)
+  }
+
+  let success = 0
+  let failed = 0
+
+  for (const bike of motorcycles) {
+    try {
+      await DB.prepare(`
+        INSERT INTO motorcycles (
+          plate_number, vehicle_name, chassis_number, mileage, model_year,
+          insurance_company, insurance_start_date, insurance_end_date,
+          status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available', datetime('now'))
+      `).bind(
+        bike.plate_number || '',
+        bike.vehicle_name || '',
+        bike.chassis_number || '',
+        bike.mileage || 0,
+        bike.model_year || new Date().getFullYear(),
+        bike.insurance_company || '',
+        bike.insurance_start_date || '',
+        bike.insurance_end_date || ''
+      ).run()
+      
+      success++
+    } catch (error) {
+      console.error('Error importing motorcycle:', error)
+      failed++
+    }
+  }
+
+  return c.json({ success, failed })
+})
+
+// 계약서 일괄 등록 API
+app.post('/api/import/contracts', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const { contracts } = await c.req.json()
+
+  if (!contracts || !Array.isArray(contracts)) {
+    return c.json({ error: '계약서 데이터가 필요합니다' }, 400)
+  }
+
+  let success = 0
+  let failed = 0
+
+  for (const contract of contracts) {
+    try {
+      // 먼저 고객 생성 (있으면 가져오기)
+      let customer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
+        .bind(contract.customer_phone).first()
+      
+      let customerId
+      if (!customer) {
+        const result = await DB.prepare(`
+          INSERT INTO customers (name, phone, created_at)
+          VALUES (?, ?, datetime('now'))
+        `).bind(contract.customer_name, contract.customer_phone).run()
+        customerId = result.meta.last_row_id
+      } else {
+        customerId = customer.id
+      }
+
+      // 오토바이 찾기 (차량명으로)
+      const motorcycle = await DB.prepare('SELECT id FROM motorcycles WHERE vehicle_name = ?')
+        .bind(contract.vehicle_name).first()
+      
+      if (!motorcycle) {
+        failed++
+        continue
+      }
+
+      // 계약서 생성
+      const contractNumber = 'C' + Date.now()
+      await DB.prepare(`
+        INSERT INTO contracts (
+          contract_number, contract_type, motorcycle_id, customer_id,
+          start_date, end_date, monthly_fee, deposit,
+          status, created_at
+        ) VALUES (?, 'individual', ?, ?, ?, ?, ?, ?, 'active', datetime('now'))
+      `).bind(
+        contractNumber,
+        motorcycle.id,
+        customerId,
+        contract.start_date || '',
+        contract.end_date || '',
+        contract.monthly_fee || 0,
+        contract.deposit || 0
+      ).run()
+      
+      success++
+    } catch (error) {
+      console.error('Error importing contract:', error)
+      failed++
+    }
+  }
+
+  return c.json({ success, failed })
 })
 
 export default app

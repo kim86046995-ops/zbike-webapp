@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 가져오기 - Z-BIKE 전자계약서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- 헤더 -->
+        <header class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-download text-3xl mr-3"></i>
+                        <h1 class="text-2xl font-bold">데이터 가져오기</h1>
+                    </div>
+                    <a href="/dashboard" class="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition font-semibold">
+                        <i class="fas fa-home mr-2"></i>대시보드
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- 안내 -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h2 class="text-lg font-bold text-blue-800 mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>데이터 가져오기 안내
+                </h2>
+                <ul class="space-y-2 text-sm text-blue-700">
+                    <li><i class="fas fa-check mr-2"></i>다른 프로그램의 웹 페이지 링크를 입력하세요</li>
+                    <li><i class="fas fa-check mr-2"></i>오토바이 등록 정보와 계약서 데이터를 자동으로 분석합니다</li>
+                    <li><i class="fas fa-check mr-2"></i>미리보기로 확인 후 일괄 등록할 수 있습니다</li>
+                </ul>
+            </div>
+
+            <!-- 링크 입력 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-link mr-2 text-blue-600"></i>
+                    웹 페이지 링크 입력
+                </h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        웹 페이지 URL
+                    </label>
+                    <input type="url" id="webPageUrl" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="https://example.com/contracts"
+                           required>
+                </div>
+
+                <button type="button" onclick="analyzeWebPage()" 
+                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                    <i class="fas fa-search mr-2"></i>페이지 분석하기
+                </button>
+            </div>
+
+            <!-- 로딩 -->
+            <div id="loadingSection" class="hidden bg-white rounded-lg shadow-md p-8 mb-6">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+                    <p class="text-lg font-semibold text-gray-700">페이지를 분석하는 중...</p>
+                    <p class="text-sm text-gray-500 mt-2">잠시만 기다려주세요</p>
+                </div>
+            </div>
+
+            <!-- 분석 결과 -->
+            <div id="resultSection" class="hidden">
+                <!-- 오토바이 데이터 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-motorcycle mr-2 text-green-600"></i>
+                        오토바이 데이터 (<span id="motorcycleCount">0</span>건)
+                    </h2>
+                    <div id="motorcycleList" class="space-y-3 max-h-96 overflow-y-auto"></div>
+                    <button type="button" onclick="importMotorcycles()" 
+                            class="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                        <i class="fas fa-upload mr-2"></i>오토바이 일괄 등록
+                    </button>
+                </div>
+
+                <!-- 계약서 데이터 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-file-contract mr-2 text-purple-600"></i>
+                        계약서 데이터 (<span id="contractCount">0</span>건)
+                    </h2>
+                    <div id="contractList" class="space-y-3 max-h-96 overflow-y-auto"></div>
+                    <button type="button" onclick="importContracts()" 
+                            class="w-full mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
+                        <i class="fas fa-upload mr-2"></i>계약서 일괄 등록
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let motorcycleData = [];
+        let contractData = [];
+
+        // 로그인 체크
+        async function checkAuth() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+
+            try {
+                const response = await axios.get('/api/auth/check', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                return true;
+            } catch (error) {
+                localStorage.removeItem('sessionId');
+                localStorage.removeItem('user');
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+        }
+
+        // 페이지 로드 시 인증 체크
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+        });
+
+        // Axios 인터셉터 - 모든 요청에 세션 ID 추가
+        axios.interceptors.request.use(
+            config => {
+                const sessionId = localStorage.getItem('sessionId');
+                if (sessionId) {
+                    config.headers['X-Session-ID'] = sessionId;
+                }
+                return config;
+            },
+            error => Promise.reject(error)
+        );
+
+        // 웹 페이지 분석
+        async function analyzeWebPage() {
+            const url = document.getElementById('webPageUrl').value.trim();
+            
+            if (!url) {
+                alert('웹 페이지 URL을 입력해주세요.');
+                return;
+            }
+
+            // URL 유효성 검사
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('올바른 URL 형식이 아닙니다.');
+                return;
+            }
+
+            // 로딩 표시
+            document.getElementById('loadingSection').classList.remove('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+
+            try {
+                // API 호출: 웹 페이지 분석
+                const response = await axios.post('/api/import/analyze', { url });
+                
+                motorcycleData = response.data.motorcycles || [];
+                contractData = response.data.contracts || [];
+
+                // 결과 표시
+                displayMotorcycles(motorcycleData);
+                displayContracts(contractData);
+
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('resultSection').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error analyzing page:', error);
+                document.getElementById('loadingSection').classList.add('hidden');
+                alert('페이지 분석에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+
+        // 오토바이 데이터 표시
+        function displayMotorcycles(data) {
+            const container = document.getElementById('motorcycleList');
+            const count = document.getElementById('motorcycleCount');
+            
+            count.textContent = data.length;
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">오토바이 데이터가 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = data.map((bike, index) => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <p class="font-bold text-lg text-gray-800">${bike.vehicle_name || '차량명 없음'}</p>
+                            <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                <p class="text-gray-600"><i class="fas fa-id-card mr-1"></i> 번호판: ${bike.plate_number || '-'}</p>
+                                <p class="text-gray-600"><i class="fas fa-barcode mr-1"></i> 차대번호: ${bike.chassis_number || '-'}</p>
+                                <p class="text-gray-600"><i class="fas fa-tachometer-alt mr-1"></i> 키로수: ${bike.mileage || '-'}</p>
+                                <p class="text-gray-600"><i class="fas fa-calendar mr-1"></i> 연식: ${bike.model_year || '-'}</p>
+                            </div>
+                        </div>
+                        <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">#${index + 1}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 계약서 데이터 표시
+        function displayContracts(data) {
+            const container = document.getElementById('contractList');
+            const count = document.getElementById('contractCount');
+            
+            count.textContent = data.length;
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">계약서 데이터가 없습니다.</p>';
+                return;
+            }
+
+            container.innerHTML = data.map((contract, index) => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <p class="font-bold text-lg text-gray-800">${contract.customer_name || '고객명 없음'}</p>
+                            <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                <p class="text-gray-600"><i class="fas fa-phone mr-1"></i> 전화번호: ${contract.customer_phone || '-'}</p>
+                                <p class="text-gray-600"><i class="fas fa-motorcycle mr-1"></i> 차량: ${contract.vehicle_name || '-'}</p>
+                                <p class="text-gray-600"><i class="fas fa-calendar mr-1"></i> 기간: ${contract.start_date || '-'} ~ ${contract.end_date || '-'}</p>
+                                <p class="text-gray-600"><i class="fas fa-won-sign mr-1"></i> 대여금: ${contract.monthly_fee ? contract.monthly_fee.toLocaleString() + '원' : '-'}</p>
+                            </div>
+                        </div>
+                        <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded">#${index + 1}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 오토바이 일괄 등록
+        async function importMotorcycles() {
+            if (motorcycleData.length === 0) {
+                alert('등록할 오토바이 데이터가 없습니다.');
+                return;
+            }
+
+            if (!confirm(`${motorcycleData.length}건의 오토바이를 등록하시겠습니까?`)) {
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/import/motorcycles', {
+                    motorcycles: motorcycleData
+                });
+
+                alert(`✅ 오토바이 등록 완료!\n\n성공: ${response.data.success}건\n실패: ${response.data.failed}건`);
+                
+                if (response.data.success > 0) {
+                    window.location.href = '/motorcycles';
+                }
+            } catch (error) {
+                console.error('Error importing motorcycles:', error);
+                alert('오토바이 등록에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+
+        // 계약서 일괄 등록
+        async function importContracts() {
+            if (contractData.length === 0) {
+                alert('등록할 계약서 데이터가 없습니다.');
+                return;
+            }
+
+            if (!confirm(`${contractData.length}건의 계약서를 등록하시겠습니까?`)) {
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/import/contracts', {
+                    contracts: contractData
+                });
+
+                alert(`✅ 계약서 등록 완료!\n\n성공: ${response.data.success}건\n실패: ${response.data.failed}건`);
+                
+                if (response.data.success > 0) {
+                    window.location.href = '/contracts';
+                }
+            } catch (error) {
+                console.error('Error importing contracts:', error);
+                alert('계약서 등록에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+    </script>
+</body>
+</html>
