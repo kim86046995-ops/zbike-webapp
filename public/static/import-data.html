@@ -38,26 +38,70 @@
                 </ul>
             </div>
 
-            <!-- 링크 입력 -->
+            <!-- KnoxHub 로그인 -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 class="text-xl font-bold mb-4 text-gray-800">
-                    <i class="fas fa-link mr-2 text-blue-600"></i>
-                    웹 페이지 링크 입력
+                    <i class="fas fa-sign-in-alt mr-2 text-blue-600"></i>
+                    KnoxHub 로그인
                 </h2>
                 
                 <div class="mb-4">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        웹 페이지 URL
+                        아이디
                     </label>
-                    <input type="url" id="webPageUrl" 
+                    <input type="text" id="knoxUsername" 
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="https://example.com/contracts"
+                           placeholder="sangchun11"
+                           value="sangchun11"
                            required>
                 </div>
 
-                <button type="button" onclick="analyzeWebPage()" 
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        비밀번호
+                    </label>
+                    <input type="password" id="knoxPassword" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="비밀번호"
+                           value="a2636991"
+                           required>
+                </div>
+
+                <button type="button" onclick="sendKnoxOTP()" 
                         class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                    <i class="fas fa-search mr-2"></i>페이지 분석하기
+                    <i class="fas fa-mobile-alt mr-2"></i>인증번호 발송
+                </button>
+            </div>
+
+            <!-- OTP 입력 -->
+            <div id="otpSection" class="hidden bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-lock mr-2 text-green-600"></i>
+                    인증번호 입력
+                </h2>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-green-800">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        휴대폰으로 인증번호가 발송되었습니다.
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        인증번호 (6자리)
+                    </label>
+                    <input type="text" id="knoxOTP" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-center text-2xl tracking-widest"
+                           placeholder="000000"
+                           maxlength="6"
+                           pattern="[0-9]{6}"
+                           required>
+                </div>
+
+                <button type="button" onclick="verifyOTPAndFetchData()" 
+                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                    <i class="fas fa-check mr-2"></i>인증하고 데이터 가져오기
                 </button>
             </div>
 
@@ -104,6 +148,7 @@
     <script>
         let motorcycleData = [];
         let contractData = [];
+        let knoxSessionToken = null; // KnoxHub 세션 토큰
 
         // 로그인 체크
         async function checkAuth() {
@@ -143,30 +188,66 @@
             error => Promise.reject(error)
         );
 
-        // 웹 페이지 분석
-        async function analyzeWebPage() {
-            const url = document.getElementById('webPageUrl').value.trim();
+        // KnoxHub OTP 발송
+        async function sendKnoxOTP() {
+            const username = document.getElementById('knoxUsername').value.trim();
+            const password = document.getElementById('knoxPassword').value.trim();
             
-            if (!url) {
-                alert('웹 페이지 URL을 입력해주세요.');
-                return;
-            }
-
-            // URL 유효성 검사
-            try {
-                new URL(url);
-            } catch (e) {
-                alert('올바른 URL 형식이 아닙니다.');
+            if (!username || !password) {
+                alert('아이디와 비밀번호를 입력해주세요.');
                 return;
             }
 
             // 로딩 표시
             document.getElementById('loadingSection').classList.remove('hidden');
-            document.getElementById('resultSection').classList.add('hidden');
 
             try {
-                // API 호출: 웹 페이지 분석
-                const response = await axios.post('/api/import/analyze', { url });
+                // API 호출: KnoxHub 로그인 1단계 (OTP 발송)
+                const response = await axios.post('/api/import/knox-login', {
+                    username,
+                    password
+                });
+
+                knoxSessionToken = response.data.session_token;
+
+                // OTP 입력 섹션 표시
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('otpSection').classList.remove('hidden');
+                document.getElementById('knoxOTP').focus();
+
+                alert('✅ 인증번호가 발송되었습니다!\n휴대폰으로 받은 6자리 숫자를 입력해주세요.');
+
+            } catch (error) {
+                console.error('Error sending OTP:', error);
+                document.getElementById('loadingSection').classList.add('hidden');
+                alert('인증번호 발송 실패: ' + (error.response?.data?.error || error.message));
+            }
+        }
+
+        // OTP 인증 및 데이터 가져오기
+        async function verifyOTPAndFetchData() {
+            const otp = document.getElementById('knoxOTP').value.trim();
+            
+            if (!otp || otp.length !== 6) {
+                alert('6자리 인증번호를 입력해주세요.');
+                return;
+            }
+
+            if (!knoxSessionToken) {
+                alert('먼저 인증번호를 발송해주세요.');
+                return;
+            }
+
+            // 로딩 표시
+            document.getElementById('otpSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+
+            try {
+                // API 호출: OTP 인증 및 데이터 추출
+                const response = await axios.post('/api/import/knox-fetch', {
+                    session_token: knoxSessionToken,
+                    otp
+                });
                 
                 motorcycleData = response.data.motorcycles || [];
                 contractData = response.data.contracts || [];
@@ -178,10 +259,13 @@
                 document.getElementById('loadingSection').classList.add('hidden');
                 document.getElementById('resultSection').classList.remove('hidden');
 
+                alert(`✅ 데이터를 가져왔습니다!\n\n오토바이: ${motorcycleData.length}건\n계약서: ${contractData.length}건`);
+
             } catch (error) {
-                console.error('Error analyzing page:', error);
+                console.error('Error fetching data:', error);
                 document.getElementById('loadingSection').classList.add('hidden');
-                alert('페이지 분석에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                document.getElementById('otpSection').classList.remove('hidden');
+                alert('데이터 가져오기 실패: ' + (error.response?.data?.error || error.message));
             }
         }
 

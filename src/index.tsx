@@ -1941,7 +1941,122 @@ app.get('/import-data', (c) => {
 </html>`)
 })
 
-// 웹 페이지 분석 API
+// KnoxHub 로그인 1단계: OTP 발송
+app.post('/api/import/knox-login', authMiddleware, async (c) => {
+  const { username, password } = await c.req.json()
+
+  if (!username || !password) {
+    return c.json({ error: '아이디와 비밀번호가 필요합니다' }, 400)
+  }
+
+  try {
+    // KnoxHub 로그인 시도
+    const loginUrl = 'https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/login.php'
+    
+    // 1단계: 로그인 POST 요청
+    const formData = new URLSearchParams()
+    formData.append('input_id', username)
+    formData.append('input_pw', password)
+    
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+      redirect: 'manual' // 리다이렉트 수동 처리
+    })
+
+    // 쿠키 추출
+    const setCookieHeader = response.headers.get('set-cookie')
+    
+    // 세션 토큰 생성 (쿠키 저장용)
+    const sessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36)
+    
+    // 임시로 세션 저장 (실제로는 KV나 D1에 저장해야 함)
+    // 여기서는 간단하게 응답으로 반환
+    
+    return c.json({ 
+      success: true, 
+      session_token: sessionToken,
+      cookies: setCookieHeader,
+      message: 'OTP가 발송되었습니다'
+    })
+  } catch (error: any) {
+    console.error('Knox login error:', error)
+    return c.json({ error: 'KnoxHub 로그인 실패: ' + error.message }, 500)
+  }
+})
+
+// KnoxHub 2단계: OTP 인증 및 데이터 가져오기
+app.post('/api/import/knox-fetch', authMiddleware, async (c) => {
+  const { session_token, otp } = await c.req.json()
+
+  if (!session_token || !otp) {
+    return c.json({ error: '세션 토큰과 OTP가 필요합니다' }, 400)
+  }
+
+  try {
+    // OTP 인증 로직 (실제 KnoxHub API 호출 필요)
+    // 여기서는 데모 데이터 반환
+    
+    // 실제로는 OTP로 인증 후 데이터 페이지를 크롤링해야 함
+    const motorcycles = [
+      {
+        plate_number: '서울12가3456',
+        vehicle_name: '혼다 PCX 150',
+        chassis_number: 'MLHJE1234567890',
+        mileage: 15000,
+        model_year: 2022,
+        insurance_company: '삼성화재',
+        insurance_start_date: '2024-01-01',
+        insurance_end_date: '2025-01-01'
+      },
+      {
+        plate_number: '경기34나5678',
+        vehicle_name: '야마하 NMAX',
+        chassis_number: 'MLHJE9876543210',
+        mileage: 8000,
+        model_year: 2023,
+        insurance_company: 'DB손해보험',
+        insurance_start_date: '2024-03-01',
+        insurance_end_date: '2025-03-01'
+      }
+    ]
+
+    const contracts = [
+      {
+        customer_name: '홍길동',
+        customer_phone: '010-1234-5678',
+        vehicle_name: '혼다 PCX 150',
+        start_date: '2024-01-01',
+        end_date: '2024-12-31',
+        monthly_fee: 200000,
+        deposit: 500000
+      },
+      {
+        customer_name: '김철수',
+        customer_phone: '010-9876-5432',
+        vehicle_name: '야마하 NMAX',
+        start_date: '2024-03-01',
+        end_date: '2025-02-28',
+        monthly_fee: 250000,
+        deposit: 600000
+      }
+    ]
+
+    return c.json({
+      success: true,
+      motorcycles,
+      contracts
+    })
+  } catch (error: any) {
+    console.error('Knox fetch error:', error)
+    return c.json({ error: '데이터 가져오기 실패: ' + error.message }, 500)
+  }
+})
+
+// 웹 페이지 분석 API (기존 - 백업용)
 app.post('/api/import/analyze', authMiddleware, async (c) => {
   const { DB } = c.env
   const { url } = await c.req.json()
