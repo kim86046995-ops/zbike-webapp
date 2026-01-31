@@ -424,57 +424,142 @@
                         <!-- 계약 대상: 오토바이 정보 -->
                         <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
                             <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-bold text-gray-800">[ 계약 오토바이 ]</h3>
+                                <h3 class="text-lg font-bold text-gray-800">[ 계약 오토바이 상세 정보 ]</h3>
                             </div>
                             <div class="p-4 bg-white">
-                                <table class="w-full">
-                                    <colgroup>
-                                        <col style="width: 25%;">
-                                        <col style="width: 75%;">
-                                    </colgroup>
-                                    <tbody>
-                                        ${info.motorcycle_plate ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">차량번호</td>
-                                            <td class="px-3 py-2">${info.motorcycle_plate}</td>
-                                        </tr>` : ''}
-                                        ${info.motorcycle_name ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">차량명</td>
-                                            <td class="px-3 py-2">${info.motorcycle_name}</td>
-                                        </tr>` : ''}
-                                        ${info.chassis_number ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">차대번호</td>
-                                            <td class="px-3 py-2 font-mono">${info.chassis_number}</td>
-                                        </tr>` : ''}
-                                        ${info.mileage ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">주행거리</td>
-                                            <td class="px-3 py-2">${parseInt(info.mileage).toLocaleString()} km</td>
-                                        </tr>` : ''}
-                                        ${info.model_year ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">연식</td>
-                                            <td class="px-3 py-2">${info.model_year}년</td>
-                                        </tr>` : ''}
-                                        ${info.color ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">색상</td>
-                                            <td class="px-3 py-2">${info.color}</td>
-                                        </tr>` : ''}
-                                        ${info.displacement ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">배기량</td>
-                                            <td class="px-3 py-2">${info.displacement} cc</td>
-                                        </tr>` : ''}
-                                        ${info.fuel_type ? `
-                                        <tr>
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">연료</td>
-                                            <td class="px-3 py-2">${info.fuel_type}</td>
-                                        </tr>` : ''}
-                                    </tbody>
-                                </table>
+                                <!-- 기본 정보 -->
+                                <div class="mb-4">
+                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
+                                        <i class="fas fa-motorcycle mr-1 text-indigo-600"></i>기본 정보
+                                    </h4>
+                                    <table class="w-full">
+                                        <colgroup>
+                                            <col style="width: 25%;">
+                                            <col style="width: 75%;">
+                                        </colgroup>
+                                        <tbody>
+                                            ${info.motorcycle_name ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">차량명</td>
+                                                <td class="px-3 py-2 font-bold text-lg text-indigo-600">${info.motorcycle_name}</td>
+                                            </tr>` : ''}
+                                            ${info.motorcycle_plate ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">차량번호</td>
+                                                <td class="px-3 py-2 font-bold text-gray-800">${info.motorcycle_plate}</td>
+                                            </tr>` : ''}
+                                            ${info.chassis_number ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">차대번호</td>
+                                                <td class="px-3 py-2 font-mono text-sm text-gray-700">${info.chassis_number}</td>
+                                            </tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- 차량 제원 -->
+                                <div class="mb-4">
+                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
+                                        <i class="fas fa-cogs mr-1 text-blue-600"></i>차량 제원
+                                    </h4>
+                                    <table class="w-full">
+                                        <colgroup>
+                                            <col style="width: 25%;">
+                                            <col style="width: 75%;">
+                                        </colgroup>
+                                        <tbody>
+                                            ${info.model_year ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">연식</td>
+                                                <td class="px-3 py-2">${info.model_year}년</td>
+                                            </tr>` : ''}
+                                            ${info.mileage !== undefined ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">주행거리</td>
+                                                <td class="px-3 py-2">${parseInt(info.mileage).toLocaleString()} km</td>
+                                            </tr>` : ''}
+                                            ${info.displacement ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">배기량</td>
+                                                <td class="px-3 py-2">${info.displacement} cc</td>
+                                            </tr>` : ''}
+                                            ${info.color ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">색상</td>
+                                                <td class="px-3 py-2">${info.color}</td>
+                                            </tr>` : ''}
+                                            ${info.fuel_type ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">연료</td>
+                                                <td class="px-3 py-2">${info.fuel_type}</td>
+                                            </tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- 보험 정보 -->
+                                ${info.insurance_company || info.insurance_start_date || info.insurance_end_date ? `
+                                <div class="mb-4">
+                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
+                                        <i class="fas fa-shield-alt mr-1 text-green-600"></i>보험 정보
+                                    </h4>
+                                    <table class="w-full">
+                                        <colgroup>
+                                            <col style="width: 25%;">
+                                            <col style="width: 75%;">
+                                        </colgroup>
+                                        <tbody>
+                                            ${info.insurance_company ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험사</td>
+                                                <td class="px-3 py-2">${info.insurance_company}</td>
+                                            </tr>` : ''}
+                                            ${info.insurance_start_date ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험 시작일</td>
+                                                <td class="px-3 py-2">${info.insurance_start_date}</td>
+                                            </tr>` : ''}
+                                            ${info.insurance_end_date ? `
+                                            <tr>
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험 종료일</td>
+                                                <td class="px-3 py-2 font-semibold ${(() => {
+                                                    const endDate = new Date(info.insurance_end_date);
+                                                    const today = new Date();
+                                                    const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+                                                    return daysLeft < 30 ? 'text-red-600' : 'text-green-600';
+                                                })()}">${info.insurance_end_date}</td>
+                                            </tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                ` : ''}
+
+                                <!-- 기타 정보 -->
+                                ${info.owner_name || info.driving_range ? `
+                                <div>
+                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
+                                        <i class="fas fa-info-circle mr-1 text-gray-600"></i>기타 정보
+                                    </h4>
+                                    <table class="w-full">
+                                        <colgroup>
+                                            <col style="width: 25%;">
+                                            <col style="width: 75%;">
+                                        </colgroup>
+                                        <tbody>
+                                            ${info.owner_name ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">소유자</td>
+                                                <td class="px-3 py-2">${info.owner_name}</td>
+                                            </tr>` : ''}
+                                            ${info.driving_range ? `
+                                            <tr>
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">운전가능연령</td>
+                                                <td class="px-3 py-2 font-semibold text-orange-600">${info.driving_range}</td>
+                                            </tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
 
