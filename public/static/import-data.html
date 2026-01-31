@@ -346,89 +346,45 @@
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                     <h2 class="text-xl font-bold mb-4 text-gray-800">
                         <i class="fas fa-file-pdf mr-2 text-red-600"></i>
-                        PDF 계약서 업로드
+                        계약서 PDF 업로드
                     </h2>
-
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                        <h3 class="font-bold text-yellow-800 mb-3">
-                            <i class="fas fa-lightbulb mr-2"></i>사용 방법
-                        </h3>
-                        <ul class="list-disc list-inside space-y-2 text-sm text-yellow-700">
-                            <li class="font-semibold">리스 계약서 PDF → 리스 계약으로 자동 등록</li>
-                            <li class="font-semibold">렌트 계약서 PDF → 렌트 계약으로 자동 등록</li>
-                            <li class="font-semibold">차용증 PDF → 차용증 계약으로 자동 등록</li>
-                            <li class="font-semibold">임시렌트 PDF → 임시렌트 계약으로 자동 등록</li>
-                            <li class="font-semibold">여러 파일을 한 번에 업로드 가능</li>
-                        </ul>
-                    </div>
 
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                         <h3 class="font-bold text-blue-800 mb-2">
-                            <i class="fas fa-robot mr-2"></i>AI 자동 분석 항목
+                            <i class="fas fa-info-circle mr-2"></i>이렇게 사용하세요
                         </h3>
-                        <div class="grid md:grid-cols-2 gap-3 text-sm text-blue-700">
-                            <div>
-                                <p class="font-semibold mb-1">📋 계약 정보:</p>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li>계약 타입 (리스/렌트/차용증/임시)</li>
-                                    <li>계약 기간 (시작일~종료일)</li>
-                                    <li>월대여금 / 일차감금액</li>
-                                    <li>보증금</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <p class="font-semibold mb-1">👤 고객 정보:</p>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li>고객명</li>
-                                    <li>전화번호</li>
-                                    <li>주민번호</li>
-                                    <li>주소</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <p class="font-semibold mb-1">🏍️ 오토바이 정보:</p>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li>번호판</li>
-                                    <li>차량명/모델</li>
-                                    <li>차대번호</li>
-                                    <li>주행거리</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <p class="font-semibold mb-1">📝 기타:</p>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li>특약사항</li>
-                                    <li>보험 정보</li>
-                                    <li>운전범위</li>
-                                </ul>
-                            </div>
-                        </div>
+                        <ol class="list-decimal list-inside space-y-2 text-sm text-blue-700">
+                            <li>기존 계약서 PDF 파일을 선택하세요 (여러 개 가능)</li>
+                            <li>자동으로 번호판, 차량명, 고객 정보를 추출합니다</li>
+                            <li>추출된 데이터를 확인하고 필요시 수정하세요</li>
+                            <li>"일괄 등록" 버튼으로 한 번에 등록됩니다</li>
+                        </ol>
                     </div>
 
                     <!-- PDF 파일 업로드 -->
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-file-upload mr-2"></i>계약서 PDF 파일 선택 (다중 선택 가능)
+                            <i class="fas fa-file-upload mr-2"></i>계약서 PDF 파일 (여러 개 선택 가능)
                         </label>
                         <input type="file" id="pdfFiles" accept=".pdf,application/pdf" multiple
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                               class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 hover:border-red-400 transition cursor-pointer"
                                onchange="previewPDFs()">
                         <p class="mt-2 text-xs text-gray-500">
-                            <i class="fas fa-info-circle mr-1"></i>여러 PDF 파일을 한 번에 선택할 수 있습니다.
+                            <i class="fas fa-lightbulb mr-1"></i>Shift 키를 누른 채로 여러 파일을 선택할 수 있습니다
                         </p>
                     </div>
 
                     <!-- PDF 미리보기 -->
                     <div id="pdfPreview" class="hidden mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <h3 class="font-semibold text-gray-700 mb-3">
-                            <i class="fas fa-eye mr-2"></i>선택된 파일 (<span id="pdfFileCount">0</span>개)
+                            <i class="fas fa-list mr-2"></i>선택된 파일 (<span id="pdfFileCount">0</span>개)
                         </h3>
-                        <div id="pdfFileList" class="space-y-2"></div>
+                        <div id="pdfFileList" class="space-y-2 max-h-60 overflow-y-auto"></div>
                     </div>
 
                     <button type="button" onclick="analyzePDFs()" id="pdfAnalyzeButton" disabled
-                            class="w-full bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition font-semibold text-lg shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed">
-                        <i class="fas fa-magic mr-2"></i>AI로 계약서 분석하기
+                            class="w-full bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-4 rounded-lg hover:from-red-700 hover:to-orange-700 transition font-bold text-lg shadow-lg disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed">
+                        <i class="fas fa-magic mr-2"></i>계약서 분석하고 데이터 추출하기
                     </button>
                 </div>
             </div>
@@ -619,7 +575,7 @@
             reader.readAsText(file);
         }
 
-        // 결과 표시
+        // 결과 표시 (편집 가능)
         function displayResults(data) {
             // 오토바이
             const motorcycleList = document.getElementById('motorcycleList');
@@ -629,33 +585,39 @@
             motorcycleCount.textContent = data.motorcycles?.length || 0;
             
             if (data.motorcycles && data.motorcycles.length > 0) {
-                data.motorcycles.forEach(bike => {
+                data.motorcycles.forEach((bike, index) => {
                     const div = document.createElement('div');
-                    div.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4';
+                    div.className = 'bg-white border-2 border-gray-300 rounded-lg p-4 hover:border-blue-400 transition';
                     div.innerHTML = `
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-bold text-gray-800">🏍️ 오토바이 #${index + 1}</h4>
+                            <button onclick="removeMotorcycle(${index})" class="text-red-500 hover:text-red-700 text-sm">
+                                <i class="fas fa-trash mr-1"></i>삭제
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <span class="text-gray-600">번호판:</span>
-                                <strong class="ml-1">${bike.plate_number || '-'}</strong>
+                                <label class="block text-xs text-gray-600 mb-1">번호판 *</label>
+                                <input type="text" 
+                                       value="${bike.plate_number || ''}" 
+                                       onchange="updateMotorcycle(${index}, 'plate_number', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 12가3456">
                             </div>
                             <div>
-                                <span class="text-gray-600">차량명:</span>
-                                <strong class="ml-1">${bike.vehicle_name || '-'}</strong>
-                            </div>
-                            <div>
-                                <span class="text-gray-600">차대번호:</span>
-                                <strong class="ml-1">${bike.chassis_number || '-'}</strong>
-                            </div>
-                            <div>
-                                <span class="text-gray-600">주행거리:</span>
-                                <strong class="ml-1">${bike.mileage?.toLocaleString() || 0}km</strong>
+                                <label class="block text-xs text-gray-600 mb-1">차량명 *</label>
+                                <input type="text" 
+                                       value="${bike.vehicle_name || ''}" 
+                                       onchange="updateMotorcycle(${index}, 'vehicle_name', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 혼다 PCX 150">
                             </div>
                         </div>
                     `;
                     motorcycleList.appendChild(div);
                 });
             } else {
-                motorcycleList.innerHTML = '<p class="text-gray-500 text-center py-4">오토바이 데이터가 없습니다.</p>';
+                motorcycleList.innerHTML = '<p class="text-gray-500 text-center py-8">오토바이 데이터가 없습니다.</p>';
             }
 
             // 계약서
@@ -666,33 +628,132 @@
             contractCount.textContent = data.contracts?.length || 0;
             
             if (data.contracts && data.contracts.length > 0) {
-                data.contracts.forEach(contract => {
+                data.contracts.forEach((contract, index) => {
+                    // 계약 타입 표시
+                    const typeLabels = {
+                        'lease': { text: '리스', color: 'blue' },
+                        'rent': { text: '렌트', color: 'green' },
+                        'loan': { text: '차용증', color: 'purple' },
+                        'temp_rent': { text: '임시렌트', color: 'orange' }
+                    };
+                    const typeInfo = typeLabels[contract.contract_type] || typeLabels['lease'];
+                    
                     const div = document.createElement('div');
-                    div.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4';
+                    div.className = 'bg-white border-2 border-gray-300 rounded-lg p-4 hover:border-blue-400 transition';
                     div.innerHTML = `
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-gray-800">📄 계약서 #${index + 1}</h4>
+                                <span class="bg-${typeInfo.color}-100 text-${typeInfo.color}-800 text-xs px-2 py-1 rounded-full font-semibold">
+                                    ${typeInfo.text}
+                                </span>
+                            </div>
+                            <button onclick="removeContract(${index})" class="text-red-500 hover:text-red-700 text-sm">
+                                <i class="fas fa-trash mr-1"></i>삭제
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <span class="text-gray-600">고객명:</span>
-                                <strong class="ml-1">${contract.customer_name || '-'}</strong>
+                                <label class="block text-xs text-gray-600 mb-1">고객명 *</label>
+                                <input type="text" 
+                                       value="${contract.customer_name || ''}" 
+                                       onchange="updateContract(${index}, 'customer_name', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 홍길동">
                             </div>
                             <div>
-                                <span class="text-gray-600">전화번호:</span>
-                                <strong class="ml-1">${contract.customer_phone || '-'}</strong>
+                                <label class="block text-xs text-gray-600 mb-1">전화번호</label>
+                                <input type="tel" 
+                                       value="${contract.customer_phone || ''}" 
+                                       onchange="updateContract(${index}, 'customer_phone', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 010-1234-5678">
                             </div>
                             <div>
-                                <span class="text-gray-600">월대여금:</span>
-                                <strong class="ml-1">${contract.monthly_rent?.toLocaleString() || 0}원</strong>
+                                <label class="block text-xs text-gray-600 mb-1">번호판 *</label>
+                                <input type="text" 
+                                       value="${contract.plate_number || ''}" 
+                                       onchange="updateContract(${index}, 'plate_number', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 12가3456">
                             </div>
                             <div>
-                                <span class="text-gray-600">계약기간:</span>
-                                <strong class="ml-1">${contract.contract_period || '-'}개월</strong>
+                                <label class="block text-xs text-gray-600 mb-1">차량명</label>
+                                <input type="text" 
+                                       value="${contract.vehicle_name || ''}" 
+                                       onchange="updateContract(${index}, 'vehicle_name', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 혼다 PCX">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">계약 시작일</label>
+                                <input type="date" 
+                                       value="${contract.start_date || ''}" 
+                                       onchange="updateContract(${index}, 'start_date', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">계약 종료일</label>
+                                <input type="date" 
+                                       value="${contract.end_date || ''}" 
+                                       onchange="updateContract(${index}, 'end_date', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">월대여금 / 일차감금액</label>
+                                <input type="number" 
+                                       value="${contract.monthly_rent || contract.daily_fee || ''}" 
+                                       onchange="updateContract(${index}, 'monthly_rent', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 350000">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">보증금</label>
+                                <input type="number" 
+                                       value="${contract.deposit || ''}" 
+                                       onchange="updateContract(${index}, 'deposit', this.value)"
+                                       class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                                       placeholder="예: 1000000">
                             </div>
                         </div>
                     `;
                     contractList.appendChild(div);
                 });
             } else {
-                contractList.innerHTML = '<p class="text-gray-500 text-center py-4">계약서 데이터가 없습니다.</p>';
+                contractList.innerHTML = '<p class="text-gray-500 text-center py-8">계약서 데이터가 없습니다.</p>';
+            }
+        }
+        
+        // 오토바이 수정
+        function updateMotorcycle(index, field, value) {
+            if (importedData && importedData.motorcycles && importedData.motorcycles[index]) {
+                importedData.motorcycles[index][field] = value;
+            }
+        }
+        
+        // 계약서 수정
+        function updateContract(index, field, value) {
+            if (importedData && importedData.contracts && importedData.contracts[index]) {
+                importedData.contracts[index][field] = value;
+                if (field === 'monthly_rent') {
+                    importedData.contracts[index].daily_fee = value;
+                }
+            }
+        }
+        
+        // 오토바이 삭제
+        function removeMotorcycle(index) {
+            if (confirm('이 오토바이 데이터를 삭제하시겠습니까?')) {
+                importedData.motorcycles.splice(index, 1);
+                displayResults(importedData);
+            }
+        }
+        
+        // 계약서 삭제
+        function removeContract(index) {
+            if (confirm('이 계약서 데이터를 삭제하시겠습니까?')) {
+                importedData.contracts.splice(index, 1);
+                displayResults(importedData);
             }
         }
 
