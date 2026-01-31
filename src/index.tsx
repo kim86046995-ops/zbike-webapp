@@ -1529,7 +1529,7 @@ app.get('/dashboard', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>오토바이 리스/렌트 전자계약 시스템</title>
+        <title>Z-BIKE 전자계약서</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     </head>
@@ -1540,7 +1540,7 @@ app.get('/dashboard', (c) => {
                 <div class="container mx-auto px-4 py-6 flex items-center justify-between">
                     <h1 class="text-3xl font-bold">
                         <i class="fas fa-motorcycle mr-3"></i>
-                        오토바이 리스/렌트 전자계약 시스템
+                        Z-BIKE 전자계약서
                     </h1>
                     
                     <!-- 로그인 상태 표시 -->
@@ -1581,77 +1581,77 @@ app.get('/dashboard', (c) => {
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <!-- 총 바이크 수 -->
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-lg font-semibold opacity-90">총 바이크</h3>
-                                <i class="fas fa-motorcycle text-3xl opacity-80"></i>
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-base font-semibold opacity-90">총 바이크</h3>
+                                <i class="fas fa-motorcycle text-2xl opacity-80"></i>
                             </div>
-                            <p class="text-4xl font-bold" id="totalBikes">-</p>
-                            <p class="text-sm opacity-80 mt-2">등록된 오토바이</p>
+                            <p class="text-3xl font-bold" id="totalBikes">-</p>
+                            <p class="text-xs opacity-80 mt-1">등록된 오토바이</p>
                         </div>
                         
                         <!-- 사용가능 -->
-                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-lg font-semibold opacity-90">사용가능</h3>
-                                <i class="fas fa-check-circle text-3xl opacity-80"></i>
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-base font-semibold opacity-90">사용가능</h3>
+                                <i class="fas fa-check-circle text-2xl opacity-80"></i>
                             </div>
-                            <p class="text-4xl font-bold" id="availableBikes">-</p>
-                            <p class="text-sm opacity-80 mt-2">대여 가능 차량</p>
+                            <p class="text-3xl font-bold" id="availableBikes">-</p>
+                            <p class="text-xs opacity-80 mt-1">대여 가능 차량</p>
                         </div>
                         
                         <!-- 렌트중 -->
-                        <div class="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg shadow-lg p-6 text-white">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-lg font-semibold opacity-90">렌트중</h3>
-                                <i class="fas fa-clock text-3xl opacity-80"></i>
+                        <div class="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg shadow-lg p-4 text-white">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-base font-semibold opacity-90">렌트중</h3>
+                                <i class="fas fa-clock text-2xl opacity-80"></i>
                             </div>
-                            <p class="text-4xl font-bold" id="rentedBikes">-</p>
-                            <p class="text-sm opacity-80 mt-2">대여 중인 차량</p>
+                            <p class="text-3xl font-bold" id="rentedBikes">-</p>
+                            <p class="text-xs opacity-80 mt-1">대여 중인 차량</p>
                         </div>
                         
                         <!-- 정비/폐지 -->
-                        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-lg font-semibold opacity-90">정비/폐지</h3>
-                                <i class="fas fa-tools text-3xl opacity-80"></i>
+                        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-base font-semibold opacity-90">정비/폐지</h3>
+                                <i class="fas fa-tools text-2xl opacity-80"></i>
                             </div>
-                            <p class="text-4xl font-bold"><span id="maintenanceBikes">-</span> / <span id="scrappedBikes">-</span></p>
-                            <p class="text-sm opacity-80 mt-2">수리중 / 사용불가</p>
+                            <p class="text-3xl font-bold"><span id="maintenanceBikes">-</span> / <span id="scrappedBikes">-</span></p>
+                            <p class="text-xs opacity-80 mt-1">수리중 / 사용불가</p>
                         </div>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <!-- 총 사용자 -->
-                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+                        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-gray-600 text-sm font-semibold mb-1">총 고객 수</p>
-                                    <p class="text-3xl font-bold text-gray-800" id="totalCustomers">-</p>
+                                    <p class="text-gray-600 text-xs font-semibold mb-1">총 고객 수</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="totalCustomers">-</p>
                                 </div>
-                                <i class="fas fa-users text-4xl text-purple-500 opacity-80"></i>
+                                <i class="fas fa-users text-3xl text-purple-500 opacity-80"></i>
                             </div>
                         </div>
                         
                         <!-- 활성 계약 -->
-                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+                        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-gray-600 text-sm font-semibold mb-1">활성 계약</p>
-                                    <p class="text-3xl font-bold text-gray-800" id="activeContracts">-</p>
+                                    <p class="text-gray-600 text-xs font-semibold mb-1">활성 계약</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="activeContracts">-</p>
                                 </div>
-                                <i class="fas fa-file-contract text-4xl text-indigo-500 opacity-80"></i>
+                                <i class="fas fa-file-contract text-3xl text-indigo-500 opacity-80"></i>
                             </div>
                         </div>
                         
                         <!-- 월 대여금 총액 -->
-                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-emerald-500">
+                        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-emerald-500">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-gray-600 text-sm font-semibold mb-1">월 대여금</p>
-                                    <p class="text-3xl font-bold text-gray-800" id="monthlyRevenue">-</p>
+                                    <p class="text-gray-600 text-xs font-semibold mb-1">총 대여금</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="monthlyRevenue">-</p>
                                 </div>
-                                <i class="fas fa-won-sign text-4xl text-emerald-500 opacity-80"></i>
+                                <i class="fas fa-won-sign text-3xl text-emerald-500 opacity-80"></i>
                             </div>
                         </div>
                     </div>
