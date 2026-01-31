@@ -231,13 +231,14 @@ app.get('/api/motorcycles', async (c) => {
       c.id as contract_id,
       c.contract_type,
       c.status as contract_status,
-      c.customer_name,
+      cu.name as customer_name,
       c.start_date,
       c.end_date
     FROM motorcycles m
     LEFT JOIN contracts c ON m.id = c.motorcycle_id 
       AND c.status = 'active'
       AND date(c.end_date) >= date('now')
+    LEFT JOIN customers cu ON c.customer_id = cu.id
   `
   
   if (status) {
