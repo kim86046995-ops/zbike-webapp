@@ -428,6 +428,59 @@ app.put('/api/customers/:id', async (c) => {
 // 계약서 API
 // ============================================
 
+// 대시보드 통계 조회
+app.get('/api/dashboard/stats', authMiddleware, async (c) => {
+  const { DB } = c.env
+  
+  try {
+    // 오토바이 총 대수 및 상태별 집계
+    const motorcycleStats = await DB.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
+        SUM(CASE WHEN status = 'rented' THEN 1 ELSE 0 END) as rented,
+        SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
+        SUM(CASE WHEN status = 'scrapped' THEN 1 ELSE 0 END) as scrapped
+      FROM motorcycles
+    `).first()
+    
+    // 사용자(고객) 수
+    const customerCount = await DB.prepare(`
+      SELECT COUNT(DISTINCT customer_id) as count 
+      FROM contracts
+    `).first()
+    
+    // 활성 계약 수 및 총 대여금
+    const contractStats = await DB.prepare(`
+      SELECT 
+        COUNT(*) as active_contracts,
+        SUM(CAST(monthly_fee as INTEGER)) as total_monthly_revenue,
+        SUM(CAST(deposit as INTEGER)) as total_deposits
+      FROM contracts
+      WHERE status = 'active'
+    `).first()
+    
+    return c.json({
+      motorcycles: {
+        total: motorcycleStats.total || 0,
+        available: motorcycleStats.available || 0,
+        rented: motorcycleStats.rented || 0,
+        maintenance: motorcycleStats.maintenance || 0,
+        scrapped: motorcycleStats.scrapped || 0
+      },
+      customers: (customerCount as any)?.count || 0,
+      contracts: {
+        active: (contractStats as any)?.active_contracts || 0,
+        monthly_revenue: (contractStats as any)?.total_monthly_revenue || 0,
+        total_deposits: (contractStats as any)?.total_deposits || 0
+      }
+    })
+  } catch (error) {
+    console.error('통계 조회 오류:', error)
+    return c.json({ error: '통계 조회 실패' }, 500)
+  }
+})
+
 // 계약서 목록 조회
 app.get('/api/contracts', async (c) => {
   const { DB } = c.env
@@ -1521,6 +1574,89 @@ app.get('/dashboard', (c) => {
 
             <!-- 메인 컨텐츠 -->
             <main class="container mx-auto px-4 py-8">
+                <!-- 통계 대시보드 -->
+                <div id="statsSection" class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-chart-line mr-2"></i>운영 현황
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <!-- 총 바이크 수 -->
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold opacity-90">총 바이크</h3>
+                                <i class="fas fa-motorcycle text-3xl opacity-80"></i>
+                            </div>
+                            <p class="text-4xl font-bold" id="totalBikes">-</p>
+                            <p class="text-sm opacity-80 mt-2">등록된 오토바이</p>
+                        </div>
+                        
+                        <!-- 사용가능 -->
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold opacity-90">사용가능</h3>
+                                <i class="fas fa-check-circle text-3xl opacity-80"></i>
+                            </div>
+                            <p class="text-4xl font-bold" id="availableBikes">-</p>
+                            <p class="text-sm opacity-80 mt-2">대여 가능 차량</p>
+                        </div>
+                        
+                        <!-- 렌트중 -->
+                        <div class="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold opacity-90">렌트중</h3>
+                                <i class="fas fa-clock text-3xl opacity-80"></i>
+                            </div>
+                            <p class="text-4xl font-bold" id="rentedBikes">-</p>
+                            <p class="text-sm opacity-80 mt-2">대여 중인 차량</p>
+                        </div>
+                        
+                        <!-- 정비/폐지 -->
+                        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold opacity-90">정비/폐지</h3>
+                                <i class="fas fa-tools text-3xl opacity-80"></i>
+                            </div>
+                            <p class="text-4xl font-bold"><span id="maintenanceBikes">-</span> / <span id="scrappedBikes">-</span></p>
+                            <p class="text-sm opacity-80 mt-2">수리중 / 사용불가</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- 총 사용자 -->
+                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-600 text-sm font-semibold mb-1">총 고객 수</p>
+                                    <p class="text-3xl font-bold text-gray-800" id="totalCustomers">-</p>
+                                </div>
+                                <i class="fas fa-users text-4xl text-purple-500 opacity-80"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- 활성 계약 -->
+                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-600 text-sm font-semibold mb-1">활성 계약</p>
+                                    <p class="text-3xl font-bold text-gray-800" id="activeContracts">-</p>
+                                </div>
+                                <i class="fas fa-file-contract text-4xl text-indigo-500 opacity-80"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- 월 대여금 총액 -->
+                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-emerald-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-600 text-sm font-semibold mb-1">월 대여금</p>
+                                    <p class="text-3xl font-bold text-gray-800" id="monthlyRevenue">-</p>
+                                </div>
+                                <i class="fas fa-won-sign text-4xl text-emerald-500 opacity-80"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 관리자 설정 링크 -->
                 <div class="mb-6 text-right">
                     <a href="/settings" class="inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
@@ -1528,6 +1664,9 @@ app.get('/dashboard', (c) => {
                     </a>
                 </div>
                 
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-th-large mr-2"></i>빠른 메뉴
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- 오토바이 관리 -->
                     <a href="/motorcycles" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
@@ -1627,6 +1766,9 @@ app.get('/dashboard', (c) => {
                         loggedIn.classList.remove('hidden');
                         loggedIn.classList.add('flex');
                         loggedOut.classList.add('hidden');
+                        
+                        // 통계 로드
+                        loadStats();
                     } catch (e) {
                         // 세션 만료 시 로그아웃 처리
                         localStorage.removeItem('sessionId');
@@ -1647,6 +1789,44 @@ app.get('/dashboard', (c) => {
                 loggedIn.classList.remove('flex');
                 loggedOut.classList.remove('hidden');
                 loggedOut.classList.add('flex');
+                
+                // 통계 섹션 숨기기
+                document.getElementById('statsSection').style.display = 'none';
+            }
+            
+            // 통계 로드
+            async function loadStats() {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) return;
+                
+                try {
+                    const response = await axios.get('/api/dashboard/stats', {
+                        headers: { 'X-Session-ID': sessionId }
+                    });
+                    
+                    const stats = response.data;
+                    
+                    // 오토바이 통계
+                    document.getElementById('totalBikes').textContent = stats.motorcycles.total;
+                    document.getElementById('availableBikes').textContent = stats.motorcycles.available;
+                    document.getElementById('rentedBikes').textContent = stats.motorcycles.rented;
+                    document.getElementById('maintenanceBikes').textContent = stats.motorcycles.maintenance;
+                    document.getElementById('scrappedBikes').textContent = stats.motorcycles.scrapped;
+                    
+                    // 고객 및 계약 통계
+                    document.getElementById('totalCustomers').textContent = stats.customers;
+                    document.getElementById('activeContracts').textContent = stats.contracts.active;
+                    
+                    // 월 대여금 포맷팅
+                    const revenue = stats.contracts.monthly_revenue || 0;
+                    document.getElementById('monthlyRevenue').textContent = 
+                        new Intl.NumberFormat('ko-KR').format(revenue) + '원';
+                    
+                    document.getElementById('statsSection').style.display = 'block';
+                } catch (error) {
+                    console.error('통계 로드 오류:', error);
+                    document.getElementById('statsSection').style.display = 'none';
+                }
             }
             
             // 로그아웃
