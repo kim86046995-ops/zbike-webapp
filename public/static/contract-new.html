@@ -7,6 +7,55 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    
+    <style>
+        /* A4 출력 스타일 */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* 약관 영역 A4 페이지 분할 */
+            .contract-terms {
+                page-break-inside: auto;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            .contract-terms > * {
+                page-break-inside: avoid;
+            }
+            
+            .contract-terms p.font-bold {
+                page-break-after: avoid;
+            }
+            
+            /* A4 페이지 크기 설정 */
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+            
+            /* 출력 시 불필요한 요소 숨김 */
+            nav, .no-print, button:not(.print-only), header {
+                display: none !important;
+            }
+            
+            /* 약관 섹션만 출력 시 강조 */
+            .contract-terms {
+                border: none;
+                background: white;
+                padding: 0;
+            }
+        }
+        
+        /* 화면 표시용 - 스크롤 제거, 전체 내용 보이기 */
+        .contract-terms {
+            max-height: none;
+            overflow-y: visible;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen pb-20">
@@ -144,7 +193,7 @@
                             <i class="fas fa-file-contract mr-2 text-blue-600"></i>
                             5. 임시렌트 약관
                         </h2>
-                        <div class="bg-gray-50 p-6 rounded-lg border max-h-96 overflow-y-auto">
+                        <div class="bg-gray-50 p-6 rounded-lg border contract-terms">
                             <h3 class="font-bold text-lg mb-4">오토바이 임시렌트 계약 약관</h3>
                             
                             <div class="space-y-4 text-sm">
@@ -366,8 +415,8 @@
                         </div>
                     </div>
                     
-                    <!-- 약관 내용 표시 -->
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 max-h-96 overflow-y-auto mb-4">
+                    <!-- 약관 내용 표시 - A4 출력 최적화 -->
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm space-y-2 mb-4 contract-terms">
                         <h3 class="font-bold text-center text-lg mb-3">오토바이 리스/렌트 계약 약관</h3>
                         
                         <p class="mb-3 text-center text-xs leading-relaxed">
