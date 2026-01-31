@@ -603,6 +603,9 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
+  // 디버그: 받은 데이터 로그
+  console.log('📝 Received contract data:', JSON.stringify(data, null, 2))
+  
   try {
     // 1. 고객 정보 저장 또는 찾기
     let customerId;
