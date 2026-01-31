@@ -1032,6 +1032,11 @@
 
         function initSignaturePad() {
             canvas = document.getElementById('signatureCanvas');
+            if (!canvas) {
+                console.log('signatureCanvas not found - this is expected for admin contract form');
+                return; // 캔버스가 없으면 조기 리턴
+            }
+            
             ctx = canvas.getContext('2d');
             
             ctx.strokeStyle = '#000';
@@ -1066,6 +1071,16 @@
             });
 
             canvas.addEventListener('touchend', (e) => {
+                const mouseEvent = new MouseEvent('mouseup', {});
+                canvas.dispatchEvent(mouseEvent);
+            });
+        }
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 const mouseEvent = new MouseEvent('mouseup', {});
                 canvas.dispatchEvent(mouseEvent);
@@ -1091,7 +1106,9 @@
         }
 
         function clearSignature() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (canvas && ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
         }
 
         // 신분증 촬영 관련 변수
@@ -1194,7 +1211,9 @@
         }
 
         function clearSignature() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (canvas && ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
         }
 
         // 전역 변수
