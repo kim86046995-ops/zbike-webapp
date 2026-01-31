@@ -820,17 +820,29 @@
             try {
                 loadingSection.classList.remove('hidden');
                 
-                // FormData 생성
-                const formData = new FormData();
-                selectedPDFFiles.forEach((file, index) => {
-                    formData.append('pdfs', file);
-                });
+                // PDF 파일들을 Base64로 변환
+                const files = [];
+                for (const file of selectedPDFFiles) {
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    files.push({
+                        name: file.name,
+                        data: base64,
+                        size: file.size
+                    });
+                }
                 
-                // PDF 분석 API 호출
-                const response = await axios.post('/api/import/analyze-pdfs', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    },
+                console.log(`📄 ${files.length}개 PDF 파일 변환 완료, 전송 중...`);
+                
+                // PDF 분석 API 호출 (Base64 데이터 전송)
+                const response = await axios.post('/api/import/analyze-pdfs', {
+                    files: files
+                }, {
                     timeout: 300000 // 5분 타임아웃
                 });
                 
@@ -843,7 +855,7 @@
                 // 스크롤
                 resultSection.scrollIntoView({ behavior: 'smooth' });
                 
-                alert(`✅ ${selectedPDFFiles.length}개의 PDF 파일 분석 완료!\n\n오토바이: ${importedData.motorcycles?.length || 0}대\n계약서: ${importedData.contracts?.length || 0}건`);
+                alert(`✅ ${selectedPDFFiles.length}개의 PDF 파일 분석 완료!\n\n오토바이: ${importedData.motorcycles?.length || 0}대\n계약서: ${importedData.contracts?.length || 0}건\n\n${response.data.message || ''}`);
                 
             } catch (error) {
                 loadingSection.classList.add('hidden');

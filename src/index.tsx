@@ -2218,11 +2218,12 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
         // 오토바이가 없으면 자동 생성
         const result = await DB.prepare(`
           INSERT INTO motorcycles (
-            plate_number, vehicle_name, status, created_at
-          ) VALUES (?, ?, 'active', datetime('now'))
+            plate_number, vehicle_name, driving_range, status, created_at
+          ) VALUES (?, ?, ?, 'active', datetime('now'))
         `).bind(
           contract.plate_number || '미등록',
-          contract.vehicle_name || '미입력'
+          contract.vehicle_name || '미입력',
+          '전연령'
         ).run()
         
         motorcycle = { id: result.meta.last_row_id }
@@ -2477,56 +2478,192 @@ app.post('/api/import/knox-cookie', authMiddleware, async (c) => {
 // PDF 계약서 분석 API
 app.post('/api/import/analyze-pdfs', authMiddleware, async (c) => {
   try {
-    // TODO: 실제 PDF 파일 파싱 구현
-    // Cloudflare Workers에서는 FormData 처리가 제한적이므로
-    // 현재는 데모 데이터를 반환합니다
+    const { files } = await c.req.json()
     
-    // 실제 구현 시:
-    // 1. FormData에서 PDF 파일들 추출
-    // 2. PDF 텍스트 추출 (pdf-parse 등 라이브러리 사용)
-    // 3. AI/정규식으로 계약 타입 분석:
-    //    - "리스" 키워드 → lease
-    //    - "렌트", "대여" 키워드 → rent  
-    //    - "차용증" 키워드 → loan
-    //    - "임시", "단기" 키워드 → temp_rent
-    // 4. 계약 정보 추출 (고객명, 전화번호, 번호판, 금액 등)
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return c.json({ error: 'PDF 파일이 필요합니다' }, 400)
+    }
+
+    console.log(`📄 ${files.length}개의 PDF 파일 분석 시작...`)
     
-    // 데모 데이터
-    const demoData = {
-      motorcycles: [
-        {
-          plate_number: '12가3456',
-          vehicle_name: '혼다 PCX 150',
-          chassis_number: 'MLHJE1234567890',
-          mileage: 10000,
-          model_year: 2023,
-          status: 'active'
+    const motorcycles = []
+    const contracts = []
+    const seenPlates = new Set()
+    
+    for (const file of files) {
+      try {
+        // Base64 디코딩하여 텍스트 추출
+        const base64Data = file.data.split(',')[1] || file.data
+        const binaryString = atob(base64Data)
+        
+        // PDF에서 텍스트 추출 (간단한 방법 - PDF 구조의 텍스트 부분만)
+        let text = ''
+        for (let i = 0; i < binaryString.length; i++) {
+          const char = binaryString[i]
+          const code = char.charCodeAt(0)
+          // 출력 가능한 ASCII 문자만 추출
+          if (code >= 32 && code <= 126) {
+            text += char
+          } else if (code === 10 || code === 13) {
+            text += ' '
+          }
         }
-      ],
-      contracts: [
-        {
-          contract_type: 'lease', // PDF에서 "리스" 감지
-          customer_name: '홍길동',
-          customer_phone: '010-1234-5678',
-          resident_number: '900101-1234567',
-          vehicle_name: '혼다 PCX 150',
-          plate_number: '12가3456',
-          start_date: '2024-01-01',
-          end_date: '2024-12-31',
-          monthly_rent: 350000,
-          deposit: 1000000,
-          daily_fee: 15000,
-          address: '서울시 강남구 테헤란로 123',
-          special_terms: 'PDF에서 추출된 특약사항',
-          source: 'pdf_upload'
+        
+        console.log(`📝 파일 "${file.name}" 텍스트 추출 완료 (${text.length} 문자)`)
+        
+        // 계약 타입 감지
+        let contractType = 'lease' // 기본값
+        if (text.includes('차용증') || text.includes('LOAN')) {
+          contractType = 'loan'
+        } else if (text.includes('임시') || text.includes('단기')) {
+          contractType = 'temp_rent'
+        } else if (text.includes('렌트') || text.includes('RENT')) {
+          contractType = 'rent'
+        } else if (text.includes('리스') || text.includes('LEASE')) {
+          contractType = 'lease'
         }
-      ],
-      analyzed_files: 1,
-      success: true,
-      message: 'PDF 분석이 완료되었습니다. 실제 구현 시 PDF 파싱 로직이 추가됩니다.'
+        
+        // 번호판 추출 (예: 12가3456, 서울12가3456, 123가4567)
+        const plateMatches = text.match(/([가-힣]{0,2}\d{2,3}[가-힣]\d{4})/g)
+        const plateNumber = plateMatches ? plateMatches[0] : null
+        
+        // 차량명 추출 (혼다, 야마하, PCX, XMAX 등)
+        const vehiclePatterns = [
+          /혼다\s*[A-Z]*\s*\d*/gi,
+          /야마하\s*[A-Z]*\s*\d*/gi,
+          /스즈키\s*[A-Z]*\s*\d*/gi,
+          /PCX\s*\d*/gi,
+          /XMAX\s*\d*/gi,
+          /엑스맥스\s*\d*/gi,
+          /포르자\s*\d*/gi
+        ]
+        
+        let vehicleName = null
+        for (const pattern of vehiclePatterns) {
+          const match = text.match(pattern)
+          if (match) {
+            vehicleName = match[0].trim()
+            break
+          }
+        }
+        
+        // 고객명 추출 (차용인, 계약자 다음에 나오는 한글 이름)
+        const namePatterns = [
+          /차용인[:\s]*([가-힣]{2,4})/,
+          /계약자[:\s]*([가-힣]{2,4})/,
+          /성명[:\s]*([가-힣]{2,4})/,
+          /이름[:\s]*([가-힣]{2,4})/
+        ]
+        
+        let customerName = null
+        for (const pattern of namePatterns) {
+          const match = text.match(pattern)
+          if (match && match[1]) {
+            customerName = match[1].trim()
+            break
+          }
+        }
+        
+        // 전화번호 추출
+        const phoneMatch = text.match(/01[0-9]-?\d{3,4}-?\d{4}/)
+        const customerPhone = phoneMatch ? phoneMatch[0].replace(/-/g, '').replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3') : null
+        
+        // 주민번호 추출
+        const residentMatch = text.match(/\d{6}-?\d{7}/)
+        const residentNumber = residentMatch ? residentMatch[0] : null
+        
+        // 금액 추출 (월대여금, 일차감금액)
+        const amountPatterns = [
+          /월대여금[:\s]*([0-9,]+)/,
+          /일차감금액[:\s]*([0-9,]+)/,
+          /대여금[:\s]*([0-9,]+)/,
+          /렌트비[:\s]*([0-9,]+)/
+        ]
+        
+        let amount = null
+        for (const pattern of amountPatterns) {
+          const match = text.match(pattern)
+          if (match && match[1]) {
+            amount = parseInt(match[1].replace(/,/g, ''))
+            break
+          }
+        }
+        
+        // 보증금 추출
+        const depositMatch = text.match(/보증금[:\s]*([0-9,]+)/)
+        const deposit = depositMatch ? parseInt(depositMatch[1].replace(/,/g, '')) : 0
+        
+        // 날짜 추출 (YYYY-MM-DD 또는 YYYY.MM.DD 또는 YYYY년 MM월 DD일)
+        const datePatterns = [
+          /20\d{2}[-.]?\d{2}[-.]?\d{2}/g,
+          /20\d{2}년\s*\d{1,2}월\s*\d{1,2}일/g
+        ]
+        
+        const dates = []
+        for (const pattern of datePatterns) {
+          const matches = text.match(pattern)
+          if (matches) {
+            matches.forEach(d => {
+              const normalized = d
+                .replace(/년\s*/g, '-')
+                .replace(/월\s*/g, '-')
+                .replace(/일/g, '')
+                .replace(/\./g, '-')
+              dates.push(normalized)
+            })
+          }
+        }
+        
+        const startDate = dates[0] || new Date().toISOString().split('T')[0]
+        const endDate = dates[1] || startDate
+        
+        // 오토바이 데이터 추가 (중복 체크)
+        if (plateNumber && !seenPlates.has(plateNumber)) {
+          seenPlates.add(plateNumber)
+          motorcycles.push({
+            plate_number: plateNumber,
+            vehicle_name: vehicleName || '정보 없음',
+            chassis_number: '',
+            mileage: 0,
+            model_year: new Date().getFullYear(),
+            status: 'active'
+          })
+        }
+        
+        // 계약서 데이터 추가
+        if (plateNumber || customerName) {
+          contracts.push({
+            contract_type: contractType,
+            customer_name: customerName || '미입력',
+            customer_phone: customerPhone || '',
+            resident_number: residentNumber || '',
+            vehicle_name: vehicleName || '정보 없음',
+            plate_number: plateNumber || '미등록',
+            start_date: startDate,
+            end_date: endDate,
+            monthly_rent: contractType === 'temp_rent' ? 0 : (amount || 0),
+            daily_fee: contractType === 'temp_rent' ? (amount || 0) : 0,
+            deposit: deposit,
+            address: '',
+            special_terms: `${file.name}에서 자동 추출`,
+            source: 'pdf_upload'
+          })
+        }
+        
+      } catch (fileError) {
+        console.error(`파일 "${file.name}" 처리 실패:`, fileError)
+      }
     }
     
-    return c.json(demoData)
+    console.log(`✅ 분석 완료: 오토바이 ${motorcycles.length}대, 계약서 ${contracts.length}건`)
+    
+    return c.json({
+      motorcycles,
+      contracts,
+      analyzed_files: files.length,
+      success: true,
+      message: `${files.length}개 파일 분석 완료. 오토바이 ${motorcycles.length}대, 계약서 ${contracts.length}건 추출됨`
+    })
     
   } catch (error) {
     console.error('PDF 분석 실패:', error)
