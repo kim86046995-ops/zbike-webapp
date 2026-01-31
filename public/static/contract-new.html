@@ -1328,9 +1328,13 @@
             canvas.height = video.videoHeight;
             
             const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0);
+            // 이미지 크기 축소 (640x480 → 320x240)
+            canvas.width = 320;
+            canvas.height = 240;
+            context.drawImage(video, 0, 0, 320, 240);
             
-            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.95);
+            // JPEG 품질을 20%로 낮춤 (파일 크기 감소)
+            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.2);
             
             // 카메라 중지
             stopAdminIdCamera();
@@ -1356,7 +1360,19 @@
             
             const reader = new FileReader();
             reader.onload = function(e) {
-                adminIdPhotoData = e.target.result;
+                // 업로드된 이미지 크기 축소
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 320;
+                    canvas.height = 240;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 320, 240);
+                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.2);
+                    document.getElementById('adminIdImage').src = adminIdPhotoData;
+                    document.getElementById('adminIdPreview').classList.remove('hidden');
+                };
+                img.src = e.target.result;
                 document.getElementById('adminIdImage').src = adminIdPhotoData;
                 document.getElementById('adminIdPreview').classList.remove('hidden');
             };
