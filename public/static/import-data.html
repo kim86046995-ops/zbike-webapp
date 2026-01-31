@@ -181,40 +181,100 @@
                             <i class="fas fa-code mr-2"></i>KnoxHub 콘솔에 입력할 스크립트
                         </label>
                         <div class="relative">
-                            <pre id="extractScript" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs font-mono leading-relaxed">// KnoxHub 데이터 추출 스크립트 v1.0
+                            <pre id="extractScript" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs font-mono leading-relaxed">// KnoxHub 데이터 추출 스크립트 v2.0 - 강력한 범용 버전
 (function() {
     const data = {
         motorcycles: [],
         contracts: [],
-        extracted_at: new Date().toISOString()
+        extracted_at: new Date().toISOString(),
+        page_url: window.location.href
     };
     
-    console.log('🔍 데이터 추출 시작...');
+    console.log('🔍 KnoxHub 데이터 추출 시작...');
+    console.log('📄 현재 페이지:', window.location.href);
     
-    // 오토바이 데이터 추출 (페이지 구조에 따라 자동 감지)
-    const selectors = [
-        '.motorcycle-item', '.bike-item', '.vehicle-item',
-        'tr[data-motorcycle]', 'tr[data-bike]',
-        '.list-item', '.item-row'
+    // === 방법 1: 테이블에서 추출 (가장 흔한 방식) ===
+    document.querySelectorAll('table tr').forEach((row, index) => {
+        if (index === 0) return; // 헤더 건너뛰기
+        
+        const cells = Array.from(row.querySelectorAll('td, th'));
+        if (cells.length < 2) return;
+        
+        const rowText = cells.map(c => c.textContent.trim()).join('|');
+        console.log('행 ' + index + ':', rowText);
+        
+        // 오토바이 번호판 패턴 감지 (예: 서울12가3456, 123가4567)
+        const platePattern = /(\d{2,3}[가-힣]\d{4}|[가-힣]{2}\d{2}[가-힣]\d{4})/;
+        const hasPlate = cells.some(c => platePattern.test(c.textContent));
+        
+        if (hasPlate) {
+            const motorcycle = {
+                plate_number: cells.find(c => platePattern.test(c.textContent))?.textContent.trim() || '',
+                vehicle_name: cells[1]?.textContent.trim() || cells[2]?.textContent.trim() || '',
+                chassis_number: cells.find(c => /^[A-Z0-9]{17}/.test(c.textContent))?.textContent.trim() || '',
+                mileage: parseInt(cells.find(c => /\d+km|\d+키로/.test(c.textContent))?.textContent.replace(/[^0-9]/g, '') || '0'),
+                model_year: parseInt(cells.find(c => /20\d{2}/.test(c.textContent))?.textContent.match(/20\d{2}/)?.[0] || new Date().getFullYear()),
+                status: cells[cells.length - 1]?.textContent.trim() || 'active'
+            };
+            data.motorcycles.push(motorcycle);
+        }
+    });
+    
+    // === 방법 2: div/card 구조에서 추출 ===
+    const cardSelectors = [
+        '.motorcycle-card', '.bike-card', '.vehicle-card',
+        '.list-item', '.data-row', '.item', '[data-id]'
     ];
     
-    selectors.forEach(selector => {
+    cardSelectors.forEach(selector => {
         document.querySelectorAll(selector).forEach(item => {
-            const motorcycle = {
-                plate_number: item.querySelector('.plate, .number, [data-plate]')?.textContent?.trim() || '',
-                vehicle_name: item.querySelector('.name, .model, [data-model]')?.textContent?.trim() || '',
-                chassis_number: item.querySelector('.chassis, .vin, [data-vin]')?.textContent?.trim() || '',
-                mileage: parseInt(item.querySelector('.mileage, .km, [data-mileage]')?.textContent?.replace(/[^0-9]/g, '')) || 0,
-                model_year: parseInt(item.querySelector('.year, [data-year]')?.textContent?.replace(/[^0-9]/g, '')) || new Date().getFullYear()
-            };
+            const text = item.textContent;
+            const plateMatch = text.match(/(\d{2,3}[가-힣]\d{4}|[가-힣]{2}\d{2}[가-힣]\d{4})/);
             
-            if (motorcycle.plate_number || motorcycle.vehicle_name) {
-                data.motorcycles.push(motorcycle);
+            if (plateMatch) {
+                const motorcycle = {
+                    plate_number: plateMatch[0],
+                    vehicle_name: item.querySelector('.name, .model, .vehicle-name')?.textContent.trim() || '',
+                    chassis_number: item.querySelector('.vin, .chassis')?.textContent.trim() || '',
+                    mileage: parseInt(item.querySelector('.mileage, .km')?.textContent.replace(/[^0-9]/g, '') || '0'),
+                    model_year: parseInt(text.match(/20\d{2}/)?.[0] || new Date().getFullYear()),
+                    status: 'active'
+                };
+                
+                // 중복 체크
+                if (!data.motorcycles.some(m => m.plate_number === motorcycle.plate_number)) {
+                    data.motorcycles.push(motorcycle);
+                }
             }
         });
     });
     
+    // === 방법 3: 전체 페이지 텍스트에서 패턴 매칭 ===
+    if (data.motorcycles.length === 0) {
+        const bodyText = document.body.textContent;
+        const platePattern = /(\d{2,3}[가-힣]\d{4})/g;
+        const plates = [...new Set(bodyText.match(platePattern) || [])];
+        
+        plates.forEach(plate => {
+            data.motorcycles.push({
+                plate_number: plate,
+                vehicle_name: '정보 없음 (수동 입력 필요)',
+                chassis_number: '',
+                mileage: 0,
+                model_year: new Date().getFullYear(),
+                status: 'active'
+            });
+        });
+    }
+    
     console.log('✅ 오토바이:', data.motorcycles.length + '대 추출');
+    
+    // 중복 제거
+    data.motorcycles = data.motorcycles.filter((m, index, self) =>
+        index === self.findIndex(t => t.plate_number === m.plate_number)
+    );
+    
+    console.log('📊 중복 제거 후:', data.motorcycles.length + '대');
     
     // JSON 다운로드
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -226,7 +286,7 @@
     URL.revokeObjectURL(url);
     
     console.log('📥 JSON 파일 다운로드 완료!');
-    console.log('📊 추출된 데이터:', data);
+    console.log('📋 추출된 데이터:', data);
     
     return data;
 })();</pre>

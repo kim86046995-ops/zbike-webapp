@@ -2222,49 +2222,96 @@ app.post('/api/import/knox-cookie', authMiddleware, async (c) => {
   }
 
   try {
-    // KnoxHub에 접속해서 데이터 가져오기
-    // 실제 구현은 KnoxHub의 페이지 구조에 따라 달라집니다
-    // 여기서는 데모 데이터를 반환합니다
+    console.log('🔍 KnoxHub 데이터 가져오기 시작...')
+    console.log('Cookie:', cookie.substring(0, 10) + '...')
     
-    // TODO: 실제로는 crawler 도구를 사용하여 KnoxHub 페이지를 파싱해야 합니다
-    // const url = `https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/motorcycles.php`
-    // const html = await crawler(url, { cookie: `PHPSESSID=${cookie}` })
-    // 그 다음 HTML을 파싱하여 데이터 추출
+    // KnoxHub 가능한 페이지 URL들
+    const possibleUrls = [
+      'https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/index.php',
+      'https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/main.php',
+      'https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/motorcycle_list.php',
+      'https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/bike_list.php',
+      'https://zenio5827.cafe24.com/Knox_Project/Knox_Hub/list.php',
+      'http://knoxhub.kro.kr/index.php',
+      'http://knoxhub.kro.kr/main.php'
+    ]
     
-    // 현재는 데모 데이터 반환
-    const demoData = {
-      motorcycles: [
-        {
-          plate_number: '서울12가3456',
-          vehicle_name: '혼다 PCX 150',
-          chassis_number: 'MLHJE1234567890',
-          mileage: 15000,
-          model_year: 2022
-        },
-        {
-          plate_number: '경기34나7890',
-          vehicle_name: '야마하 XMAX 300',
-          chassis_number: 'JYACK0987654321',
-          mileage: 8000,
-          model_year: 2023
+    const motorcycles = []
+    const contracts = []
+    let successUrl = null
+    
+    // 각 URL을 시도
+    for (const url of possibleUrls) {
+      try {
+        console.log(`시도: ${url}`)
+        
+        // fetch로 쿠키와 함께 요청
+        const response = await fetch(url, {
+          headers: {
+            'Cookie': `PHPSESSID=${cookie}`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        })
+        
+        if (response.ok) {
+          const html = await response.text()
+          console.log(`✅ 응답 성공: ${url} (${html.length} bytes)`)
+          
+          // HTML에서 번호판 패턴 찾기 (예: 12가3456, 서울12가3456)
+          const platePattern = /(\d{2,3}[가-힣]\d{4}|[가-힣]{2}\d{2}[가-힣]\d{4})/g
+          const plates = [...new Set(html.match(platePattern) || [])]
+          
+          console.log(`🏍️ 발견된 번호판: ${plates.length}개`)
+          
+          if (plates.length > 0) {
+            successUrl = url
+            
+            // 번호판별로 오토바이 정보 추출
+            plates.forEach(plate => {
+              motorcycles.push({
+                plate_number: plate,
+                vehicle_name: '정보 없음 (수동 입력 필요)',
+                chassis_number: '',
+                mileage: 0,
+                model_year: new Date().getFullYear(),
+                status: 'active'
+              })
+            })
+            
+            break // 성공하면 다음 URL 시도 안함
+          }
         }
-      ],
-      contracts: [
-        {
-          customer_name: '김철수',
-          customer_phone: '010-1234-5678',
-          vehicle_name: '혼다 PCX 150',
-          monthly_rent: 250000,
-          deposit: 1000000,
-          contract_period: 24
-        }
-      ]
+      } catch (err) {
+        console.log(`❌ 실패: ${url} - ${err.message}`)
+      }
     }
-
-    return c.json(demoData)
+    
+    // 결과 반환
+    if (motorcycles.length > 0) {
+      console.log(`✅ 총 ${motorcycles.length}대 발견 (from ${successUrl})`)
+      return c.json({
+        motorcycles,
+        contracts,
+        source: successUrl,
+        extracted_at: new Date().toISOString()
+      })
+    } else {
+      // 데이터를 찾지 못한 경우
+      console.log('⚠️ 데이터를 찾지 못했습니다. JSON 업로드 방식을 사용해주세요.')
+      return c.json({ 
+        error: 'KnoxHub에서 데이터를 찾을 수 없습니다. JSON 업로드 방식을 사용해주세요.',
+        motorcycles: [],
+        contracts: []
+      }, 404)
+    }
+    
   } catch (error) {
     console.error('KnoxHub 데이터 가져오기 실패:', error)
-    return c.json({ error: '데이터 가져오기에 실패했습니다' }, 500)
+    return c.json({ 
+      error: '데이터 가져오기에 실패했습니다. JSON 업로드 방식을 사용해주세요.',
+      motorcycles: [],
+      contracts: []
+    }, 500)
   }
 })
 
