@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* A4 출력 스타일 */
+        /* A4 출력 스타일 - 원본 그대로 출력 */
         @media print {
             body {
                 margin: 0;
@@ -27,6 +27,7 @@
             .modal-content {
                 max-width: 100% !important;
                 margin: 0 !important;
+                padding: 10mm !important;
                 box-shadow: none !important;
             }
             
@@ -35,54 +36,104 @@
                 display: none !important;
             }
             
-            /* 약관 영역 페이지 분할 */
-            .contract-terms {
-                page-break-inside: auto;
+            /* A4 페이지 설정 */
+            @page {
+                size: A4;
+                margin: 10mm 12mm;
+            }
+            
+            /* 계약서 컨테이너 - 원본 그대로 */
+            .contract-print {
+                font-size: 10pt !important;
+                line-height: 1.4 !important;
                 max-height: none !important;
                 overflow: visible !important;
             }
             
-            .contract-terms > * {
-                page-break-inside: avoid;
-            }
-            
-            .contract-terms p.font-bold {
+            /* 제목 */
+            .contract-print h1 {
+                font-size: 18pt !important;
+                margin-bottom: 8mm !important;
                 page-break-after: avoid;
             }
             
-            /* A4 페이지 크기 설정 */
-            @page {
-                size: A4;
-                margin: 15mm;
+            /* 섹션 제목 */
+            .contract-print h2,
+            .contract-print .text-xl {
+                font-size: 12pt !important;
+                margin-top: 4mm !important;
+                margin-bottom: 2mm !important;
+                page-break-after: avoid;
             }
             
-            /* 글자 크기 유지 */
-            * {
-                font-size: inherit !important;
+            /* 본문 텍스트 */
+            .contract-print p,
+            .contract-print div {
+                font-size: 10pt !important;
+                line-height: 1.4 !important;
+                margin-bottom: 1mm !important;
             }
             
-            /* 계약서 컨테이너 */
-            .contract-print {
-                page-break-inside: auto;
-                max-height: none !important;
-                overflow: visible !important;
+            /* 약관 텍스트 - 더 작고 compact하게 */
+            .contract-terms {
+                font-size: 9pt !important;
+                line-height: 1.3 !important;
+                margin-top: 2mm !important;
             }
             
-            .contract-print > * {
+            .contract-terms h3 {
+                font-size: 10pt !important;
+                margin-top: 3mm !important;
+                margin-bottom: 1.5mm !important;
+                page-break-after: avoid;
+            }
+            
+            .contract-terms p {
+                margin-bottom: 0.5mm !important;
+                text-indent: 0 !important;
+            }
+            
+            .contract-terms p.font-bold {
+                font-size: 10pt !important;
+                margin-top: 2mm !important;
+                page-break-after: avoid;
+            }
+            
+            /* 들여쓰기 */
+            .contract-terms .ml-4 {
+                margin-left: 4mm !important;
+            }
+            
+            .contract-terms .ml-8 {
+                margin-left: 8mm !important;
+            }
+            
+            /* 페이지 나누기 방지 - 관련 내용은 함께 */
+            .contract-terms > div,
+            .contract-terms > p.font-bold {
                 page-break-inside: avoid;
             }
             
-            /* A4 페이지 크기 */
-            @page {
-                size: A4;
-                margin: 15mm;
+            /* 그리드 레이아웃 */
+            .grid {
+                display: block !important;
             }
             
-            /* 약관 섹션 */
-            .contract-terms {
-                font-size: 1.1rem;
-                color: #1a1a1a;
-                font-weight: 500;
+            .grid > div {
+                display: block !important;
+                margin-bottom: 1mm !important;
+            }
+            
+            /* 서명 이미지 */
+            img {
+                max-width: 100% !important;
+                height: auto !important;
+                page-break-inside: avoid;
+            }
+            
+            /* 테이블 */
+            table {
+                page-break-inside: avoid;
             }
         }
         
@@ -194,8 +245,11 @@
             <div id="contractDetail" class="modal-content p-6 contract-print"></div>
 
             <div class="p-6 border-t no-print flex gap-3">
+                <button onclick="downloadPDF()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
+                    <i class="fas fa-download mr-2"></i>PDF 다운로드
+                </button>
                 <button onclick="window.print()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
-                    <i class="fas fa-print mr-2"></i>PDF 출력
+                    <i class="fas fa-print mr-2"></i>인쇄
                 </button>
                 <button onclick="hideDetailModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
                     닫기
@@ -636,6 +690,59 @@
         function hideDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
             currentContract = null;
+        }
+
+        // PDF 다운로드 함수
+        async function downloadPDF() {
+            if (!currentContract) {
+                alert('계약서 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+
+            try {
+                // html2pdf 라이브러리 동적 로드
+                if (typeof html2pdf === 'undefined') {
+                    await loadHtml2Pdf();
+                }
+
+                const element = document.getElementById('contractDetail');
+                const contractNumber = currentContract.contract_number || 'contract';
+                const fileName = `계약서_${contractNumber}.pdf`;
+
+                const opt = {
+                    margin: [10, 12, 10, 12],
+                    filename: fileName,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        letterRendering: true
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait'
+                    },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                await html2pdf().set(opt).from(element).save();
+                
+            } catch (error) {
+                console.error('PDF 생성 오류:', error);
+                alert('PDF 다운로드에 실패했습니다. 인쇄 기능을 이용해주세요.');
+            }
+        }
+
+        // html2pdf 라이브러리 로드
+        function loadHtml2Pdf() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
         }
 
         async function deleteContract(id) {
