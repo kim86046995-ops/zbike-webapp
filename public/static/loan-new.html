@@ -628,8 +628,8 @@
             // 서명 확인 및 최적화
             // 임시 캔버스를 생성하여 서명 크기 최적화
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = 400;  // 너비를 400px로 축소
-            tempCanvas.height = 100; // 높이를 100px로 축소
+            tempCanvas.width = 300;  // 너비를 300px로 더 축소
+            tempCanvas.height = 80;  // 높이를 80px로 더 축소
             const tempCtx = tempCanvas.getContext('2d');
             
             // 흰색 배경 먼저 그리기
@@ -639,7 +639,7 @@
             // 원본 캔버스 내용을 축소하여 그리기
             tempCtx.drawImage(borrowerCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            const borrowerSignatureData = tempCanvas.toDataURL('image/png');
+            const borrowerSignatureData = tempCanvas.toDataURL('image/jpeg', 0.5);
             
             const borrowerSignatureEmpty = borrowerCtx.getImageData(0, 0, borrowerCanvas.width, borrowerCanvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
             

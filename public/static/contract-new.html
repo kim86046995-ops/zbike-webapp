@@ -1782,8 +1782,8 @@
             
             // 임시 캔버스를 생성하여 서명만 추출하고 크기 최적화
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = 400;  // 너비를 400px로 축소
-            tempCanvas.height = 100; // 높이를 100px로 축소
+            tempCanvas.width = 300;  // 너비를 300px로 더 축소
+            tempCanvas.height = 80;  // 높이를 80px로 더 축소
             const tempCtx = tempCanvas.getContext('2d');
             
             // 흰색 배경 먼저 그리기
@@ -1793,8 +1793,8 @@
             // 원본 캔버스 내용을 축소하여 그리기
             tempCtx.drawImage(adminSignatureCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // PNG 포맷으로 저장 (투명도 지원)
-            return tempCanvas.toDataURL('image/png');
+            // JPEG 포맷으로 저장 (더 작은 크기, 품질 0.5)
+            return tempCanvas.toDataURL('image/jpeg', 0.5);
         }
         
         // 관리자 약관 로딩
