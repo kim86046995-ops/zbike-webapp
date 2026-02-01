@@ -321,7 +321,13 @@
     <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full my-8 max-h-screen overflow-hidden flex flex-col">
             <div class="p-6 border-b no-print flex justify-between items-center">
-                <h2 class="text-2xl font-bold">계약서 원본</h2>
+                <div>
+                    <h2 class="text-2xl font-bold">계약서 원본</h2>
+                    <p class="text-xs text-gray-500 mt-1">
+                        💡 저장 위치 선택: Chrome/Edge는 자동으로 대화상자 표시 | 
+                        <a href="#" onclick="showDownloadGuide(); return false;" class="text-blue-600 hover:underline">다른 브라우저 설정 방법</a>
+                    </p>
+                </div>
                 <button onclick="hideDetailModal()" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
@@ -798,6 +804,25 @@
             document.getElementById('detailModal').classList.add('hidden');
             currentContract = null;
         }
+        
+        // 다운로드 위치 선택 가이드
+        function showDownloadGuide() {
+            const message = 
+                '📂 PDF 저장 위치를 선택하는 방법:\n\n' +
+                '🔹 Chrome / Edge:\n' +
+                '1. 설정(⚙️) → 다운로드\n' +
+                '2. "다운로드 전에 각 파일의 저장 위치 확인" 체크 ✅\n' +
+                '3. 이제 다운로드할 때마다 위치를 선택할 수 있습니다!\n\n' +
+                '🔹 Firefox:\n' +
+                '1. 설정(⚙️) → 일반 → 다운로드\n' +
+                '2. "항상 저장 위치 묻기" 선택 ✅\n\n' +
+                '🔹 Safari:\n' +
+                '1. 환경설정 → 일반\n' +
+                '2. 다운로드 위치: "각 파일마다 선택" ✅\n\n' +
+                '💡 팁: Chrome/Edge 최신 버전은 자동으로 저장 위치 대화상자가 표시됩니다!';
+            
+            alert(message);
+        }
 
         // PDF 다운로드 함수 (기본 파일명)
         async function downloadPDF(customFileName = null) {
@@ -880,7 +905,35 @@
                 // PDF 생성 및 다운로드 (Blob 방식)
                 const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
                 
-                // Blob을 다운로드 링크로 변환
+                // File System Access API 지원 확인 (Chrome/Edge)
+                if (window.showSaveFilePicker) {
+                    try {
+                        // 저장 위치 선택 대화상자 표시
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: fileName,
+                            types: [{
+                                description: 'PDF 파일',
+                                accept: {'application/pdf': ['.pdf']}
+                            }]
+                        });
+                        
+                        // 선택한 위치에 파일 쓰기
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(pdfBlob);
+                        await writable.close();
+                        
+                        console.log('✅ PDF 저장 완료:', fileName);
+                        return;
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            console.log('ℹ️ 사용자가 저장을 취소했습니다.');
+                            return;
+                        }
+                        console.warn('⚠️ File System Access API 실패, 기본 다운로드 방식 사용:', err);
+                    }
+                }
+                
+                // 기본 다운로드 방식 (파일 시스템 API 미지원 시)
                 const blobUrl = URL.createObjectURL(pdfBlob);
                 const downloadLink = document.createElement('a');
                 downloadLink.href = blobUrl;
@@ -895,6 +948,19 @@
                 URL.revokeObjectURL(blobUrl);
                 
                 console.log('✅ PDF 생성 완료:', fileName);
+                
+                // 브라우저 설정 안내 (첫 다운로드 시)
+                if (!localStorage.getItem('downloadLocationGuideShown')) {
+                    localStorage.setItem('downloadLocationGuideShown', 'true');
+                    setTimeout(() => {
+                        alert('💡 저장 위치 변경 안내:\n\n' +
+                              '현재 브라우저는 기본 다운로드 폴더에 자동 저장됩니다.\n\n' +
+                              '매번 저장 위치를 선택하려면:\n' +
+                              '1. Chrome/Edge: 설정 → 다운로드 → "다운로드 전에 각 파일의 저장 위치 확인" 체크\n' +
+                              '2. Firefox: 설정 → 일반 → 다운로드 → "항상 저장 위치 묻기" 선택\n\n' +
+                              '또는 다운로드 후 파일을 원하는 폴더로 이동하세요.');
+                    }, 1000);
+                }
                 
             } catch (error) {
                 console.error('❌ PDF 생성 오류:', error);
