@@ -441,6 +441,41 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   return c.json({ message: '삭제되었습니다' })
 })
 
+// 오토바이 상태 변경 (해지/폐지)
+app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  const { status, usage_notes } = await c.req.json()
+  
+  // 상태 검증
+  const validStatuses = ['available', 'rented', 'maintenance', 'scrapped']
+  if (!validStatuses.includes(status)) {
+    return c.json({ error: '유효하지 않은 상태입니다' }, 400)
+  }
+  
+  // 상태 업데이트
+  if (status === 'scrapped' && usage_notes) {
+    // 폐지 처리: 상태와 폐지 사유 저장
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET status = ?, usage_notes = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(status, usage_notes, id).run()
+  } else {
+    // 일반 상태 변경 (해지 등)
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET status = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(status, id).run()
+  }
+  
+  return c.json({ 
+    message: status === 'scrapped' ? '폐지 처리되었습니다' : '상태가 변경되었습니다',
+    status 
+  })
+})
+
 // 오토바이별 계약 이력 조회
 app.get('/api/motorcycles/:id/contracts', async (c) => {
   const { DB } = c.env

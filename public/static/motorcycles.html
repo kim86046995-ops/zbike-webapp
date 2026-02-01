@@ -694,9 +694,14 @@
                                     <h3 class="text-base font-bold text-gray-800">${m.vehicle_name}</h3>
                                     <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year}년식</p>
                                 </div>
-                                <span class="info-badge ${status.bg} ${status.text} text-xs">
-                                    <i class="fas ${status.icon} mr-1"></i>${status.label}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="info-badge ${status.bg} ${status.text} text-xs">
+                                        <i class="fas ${status.icon} mr-1"></i>${status.label}
+                                    </span>
+                                    <button onclick="deleteMotorcycle(${m.id})" class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600 transition-all text-xs font-semibold" title="오토바이 삭제">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                             
                             ${m.status === 'scrapped' ? `
@@ -808,8 +813,11 @@
                                 <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-1.5 rounded-md hover:from-blue-600 hover:to-blue-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
                                     <i class="fas fa-edit mr-1"></i>수정
                                 </button>
-                                <button onclick="deleteMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-1.5 rounded-md hover:from-red-600 hover:to-red-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
-                                    <i class="fas fa-trash mr-1"></i>삭제
+                                <button onclick="terminateMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-1.5 rounded-md hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="계약 해지">
+                                    <i class="fas fa-ban mr-1"></i>해지
+                                </button>
+                                <button onclick="scrapMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white py-1.5 rounded-md hover:from-gray-600 hover:to-gray-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="사용 폐지">
+                                    <i class="fas fa-times-circle mr-1"></i>폐지
                                 </button>
                             </div>
                         </div>
@@ -1342,15 +1350,55 @@
         }
 
         async function deleteMotorcycle(id) {
-            if (!confirm('정말 삭제하시겠습니까?')) return;
+            if (!confirm('정말 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.')) return;
 
             try {
                 await axios.delete(`/api/motorcycles/${id}`);
-                alert('삭제되었습니다');
+                alert('✅ 삭제되었습니다');
                 loadMotorcycles();
             } catch (error) {
                 console.error('Error deleting motorcycle:', error);
-                alert('삭제에 실패했습니다');
+                alert('❌ 삭제에 실패했습니다');
+            }
+        }
+
+        // 계약 해지 (상태를 available로 변경)
+        async function terminateMotorcycle(id) {
+            if (!confirm('계약을 해지하시겠습니까?\n\n오토바이 상태가 "가용"으로 변경됩니다.')) return;
+
+            try {
+                await axios.patch(`/api/motorcycles/${id}/status`, { status: 'available' });
+                alert('✅ 계약이 해지되었습니다.\n오토바이가 가용 상태로 변경되었습니다.');
+                loadMotorcycles();
+            } catch (error) {
+                console.error('Error terminating contract:', error);
+                alert('❌ 계약 해지에 실패했습니다');
+            }
+        }
+
+        // 사용 폐지 (상태를 scrapped로 변경)
+        async function scrapMotorcycle(id) {
+            const usageNotes = prompt('폐지 사유를 입력해주세요:\n(예: 차량 노후, 사고, 부품 손상 등)');
+            
+            if (usageNotes === null) return; // 취소
+            
+            if (!usageNotes.trim()) {
+                alert('⚠️ 폐지 사유를 입력해주세요.');
+                return;
+            }
+
+            if (!confirm(`오토바이를 폐지 처리하시겠습니까?\n\n폐지 사유: ${usageNotes}\n\n⚠️ 폐지 후에도 계약 이력은 유지됩니다.`)) return;
+
+            try {
+                await axios.patch(`/api/motorcycles/${id}/status`, { 
+                    status: 'scrapped',
+                    usage_notes: usageNotes
+                });
+                alert('✅ 오토바이가 폐지 처리되었습니다.');
+                loadMotorcycles();
+            } catch (error) {
+                console.error('Error scrapping motorcycle:', error);
+                alert('❌ 폐지 처리에 실패했습니다');
             }
         }
 
