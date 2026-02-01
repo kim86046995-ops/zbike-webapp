@@ -1841,26 +1841,42 @@ app.get('/dashboard', (c) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
         <title>Z-BIKE 전자계약서</title>
+        <noscript>
+            <meta http-equiv="refresh" content="0; url=/login">
+        </noscript>
+        <style>
+            body { 
+                display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+            }
+            body.authenticated {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+        </style>
         <script>
-            // 즉시 실행: 로그인 체크 (HTML 렌더링 전)
+            // 즉시 실행: 로그인 체크 (최우선 순위)
             (function() {
-                const sessionId = localStorage.getItem('sessionId');
-                const user = localStorage.getItem('user');
+                var sessionId = localStorage.getItem('sessionId');
+                var user = localStorage.getItem('user');
                 if (!sessionId || !user) {
-                    window.location.href = '/login';
+                    // 즉시 리다이렉트
+                    window.location.replace('/login');
+                    // 페이지 로딩 중단
+                    window.stop();
+                    throw new Error('Unauthorized');
+                } else {
+                    // 세션이 있으면 body 표시 준비
+                    document.documentElement.className = 'authenticated';
                 }
             })();
         </script>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     </head>
-    <body class="bg-gray-50" style="display: none;">
-        <script>
-            // 세션이 있으면 body 표시
-            if (localStorage.getItem('sessionId') && localStorage.getItem('user')) {
-                document.body.style.display = 'block';
-            }
-        </script>
+    <body class="bg-gray-50 authenticated">
         <div class="min-h-screen">
             <!-- 헤더 -->
             <header class="bg-blue-600 text-white shadow-lg">

@@ -7,24 +7,39 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=/login">
+    </noscript>
+    <style>
+        body { 
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        body.authenticated {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    </style>
     <script>
-        // 즉시 실행: 로그인 체크 (HTML 렌더링 전)
+        // 즉시 실행: 로그인 체크 (최우선 순위)
         (function() {
-            const sessionId = localStorage.getItem('sessionId');
-            const user = localStorage.getItem('user');
+            var sessionId = localStorage.getItem('sessionId');
+            var user = localStorage.getItem('user');
             if (!sessionId || !user) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.replace('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                if (window.stop) window.stop();
+                throw new Error('Unauthorized');
+            } else {
+                document.documentElement.className = 'authenticated';
             }
         })();
     </script>
 </head>
-<body class="bg-gray-100" style="display: none;">
-    <script>
-        // 세션이 있으면 body 표시
-        if (localStorage.getItem('sessionId') && localStorage.getItem('user')) {
-            document.body.style.display = 'block';
-        }
-    </script>
+<body class="bg-gray-100"  class="authenticated" class="authenticated">
+    
     <div class="min-h-screen">
         <!-- 헤더 -->
         <header class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
