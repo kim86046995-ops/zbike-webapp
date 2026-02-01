@@ -1015,14 +1015,6 @@ app.post('/api/auth/register', async (c) => {
     return c.json({ error: '비밀번호는 최소 4자 이상이어야 합니다' }, 400)
   }
   
-  // 관리자 계정 수 확인 (최대 5명)
-  const countResult = await DB.prepare('SELECT COUNT(*) as count FROM users').first()
-  const currentCount = (countResult as any)?.count || 0
-  
-  if (currentCount >= 5) {
-    return c.json({ error: '관리자 계정은 최대 5명까지만 생성 가능합니다' }, 400)
-  }
-  
   // 아이디 중복 확인
   const existingUser = await DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first()
   
