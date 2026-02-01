@@ -922,8 +922,11 @@
 
         async function loadMotorcycles() {
             try {
-                const response = await axios.get('/api/motorcycles?status=available');
-                motorcycles = response.data;
+                // 모든 오토바이를 가져옴 (페지된 것만 제외)
+                const response = await axios.get('/api/motorcycles');
+                
+                // 페지된 오토바이(scrapped) 제외
+                motorcycles = response.data.filter(m => m.status !== 'scrapped');
                 
                 // 번호판 순으로 정렬
                 motorcycles.sort((a, b) => {
@@ -1008,6 +1011,14 @@
                 const displayLabel = m.plate_number ? '번호판' : '차대번호';
                 const isSelected = selectedMotorcycleId === m.id;
                 
+                // 상태 배지 설정
+                const statusConfig = {
+                    available: { label: '가용', color: 'bg-green-100 text-green-800', icon: 'fa-check-circle' },
+                    rented: { label: '대여중', color: 'bg-blue-100 text-blue-800', icon: 'fa-handshake' },
+                    maintenance: { label: '정비중', color: 'bg-yellow-100 text-yellow-800', icon: 'fa-wrench' }
+                };
+                const status = statusConfig[m.status] || statusConfig.available;
+                
                 return `
                     <div onclick="selectMotorcycleFromModal(${m.id})" 
                          class="border-2 ${isSelected ? 'border-green-600 bg-green-50' : 'border-gray-300 hover:border-green-400'} rounded-lg p-4 cursor-pointer transition-all active:scale-95">
@@ -1015,6 +1026,10 @@
                             <div class="flex-1">
                                 <div class="flex items-center gap-3 mb-2">
                                     <h3 class="font-bold text-xl text-gray-800">${m.vehicle_name}</h3>
+                                    <span class="${status.color} text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                        <i class="fas ${status.icon}"></i>
+                                        ${status.label}
+                                    </span>
                                     ${isSelected ? '<span class="bg-green-600 text-white text-xs px-2 py-1 rounded-full">선택됨</span>' : ''}
                                 </div>
                                 <div class="grid grid-cols-2 gap-2 text-sm">
