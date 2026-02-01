@@ -1688,6 +1688,22 @@ app.get('/api/loan-contracts/:id/deductions', async (c) => {
 // 프론트엔드 페이지 라우트
 // ============================================
 
+// 세션 클리어 페이지 (디버그용)
+app.get('/clear-session', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세션 클리어</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/clear-session" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
 // 로그인 페이지
 app.get('/login', (c) => {
   return c.html(`<!DOCTYPE html>
@@ -2204,14 +2220,22 @@ app.get('/dashboard', (c) => {
                 const loggedIn = document.getElementById('loggedIn');
                 const loggedOut = document.getElementById('loggedOut');
                 
+                console.log('[DASHBOARD] checkLoginStatus called');
+                console.log('[DASHBOARD] localStorage sessionId:', sessionId);
+                console.log('[DASHBOARD] localStorage user:', user);
+                
                 if (sessionId && user) {
                     try {
+                        console.log('[DASHBOARD] Verifying session with server...');
                         // 세션 유효성 확인
                         const response = await axios.get('/api/auth/check', {
                             headers: { 'X-Session-ID': sessionId }
                         });
                         
+                        console.log('[DASHBOARD] Auth check response:', response.data);
+                        
                         if (!response.data.authenticated) {
+                            console.log('[DASHBOARD] Not authenticated, redirecting to login');
                             // 인증 실패 시 로그인 페이지로 리다이렉트
                             localStorage.removeItem('sessionId');
                             localStorage.removeItem('user');
@@ -2219,6 +2243,7 @@ app.get('/dashboard', (c) => {
                             return;
                         }
                         
+                        console.log('[DASHBOARD] Authenticated! Displaying dashboard...');
                         const userData = JSON.parse(user);
                         
                         // 로그인 상태 표시
@@ -2232,12 +2257,14 @@ app.get('/dashboard', (c) => {
                         // 통계 로드
                         loadStats();
                     } catch (e) {
+                        console.error('[DASHBOARD] Session check error:', e);
                         // 세션 만료 시 로그인 페이지로 리다이렉트
                         localStorage.removeItem('sessionId');
                         localStorage.removeItem('user');
                         window.location.href = '/login';
                     }
                 } else {
+                    console.log('[DASHBOARD] No session found, redirecting to login');
                     // 세션이 없으면 로그인 페이지로 리다이렉트
                     window.location.href = '/login';
                 }

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세션 클리어</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-center mb-6">🧹 세션 클리어</h1>
+        
+        <div id="status" class="mb-6">
+            <p class="text-gray-600">localStorage를 클리어하고 있습니다...</p>
+        </div>
+        
+        <div id="result" class="hidden">
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                <p class="font-bold">✅ localStorage가 완전히 클리어되었습니다!</p>
+                <p class="text-sm mt-2">클리어된 항목:</p>
+                <ul id="cleared-items" class="text-sm mt-1 ml-4 list-disc"></ul>
+            </div>
+            
+            <button onclick="window.location.href='/login'" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                로그인 페이지로 이동
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 즉시 실행
+        const clearedItems = [];
+        
+        // localStorage 전체 조회
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            clearedItems.push(`${key}: ${localStorage.getItem(key)}`);
+        }
+        
+        // 모든 항목 클리어
+        localStorage.clear();
+        
+        // 결과 표시
+        setTimeout(() => {
+            document.getElementById('status').classList.add('hidden');
+            document.getElementById('result').classList.remove('hidden');
+            
+            const ul = document.getElementById('cleared-items');
+            if (clearedItems.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = '(비어있음)';
+                ul.appendChild(li);
+            } else {
+                clearedItems.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+            }
+            
+            console.log('[CLEAR] localStorage cleared:', clearedItems);
+        }, 500);
+    </script>
+</body>
+</html>
