@@ -631,7 +631,10 @@ app.get('/api/contracts/:id', async (c) => {
   const result = await DB.prepare(`
     SELECT 
       c.*,
-      m.*,
+      m.vehicle_name, m.plate_number, m.chassis_number, m.model_year, 
+      m.mileage, m.insurance_company, m.insurance_start_date, m.insurance_end_date,
+      m.driving_range as motorcycle_driving_range,
+      m.owner_name, m.insurance_fee, m.vehicle_price, m.daily_rental_fee,
       cu.name as customer_name, cu.resident_number, cu.phone as customer_phone,
       cu.address as customer_address, cu.license_type
     FROM contracts c
