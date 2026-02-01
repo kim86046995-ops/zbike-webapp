@@ -1682,7 +1682,7 @@ app.get('/login', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/login.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/login" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1699,7 +1699,7 @@ app.get('/find-account', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/find-account.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/find-account" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1716,7 +1716,7 @@ app.get('/motorcycles', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/motorcycles.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/motorcycles" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1733,7 +1733,7 @@ app.get('/contract/new', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/contract-new.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/contract-new" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1750,7 +1750,7 @@ app.get('/business-contract/new', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/business-contract-new.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/business-contract-new" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1768,7 +1768,7 @@ app.get('/contracts', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/contracts.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/contracts" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1785,7 +1785,7 @@ app.get('/loan/new', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/loan-new.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/loan-new" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1802,7 +1802,7 @@ app.get('/loans', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/loans.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/loans" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -1819,7 +1819,7 @@ app.get('/settings', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-<iframe src="/static/settings.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/settings" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -2454,7 +2454,7 @@ app.get('/register', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<iframe src="/static/register.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/register" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -2471,7 +2471,7 @@ app.get('/login', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<iframe src="/static/login.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/login" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -2488,7 +2488,7 @@ app.get('/contract-sign', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<iframe src="/static/contract-sign.html${c.req.url.includes('?') ? c.req.url.substring(c.req.url.indexOf('?')) : ''}" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/contract-sign${c.req.url.includes('?') ? c.req.url.substring(c.req.url.indexOf('?')) : ''}" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
@@ -2509,7 +2509,7 @@ app.get('/import-data', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<iframe src="/static/import-data.html" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/import-data" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
