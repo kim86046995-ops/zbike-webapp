@@ -576,7 +576,7 @@
                             <p><strong>주행거리:</strong> ${Number(c.mileage || 0).toLocaleString()} km</p>
                             <p><strong>보험사:</strong> ${c.insurance_company || '-'}</p>
                             <p><strong>보험기간:</strong> ${c.insurance_start_date || '-'} ~ ${c.insurance_end_date || '-'}</p>
-                            <p><strong>보험운전범위:</strong> ${c.driving_range || '-'}</p>
+                            <p><strong>보험운전범위:</strong> ${c.insurance_age_limit || c.driving_range || '-'}</p>
                             <p><strong>명의자:</strong> ${c.owner_name || '-'}</p>
                             <p><strong>차량금액:</strong> ${Number(c.vehicle_price || 0).toLocaleString()}원</p>
                         </div>

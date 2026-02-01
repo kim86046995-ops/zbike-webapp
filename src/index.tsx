@@ -730,8 +730,8 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       INSERT INTO contracts (
         contract_type, motorcycle_id, customer_id, start_date, end_date,
         monthly_fee, deposit, special_terms, signature_data, id_card_photo, 
-        contract_number, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        contract_number, status, insurance_age_limit
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       data.contract_type,
       data.motorcycle_id,
@@ -744,7 +744,8 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       data.admin_signature || '',
       data.admin_id_card_photo || '',
       contractNumber,
-      data.status || 'pending'
+      data.status || 'pending',
+      data.insurance_age_limit || '전연령'
     ).run()
     
     // 4. 오토바이 상태 업데이트
