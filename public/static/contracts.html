@@ -785,38 +785,69 @@
             }
 
             try {
+                const element = document.getElementById('contractDetail');
+                const modal = document.getElementById('detailModal');
+                
+                // 요소 확인
+                if (!element) {
+                    throw new Error('계약서 요소를 찾을 수 없습니다.');
+                }
+                
+                // 모달이 숨겨져 있으면 임시로 표시
+                let wasHidden = modal.classList.contains('hidden');
+                if (wasHidden) {
+                    modal.classList.remove('hidden');
+                    modal.style.position = 'absolute';
+                    modal.style.left = '-9999px';
+                    modal.style.display = 'block';
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+                
+                // 내용 확인
+                if (element.offsetHeight === 0 || element.innerHTML.trim() === '') {
+                    console.warn('⚠️ 요소가 비어있음, 재렌더링 시도...');
+                    renderDetail();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // 최종 확인
+                if (element.offsetHeight === 0) {
+                    throw new Error('렌더링된 내용이 없습니다. 계약서 데이터를 확인해주세요.');
+                }
+                
+                console.log('✅ 요소 크기:', element.offsetWidth, 'x', element.offsetHeight);
+                
                 // html2pdf 라이브러리 동적 로드
                 if (typeof html2pdf === 'undefined') {
+                    console.log('📦 html2pdf 라이브러리 로딩...');
                     await loadHtml2Pdf();
                 }
 
-                const element = document.getElementById('contractDetail');
                 const contractNumber = currentContract.contract_number || 'contract';
                 const fileName = `계약서_${contractNumber}.pdf`;
 
                 // A4 사이즈에 최적화된 PDF 옵션
-                // A4 = 210mm x 297mm
                 const opt = {
-                    margin: [8, 10, 8, 10],  // 상, 우, 하, 좌 (mm)
+                    margin: [8, 10, 8, 10],
                     filename: fileName,
                     image: { 
                         type: 'jpeg', 
                         quality: 0.98 
                     },
                     html2canvas: { 
-                        scale: 2,           // 고해상도
-                        useCORS: true,      // 이미지 CORS 허용
-                        letterRendering: true,  // 한글 렌더링 개선
+                        scale: 2,
+                        useCORS: true,
+                        letterRendering: true,
                         scrollY: 0,
                         scrollX: 0,
-                        windowWidth: 794,   // A4 width at 96 DPI
-                        windowHeight: 1123  // A4 height at 96 DPI
+                        windowWidth: 794,
+                        windowHeight: 1123
                     },
                     jsPDF: { 
                         unit: 'mm', 
                         format: 'a4', 
                         orientation: 'portrait',
-                        compress: true      // 파일 크기 최적화
+                        compress: true
                     },
                     pagebreak: { 
                         mode: ['avoid-all', 'css', 'legacy'],
@@ -830,9 +861,26 @@
                 await html2pdf().set(opt).from(element).save();
                 console.log('✅ PDF 생성 완료:', fileName);
                 
+                // 모달 원래대로 복구
+                if (wasHidden) {
+                    modal.style.position = '';
+                    modal.style.left = '';
+                    modal.style.display = '';
+                    modal.classList.add('hidden');
+                }
+                
             } catch (error) {
                 console.error('❌ PDF 생성 오류:', error);
-                alert('PDF 다운로드에 실패했습니다.\n\n대안: 브라우저 인쇄 기능(Ctrl+P)을 이용해주세요.');
+                
+                // 모달 복구
+                const modal = document.getElementById('detailModal');
+                if (modal) {
+                    modal.style.position = '';
+                    modal.style.left = '';
+                    modal.style.display = '';
+                }
+                
+                alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}\n\n대안: 브라우저 인쇄 기능(Ctrl+P)을 이용해주세요.`);
             }
         }
 
@@ -847,15 +895,49 @@
                 const contract = response.data;
                 currentContract = contract;
                 
-                // 모달에 렌더링 (숨김 상태)
-                document.getElementById('contractDetail').innerHTML = renderDetail(contract);
+                console.log('📋 계약서 데이터 로드:', contract.contract_number);
+                
+                // 모달을 임시로 표시 (화면 밖에서)
+                const modal = document.getElementById('detailModal');
+                const originalDisplay = modal.style.display;
+                const originalPosition = modal.style.position;
+                
+                modal.classList.remove('hidden');
+                modal.style.position = 'absolute';
+                modal.style.left = '-9999px';
+                modal.style.display = 'block';
+                
+                // 모달에 렌더링 (currentContract 사용)
+                renderDetail();
+                
+                // DOM 렌더링 완료 대기
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // 렌더링된 내용 확인
+                const element = document.getElementById('contractDetail');
+                console.log('📄 렌더링된 요소 크기:', element.offsetHeight, 'px');
+                
+                if (element.offsetHeight === 0) {
+                    throw new Error('렌더링된 내용이 없습니다.');
+                }
                 
                 // PDF 다운로드
                 await downloadPDF();
                 
+                // 모달 원래대로 숨김
+                modal.style.position = originalPosition;
+                modal.style.left = '';
+                modal.style.display = originalDisplay;
+                modal.classList.add('hidden');
+                
             } catch (error) {
-                console.error('PDF 다운로드 오류:', error);
-                alert('PDF 다운로드에 실패했습니다.');
+                console.error('❌ PDF 다운로드 오류:', error);
+                
+                // 모달 숨김 복구
+                const modal = document.getElementById('detailModal');
+                modal.classList.add('hidden');
+                
+                alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}\n\n대안: 상세보기 후 PDF 다운로드 버튼을 이용해주세요.`);
             }
         }
 
