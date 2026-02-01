@@ -327,7 +327,9 @@
                 </button>
             </div>
             
-            <div id="contractDetail" class="modal-content p-6 contract-print"></div>
+            <div class="overflow-auto flex-1">
+                <div id="contractDetail" class="modal-content p-6 contract-print"></div>
+            </div>
 
             <div class="p-6 border-t no-print flex gap-3">
                 <button onclick="downloadPDF()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
@@ -340,8 +342,12 @@
                     닫기
                 </button>
             </div>
-            </div>
         </div>
+    </div>
+    
+    <!-- PDF 생성 전용 숨겨진 컨테이너 -->
+    <div id="pdfContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; background: white; padding: 20px;">
+        <div id="pdfContent" class="contract-print"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -531,6 +537,11 @@
 
         function renderDetail() {
             const c = currentContract;
+            if (!c) {
+                console.error('❌ currentContract가 없습니다');
+                return;
+            }
+            
             const typeTexts = { 'lease': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
             const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
             
@@ -770,7 +781,15 @@
                 </div>
             `;
             
+            // 모달에 렌더링
             document.getElementById('contractDetail').innerHTML = html;
+            
+            // PDF 전용 컨테이너에도 동일하게 렌더링
+            const pdfContent = document.getElementById('pdfContent');
+            if (pdfContent) {
+                pdfContent.innerHTML = html;
+                console.log('✅ PDF 컨테이너에 렌더링 완료');
+            }
         }
         function hideDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
@@ -785,39 +804,30 @@
             }
 
             try {
-                const element = document.getElementById('contractDetail');
-                const modal = document.getElementById('detailModal');
+                console.log('📄 PDF 생성 시작:', currentContract.contract_number);
                 
-                // 요소 확인
+                // PDF 전용 컨테이너 사용
+                const element = document.getElementById('pdfContent');
+                
                 if (!element) {
-                    throw new Error('계약서 요소를 찾을 수 없습니다.');
+                    throw new Error('PDF 컨테이너를 찾을 수 없습니다.');
                 }
                 
-                // 모달이 숨겨져 있으면 임시로 표시
-                let wasHidden = modal.classList.contains('hidden');
-                if (wasHidden) {
-                    modal.classList.remove('hidden');
-                    modal.style.position = 'absolute';
-                    modal.style.left = '-9999px';
-                    modal.style.display = 'block';
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                }
-                
-                // 내용 확인
-                if (element.offsetHeight === 0 || element.innerHTML.trim() === '') {
-                    console.warn('⚠️ 요소가 비어있음, 재렌더링 시도...');
+                // 내용이 없으면 렌더링
+                if (!element.innerHTML || element.innerHTML.trim() === '') {
+                    console.log('📝 PDF 컨테이너 렌더링...');
                     renderDetail();
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
                 
                 // 최종 확인
-                if (element.offsetHeight === 0) {
-                    throw new Error('렌더링된 내용이 없습니다. 계약서 데이터를 확인해주세요.');
+                if (!element.innerHTML || element.innerHTML.trim() === '') {
+                    throw new Error('렌더링된 내용이 없습니다.');
                 }
                 
-                console.log('✅ 요소 크기:', element.offsetWidth, 'x', element.offsetHeight);
+                console.log('✅ 렌더링 확인 완료');
                 
-                // html2pdf 라이브러리 동적 로드
+                // html2pdf 라이브러리 로드
                 if (typeof html2pdf === 'undefined') {
                     console.log('📦 html2pdf 라이브러리 로딩...');
                     await loadHtml2Pdf();
@@ -826,7 +836,7 @@
                 const contractNumber = currentContract.contract_number || 'contract';
                 const fileName = `계약서_${contractNumber}.pdf`;
 
-                // A4 사이즈에 최적화된 PDF 옵션
+                // A4 최적화 옵션
                 const opt = {
                     margin: [8, 10, 8, 10],
                     filename: fileName,
@@ -838,10 +848,9 @@
                         scale: 2,
                         useCORS: true,
                         letterRendering: true,
+                        logging: true,
                         scrollY: 0,
-                        scrollX: 0,
-                        windowWidth: 794,
-                        windowHeight: 1123
+                        scrollX: 0
                     },
                     jsPDF: { 
                         unit: 'mm', 
@@ -851,35 +860,16 @@
                     },
                     pagebreak: { 
                         mode: ['avoid-all', 'css', 'legacy'],
-                        before: '.page-break-before',
-                        after: '.page-break-after',
                         avoid: ['.signature-section', '.terms-agreement', '.contract-terms']
                     }
                 };
 
-                console.log('📄 PDF 생성 시작:', fileName);
+                console.log('🎨 html2canvas 시작...');
                 await html2pdf().set(opt).from(element).save();
                 console.log('✅ PDF 생성 완료:', fileName);
                 
-                // 모달 원래대로 복구
-                if (wasHidden) {
-                    modal.style.position = '';
-                    modal.style.left = '';
-                    modal.style.display = '';
-                    modal.classList.add('hidden');
-                }
-                
             } catch (error) {
                 console.error('❌ PDF 생성 오류:', error);
-                
-                // 모달 복구
-                const modal = document.getElementById('detailModal');
-                if (modal) {
-                    modal.style.position = '';
-                    modal.style.left = '';
-                    modal.style.display = '';
-                }
-                
                 alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}\n\n대안: 브라우저 인쇄 기능(Ctrl+P)을 이용해주세요.`);
             }
         }
@@ -887,6 +877,8 @@
         // 목록에서 바로 PDF 다운로드
         async function quickDownloadPDF(id) {
             try {
+                console.log('📋 계약서 로드 시작:', id);
+                
                 // 계약서 데이터 로드
                 const response = await axios.get(`/api/contracts/${id}`, {
                     headers: { 'X-Session-ID': sessionId }
@@ -895,48 +887,19 @@
                 const contract = response.data;
                 currentContract = contract;
                 
-                console.log('📋 계약서 데이터 로드:', contract.contract_number);
+                console.log('✅ 계약서 데이터 로드 완료:', contract.contract_number);
                 
-                // 모달을 임시로 표시 (화면 밖에서)
-                const modal = document.getElementById('detailModal');
-                const originalDisplay = modal.style.display;
-                const originalPosition = modal.style.position;
-                
-                modal.classList.remove('hidden');
-                modal.style.position = 'absolute';
-                modal.style.left = '-9999px';
-                modal.style.display = 'block';
-                
-                // 모달에 렌더링 (currentContract 사용)
+                // 렌더링 (PDF 컨테이너에도 자동으로 렌더링됨)
                 renderDetail();
                 
-                // DOM 렌더링 완료 대기
+                // 렌더링 완료 대기
                 await new Promise(resolve => setTimeout(resolve, 800));
-                
-                // 렌더링된 내용 확인
-                const element = document.getElementById('contractDetail');
-                console.log('📄 렌더링된 요소 크기:', element.offsetHeight, 'px');
-                
-                if (element.offsetHeight === 0) {
-                    throw new Error('렌더링된 내용이 없습니다.');
-                }
                 
                 // PDF 다운로드
                 await downloadPDF();
                 
-                // 모달 원래대로 숨김
-                modal.style.position = originalPosition;
-                modal.style.left = '';
-                modal.style.display = originalDisplay;
-                modal.classList.add('hidden');
-                
             } catch (error) {
                 console.error('❌ PDF 다운로드 오류:', error);
-                
-                // 모달 숨김 복구
-                const modal = document.getElementById('detailModal');
-                modal.classList.add('hidden');
-                
                 alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}\n\n대안: 상세보기 후 PDF 다운로드 버튼을 이용해주세요.`);
             }
         }
