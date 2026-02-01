@@ -1863,12 +1863,8 @@ app.get('/dashboard', (c) => {
                 const user = localStorage.getItem('user');
                 if (!sessionId || !user) {
                     window.location.replace('/login');
-                } else {
-                    // 세션이 있으면 body 표시 준비
-                    document.addEventListener('DOMContentLoaded', function() {
-                        document.body.classList.add('auth-checked');
-                    });
                 }
+                // 세션이 있으면 계속 진행
             })();
         </script>
         <script src="https://cdn.tailwindcss.com"></script>
@@ -2446,8 +2442,11 @@ app.get('/dashboard', (c) => {
                 document.getElementById('myInfoModal').classList.add('hidden');
             }
             
-            // 페이지 로드 시 로그인 상태 확인
-            window.addEventListener('DOMContentLoaded', checkLoginStatus);
+            // 페이지 로드 시 로그인 상태 확인 및 body 표시
+            window.addEventListener('DOMContentLoaded', function() {
+                document.body.classList.add('auth-checked');
+                checkLoginStatus();
+            });
         </script>
     </body>
     </html>
