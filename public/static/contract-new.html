@@ -1878,6 +1878,10 @@
                 
                 // 계약 데이터 수집
                 console.log('📝 서명 데이터 크기:', adminSignature.length, 'bytes');
+                
+                const insuranceAgeLimit = document.getElementById('drivingRange').value || '전연령';
+                console.log('📝 보험운전범위:', insuranceAgeLimit);
+                
                 const contractData = {
                     contract_type: contractType === 'lease' ? 'individual' : contractType,
                     motorcycle_id: selectedMotorcycleId,
@@ -1885,6 +1889,8 @@
                     customer_phone: customerPhone,
                     resident_number: document.getElementById('residentNumber').value || '',
                     address: document.getElementById('address').value || '',
+                    license_type: insuranceAgeLimit,  // 면허종류
+                    insurance_age_limit: insuranceAgeLimit,  // 보험운전범위
                     start_date: document.getElementById('startDate').value || '',
                     end_date: document.getElementById('endDate').value || '',
                     monthly_fee: document.getElementById('dailyFee').value || '0',  // 일차감금액을 monthly_fee로 저장
@@ -1892,7 +1898,7 @@
                     special_terms: document.getElementById('specialTerms').value || '',
                     admin_signature: adminSignature || '',
                     admin_id_card_photo: adminIdPhotoData || '',
-                    status: 'pending'
+                    status: 'active'  // 저장 시 자동으로 활성화
                 };
                 
                 console.log('📦 전체 데이터 크기:', JSON.stringify(contractData).length, 'bytes');
