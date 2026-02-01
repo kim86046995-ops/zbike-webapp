@@ -506,6 +506,11 @@
             // 차용인 서명
             borrowerCanvas = document.getElementById('borrowerSignatureCanvas');
             borrowerCtx = borrowerCanvas.getContext('2d');
+            
+            // 캔버스 배경을 흰색으로 채우기 (중요!)
+            borrowerCtx.fillStyle = '#FFFFFF';
+            borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            
             borrowerCtx.strokeStyle = '#000';
             borrowerCtx.lineWidth = 2;
             borrowerCtx.lineCap = 'round';
@@ -538,7 +543,10 @@
         }
 
         function clearBorrowerSignature() {
+            // 캔버스를 지우고 다시 흰색 배경으로 채우기
             borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            borrowerCtx.fillStyle = '#FFFFFF';
+            borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
         }
 
         // 신분증 촬영 관련 함수

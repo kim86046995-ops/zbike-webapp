@@ -1703,6 +1703,11 @@
             if (!adminSignatureCanvas) return;
             
             adminSignatureCtx = adminSignatureCanvas.getContext('2d');
+            
+            // 캔버스 배경을 흰색으로 채우기 (중요!)
+            adminSignatureCtx.fillStyle = '#FFFFFF';
+            adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+            
             adminSignatureCtx.strokeStyle = '#000';
             adminSignatureCtx.lineWidth = 2;
             adminSignatureCtx.lineCap = 'round';
@@ -1765,7 +1770,10 @@
         
         function clearAdminSignature() {
             if (adminSignatureCtx && adminSignatureCanvas) {
+                // 캔버스를 지우고 다시 흰색 배경으로 채우기
                 adminSignatureCtx.clearRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+                adminSignatureCtx.fillStyle = '#FFFFFF';
+                adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
             }
         }
         
