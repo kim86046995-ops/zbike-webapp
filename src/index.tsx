@@ -2461,6 +2461,11 @@ app.get('/register', (c) => {
 
 // 관리자 로그인 페이지
 app.get('/login', (c) => {
+  // 캐시 무효화 헤더
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  c.header('Pragma', 'no-cache')
+  c.header('Expires', '0')
+  
   return c.html(`<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -2470,8 +2475,8 @@ app.get('/login', (c) => {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-<iframe src="/static/login" class="w-full h-screen border-0"></iframe>
+<body style="margin: 0; padding: 0; overflow: hidden;">
+<iframe src="/static/login?v=${Date.now()}" class="w-full h-screen border-0"></iframe>
 </body>
 </html>`)
 })
