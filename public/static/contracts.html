@@ -335,6 +335,9 @@
                 <button onclick="downloadPDF()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
                     <i class="fas fa-download mr-2"></i>PDF 다운로드
                 </button>
+                <button onclick="downloadPDFWithCustomName()" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">
+                    <i class="fas fa-edit mr-2"></i>다른 이름으로 저장
+                </button>
                 <button onclick="window.print()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
                     <i class="fas fa-print mr-2"></i>인쇄
                 </button>
@@ -796,8 +799,8 @@
             currentContract = null;
         }
 
-        // PDF 다운로드 함수
-        async function downloadPDF() {
+        // PDF 다운로드 함수 (기본 파일명)
+        async function downloadPDF(customFileName = null) {
             if (!currentContract) {
                 alert('계약서 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
                 return;
@@ -833,8 +836,16 @@
                     await loadHtml2Pdf();
                 }
 
-                const contractNumber = currentContract.contract_number || 'contract';
-                const fileName = `계약서_${contractNumber}.pdf`;
+                // 파일명 결정
+                let fileName;
+                if (customFileName) {
+                    // 사용자 지정 파일명
+                    fileName = customFileName.endsWith('.pdf') ? customFileName : `${customFileName}.pdf`;
+                } else {
+                    // 기본 파일명
+                    const contractNumber = currentContract.contract_number || 'contract';
+                    fileName = `계약서_${contractNumber}.pdf`;
+                }
 
                 // A4 최적화 옵션
                 const opt = {
@@ -872,6 +883,45 @@
                 console.error('❌ PDF 생성 오류:', error);
                 alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}\n\n대안: 브라우저 인쇄 기능(Ctrl+P)을 이용해주세요.`);
             }
+        }
+        
+        // 다른 이름으로 저장
+        async function downloadPDFWithCustomName() {
+            if (!currentContract) {
+                alert('계약서 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
+            // 기본 파일명 제안
+            const contractNumber = currentContract.contract_number || 'contract';
+            const defaultName = `계약서_${contractNumber}`;
+            const customerName = currentContract.customer_name || '고객';
+            
+            // 파일명 입력받기
+            const customName = prompt(
+                `PDF 파일명을 입력하세요:\n\n예시:\n- ${defaultName}\n- ${customerName}_계약서_${contractNumber}\n- 오토바이계약_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}\n\n※ .pdf 확장자는 자동으로 추가됩니다.`,
+                defaultName
+            );
+            
+            if (customName === null) {
+                // 취소 버튼 클릭
+                return;
+            }
+            
+            if (customName.trim() === '') {
+                alert('파일명을 입력해주세요.');
+                return;
+            }
+            
+            // 파일명에서 특수문자 제거 (Windows 파일명 규칙)
+            const sanitizedName = customName
+                .replace(/[<>:"/\\|?*]/g, '_')  // 금지된 문자를 언더스코어로 대체
+                .trim();
+            
+            console.log('📝 사용자 지정 파일명:', sanitizedName);
+            
+            // PDF 다운로드 (사용자 지정 파일명 사용)
+            await downloadPDF(sanitizedName);
         }
 
         // 목록에서 바로 PDF 다운로드
