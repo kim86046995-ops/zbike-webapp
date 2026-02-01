@@ -699,6 +699,25 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   const count = (countResult as any).count + 1
   const contractNumber = `${today}-${String(count).padStart(4, '0')}`
   
+  // 같은 오토바이의 기존 활성 계약을 완료 처리
+  console.log('🔄 Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+  const existingContracts = await DB.prepare(`
+    SELECT id, contract_number, status FROM contracts 
+    WHERE motorcycle_id = ? AND status = 'active'
+  `).bind(data.motorcycle_id).all()
+  
+  if (existingContracts.results.length > 0) {
+    console.log(`📋 Found ${existingContracts.results.length} active contract(s), completing them...`)
+    for (const contract of existingContracts.results) {
+      await DB.prepare(`
+        UPDATE contracts 
+        SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).bind((contract as any).id).run()
+      console.log(`✅ Completed contract: ${(contract as any).contract_number}`)
+    }
+  }
+  
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
@@ -762,6 +781,27 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
     
     const count = (countResult as any).count + 1
     const contractNumber = `${today}-${String(count).padStart(4, '0')}`
+    
+    // 2.5. 같은 오토바이의 기존 활성 계약을 완료 처리
+    console.log('🔄 Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+    const existingContracts = await DB.prepare(`
+      SELECT id, contract_number, status FROM contracts 
+      WHERE motorcycle_id = ? AND status = 'active'
+    `).bind(data.motorcycle_id).all()
+    
+    if (existingContracts.results.length > 0) {
+      console.log(`📋 Found ${existingContracts.results.length} active contract(s), completing them...`)
+      for (const contract of existingContracts.results) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind((contract as any).id).run()
+        console.log(`✅ Completed contract: ${(contract as any).contract_number}`)
+      }
+    } else {
+      console.log('ℹ️ No existing active contracts found')
+    }
     
     // 3. 계약서 저장
     const result = await DB.prepare(`
