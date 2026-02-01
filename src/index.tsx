@@ -8,11 +8,29 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+// 캐시 무효화 미들웨어 (모든 HTML 페이지)
+app.use('*', async (c, next) => {
+  await next()
+  
+  // HTML 응답에 대해서만 캐시 무효화 헤더 추가
+  const contentType = c.res.headers.get('Content-Type')
+  if (contentType?.includes('text/html')) {
+    c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+    c.res.headers.set('Pragma', 'no-cache')
+    c.res.headers.set('Expires', '0')
+  }
+})
+
 // CORS 설정
 app.use('/api/*', cors())
 
-// 정적 파일 서빙
-app.use('/static/*', serveStatic({ root: './public' }))
+// 정적 파일 서빙 (캐시 무효화는 미들웨어에서)
+app.use('/static/*', serveStatic({ 
+  root: './public',
+  onNotFound: (path, c) => {
+    console.log('Static file not found:', path)
+  }
+}))
 
 // ============================================
 // 인증 헬퍼 함수
@@ -2461,22 +2479,21 @@ app.get('/register', (c) => {
 
 // 관리자 로그인 페이지
 app.get('/login', (c) => {
-  // 캐시 무효화 헤더
-  c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
-  c.header('Pragma', 'no-cache')
-  c.header('Expires', '0')
-  
+  const version = Date.now() // 캐시 무효화용 타임스탬프
   return c.html(`<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>관리자 로그인</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?v=${version}"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css?v=${version}" rel="stylesheet">
 </head>
 <body style="margin: 0; padding: 0; overflow: hidden;">
-<iframe src="/static/login?v=${Date.now()}" class="w-full h-screen border-0"></iframe>
+<iframe src="/static/login?v=${version}" class="w-full h-screen border-0" style="border: none; display: block;"></iframe>
 </body>
 </html>`)
 })
