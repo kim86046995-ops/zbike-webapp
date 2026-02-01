@@ -610,13 +610,23 @@
             const photoCanvas = document.getElementById('loanPhotoCanvas');
             const capturedPhoto = document.getElementById('loanCapturedPhoto');
             
-            photoCanvas.width = video.videoWidth;
-            photoCanvas.height = video.videoHeight;
+            // 최대 크기 제한 (가로 1200px)
+            const maxWidth = 1200;
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+            
+            if (width > maxWidth) {
+                height = Math.floor(height * (maxWidth / width));
+                width = maxWidth;
+            }
+            
+            photoCanvas.width = width;
+            photoCanvas.height = height;
             
             const photoCtx = photoCanvas.getContext('2d');
-            photoCtx.drawImage(video, 0, 0);
+            photoCtx.drawImage(video, 0, 0, width, height);
             
-            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.8);
+            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.6);
             capturedPhoto.src = loanIdCardPhotoData;
             
             stopLoanCamera();
@@ -637,9 +647,29 @@
             
             const reader = new FileReader();
             reader.onload = (e) => {
-                loanIdCardPhotoData = e.target.result;
-                document.getElementById('loanCapturedPhoto').src = loanIdCardPhotoData;
-                document.getElementById('loanPhotoPreview').classList.remove('hidden');
+                const img = new Image();
+                img.onload = () => {
+                    // 최대 크기 제한 (가로 1200px)
+                    const maxWidth = 1200;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height = Math.floor(height * (maxWidth / width));
+                        width = maxWidth;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    loanIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+                    document.getElementById('loanCapturedPhoto').src = loanIdCardPhotoData;
+                    document.getElementById('loanPhotoPreview').classList.remove('hidden');
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
