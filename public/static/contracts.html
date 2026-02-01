@@ -491,6 +491,9 @@
                                 <button onclick="showDetail(${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
                                     <i class="fas fa-eye mr-1"></i>상세
                                 </button>
+                                <button onclick="quickDownloadPDF(${c.id})" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded hover:bg-green-700" title="PDF 다운로드">
+                                    <i class="fas fa-download"></i>
+                                </button>
                                 <button onclick="deleteContract(${c.id})" class="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -573,7 +576,7 @@
                             <p><strong>주행거리:</strong> ${Number(c.mileage || 0).toLocaleString()} km</p>
                             <p><strong>보험사:</strong> ${c.insurance_company || '-'}</p>
                             <p><strong>보험기간:</strong> ${c.insurance_start_date || '-'} ~ ${c.insurance_end_date || '-'}</p>
-                            <p><strong>운전범위:</strong> ${c.driving_range || '-'}</p>
+                            <p><strong>보험운전범위:</strong> ${c.driving_range || '-'}</p>
                             <p><strong>명의자:</strong> ${c.owner_name || '-'}</p>
                             <p><strong>차량금액:</strong> ${Number(c.vehicle_price || 0).toLocaleString()}원</p>
                         </div>
@@ -626,7 +629,7 @@
                         <div class="ml-4 space-y-1">
                             <p>① 차용인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
                             <p>② 차용인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
-                            <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                            <p>③ 오토바이는 대여인이 지정한 보험운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
@@ -816,6 +819,29 @@
             } catch (error) {
                 console.error('PDF 생성 오류:', error);
                 alert('PDF 다운로드에 실패했습니다. 인쇄 기능을 이용해주세요.');
+            }
+        }
+
+        // 목록에서 바로 PDF 다운로드
+        async function quickDownloadPDF(id) {
+            try {
+                // 계약서 데이터 로드
+                const response = await axios.get(`/api/contracts/${id}`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                const contract = response.data;
+                currentContract = contract;
+                
+                // 모달에 렌더링 (숨김 상태)
+                document.getElementById('contractDetail').innerHTML = renderDetail(contract);
+                
+                // PDF 다운로드
+                await downloadPDF();
+                
+            } catch (error) {
+                console.error('PDF 다운로드 오류:', error);
+                alert('PDF 다운로드에 실패했습니다.');
             }
         }
 

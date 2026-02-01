@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS motorcycles (
   insurance_company TEXT NOT NULL,          -- 보험사
   insurance_start_date TEXT NOT NULL,       -- 보험시작일
   insurance_end_date TEXT NOT NULL,         -- 보험종료일
-  driving_range TEXT NOT NULL,              -- 운전범위
+  driving_range TEXT NOT NULL,              -- 보험운전범위 (예: 만30세 이상)
   owner_name TEXT NOT NULL,                 -- 명의자
   insurance_fee INTEGER NOT NULL,           -- 보험료
   vehicle_price INTEGER NOT NULL,           -- 차량금액
