@@ -75,16 +75,30 @@
             /* 서명 영역 */
             .signature-section {
                 page-break-inside: avoid;
-                border: 2px solid #ccc;
-                padding: 4mm;
+                border: 2px solid #374151 !important;
+                padding: 6mm !important;
+                margin-bottom: 4mm !important;
             }
+            
+            .signature-section h3, .signature-section h4 {
+                font-size: 12pt !important;
+                font-weight: bold !important;
+                margin-bottom: 3mm !important;
+                text-align: center !important;
+            }
+            
+            .signature-section .border-2 {
+                border: 2px solid #9ca3af !important;
+                padding: 4mm !important;
+                page-break-inside: avoid;
+            }
+            
             .signature-section img {
-                max-width: 100%;
-                height: auto;
-                max-height: 60mm;
-                border: 2px solid #ddd;
-                padding: 2mm;
-                background: white;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: 60mm !important;
+                page-break-inside: avoid;
+                object-fit: contain !important;
             }
             
             /* 계약 출력 영역 */
@@ -456,26 +470,31 @@
                     </div>
 
                     <!-- 서명 섹션 -->
-                    <div class="signature-section grid ${loan.borrower_id_card_photo ? 'grid-cols-2' : 'grid-cols-1'} gap-4 mb-6">
-                        ${loan.borrower_signature ? `
-                            <div class="border-2 border-gray-300 p-4 rounded-lg">
-                                <h3 class="font-bold mb-3">차용인 서명</h3>
-                                <div class="border rounded-lg overflow-hidden bg-white mb-2">
-                                    <img src="${loan.borrower_signature}" alt="차용인 서명" class="w-full">
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6 signature-section">
+                        <h3 class="font-bold text-lg mb-4 text-center">계약자 서명</h3>
+                        <div class="grid ${loan.borrower_id_card_photo ? 'grid-cols-2' : 'grid-cols-1'} gap-6">
+                            <!-- 차용인 서명 -->
+                            ${loan.borrower_signature ? `
+                                <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                    <h4 class="font-bold mb-3 text-center">차용인 서명</h4>
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 mb-3" style="min-height: 150px; display: flex; align-items: center; justify-content: center;">
+                                        <img src="${loan.borrower_signature}" alt="차용인 서명" style="max-width: 100%; max-height: 200px; object-fit: contain;">
+                                    </div>
+                                    <p class="text-sm text-gray-600 text-center">서명인: ${loan.borrower_name}</p>
+                                    <p class="text-sm text-gray-600 text-center">서명일: ${new Date(loan.created_at).toLocaleDateString('ko-KR')}</p>
                                 </div>
-                                <p class="text-sm text-gray-600">서명인: ${loan.borrower_name}</p>
-                                <p class="text-sm text-gray-600">서명일: ${new Date(loan.created_at).toLocaleDateString('ko-KR')}</p>
-                            </div>
-                        ` : ''}
-                        
-                        ${loan.borrower_id_card_photo ? `
-                            <div class="border-2 border-gray-300 p-4 rounded-lg">
-                                <h3 class="font-bold mb-3">차용인 신분증</h3>
-                                <div class="border rounded-lg overflow-hidden bg-white">
-                                    <img src="${loan.borrower_id_card_photo}" alt="신분증" class="w-full">
+                            ` : ''}
+                            
+                            <!-- 차용인 신분증 -->
+                            ${loan.borrower_id_card_photo ? `
+                                <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                    <h4 class="font-bold mb-3 text-center">차용인 신분증</h4>
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50" style="min-height: 150px; display: flex; align-items: center; justify-content: center;">
+                                        <img src="${loan.borrower_id_card_photo}" alt="신분증" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                                    </div>
                                 </div>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                        </div>
                     </div>
 
                     <!-- 계약 체결일 -->
