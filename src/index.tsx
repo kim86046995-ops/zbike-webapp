@@ -2177,9 +2177,17 @@ app.get('/dashboard', (c) => {
                 if (sessionId && user) {
                     try {
                         // 세션 유효성 확인
-                        await axios.get('/api/auth/check', {
+                        const response = await axios.get('/api/auth/check', {
                             headers: { 'X-Session-ID': sessionId }
                         });
+                        
+                        if (!response.data.authenticated) {
+                            // 인증 실패 시 로그인 페이지로 리다이렉트
+                            localStorage.removeItem('sessionId');
+                            localStorage.removeItem('user');
+                            window.location.href = '/login';
+                            return;
+                        }
                         
                         const userData = JSON.parse(user);
                         
@@ -2194,28 +2202,21 @@ app.get('/dashboard', (c) => {
                         // 통계 로드
                         loadStats();
                     } catch (e) {
-                        // 세션 만료 시 로그아웃 처리
+                        // 세션 만료 시 로그인 페이지로 리다이렉트
                         localStorage.removeItem('sessionId');
                         localStorage.removeItem('user');
-                        showLoggedOut();
+                        window.location.href = '/login';
                     }
                 } else {
-                    showLoggedOut();
+                    // 세션이 없으면 로그인 페이지로 리다이렉트
+                    window.location.href = '/login';
                 }
             }
             
             // 로그아웃 상태 표시
             function showLoggedOut() {
-                const loggedIn = document.getElementById('loggedIn');
-                const loggedOut = document.getElementById('loggedOut');
-                
-                loggedIn.classList.add('hidden');
-                loggedIn.classList.remove('flex');
-                loggedOut.classList.remove('hidden');
-                loggedOut.classList.add('flex');
-                
-                // 통계 섹션 숨기기
-                document.getElementById('statsSection').style.display = 'none';
+                // 로그인 페이지로 리다이렉트
+                window.location.href = '/login';
             }
             
             // 통계 로드
