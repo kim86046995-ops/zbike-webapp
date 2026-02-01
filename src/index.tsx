@@ -144,6 +144,75 @@ app.get('/api/auth/check', async (c) => {
   })
 })
 
+// 관리자 목록 조회 (슈퍼관리자 전용)
+app.get('/api/admin/users', async (c) => {
+  const { DB } = c.env
+  const sessionId = c.req.header('X-Session-ID')
+  
+  const session = await validateSession(DB, sessionId)
+  if (!session || (session as any).role !== 'super_admin') {
+    return c.json({ error: '권한이 없습니다' }, 403)
+  }
+  
+  // 모든 관리자 조회 (아이디 순)
+  const result = await DB.prepare(`
+    SELECT 
+      u.id,
+      u.username,
+      u.name,
+      u.email,
+      u.phone,
+      u.role,
+      u.status,
+      u.created_at,
+      (SELECT COUNT(*) FROM sessions WHERE user_id = u.id) as is_logged_in
+    FROM users u
+    ORDER BY u.username ASC
+  `).all()
+  
+  return c.json({ 
+    success: true, 
+    admins: result.results 
+  })
+})
+
+// 관리자 상태 변경 (슈퍼관리자 전용)
+app.post('/api/admin/users/:id/status', async (c) => {
+  const { DB } = c.env
+  const sessionId = c.req.header('X-Session-ID')
+  
+  const session = await validateSession(DB, sessionId)
+  if (!session || (session as any).role !== 'super_admin') {
+    return c.json({ error: '권한이 없습니다' }, 403)
+  }
+  
+  const userId = c.req.param('id')
+  const { status } = await c.req.json()
+  
+  // 자기 자신은 변경할 수 없음
+  if ((session as any).user_id === parseInt(userId)) {
+    return c.json({ error: '자기 자신의 상태는 변경할 수 없습니다' }, 400)
+  }
+  
+  // 슈퍼관리자는 정지할 수 없음
+  const targetUser = await DB.prepare('SELECT role FROM users WHERE id = ?').bind(userId).first()
+  if (targetUser && (targetUser as any).role === 'super_admin') {
+    return c.json({ error: '슈퍼관리자는 정지할 수 없습니다' }, 400)
+  }
+  
+  // 상태 업데이트
+  await DB.prepare('UPDATE users SET status = ? WHERE id = ?')
+    .bind(status, userId)
+    .run()
+  
+  // 정지 시 모든 세션 삭제
+  if (status === 'inactive') {
+    await DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run()
+  }
+  
+  return c.json({ success: true })
+})
+
 // 아이디 찾기 (이름과 전화번호로)
 app.post('/api/auth/find-username', async (c) => {
   const { DB } = c.env
@@ -1038,6 +1107,84 @@ app.post('/api/auth/register', async (c) => {
 })
 
 // ============================================
+// 관리자 관리 API (슈퍼관리자 전용)
+// ============================================
+
+// 모든 관리자 목록 조회 (슈퍼관리자 전용)
+app.get('/api/admins', async (c) => {
+  const { DB } = c.env
+  const sessionId = c.req.header('X-Session-ID')
+  
+  const session = await validateSession(DB, sessionId)
+  if (!session) {
+    return c.json({ error: '인증이 필요합니다' }, 401)
+  }
+  
+  // 슈퍼관리자만 접근 가능
+  if ((session as any).role !== 'super_admin') {
+    return c.json({ error: '권한이 없습니다' }, 403)
+  }
+  
+  // 모든 관리자 조회 (비밀번호 제외)
+  const result = await DB.prepare(`
+    SELECT 
+      u.id, u.username, u.name, u.email, u.phone, u.role, u.status, u.created_at,
+      s.session_id, s.created_at as last_login
+    FROM users u
+    LEFT JOIN sessions s ON u.id = s.user_id
+    ORDER BY 
+      CASE WHEN u.role = 'super_admin' THEN 0 ELSE 1 END,
+      u.created_at DESC
+  `).all()
+  
+  return c.json(result.results)
+})
+
+// 관리자 상태 변경 (정지/활성) - 슈퍼관리자 전용
+app.put('/api/admins/:id/status', async (c) => {
+  const { DB } = c.env
+  const sessionId = c.req.header('X-Session-ID')
+  const adminId = c.req.param('id')
+  const { status } = await c.req.json()
+  
+  const session = await validateSession(DB, sessionId)
+  if (!session) {
+    return c.json({ error: '인증이 필요합니다' }, 401)
+  }
+  
+  // 슈퍼관리자만 접근 가능
+  if ((session as any).role !== 'super_admin') {
+    return c.json({ error: '권한이 없습니다' }, 403)
+  }
+  
+  // 자기 자신은 정지할 수 없음
+  if ((session as any).user_id === parseInt(adminId)) {
+    return c.json({ error: '자기 자신의 계정은 정지할 수 없습니다' }, 400)
+  }
+  
+  // 다른 슈퍼관리자는 정지할 수 없음
+  const targetUser = await DB.prepare('SELECT role FROM users WHERE id = ?').bind(adminId).first()
+  if ((targetUser as any)?.role === 'super_admin') {
+    return c.json({ error: '슈퍼관리자 계정은 정지할 수 없습니다' }, 400)
+  }
+  
+  // 상태 변경
+  await DB.prepare(`
+    UPDATE users SET status = ? WHERE id = ?
+  `).bind(status, adminId).run()
+  
+  // 정지 시 해당 사용자의 모든 세션 삭제
+  if (status === 'suspended') {
+    await DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(adminId).run()
+  }
+  
+  return c.json({ 
+    success: true,
+    message: status === 'active' ? '계정이 활성화되었습니다' : '계정이 정지되었습니다'
+  })
+})
+
+// ============================================
 // 계약서 공유 API (카카오톡 전송용)
 // ============================================
 
@@ -1916,8 +2063,8 @@ app.get('/dashboard', (c) => {
             </main>
             
             <!-- 내 정보 모달 -->
-            <div id="myInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div id="myInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
                     <div class="p-6">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold text-gray-800">
@@ -1928,53 +2075,81 @@ app.get('/dashboard', (c) => {
                             </button>
                         </div>
                         
-                        <!-- 프로필 카드 -->
-                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg mb-6">
-                            <div class="flex items-center mb-4">
-                                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold">
-                                    <span id="modalUserInitial"></span>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- 왼쪽: 내 정보 -->
+                            <div>
+                                <!-- 프로필 카드 -->
+                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg mb-6">
+                                    <div class="flex items-center mb-4">
+                                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold">
+                                            <span id="modalUserInitial"></span>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h3 class="text-xl font-bold text-gray-800" id="modalUserName"></h3>
+                                            <p class="text-sm text-gray-600" id="modalUsername"></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 역할 배지 -->
+                                    <div class="flex items-center justify-center">
+                                        <span id="modalUserRole" class="px-4 py-2 rounded-full text-sm font-bold"></span>
+                                    </div>
                                 </div>
-                                <div class="ml-4">
-                                    <h3 class="text-xl font-bold text-gray-800" id="modalUserName"></h3>
-                                    <p class="text-sm text-gray-600" id="modalUsername"></p>
+                                
+                                <!-- 상세 정보 -->
+                                <div class="space-y-4">
+                                    <div class="flex items-start">
+                                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-user text-blue-600"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-xs text-gray-500 mb-1">이름</p>
+                                            <p class="font-semibold text-gray-800" id="modalUserNameDetail"></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start">
+                                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-phone text-green-600"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-xs text-gray-500 mb-1">전화번호</p>
+                                            <p class="font-semibold text-gray-800" id="modalUserPhone"></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start">
+                                        <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-envelope text-purple-600"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-xs text-gray-500 mb-1">이메일</p>
+                                            <p class="font-semibold text-gray-800" id="modalUserEmail"></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start">
+                                        <div class="bg-red-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-key text-red-600"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-xs text-gray-500 mb-1">비밀번호</p>
+                                            <p class="font-semibold text-gray-800">••••••••</p>
+                                            <p class="text-xs text-gray-400 mt-1">보안을 위해 표시되지 않습니다</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- 역할 배지 -->
-                            <div class="flex items-center justify-center">
-                                <span id="modalUserRole" class="px-4 py-2 rounded-full text-sm font-bold"></span>
-                            </div>
-                        </div>
-                        
-                        <!-- 상세 정보 -->
-                        <div class="space-y-4">
-                            <div class="flex items-start">
-                                <div class="bg-blue-100 p-2 rounded-lg mr-3">
-                                    <i class="fas fa-user text-blue-600"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-500 mb-1">이름</p>
-                                    <p class="font-semibold text-gray-800" id="modalUserNameDetail"></p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-start">
-                                <div class="bg-green-100 p-2 rounded-lg mr-3">
-                                    <i class="fas fa-phone text-green-600"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-500 mb-1">전화번호</p>
-                                    <p class="font-semibold text-gray-800" id="modalUserPhone"></p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-start">
-                                <div class="bg-purple-100 p-2 rounded-lg mr-3">
-                                    <i class="fas fa-envelope text-purple-600"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-500 mb-1">이메일</p>
-                                    <p class="font-semibold text-gray-800" id="modalUserEmail"></p>
+                            <!-- 오른쪽: 관리자 목록 (슈퍼관리자만 표시) -->
+                            <div id="adminListSection" class="hidden">
+                                <h3 class="text-lg font-bold mb-4 text-gray-800">
+                                    <i class="fas fa-users-cog mr-2 text-purple-600"></i>
+                                    관리자 목록
+                                </h3>
+                                
+                                <div id="adminListContainer" class="space-y-3 max-h-[500px] overflow-y-auto">
+                                    <!-- 관리자 목록이 여기에 동적으로 추가됩니다 -->
                                 </div>
                             </div>
                         </div>
@@ -2127,9 +2302,15 @@ app.get('/dashboard', (c) => {
                     if (user.role === 'super_admin') {
                         roleEl.textContent = '슈퍼 관리자';
                         roleEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white';
+                        
+                        // 슈퍼관리자인 경우 관리자 목록 로드
+                        await loadAdminList(sessionId);
                     } else {
                         roleEl.textContent = '일반 관리자';
                         roleEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-blue-600 text-white';
+                        
+                        // 일반 관리자는 관리자 목록 숨김
+                        document.getElementById('adminListSection').classList.add('hidden');
                     }
                     
                     // 모달 표시
@@ -2137,6 +2318,95 @@ app.get('/dashboard', (c) => {
                 } catch (error) {
                     console.error('사용자 정보 로드 오류:', error);
                     alert('사용자 정보를 불러오는데 실패했습니다');
+                }
+            }
+            
+            // 관리자 목록 로드 (슈퍼관리자 전용)
+            async function loadAdminList(sessionId) {
+                try {
+                    const response = await axios.get('/api/admin/users', {
+                        headers: { 'X-Session-ID': sessionId }
+                    });
+                    
+                    const admins = response.data.admins;
+                    const container = document.getElementById('adminListContainer');
+                    
+                    let html = '';
+                    for (const admin of admins) {
+                        const isActive = admin.status !== 'inactive';
+                        const isLoggedIn = admin.is_logged_in > 0;
+                        const roleText = admin.role === 'super_admin' ? '슈퍼관리자' : '일반관리자';
+                        const statusColor = isActive ? 'text-green-600' : 'text-red-600';
+                        const statusText = isActive ? '활성' : '정지';
+                        const borderColor = isActive ? 'border-green-200' : 'border-red-200';
+                        const buttonBg = isActive ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600';
+                        const buttonIcon = isActive ? 'ban' : 'check';
+                        const buttonText = isActive ? '정지' : '활성화';
+                        const statusAction = isActive ? 'inactive' : 'active';
+                        
+                        html += '<div style="background-color: #f9fafb; padding: 1rem; border-radius: 0.5rem; border: 2px solid; border-color: ' + (isActive ? '#bbf7d0' : '#fecaca') + ';">';
+                        html += '<div style="display: flex; align-items: center; justify-content: space-between;">';
+                        html += '<div style="flex: 1;">';
+                        html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">';
+                        html += '<span style="font-weight: bold; color: #1f2937;">' + admin.username + '</span>';
+                        html += '<span style="font-size: 0.875rem; color: #4b5563;">' + (admin.name || '이름없음') + '</span>';
+                        if (isLoggedIn) {
+                            html += '<span style="font-size: 0.75rem; background-color: #d1fae5; color: #047857; padding: 0.25rem 0.5rem; border-radius: 9999px; font-weight: 600;"><i style="font-size: 6px;" aria-hidden="true"></i>사용중</span>';
+                        }
+                        html += '</div>';
+                        html += '<div style="font-size: 0.75rem; color: #6b7280;">';
+                        html += '<div><i aria-hidden="true"></i>' + roleText + '</div>';
+                        html += '<div><i aria-hidden="true"></i>' + (admin.email || '이메일 없음') + '</div>';
+                        html += '<div><i aria-hidden="true"></i>' + (admin.phone || '전화번호 없음') + '</div>';
+                        html += '<div><span style="' + (isActive ? 'color: #16a34a;' : 'color: #dc2626;') + ' font-weight: 600;">' + statusText + '</span></div>';
+                        html += '</div>';
+                        html += '</div>';
+                        
+                        if (admin.role !== 'super_admin') {
+                            html += '<button onclick="toggleAdminStatus(' + admin.id + ', \'' + statusAction + '\')" style="margin-left: 1rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.875rem; color: white; background-color: ' + (isActive ? '#ef4444' : '#22c55e') + ';">' + buttonText + '</button>';
+                        } else {
+                            html += '<span style="margin-left: 1rem; font-size: 0.75rem; color: #9333ea; font-weight: 600;">변경불가</span>';
+                        }
+                        
+                        html += '</div>';
+                        html += '</div>';
+                    }
+                    
+                    container.innerHTML = html;
+                    
+                    // 관리자 목록 섹션 표시
+                    document.getElementById('adminListSection').classList.remove('hidden');
+                } catch (error) {
+                    console.error('관리자 목록 로드 오류:', error);
+                }
+            }
+            
+            // 관리자 상태 변경
+            async function toggleAdminStatus(userId, newStatus) {
+                const statusText = newStatus === 'active' ? '활성화' : '정지';
+                const confirmMsg = '정말로 이 관리자를 ' + statusText + '하시겠습니까?' + (newStatus === 'inactive' ? '\\n정지 시 해당 관리자의 모든 세션이 종료됩니다.' : '');
+                
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+                
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) return;
+                
+                try {
+                    await axios.post('/api/admin/users/' + userId + '/status', 
+                        { status: newStatus },
+                        { headers: { 'X-Session-ID': sessionId } }
+                    );
+                    
+                    alert('관리자 상태가 ' + statusText + '되었습니다');
+                    
+                    // 관리자 목록 다시 로드
+                    await loadAdminList(sessionId);
+                } catch (error) {
+                    console.error('상태 변경 오류:', error);
+                    const errorMsg = (error.response && error.response.data && error.response.data.error) || '상태 변경에 실패했습니다';
+                    alert(errorMsg);
                 }
             }
             
