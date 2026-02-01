@@ -610,8 +610,8 @@
             const photoCanvas = document.getElementById('loanPhotoCanvas');
             const capturedPhoto = document.getElementById('loanCapturedPhoto');
             
-            // 최대 크기 제한 (가로 1200px)
-            const maxWidth = 1200;
+            // 최대 크기 제한 (가로 800px로 더 축소)
+            const maxWidth = 800;
             let width = video.videoWidth;
             let height = video.videoHeight;
             
@@ -626,7 +626,8 @@
             const photoCtx = photoCanvas.getContext('2d');
             photoCtx.drawImage(video, 0, 0, width, height);
             
-            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.6);
+            // 품질을 0.4로 더 낮춤
+            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.4);
             capturedPhoto.src = loanIdCardPhotoData;
             
             stopLoanCamera();
@@ -649,8 +650,8 @@
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
-                    // 최대 크기 제한 (가로 1200px)
-                    const maxWidth = 1200;
+                    // 최대 크기 제한 (가로 800px로 더 축소)
+                    const maxWidth = 800;
                     let width = img.width;
                     let height = img.height;
                     
@@ -665,7 +666,8 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    loanIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+                    // 품질을 0.4로 더 낮춤
+                    loanIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.4);
                     document.getElementById('loanCapturedPhoto').src = loanIdCardPhotoData;
                     document.getElementById('loanPhotoPreview').classList.remove('hidden');
                 };
