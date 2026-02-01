@@ -434,7 +434,7 @@
                         <p class="font-bold mt-3 mb-2">제5조 (이자 및 연체이자)</p>
                         <div class="ml-4 space-y-1">
                             <p>① 이자는 연 20%를 적용하여 계산됩니다.</p>
-                            <p>② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 연 15%의 연체이자를 부담합니다.</p>
+                            <p>② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 연 20%의 연체이자를 부담합니다.</p>
                         </div>
 
                         <div class="border-t border-gray-400 mt-4 pt-3">
@@ -526,9 +526,18 @@
                 await loadHtml2Pdf();
                 
                 const element = document.getElementById('pdfContent');
-                if (!element || element.offsetHeight === 0) {
-                    throw new Error('PDF 생성을 위한 요소를 찾을 수 없거나 비어있습니다');
+                if (!element) {
+                    throw new Error('PDF 생성을 위한 요소를 찾을 수 없습니다');
                 }
+                
+                // 콘텐츠가 비어있는지 확인
+                if (!element.innerHTML || element.innerHTML.trim() === '') {
+                    console.error('❌ pdfContent가 비어있습니다');
+                    throw new Error('PDF 콘텐츠가 비어있습니다. 잠시 후 다시 시도해주세요.');
+                }
+                
+                console.log('📄 pdfContent 크기:', element.offsetWidth, 'x', element.offsetHeight);
+                console.log('📄 pdfContent 내용 길이:', element.innerHTML.length);
                 
                 const fileName = customFileName || `차용증_${currentLoan.loan_number}.pdf`;
                 console.log('📄 PDF 생성 시작:', fileName);
@@ -559,7 +568,31 @@
                 // Blob 방식으로 다운로드
                 const blob = await html2pdf().set(opt).from(element).output('blob');
                 
-                // Blob URL 생성 및 다운로드
+                // File System Access API 지원 여부 확인 (Chrome/Edge)
+                if ('showSaveFilePicker' in window) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: fileName,
+                            types: [{
+                                description: 'PDF 파일',
+                                accept: { 'application/pdf': ['.pdf'] }
+                            }]
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        console.log('✅ PDF 저장 완료 (File System Access API)');
+                        return;
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            console.log('사용자가 저장을 취소했습니다');
+                            return;
+                        }
+                        console.log('File System Access API 실패, 기본 다운로드로 전환:', err);
+                    }
+                }
+                
+                // 기본 다운로드 방식
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -572,7 +605,7 @@
                 console.log('✅ PDF 다운로드 완료');
             } catch (error) {
                 console.error('❌ PDF 다운로드 오류:', error);
-                alert(`PDF 다운로드에 실패했습니다\\n오류: ${error.message}\\n\\n대안: 인쇄 버튼을 눌러 브라우저 인쇄 대화상자(Ctrl+P)를 사용하세요.`);
+                alert(`PDF 다운로드에 실패했습니다\n오류: ${error.message}\n\n대안: 인쇄 버튼을 눌러 브라우저 인쇄 대화상자(Ctrl+P)를 사용하세요.`);
             }
         }
 
@@ -609,17 +642,31 @@
                 const response = await axios.get(`/api/loan-contracts/${id}`);
                 currentLoan = response.data;
                 
+                if (!currentLoan) {
+                    throw new Error('차용증 데이터를 불러올 수 없습니다');
+                }
+                
+                console.log('✅ 차용증 데이터 로드 완료:', currentLoan.loan_number);
+                
                 // 렌더링
                 renderDetail();
                 
-                // 대기
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // DOM 업데이트 대기 (더 긴 시간)
+                await new Promise(resolve => setTimeout(resolve, 1200));
+                
+                // pdfContent 검증
+                const pdfContent = document.getElementById('pdfContent');
+                if (!pdfContent || !pdfContent.innerHTML.trim()) {
+                    throw new Error('PDF 콘텐츠가 렌더링되지 않았습니다');
+                }
+                
+                console.log('✅ PDF 콘텐츠 렌더링 완료, 길이:', pdfContent.innerHTML.length);
                 
                 // PDF 다운로드
                 await downloadPDF();
             } catch (error) {
                 console.error('❌ 빠른 다운로드 오류:', error);
-                alert('PDF 다운로드에 실패했습니다');
+                alert(`PDF 다운로드에 실패했습니다\n오류: ${error.message}\n\n상세보기를 열고 다시 시도해주세요.`);
             }
         }
     </script>
