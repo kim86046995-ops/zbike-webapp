@@ -876,7 +876,24 @@
                 };
 
                 console.log('🎨 html2canvas 시작...');
-                await html2pdf().set(opt).from(element).save();
+                
+                // PDF 생성 및 다운로드 (Blob 방식)
+                const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                
+                // Blob을 다운로드 링크로 변환
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = blobUrl;
+                downloadLink.download = fileName;
+                
+                // 링크 클릭하여 다운로드
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                
+                // 정리
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(blobUrl);
+                
                 console.log('✅ PDF 생성 완료:', fileName);
                 
             } catch (error) {
