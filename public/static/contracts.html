@@ -714,7 +714,7 @@
                     </div>
                     
                     <!-- 약관 동의 표시 -->
-                    <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded mb-6">
+                    <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded mb-6 terms-agreement">
                         <div class="mt-1 w-5 h-5 bg-green-600 rounded flex items-center justify-center">
                             <i class="fas fa-check text-white text-xs"></i>
                         </div>
@@ -724,7 +724,7 @@
                     </div>
 
                     <!-- 서명 섹션 -->
-                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6 signature-section">
                         <h3 class="font-bold text-lg mb-4 text-center">계약자 서명</h3>
                         <div class="grid ${c.id_card_photo ? 'grid-cols-2' : 'grid-cols-1'} gap-6">
                             <!-- 차용인 서명 -->
@@ -794,28 +794,45 @@
                 const contractNumber = currentContract.contract_number || 'contract';
                 const fileName = `계약서_${contractNumber}.pdf`;
 
+                // A4 사이즈에 최적화된 PDF 옵션
+                // A4 = 210mm x 297mm
                 const opt = {
-                    margin: [10, 12, 10, 12],
+                    margin: [8, 10, 8, 10],  // 상, 우, 하, 좌 (mm)
                     filename: fileName,
-                    image: { type: 'jpeg', quality: 0.98 },
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 0.98 
+                    },
                     html2canvas: { 
-                        scale: 2,
-                        useCORS: true,
-                        letterRendering: true
+                        scale: 2,           // 고해상도
+                        useCORS: true,      // 이미지 CORS 허용
+                        letterRendering: true,  // 한글 렌더링 개선
+                        scrollY: 0,
+                        scrollX: 0,
+                        windowWidth: 794,   // A4 width at 96 DPI
+                        windowHeight: 1123  // A4 height at 96 DPI
                     },
                     jsPDF: { 
                         unit: 'mm', 
                         format: 'a4', 
-                        orientation: 'portrait'
+                        orientation: 'portrait',
+                        compress: true      // 파일 크기 최적화
                     },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                    pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy'],
+                        before: '.page-break-before',
+                        after: '.page-break-after',
+                        avoid: ['.signature-section', '.terms-agreement', '.contract-terms']
+                    }
                 };
 
+                console.log('📄 PDF 생성 시작:', fileName);
                 await html2pdf().set(opt).from(element).save();
+                console.log('✅ PDF 생성 완료:', fileName);
                 
             } catch (error) {
-                console.error('PDF 생성 오류:', error);
-                alert('PDF 다운로드에 실패했습니다. 인쇄 기능을 이용해주세요.');
+                console.error('❌ PDF 생성 오류:', error);
+                alert('PDF 다운로드에 실패했습니다.\n\n대안: 브라우저 인쇄 기능(Ctrl+P)을 이용해주세요.');
             }
         }
 
