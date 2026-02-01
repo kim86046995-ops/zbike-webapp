@@ -1846,27 +1846,13 @@ app.get('/dashboard', (c) => {
         </noscript>
         <style>
             body { 
-                display: none;
                 opacity: 0;
-                visibility: hidden;
+                transition: opacity 0.2s ease-in;
             }
-            body.auth-checked {
-                display: block;
+            body.loaded {
                 opacity: 1;
-                visibility: visible;
             }
         </style>
-        <script>
-            // 즉시 실행: 로그인 체크
-            (function() {
-                const sessionId = localStorage.getItem('sessionId');
-                const user = localStorage.getItem('user');
-                if (!sessionId || !user) {
-                    window.location.replace('/login');
-                }
-                // 세션이 있으면 계속 진행
-            })();
-        </script>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     </head>
@@ -2444,7 +2430,10 @@ app.get('/dashboard', (c) => {
             
             // 페이지 로드 시 로그인 상태 확인 및 body 표시
             window.addEventListener('DOMContentLoaded', function() {
-                document.body.classList.add('auth-checked');
+                // 먼저 body를 보이게 함 (로딩 애니메이션 보이도록)
+                document.body.classList.add('loaded');
+                
+                // 로그인 상태 확인
                 checkLoginStatus();
             });
         </script>
