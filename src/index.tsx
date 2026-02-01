@@ -2421,7 +2421,7 @@ app.get('/dashboard', (c) => {
                         html += '</div>';
                         
                         if (admin.role !== 'super_admin') {
-                            html += '<button onclick="toggleAdminStatus(' + admin.id + ', \'' + statusAction + '\')" style="margin-left: 1rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.875rem; color: white; background-color: ' + (isActive ? '#ef4444' : '#22c55e') + ';">' + buttonText + '</button>';
+                            html += '<button onclick="toggleAdminStatus(' + admin.id + ', &quot;' + statusAction + '&quot;)" style="margin-left: 1rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.875rem; color: white; background-color: ' + (isActive ? '#ef4444' : '#22c55e') + ';">' + buttonText + '</button>';
                         } else {
                             html += '<span style="margin-left: 1rem; font-size: 0.75rem; color: #9333ea; font-weight: 600;">변경불가</span>';
                         }
