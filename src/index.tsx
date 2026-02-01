@@ -476,6 +476,60 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   })
 })
 
+// 오토바이 폐지 (정보 초기화, 이력 보존)
+app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  const { usage_notes } = await c.req.json()
+  
+  console.log(`🗑️ Scrapping motorcycle #${id}`)
+  
+  // 1. 기존 오토바이 정보 조회 (차대번호, 연식, 차량명 보존용)
+  const motorcycle = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first() as any
+  
+  if (!motorcycle) {
+    return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+  }
+  
+  console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
+  
+  // 2. 오토바이 정보 초기화 (차대번호, 연식, 차량명만 보존)
+  await DB.prepare(`
+    UPDATE motorcycles 
+    SET 
+      plate_number = '',
+      mileage = 0,
+      insurance_company = '',
+      insurance_start_date = '',
+      insurance_end_date = '',
+      driving_range = '',
+      owner_name = '',
+      insurance_fee = 0,
+      vehicle_price = 0,
+      daily_rental_fee = 0,
+      status = 'scrapped',
+      usage_notes = ?,
+      inspection_start_date = NULL,
+      inspection_end_date = NULL,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(usage_notes, id).run()
+  
+  console.log(`✅ Motorcycle #${id} scrapped. History preserved, data reset.`)
+  console.log(`📝 Scrap reason: ${usage_notes}`)
+  
+  // 3. 계약 이력은 그대로 유지 (아무 작업도 하지 않음)
+  
+  return c.json({ 
+    message: '폐지 처리되었습니다. 계약 이력은 보존되었습니다.',
+    preserved: {
+      vehicle_name: motorcycle.vehicle_name,
+      chassis_number: motorcycle.chassis_number,
+      model_year: motorcycle.model_year
+    }
+  })
+})
+
 // 오토바이별 계약 이력 조회
 app.get('/api/motorcycles/:id/contracts', async (c) => {
   const { DB } = c.env

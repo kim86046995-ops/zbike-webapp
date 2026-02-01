@@ -1350,7 +1350,15 @@
         }
 
         async function deleteMotorcycle(id) {
-            if (!confirm('정말 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.')) return;
+            // 1단계 확인
+            if (!confirm('⚠️ 오토바이를 삭제하시겠습니까?\n\n삭제하면:\n✗ 오토바이 정보 완전 삭제\n✗ 모든 계약 이력도 삭제\n✗ 복구 불가능\n\n정말 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            // 2단계 최종 확인
+            if (!confirm('⚠️⚠️ 최종 확인 ⚠️⚠️\n\n정말로 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) {
+                return;
+            }
 
             try {
                 await axios.delete(`/api/motorcycles/${id}`);
@@ -1376,25 +1384,35 @@
             }
         }
 
-        // 사용 폐지 (상태를 scrapped로 변경)
+        // 사용 폐지 (오토바이 정보 초기화, 이력은 보존)
         async function scrapMotorcycle(id) {
+            // 1단계: 폐지 확인
+            if (!confirm('⚠️ 오토바이를 폐지하시겠습니까?\n\n폐지하면:\n✓ 계약 이력은 모두 보존됩니다\n✓ 차대번호, 연식, 차량명만 남습니다\n✓ 기타 정보는 초기화됩니다\n\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+            
+            // 2단계: 폐지 사유 입력
             const usageNotes = prompt('폐지 사유를 입력해주세요:\n(예: 차량 노후, 사고, 부품 손상 등)');
             
-            if (usageNotes === null) return; // 취소
+            if (usageNotes === null) {
+                return; // 취소
+            }
             
             if (!usageNotes.trim()) {
                 alert('⚠️ 폐지 사유를 입력해주세요.');
                 return;
             }
-
-            if (!confirm(`오토바이를 폐지 처리하시겠습니까?\n\n폐지 사유: ${usageNotes}\n\n⚠️ 폐지 후에도 계약 이력은 유지됩니다.`)) return;
+            
+            // 3단계: 최종 확인
+            if (!confirm(`정말로 폐지 처리하시겠습니까?\n\n폐지 사유: ${usageNotes}\n\n⚠️ 이 작업은 되돌릴 수 없습니다!`)) {
+                return;
+            }
 
             try {
-                await axios.patch(`/api/motorcycles/${id}/status`, { 
-                    status: 'scrapped',
+                await axios.post(`/api/motorcycles/${id}/scrap`, { 
                     usage_notes: usageNotes
                 });
-                alert('✅ 오토바이가 폐지 처리되었습니다.');
+                alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 차량 정보: 초기화 완료');
                 loadMotorcycles();
             } catch (error) {
                 console.error('Error scrapping motorcycle:', error);
