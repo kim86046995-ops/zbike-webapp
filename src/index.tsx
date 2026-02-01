@@ -706,13 +706,13 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       customerId = (existingCustomer as any).id
       // 고객 정보 업데이트
       await DB.prepare(`
-        UPDATE customers SET name = ?, resident_number = ?, address = ? WHERE id = ?
-      `).bind(data.customer_name, data.resident_number || '', data.address || '', customerId).run()
+        UPDATE customers SET name = ?, resident_number = ?, address = ?, license_type = ? WHERE id = ?
+      `).bind(data.customer_name, data.resident_number || '', data.address || '', data.license_type || '2종소형', customerId).run()
     } else {
       // 신규 고객 등록
       const customerResult = await DB.prepare(`
-        INSERT INTO customers (name, phone, resident_number, address) VALUES (?, ?, ?, ?)
-      `).bind(data.customer_name, data.customer_phone, data.resident_number || '', data.address || '').run()
+        INSERT INTO customers (name, phone, resident_number, address, license_type) VALUES (?, ?, ?, ?, ?)
+      `).bind(data.customer_name, data.customer_phone, data.resident_number || '', data.address || '', data.license_type || '2종소형').run()
       customerId = customerResult.meta.last_row_id
     }
     
