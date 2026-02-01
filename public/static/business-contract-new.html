@@ -8,37 +8,40 @@
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     
+    
+    
+    
     <noscript>
         <meta http-equiv="refresh" content="0; url=/login">
     </noscript>
     <style>
         body { 
-            display: none !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
+            display: none;
+            opacity: 0;
+            visibility: hidden;
         }
-        body.authenticated {
-            display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
+        body.auth-checked {
+            display: block;
+            opacity: 1;
+            visibility: visible;
         }
     </style>
     <script>
-        // 즉시 실행: 로그인 체크 (최우선 순위)
+        // 즉시 실행: 로그인 체크
         (function() {
             var sessionId = localStorage.getItem('sessionId');
             var user = localStorage.getItem('user');
             if (!sessionId || !user) {
                 window.location.replace('/login?redirect=' + encodeURIComponent(window.location.pathname));
-                if (window.stop) window.stop();
-                throw new Error('Unauthorized');
             } else {
-                document.documentElement.className = 'authenticated';
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('auth-checked');
+                });
             }
         })();
     </script>
 </head>
-<body class="bg-gray-50"  class="authenticated" class="authenticated">
+<body class="bg-gray-50"  class="" class="authenticated">
     
     <div class="min-h-screen pb-20">
         <!-- 헤더 -->

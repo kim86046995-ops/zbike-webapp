@@ -1846,37 +1846,35 @@ app.get('/dashboard', (c) => {
         </noscript>
         <style>
             body { 
-                display: none !important;
-                opacity: 0 !important;
-                visibility: hidden !important;
+                display: none;
+                opacity: 0;
+                visibility: hidden;
             }
-            body.authenticated {
-                display: block !important;
-                opacity: 1 !important;
-                visibility: visible !important;
+            body.auth-checked {
+                display: block;
+                opacity: 1;
+                visibility: visible;
             }
         </style>
         <script>
-            // 즉시 실행: 로그인 체크 (최우선 순위)
+            // 즉시 실행: 로그인 체크
             (function() {
-                var sessionId = localStorage.getItem('sessionId');
-                var user = localStorage.getItem('user');
+                const sessionId = localStorage.getItem('sessionId');
+                const user = localStorage.getItem('user');
                 if (!sessionId || !user) {
-                    // 즉시 리다이렉트
                     window.location.replace('/login');
-                    // 페이지 로딩 중단
-                    window.stop();
-                    throw new Error('Unauthorized');
                 } else {
                     // 세션이 있으면 body 표시 준비
-                    document.documentElement.className = 'authenticated';
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.classList.add('auth-checked');
+                    });
                 }
             })();
         </script>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     </head>
-    <body class="bg-gray-50 authenticated">
+    <body class="bg-gray-50">
         <div class="min-h-screen">
             <!-- 헤더 -->
             <header class="bg-blue-600 text-white shadow-lg">
