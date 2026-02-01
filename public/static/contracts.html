@@ -59,6 +59,8 @@
             
             /* 섹션 제목 */
             .contract-print h2,
+            .contract-print h3,
+            .contract-print h4,
             .contract-print .text-xl {
                 font-size: 12pt !important;
                 margin-top: 4mm !important;
@@ -114,26 +116,109 @@
                 page-break-inside: avoid;
             }
             
-            /* 그리드 레이아웃 */
+            /* 약관 동의 체크박스 영역 - 인쇄 시 명확하게 표시 */
+            .bg-yellow-50 {
+                background-color: #fffbeb !important;
+                border: 2px solid #fbbf24 !important;
+                padding: 4mm !important;
+                margin-bottom: 4mm !important;
+                margin-top: 4mm !important;
+                page-break-inside: avoid;
+                page-break-before: avoid;
+            }
+            
+            .bg-yellow-50 label {
+                font-size: 12pt !important;
+                font-weight: bold !important;
+                line-height: 1.6 !important;
+            }
+            
+            .bg-yellow-50 .fa-check {
+                display: inline-block !important;
+            }
+            
+            .bg-green-600 {
+                background-color: #16a34a !important;
+            }
+            
+            /* 서명 섹션 - 인쇄 시 명확하게 표시 */
+            .contract-print img {
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: 60mm !important;
+                page-break-inside: avoid;
+                border: 2px solid #374151 !important;
+                border-radius: 2mm !important;
+                padding: 2mm !important;
+                background: white !important;
+            }
+            
+            /* 서명/신분증 컨테이너 */
+            .border-2 {
+                border-width: 2px !important;
+                padding: 4mm !important;
+                page-break-inside: avoid;
+                page-break-before: avoid;
+                margin-bottom: 4mm !important;
+            }
+            
+            /* 서명/신분증 제목 */
+            .contract-print h3,
+            .contract-print h4 {
+                font-size: 12pt !important;
+                font-weight: bold !important;
+                margin-bottom: 2mm !important;
+                page-break-after: avoid;
+            }
+            
+            /* 그리드 레이아웃 유지 */
             .grid {
-                display: block !important;
+                display: grid !important;
+            }
+            
+            .grid-cols-2 {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 3mm !important;
             }
             
             .grid > div {
-                display: block !important;
-                margin-bottom: 1mm !important;
+                margin-bottom: 0 !important;
             }
             
-            /* 서명 이미지 */
-            img {
-                max-width: 100% !important;
-                height: auto !important;
-                page-break-inside: avoid;
+            /* 배경색 유지 */
+            .bg-indigo-50 {
+                background-color: #eef2ff !important;
+                border: 2px solid #818cf8 !important;
+            }
+            
+            .bg-white {
+                background-color: white !important;
+            }
+            
+            .bg-gray-50 {
+                background-color: #f9fafb !important;
             }
             
             /* 테이블 */
             table {
                 page-break-inside: avoid;
+            }
+            
+            /* 색상 유지 */
+            .text-red-600 {
+                color: #dc2626 !important;
+            }
+            
+            .text-green-600 {
+                color: #16a34a !important;
+            }
+            
+            .text-blue-600 {
+                color: #2563eb !important;
+            }
+            
+            .text-indigo-900 {
+                color: #312e81 !important;
             }
         }
         
@@ -760,13 +845,7 @@
             }
         }
 
-        function downloadPDF() {
-            if (!currentContract) return;
-            
-            // 간단한 PDF 다운로드 (실제로는 서버에서 PDF 생성 필요)
-            alert('PDF 다운로드 기능은 추가 구현이 필요합니다.\n현재는 브라우저 인쇄 기능을 사용하세요.');
-            window.print();
-        }
+
     </script>
 </body>
 </html>
