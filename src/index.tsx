@@ -137,6 +137,8 @@ app.get('/api/auth/check', async (c) => {
       id: (session as any).user_id,
       username: (session as any).username,
       name: (session as any).name,
+      email: (session as any).email || '',
+      phone: (session as any).phone || '',
       role: (session as any).role
     }
   })
@@ -1719,7 +1721,7 @@ app.get('/dashboard', (c) => {
                         
                         <!-- 로그인 상태 -->
                         <div id="loggedIn" class="hidden flex items-center gap-4">
-                            <div class="flex items-center bg-blue-700 px-4 py-2 rounded-lg">
+                            <div onclick="showMyInfo()" class="flex items-center bg-blue-700 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-800 transition">
                                 <i class="fas fa-user-circle text-2xl mr-2"></i>
                                 <div>
                                     <p class="text-sm font-semibold" id="userName"></p>
@@ -1912,6 +1914,80 @@ app.get('/dashboard', (c) => {
                     </ul>
                 </div>
             </main>
+            
+            <!-- 내 정보 모달 -->
+            <div id="myInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">
+                                <i class="fas fa-user-circle mr-2 text-blue-600"></i>내 정보
+                            </h2>
+                            <button onclick="hideMyInfo()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-2xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- 프로필 카드 -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold">
+                                    <span id="modalUserInitial"></span>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-xl font-bold text-gray-800" id="modalUserName"></h3>
+                                    <p class="text-sm text-gray-600" id="modalUsername"></p>
+                                </div>
+                            </div>
+                            
+                            <!-- 역할 배지 -->
+                            <div class="flex items-center justify-center">
+                                <span id="modalUserRole" class="px-4 py-2 rounded-full text-sm font-bold"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 상세 정보 -->
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                    <i class="fas fa-user text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">이름</p>
+                                    <p class="font-semibold text-gray-800" id="modalUserNameDetail"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                    <i class="fas fa-phone text-green-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">전화번호</p>
+                                    <p class="font-semibold text-gray-800" id="modalUserPhone"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                    <i class="fas fa-envelope text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">이메일</p>
+                                    <p class="font-semibold text-gray-800" id="modalUserEmail"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 닫기 버튼 -->
+                        <div class="mt-6">
+                            <button onclick="hideMyInfo()" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                <i class="fas fa-check mr-2"></i>확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -2021,6 +2097,52 @@ app.get('/dashboard', (c) => {
                     localStorage.removeItem('user');
                     window.location.href = '/login';
                 }
+            }
+            
+            // 내 정보 모달 표시
+            async function showMyInfo() {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) return;
+                
+                try {
+                    const response = await axios.get('/api/auth/check', {
+                        headers: { 'X-Session-ID': sessionId }
+                    });
+                    
+                    const user = response.data.user;
+                    
+                    // 이름 첫 글자 (이니셜)
+                    const initial = user.name ? user.name.charAt(0) : user.username.charAt(0);
+                    document.getElementById('modalUserInitial').textContent = initial;
+                    
+                    // 사용자 정보 설정
+                    document.getElementById('modalUserName').textContent = user.name || user.username;
+                    document.getElementById('modalUsername').textContent = '@' + user.username;
+                    document.getElementById('modalUserNameDetail').textContent = user.name || user.username;
+                    document.getElementById('modalUserPhone').textContent = user.phone || '등록된 전화번호 없음';
+                    document.getElementById('modalUserEmail').textContent = user.email || '등록된 이메일 없음';
+                    
+                    // 역할 배지 설정
+                    const roleEl = document.getElementById('modalUserRole');
+                    if (user.role === 'super_admin') {
+                        roleEl.textContent = '슈퍼 관리자';
+                        roleEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white';
+                    } else {
+                        roleEl.textContent = '일반 관리자';
+                        roleEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-blue-600 text-white';
+                    }
+                    
+                    // 모달 표시
+                    document.getElementById('myInfoModal').classList.remove('hidden');
+                } catch (error) {
+                    console.error('사용자 정보 로드 오류:', error);
+                    alert('사용자 정보를 불러오는데 실패했습니다');
+                }
+            }
+            
+            // 내 정보 모달 숨기기
+            function hideMyInfo() {
+                document.getElementById('myInfoModal').classList.add('hidden');
             }
             
             // 페이지 로드 시 로그인 상태 확인
