@@ -2475,14 +2475,17 @@ app.get('/dashboard', (c) => {
             
             // 페이지 로드 시 로그인 상태 확인 및 body 표시
             window.addEventListener('DOMContentLoaded', function() {
-                // localStorage 동기화를 위해 약간 지연
+                console.log('[DASHBOARD] DOMContentLoaded fired');
+                
+                // 먼저 body를 즉시 표시 (하얀 화면 방지)
+                document.body.classList.add('loaded');
+                
+                // localStorage 동기화를 위해 충분히 대기
                 setTimeout(() => {
-                    // body를 보이게 함
-                    document.body.classList.add('loaded');
-                    
+                    console.log('[DASHBOARD] Starting checkLoginStatus after delay');
                     // 로그인 상태 확인
                     checkLoginStatus();
-                }, 100); // 100ms 지연으로 localStorage 동기화 대기
+                }, 1000); // 1000ms로 증가하여 localStorage 완전 동기화 보장
             });
         </script>
     </body>
