@@ -86,22 +86,32 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
-        // 이미 로그인된 경우 리디렉션
-        const sessionId = localStorage.getItem('sessionId')
-        if (sessionId) {
-            axios.get('/api/auth/check', {
-                headers: { 'X-Session-ID': sessionId }
-            }).then(response => {
-                if (response.data.authenticated) {
-                    // URL 파라미터에서 redirect 확인
-                    const urlParams = new URLSearchParams(window.location.search)
-                    const redirect = urlParams.get('redirect') || '/dashboard'
-                    window.location.href = redirect
-                }
-            }).catch(() => {
-                localStorage.removeItem('sessionId')
-            })
-        }
+        // 이미 로그인된 경우 리디렉션 (DOMContentLoaded 후에 체크)
+        window.addEventListener('DOMContentLoaded', function() {
+            const sessionId = localStorage.getItem('sessionId')
+            if (sessionId) {
+                // 세션 유효성 확인
+                axios.get('/api/auth/check', {
+                    headers: { 'X-Session-ID': sessionId }
+                }).then(response => {
+                    if (response.data.authenticated) {
+                        // URL 파라미터에서 redirect 확인
+                        const urlParams = new URLSearchParams(window.location.search)
+                        const redirect = urlParams.get('redirect') || '/dashboard'
+                        window.location.href = redirect
+                    } else {
+                        // 인증 실패 시 localStorage 클리어
+                        localStorage.removeItem('sessionId')
+                        localStorage.removeItem('user')
+                    }
+                }).catch((error) => {
+                    // 에러 발생 시 localStorage 클리어
+                    console.log('Session check failed, clearing localStorage')
+                    localStorage.removeItem('sessionId')
+                    localStorage.removeItem('user')
+                })
+            }
+        })
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault()
@@ -127,12 +137,12 @@
                     errorDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-700')
                     errorText.textContent = '로그인 성공! 이동 중...'
 
-                    // 리디렉션
+                    // 리다이렉션 (localStorage 동기화를 위해 충분한 시간 대기)
                     setTimeout(() => {
                         const urlParams = new URLSearchParams(window.location.search)
                         const redirect = urlParams.get('redirect') || '/dashboard'
                         window.location.href = redirect
-                    }, 500)
+                    }, 800) // 800ms로 증가
                 }
             } catch (error) {
                 console.error('Login error:', error)

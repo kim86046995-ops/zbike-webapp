@@ -2448,11 +2448,14 @@ app.get('/dashboard', (c) => {
             
             // 페이지 로드 시 로그인 상태 확인 및 body 표시
             window.addEventListener('DOMContentLoaded', function() {
-                // 먼저 body를 보이게 함 (로딩 애니메이션 보이도록)
-                document.body.classList.add('loaded');
-                
-                // 로그인 상태 확인
-                checkLoginStatus();
+                // localStorage 동기화를 위해 약간 지연
+                setTimeout(() => {
+                    // body를 보이게 함
+                    document.body.classList.add('loaded');
+                    
+                    // 로그인 상태 확인
+                    checkLoginStatus();
+                }, 100); // 100ms 지연으로 localStorage 동기화 대기
             });
         </script>
     </body>
