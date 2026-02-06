@@ -4282,7 +4282,7 @@ app.get('/register', (c) => {
 
 // 관리자 로그인 페이지 - 정적 파일로 리다이렉트
 app.get('/login', (c) => {
-  return c.redirect('/login.html')
+  return c.redirect('/static/login.html')
 })
 
 // 계약서 서명 페이지

@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <title>로그인 - 오토바이 리스/렌트 시스템</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, private">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>로그인 - Z-BIKE 전자계약서</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -12,11 +15,11 @@
         <!-- 로고 -->
         <div class="text-center mb-2">
             <div class="flex items-center justify-center mx-auto mb-0">
-                <!-- Z-BIKE 로고 이미지 -->
                 <img src="/static/zbike-logo.png" 
                      alt="Z-BIKE" 
                      class="h-64 w-auto"
-                     onerror="console.error('로고 이미지 로드 실패')">
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                <h1 class="text-6xl font-bold text-blue-600" style="display:none;">Z-BIKE</h1>
             </div>
             <h1 class="text-4xl font-bold text-gray-800 mb-3 -mt-12">Z-BIKE 전자계약서</h1>
             <p class="text-lg text-gray-600">오토바이 리스/렌트 관리 시스템</p>
@@ -98,115 +101,102 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
-        // 페이지 로드 시 즉시 localStorage 상태 로그
-        console.log('[LOGIN PAGE] localStorage sessionId:', localStorage.getItem('sessionId'));
-        console.log('[LOGIN PAGE] localStorage user:', localStorage.getItem('user'));
+        const _version = Date.now();
+        console.log('🔄 로그인 페이지 로드됨 - 버전:', _version);
         
         // 아이디 찾기에서 전달된 아이디 자동 입력
         const tempUsername = localStorage.getItem('tempUsername');
         if (tempUsername) {
-            console.log('[LOGIN PAGE] Found tempUsername:', tempUsername);
             document.getElementById('username').value = tempUsername;
-            // 사용 후 삭제
             localStorage.removeItem('tempUsername');
-            // 비밀번호 입력란에 포커스
             document.getElementById('password').focus();
         }
         
-        // 이미 로그인된 경우 리디렉션 (DOMContentLoaded 후에 체크)
+        // 이미 로그인된 경우 리디렉션
         window.addEventListener('DOMContentLoaded', function() {
-            const sessionId = localStorage.getItem('sessionId')
-            console.log('[LOGIN PAGE] DOMContentLoaded - checking session:', sessionId);
-            
+            console.log('✅ DOM 로드 완료');
+            const sessionId = localStorage.getItem('sessionId');
             if (sessionId) {
-                console.log('[LOGIN PAGE] Session found, verifying with server...');
-                // 세션 유효성 확인
-                axios.get('/api/auth/check', {
+                console.log('🔍 세션 확인 중:', sessionId.substring(0, 10) + '...');
+                axios.get('/api/auth/check?_t=' + Date.now(), {
                     headers: { 'X-Session-ID': sessionId }
                 }).then(response => {
-                    console.log('[LOGIN PAGE] Auth check response:', response.data);
-                    
+                    console.log('✅ 세션 확인 응답:', response.data);
                     if (response.data.authenticated) {
-                        console.log('[LOGIN PAGE] Authenticated! Redirecting to dashboard...');
-                        // URL 파라미터에서 redirect 확인
-                        const urlParams = new URLSearchParams(window.location.search)
-                        const redirect = urlParams.get('redirect') || '/'
-                        window.location.href = redirect
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || '/dashboard';
+                        console.log('➡️ 리다이렉트:', redirect);
+                        window.location.href = redirect;
                     } else {
-                        console.log('[LOGIN PAGE] Not authenticated, clearing localStorage');
-                        // 인증 실패 시 localStorage 클리어
-                        localStorage.removeItem('sessionId')
-                        localStorage.removeItem('user')
+                        console.log('❌ 세션 만료, 로그인 필요');
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('user');
                     }
                 }).catch((error) => {
-                    console.error('[LOGIN PAGE] Session check failed:', error);
-                    // 에러 발생 시 localStorage 클리어
-                    localStorage.removeItem('sessionId')
-                    localStorage.removeItem('user')
-                })
+                    console.error('❌ 세션 확인 실패:', error);
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                });
+            } else {
+                console.log('ℹ️ 세션 없음, 로그인 대기 중');
             }
-        })
+        });
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault()
+            e.preventDefault();
             
-            const username = document.getElementById('username').value
-            const password = document.getElementById('password').value
-            const errorDiv = document.getElementById('errorMessage')
-            const errorText = document.getElementById('errorText')
+            console.log('📝 로그인 시도 중...');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
 
             try {
-                const response = await axios.post('/api/auth/login', {
+                const response = await axios.post('/api/auth/login?_t=' + Date.now(), {
                     username,
                     password
-                })
+                });
 
+                console.log('✅ 로그인 성공:', response.data);
                 if (response.data.success) {
-                    // 세션 ID 저장
-                    localStorage.setItem('sessionId', response.data.sessionId)
-                    localStorage.setItem('user', JSON.stringify(response.data.user))
-                    
-                    // 디버깅: localStorage 저장 확인
-                    console.log('=== 로그인 성공 ===')
-                    console.log('SessionID 저장:', localStorage.getItem('sessionId'))
-                    console.log('User 저장:', localStorage.getItem('user'))
-                    console.log('==================')
+                    localStorage.setItem('sessionId', response.data.sessionId);
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    console.log('💾 세션 저장됨:', response.data.sessionId);
 
-                    // 성공 메시지
-                    errorDiv.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700')
-                    errorDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-700')
-                    errorText.textContent = '로그인 성공! 이동 중...'
+                    errorDiv.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700');
+                    errorDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+                    errorText.textContent = '로그인 성공! 이동 중...';
 
-                    // 리다이렉션 (localStorage 동기화를 위해 충분한 시간 대기)
                     setTimeout(() => {
-                        const urlParams = new URLSearchParams(window.location.search)
-                        const redirect = urlParams.get('redirect') || '/'
-                        console.log('리다이렉트:', redirect)
-                        window.location.href = redirect
-                    }, 800) // 800ms로 증가
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || '/dashboard';
+                        console.log('➡️ 대시보드로 이동:', redirect);
+                        window.location.href = redirect;
+                    }, 800);
                 }
             } catch (error) {
-                console.error('Login error:', error)
-                errorDiv.classList.remove('hidden')
-                errorDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-700')
-                errorDiv.classList.remove('bg-green-50', 'border-green-200', 'text-green-700')
+                console.error('❌ 로그인 실패:', error);
+                console.error('❌ 에러 상태:', error.response?.status);
+                console.error('❌ 에러 데이터:', error.response?.data);
+                
+                errorDiv.classList.remove('hidden');
+                errorDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
+                errorDiv.classList.remove('bg-green-50', 'border-green-200', 'text-green-700');
                 
                 if (error.response?.status === 401) {
-                    errorText.textContent = '아이디 또는 비밀번호가 잘못되었습니다'
+                    errorText.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
                 } else {
-                    errorText.textContent = '로그인에 실패했습니다. 다시 시도해주세요'
+                    errorText.textContent = '로그인에 실패했습니다. 다시 시도해주세요 (에러: ' + (error.response?.status || 'unknown') + ')';
                 }
             }
-        })
+        });
 
-        // Enter 키로 로그인
         document.getElementById('username').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                document.getElementById('password').focus()
+                document.getElementById('password').focus();
             }
-        })
-        
-        // 비밀번호 표시/숨김 토글
+        });
+
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const passwordIcon = document.getElementById('passwordIcon');
