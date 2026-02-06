@@ -4216,36 +4216,64 @@ app.get('/login', (c) => {
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 - Z-BIKE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <title>로그인 - 오토바이 리스/렌트 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <div class="text-center mb-6">
-            <h1 class="text-6xl font-bold text-blue-600 mb-2">Z-BIKE</h1>
-            <h2 class="text-2xl font-bold text-gray-800">전자계약서</h2>
-            <p class="text-gray-600 mt-2">오토바이 리스/렌트 관리 시스템</p>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 pt-2">
+        <!-- 로고 -->
+        <div class="text-center mb-2">
+            <div class="flex items-center justify-center mx-auto mb-0">
+                <!-- Z-BIKE 로고 이미지 -->
+                <img src="/static/zbike-logo.png" 
+                     alt="Z-BIKE" 
+                     class="h-64 w-auto"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                <h1 class="text-6xl font-bold text-blue-600" style="display:none;">Z-BIKE</h1>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-3 -mt-12">Z-BIKE 전자계약서</h1>
+            <p class="text-lg text-gray-600">오토바이 리스/렌트 관리 시스템</p>
         </div>
 
-        <form id="loginForm" class="space-y-4">
+        <!-- 로그인 폼 -->
+        <form id="loginForm" class="space-y-6">
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">
                     <i class="fas fa-user mr-2"></i>아이디
                 </label>
-                <input type="text" id="username" required autocomplete="username"
-                    class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="아이디를 입력하세요">
+                <input 
+                    type="text" 
+                    id="username" 
+                    required 
+                    autocomplete="username"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    placeholder="아이디를 입력하세요"
+                >
             </div>
 
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">
                     <i class="fas fa-lock mr-2"></i>비밀번호
                 </label>
-                <input type="password" id="password" required autocomplete="current-password"
-                    class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="비밀번호를 입력하세요">
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        required 
+                        autocomplete="current-password"
+                        class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        placeholder="비밀번호를 입력하세요"
+                    >
+                    <button 
+                        type="button" 
+                        onclick="togglePassword()"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                        <i id="passwordIcon" class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
 
             <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -4253,36 +4281,130 @@ app.get('/login', (c) => {
                 <span id="errorText"></span>
             </div>
 
-            <button type="submit" 
-                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
+            <button 
+                type="submit" 
+                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition transform hover:scale-105 active:scale-95"
+            >
                 <i class="fas fa-sign-in-alt mr-2"></i>관리자 로그인
             </button>
         </form>
+
+        <!-- 아이디/비밀번호 찾기 & 회원가입 -->
+        <div class="mt-4 text-center space-y-2">
+            <a href="/find-account" class="block text-sm text-blue-600 hover:text-blue-800 font-semibold">
+                <i class="fas fa-question-circle mr-1"></i>아이디 또는 비밀번호를 잊으셨나요?
+            </a>
+            <div class="pt-2 border-t border-gray-200">
+                <p class="text-sm text-gray-600 mb-2">관리자 계정이 필요하신가요?</p>
+                <a href="/register" class="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition font-semibold text-sm">
+                    <i class="fas fa-user-plus mr-2"></i>관리자 회원가입
+                </a>
+            </div>
+            
+            <!-- 고객 계약 등록 -->
+            <div class="pt-2 border-t border-gray-200">
+                <p class="text-sm text-gray-600 mb-2">계약서를 작성하러 오셨나요?</p>
+                <a href="/static/customer-portal.html" class="inline-block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition font-semibold text-sm">
+                    <i class="fas fa-file-contract mr-2"></i>고객 계약 등록
+                </a>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
+        // 아이디 찾기에서 전달된 아이디 자동 입력
+        const tempUsername = localStorage.getItem('tempUsername');
+        if (tempUsername) {
+            document.getElementById('username').value = tempUsername;
+            localStorage.removeItem('tempUsername');
+            document.getElementById('password').focus();
+        }
+        
+        // 이미 로그인된 경우 리디렉션
+        window.addEventListener('DOMContentLoaded', function() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                axios.get('/api/auth/check', {
+                    headers: { 'X-Session-ID': sessionId }
+                }).then(response => {
+                    if (response.data.authenticated) {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || '/';
+                        window.location.href = redirect;
+                    } else {
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('user');
+                    }
+                }).catch(() => {
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                });
+            }
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
 
             try {
-                const response = await axios.post('/api/auth/login', { username, password });
+                const response = await axios.post('/api/auth/login', {
+                    username,
+                    password
+                });
+
                 if (response.data.success) {
                     localStorage.setItem('sessionId', response.data.sessionId);
                     localStorage.setItem('user', JSON.stringify(response.data.user));
-                    window.location.href = '/';
+
+                    errorDiv.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700');
+                    errorDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+                    errorText.textContent = '로그인 성공! 이동 중...';
+
+                    setTimeout(() => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || '/';
+                        window.location.href = redirect;
+                    }, 800);
                 }
             } catch (error) {
                 errorDiv.classList.remove('hidden');
-                errorText.textContent = error.response?.status === 401 
-                    ? '아이디 또는 비밀번호가 잘못되었습니다' 
-                    : '로그인에 실패했습니다';
+                errorDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
+                errorDiv.classList.remove('bg-green-50', 'border-green-200', 'text-green-700');
+                
+                if (error.response?.status === 401) {
+                    errorText.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
+                } else {
+                    errorText.textContent = '로그인에 실패했습니다. 다시 시도해주세요';
+                }
             }
         });
+
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('password').focus();
+            }
+        });
+        
+        // 비밀번호 표시/숨김 토글
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const passwordIcon = document.getElementById('passwordIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordIcon.classList.remove('fa-eye');
+                passwordIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                passwordIcon.classList.remove('fa-eye-slash');
+                passwordIcon.classList.add('fa-eye');
+            }
+        }
     </script>
 </body>
 </html>`)
