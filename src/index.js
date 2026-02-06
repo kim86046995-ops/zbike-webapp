@@ -139,27 +139,34 @@ app.post('/api/auth/login', async c => {
     password
   } = await c.req.json();
 
-  // 임시: 하드코딩된 관리자 계정 (데이터베이스 없이도 작동)
-  const ADMIN_USER = {
+  // 임시: 하드코딩된 관리자 계정들 (데이터베이스 없이도 작동)
+  const HARDCODED_USERS = [{
     id: 1,
     username: 'admin',
     password: 'admin123',
     name: '관리자',
     role: 'admin'
-  };
+  }, {
+    id: 2,
+    username: 'sangchun11',
+    password: 'a2636991@#',
+    name: '상춘',
+    role: 'admin'
+  }];
 
   // 하드코딩된 계정 확인
-  if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
+  const hardcodedUser = HARDCODED_USERS.find(user => user.username === username && user.password === password);
+  if (hardcodedUser) {
     // 세션 ID 생성 (데이터베이스 없이)
     const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
     return c.json({
       success: true,
       sessionId,
       user: {
-        id: ADMIN_USER.id,
-        username: ADMIN_USER.username,
-        name: ADMIN_USER.name,
-        role: ADMIN_USER.role
+        id: hardcodedUser.id,
+        username: hardcodedUser.username,
+        name: hardcodedUser.name,
+        role: hardcodedUser.role
       }
     });
   }
