@@ -23,8 +23,9 @@ app.use('*', cors({
 // ============================================
 // 루트 경로 - 로그인으로 리다이렉트
 // ============================================
+// 루트 경로: 대시보드로 리다이렉트
 app.get('/', c => {
-  return c.redirect('/login');
+  return c.redirect('/dashboard');
 });
 
 // 캐시 무효화 미들웨어 (모든 응답)
@@ -138,6 +139,9 @@ async function superAdminMiddleware(c, next) {
 // 인증 API
 // ============================================
 
+// 임시 세션 저장소 (메모리에 저장, 서버 재시작 시 초기화)
+const sessionStore = new Map();
+
 // 로그인
 app.post('/api/auth/login', async c => {
   const {
@@ -165,6 +169,12 @@ app.post('/api/auth/login', async c => {
   if (hardcodedUser) {
     // 세션 ID 생성 (데이터베이스 없이)
     const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+    // 세션 저장소에 저장 (24시간 유효)
+    sessionStore.set(sessionId, {
+      user: hardcodedUser,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000
+    });
     return c.json({
       success: true,
       sessionId,
@@ -208,12 +218,10 @@ app.post('/api/auth/login', async c => {
 
 // 로그아웃
 app.post('/api/auth/logout', async c => {
-  const {
-    DB
-  } = c.env;
   const sessionId = c.req.header('X-Session-ID');
   if (sessionId) {
-    await DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run();
+    // 세션 저장소에서 제거
+    sessionStore.delete(sessionId);
   }
   return c.json({
     success: true
@@ -229,38 +237,30 @@ app.get('/api/auth/check', async c => {
     });
   }
 
-  // 임시: sessionId가 있으면 인증된 것으로 처리 (데이터베이스 없이도 작동)
-  // 실제 프로덕션에서는 데이터베이스에서 세션 확인 필요
+  // 세션 저장소에서 확인
+  const session = sessionStore.get(sessionId);
+  if (!session) {
+    return c.json({
+      authenticated: false
+    });
+  }
+
+  // 세션 만료 확인
+  if (session.expiresAt < Date.now()) {
+    sessionStore.delete(sessionId);
+    return c.json({
+      authenticated: false
+    });
+  }
   return c.json({
     authenticated: true,
     user: {
-      id: 1,
-      username: 'admin',
-      name: '관리자',
-      role: 'admin'
+      id: session.user.id,
+      username: session.user.username,
+      name: session.user.name,
+      role: session.user.role
     }
   });
-
-  // 데이터베이스가 있으면 실제 세션 확인
-  /*
-  try {
-    const { DB } = c.env
-    if (DB) {
-      const session = await validateSession(DB, sessionId)
-      
-      if (!session) {
-        return c.json({ authenticated: false })
-      }
-      
-      return c.json({
-        authenticated: true,
-        user: session.user
-      })
-    }
-  } catch (error) {
-    console.log('DB not available for session check')
-  }
-  */
 });
 
 // 사용자 목록 조회 (관리자 전용)
@@ -4054,7 +4054,7 @@ app.get('/login', c => {
                 }).then(response => {
                     if (response.data.authenticated) {
                         const urlParams = new URLSearchParams(window.location.search);
-                        const redirect = urlParams.get('redirect') || '/';
+                        const redirect = urlParams.get('redirect') || '/dashboard';
                         window.location.href = redirect;
                     } else {
                         localStorage.removeItem('sessionId');
@@ -4091,7 +4091,7 @@ app.get('/login', c => {
 
                     setTimeout(() => {
                         const urlParams = new URLSearchParams(window.location.search);
-                        const redirect = urlParams.get('redirect') || '/';
+                        const redirect = urlParams.get('redirect') || '/dashboard';
                         window.location.href = redirect;
                     }, 800);
                 }
@@ -4895,14 +4895,14 @@ app.post('/api/import/analyze-pdfs', authMiddleware, async c => {
 });
 
 // 대시보드 (루트 경로) - 운영현황 페이지
-app.get('/', c => {
+app.get('/dashboard', c => {
   return c.html(`
     <!DOCTYPE html>
     <html lang="ko">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>운영현황 - 오토바이 렌탈 관리</title>
+        <title>대시보드 - 오토바이 렌탈 관리</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <style>
@@ -4926,7 +4926,7 @@ app.get('/', c => {
                     운영현황
                 </h1>
                 <nav class="flex space-x-4">
-                    <a href="/" class="text-blue-600 font-medium">운영현황</a>
+                    <a href="/dashboard" class="text-blue-600 font-medium">운영현황</a>
                     <a href="/static/motorcycles.html" class="text-gray-600 hover:text-blue-600">오토바이 관리</a>
                     <a href="/static/contracts.html" class="text-gray-600 hover:text-blue-600">계약서 관리</a>
                     <a href="/static/loans.html" class="text-gray-600 hover:text-blue-600">차용증 관리</a>
