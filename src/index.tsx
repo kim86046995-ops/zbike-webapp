@@ -4212,8 +4212,80 @@ app.get('/register', (c) => {
 
 // 관리자 로그인 페이지
 app.get('/login', (c) => {
-  // /static/login으로 리다이렉트 (iframe 문제 해결)
-  return c.redirect('/static/login')
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - Z-BIKE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-6xl font-bold text-blue-600 mb-2">Z-BIKE</h1>
+            <h2 class="text-2xl font-bold text-gray-800">전자계약서</h2>
+            <p class="text-gray-600 mt-2">오토바이 리스/렌트 관리 시스템</p>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">
+                    <i class="fas fa-user mr-2"></i>아이디
+                </label>
+                <input type="text" id="username" required autocomplete="username"
+                    class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="아이디를 입력하세요">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">
+                    <i class="fas fa-lock mr-2"></i>비밀번호
+                </label>
+                <input type="password" id="password" required autocomplete="current-password"
+                    class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="비밀번호를 입력하세요">
+            </div>
+
+            <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <button type="submit" 
+                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
+                <i class="fas fa-sign-in-alt mr-2"></i>관리자 로그인
+            </button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+
+            try {
+                const response = await axios.post('/api/auth/login', { username, password });
+                if (response.data.success) {
+                    localStorage.setItem('sessionId', response.data.sessionId);
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                errorDiv.classList.remove('hidden');
+                errorText.textContent = error.response?.status === 401 
+                    ? '아이디 또는 비밀번호가 잘못되었습니다' 
+                    : '로그인에 실패했습니다';
+            }
+        });
+    </script>
+</body>
+</html>`)
 })
 
 // 계약서 서명 페이지
