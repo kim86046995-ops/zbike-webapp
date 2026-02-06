@@ -3943,9 +3943,9 @@ app.get('/login', c => {
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, private">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="cache-buster" content="${timestamp}">
-    <title>로그인 - 오토바이 리스/렌트 시스템 v${timestamp}</title>
-    <script src="https://cdn.tailwindcss.com?v=${timestamp}"></script>
+    <meta name="cache-buster" content="` + timestamp + `">
+    <title>로그인 - 오토바이 리스/렌트 시스템 v` + timestamp + `</title>
+    <script src="https://cdn.tailwindcss.com?v=` + timestamp + `"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
@@ -3954,7 +3954,7 @@ app.get('/login', c => {
         <div class="text-center mb-2">
             <div class="flex items-center justify-center mx-auto mb-0">
                 <!-- Z-BIKE 로고 이미지 -->
-                <img src="/static/zbike-logo.png?v=${timestamp}" 
+                <img src="/static/zbike-logo.png?v=` + timestamp + `" 
                      alt="Z-BIKE" 
                      class="h-64 w-auto"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
@@ -4038,9 +4038,10 @@ app.get('/login', c => {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js?v=${timestamp}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js?v=` + timestamp + `"></script>
     <script>
-        console.log('🔄 로그인 페이지 로드됨 - 버전: ${timestamp}');
+        const _ts = Date.now();
+        console.log('🔄 로그인 페이지 로드됨 - 버전:', _ts);
         
         // 아이디 찾기에서 전달된 아이디 자동 입력
         const tempUsername = localStorage.getItem('tempUsername');
@@ -4056,7 +4057,7 @@ app.get('/login', c => {
             const sessionId = localStorage.getItem('sessionId');
             if (sessionId) {
                 console.log('🔍 세션 확인 중:', sessionId.substring(0, 10) + '...');
-                axios.get('/api/auth/check?_t=${timestamp}', {
+                axios.get('/api/auth/check?_t=' + _ts, {
                     headers: { 'X-Session-ID': sessionId }
                 }).then(response => {
                     console.log('✅ 세션 확인 응답:', response.data);
@@ -4090,7 +4091,7 @@ app.get('/login', c => {
             const errorText = document.getElementById('errorText');
 
             try {
-                const response = await axios.post('/api/auth/login?_t=${timestamp}', {
+                const response = await axios.post('/api/auth/login?_t=' + Date.now(), {
                     username,
                     password
                 });
