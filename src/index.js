@@ -3933,16 +3933,19 @@ app.get('/register', c => {
 
 // 관리자 로그인 페이지
 app.get('/login', c => {
+  // 현재 타임스탬프로 캐시 무효화
+  const timestamp = Date.now();
   return c.html(`<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, private">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>로그인 - 오토바이 리스/렌트 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="cache-buster" content="${timestamp}">
+    <title>로그인 - 오토바이 리스/렌트 시스템 v${timestamp}</title>
+    <script src="https://cdn.tailwindcss.com?v=${timestamp}"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
@@ -3951,7 +3954,7 @@ app.get('/login', c => {
         <div class="text-center mb-2">
             <div class="flex items-center justify-center mx-auto mb-0">
                 <!-- Z-BIKE 로고 이미지 -->
-                <img src="/static/zbike-logo.png" 
+                <img src="/static/zbike-logo.png?v=${timestamp}" 
                      alt="Z-BIKE" 
                      class="h-64 w-auto"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
@@ -4035,8 +4038,10 @@ app.get('/login', c => {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js?v=${timestamp}"></script>
     <script>
+        console.log('🔄 로그인 페이지 로드됨 - 버전: ${timestamp}');
+        
         // 아이디 찾기에서 전달된 아이디 자동 입력
         const tempUsername = localStorage.getItem('tempUsername');
         if (tempUsername) {
@@ -4047,43 +4052,54 @@ app.get('/login', c => {
         
         // 이미 로그인된 경우 리디렉션
         window.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM 로드 완료');
             const sessionId = localStorage.getItem('sessionId');
             if (sessionId) {
-                axios.get('/api/auth/check', {
+                console.log('🔍 세션 확인 중:', sessionId.substring(0, 10) + '...');
+                axios.get('/api/auth/check?_t=${timestamp}', {
                     headers: { 'X-Session-ID': sessionId }
                 }).then(response => {
+                    console.log('✅ 세션 확인 응답:', response.data);
                     if (response.data.authenticated) {
                         const urlParams = new URLSearchParams(window.location.search);
                         const redirect = urlParams.get('redirect') || '/dashboard';
+                        console.log('➡️ 리다이렉트:', redirect);
                         window.location.href = redirect;
                     } else {
+                        console.log('❌ 세션 만료, 로그인 필요');
                         localStorage.removeItem('sessionId');
                         localStorage.removeItem('user');
                     }
-                }).catch(() => {
+                }).catch((error) => {
+                    console.error('❌ 세션 확인 실패:', error);
                     localStorage.removeItem('sessionId');
                     localStorage.removeItem('user');
                 });
+            } else {
+                console.log('ℹ️ 세션 없음, 로그인 대기 중');
             }
         });
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            console.log('📝 로그인 시도 중...');
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
 
             try {
-                const response = await axios.post('/api/auth/login', {
+                const response = await axios.post('/api/auth/login?_t=${timestamp}', {
                     username,
                     password
                 });
 
+                console.log('✅ 로그인 성공:', response.data);
                 if (response.data.success) {
                     localStorage.setItem('sessionId', response.data.sessionId);
                     localStorage.setItem('user', JSON.stringify(response.data.user));
+                    console.log('💾 세션 저장됨:', response.data.sessionId);
 
                     errorDiv.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700');
                     errorDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
@@ -4092,10 +4108,15 @@ app.get('/login', c => {
                     setTimeout(() => {
                         const urlParams = new URLSearchParams(window.location.search);
                         const redirect = urlParams.get('redirect') || '/dashboard';
+                        console.log('➡️ 대시보드로 이동:', redirect);
                         window.location.href = redirect;
                     }, 800);
                 }
             } catch (error) {
+                console.error('❌ 로그인 실패:', error);
+                console.error('❌ 에러 상태:', error.response?.status);
+                console.error('❌ 에러 데이터:', error.response?.data);
+                
                 errorDiv.classList.remove('hidden');
                 errorDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
                 errorDiv.classList.remove('bg-green-50', 'border-green-200', 'text-green-700');
@@ -4103,7 +4124,7 @@ app.get('/login', c => {
                 if (error.response?.status === 401) {
                     errorText.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
                 } else {
-                    errorText.textContent = '로그인에 실패했습니다. 다시 시도해주세요';
+                    errorText.textContent = '로그인에 실패했습니다. 다시 시도해주세요 (에러: ' + (error.response?.status || 'unknown') + ')';
                 }
             }
         });
