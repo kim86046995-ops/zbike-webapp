@@ -2,9 +2,10 @@
   "name": "webapp",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'No build step needed'",
     "dev:sandbox": "wrangler pages dev dist --d1=webapp-production --local --ip 0.0.0.0 --port 3000",
-    "build": "vite build",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy",
     "deploy:prod": "npm run build && wrangler pages deploy dist --project-name webapp",
@@ -14,6 +15,7 @@
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.9",
     "hono": "^4.11.7"
   },
   "devDependencies": {

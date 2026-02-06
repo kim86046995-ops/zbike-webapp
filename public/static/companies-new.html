@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>업체 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- 헤더 -->
+    <header class="bg-pink-600 text-white shadow-md sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4">
+            <h1 class="text-2xl font-bold">
+                <i class="fas fa-building mr-2"></i>업체 목록
+            </h1>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- 업체 정보 등록 섹션 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">
+                <i class="fas fa-building mr-2 text-pink-600"></i>업체 정보 등록
+            </h2>
+            <form id="companyForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">업체명 *</label>
+                        <input type="text" id="companyName" required placeholder="예: 대성모터스" 
+                            class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">사업자번호 *</label>
+                        <input type="text" id="companyBusinessNumber" required placeholder="123-45-67890" 
+                            class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">대표자 *</label>
+                        <input type="text" id="companyRepresentative" required placeholder="홍길동" 
+                            class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">전화번호 *</label>
+                        <input type="tel" id="companyPhone" required placeholder="02-1234-5678" 
+                            class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="text" id="companyPostcode" required readonly placeholder="우편번호" 
+                        class="flex-1 px-4 py-2 border rounded-lg bg-gray-50">
+                    <button type="button" id="searchBtn" 
+                        class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
+                        <i class="fas fa-search mr-1"></i>검색
+                    </button>
+                </div>
+
+                <input type="text" id="companyAddress" required readonly placeholder="주소" 
+                    class="w-full px-4 py-2 border rounded-lg bg-gray-50">
+                <input type="text" id="companyDetailAddress" placeholder="상세주소" 
+                    class="w-full px-4 py-2 border rounded-lg">
+
+                <div class="flex gap-2">
+                    <button type="button" id="clearBtn" 
+                        class="flex-1 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
+                        초기화
+                    </button>
+                    <button type="submit" 
+                        class="flex-1 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
+                        저장
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 업체 목록 섹션 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">
+                <i class="fas fa-list mr-2 text-pink-600"></i>등록된 업체
+            </h2>
+            <div id="loadingState" class="text-center py-8 text-gray-500">
+                <i class="fas fa-spinner fa-spin mr-2"></i>업체 목록을 불러오는 중...
+            </div>
+            <div id="emptyState" class="hidden text-center py-8 text-gray-500">
+                등록된 업체가 없습니다.
+            </div>
+            <div id="companyList"></div>
+        </div>
+    </div>
+
+    <script>
+        let companies = [];
+        
+        function log(msg) {
+            console.log(msg);
+        }
+
+        // 우편번호 검색
+        function searchAddress() {
+            log('🔍 searchAddress 호출');
+            
+            if (typeof daum === 'undefined' || typeof daum.Postcode === 'undefined') {
+                alert('Daum API가 로드되지 않았습니다.');
+                return;
+            }
+            
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    document.getElementById('companyPostcode').value = data.zonecode;
+                    document.getElementById('companyAddress').value = data.address;
+                    document.getElementById('companyDetailAddress').focus();
+                }
+            }).open();
+        }
+
+        // 폼 초기화
+        function clearForm() {
+            document.getElementById('companyForm').reset();
+        }
+
+        // 업체 목록 로드
+        async function loadCompanies() {
+            log('📋 업체 목록 로드 시작');
+            
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+                return;
+            }
+            
+            try {
+                const response = await axios.get('/api/companies', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                companies = response.data;
+                log('✅ 업체 수: ' + companies.length);
+                displayCompanies();
+            } catch (error) {
+                log('❌ 로드 실패: ' + error.message);
+                alert('업체 목록을 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 업체 목록 표시
+        function displayCompanies() {
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const companyList = document.getElementById('companyList');
+            
+            loadingState.classList.add('hidden');
+            
+            if (companies.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            const html = companies.map(company => `
+                <div class="border-b py-4">
+                    <div class="font-bold">${company.name}</div>
+                    <div class="text-sm text-gray-600">
+                        ${company.business_number} | ${company.representative} | ${company.phone}
+                    </div>
+                    <div class="text-sm text-gray-500">${company.address || ''}</div>
+                </div>
+            `).join('');
+            
+            companyList.innerHTML = html;
+        }
+
+        // 업체 저장
+        async function saveCompany(e) {
+            e.preventDefault();
+            log('💾 업체 저장 시작');
+            
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+                return;
+            }
+            
+            const data = {
+                name: document.getElementById('companyName').value.trim(),
+                business_number: document.getElementById('companyBusinessNumber').value.trim(),
+                representative: document.getElementById('companyRepresentative').value.trim(),
+                phone: document.getElementById('companyPhone').value.trim(),
+                address: document.getElementById('companyAddress').value.trim(),
+                detail_address: document.getElementById('companyDetailAddress').value.trim() || ''
+            };
+            
+            if (!document.getElementById('companyPostcode').value) {
+                alert('우편번호를 검색하세요.');
+                return;
+            }
+            
+            try {
+                await axios.post('/api/companies', data, {
+                    headers: { 
+                        'X-Session-ID': sessionId,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('✅ 저장 성공');
+                alert('✅ 업체 정보가 저장되었습니다.');
+                clearForm();
+                await loadCompanies();
+            } catch (error) {
+                log('❌ 저장 실패: ' + error.message);
+                alert('❌ 저장 실패: ' + error.message);
+            }
+        }
+
+        // 페이지 로드 시
+        document.addEventListener('DOMContentLoaded', function() {
+            log('✅ DOMContentLoaded');
+            log('Daum API: ' + (typeof daum !== 'undefined' ? '✅' : '❌'));
+            
+            // 이벤트 리스너 연결
+            document.getElementById('searchBtn').addEventListener('click', searchAddress);
+            document.getElementById('clearBtn').addEventListener('click', clearForm);
+            document.getElementById('companyForm').addEventListener('submit', saveCompany);
+            
+            // 업체 목록 로드
+            loadCompanies();
+        });
+    </script>
+</body>
+</html>

@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
     <title>Z-BIKE 전자계약서</title>
+    
+    <!-- Open Graph / 카카오톡 공유 미리보기 -->
+    <meta property="og:title" content="Z-BIKE 전자계약서">
+    <meta property="og:description" content="오토바이 리스/렌트 전자계약서 - 간편하고 안전한 계약 체결">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://www.genspark.ai/api/files/s/ZeDZUgbT">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="description" content="Z-BIKE 전자계약서 - 오토바이 리스/렌트 계약을 간편하게">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -105,8 +115,8 @@
                         <h2 class="text-xl font-bold text-gray-800">임차인 서명</h2>
                     </div>
                     <div class="p-6">
-                        <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
-                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
+                        <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요 (터치하면 확대됩니다)</p>
+                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white" onclick="openSignatureModal()" style="cursor: pointer;">
                             <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
@@ -155,7 +165,7 @@
                     <div id="previewSection" class="hidden mt-4">
                         <p class="text-sm text-gray-600 mb-2">촬영된 신분증:</p>
                         <div class="relative inline-block">
-                            <img id="preview" class="max-w-full rounded-lg border-2 border-gray-300">
+                            <img id="preview" class="max-w-full h-auto rounded-lg border-2 border-gray-300" style="max-height: 500px; object-fit: contain;">
                             <button type="button" onclick="deletePhoto()" class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -189,6 +199,35 @@
                     <h2 class="text-xl font-bold text-gray-800 mb-2">서명이 완료되었습니다</h2>
                     <p class="text-gray-600">계약서가 성공적으로 제출되었습니다.</p>
                     <p class="text-sm text-gray-500 mt-2">감사합니다!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 서명 확대 모달 -->
+    <div id="signatureModal" class="fixed inset-0 bg-black bg-opacity-90 hidden z-50 flex items-center justify-center">
+        <div class="bg-white w-full h-full md:w-11/12 md:h-5/6 md:rounded-lg overflow-hidden flex flex-col">
+            <!-- 모달 헤더 -->
+            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">서명하기</h2>
+                <button type="button" onclick="closeSignatureModal()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- 모달 바디 -->
+            <div class="flex-1 p-6 flex flex-col">
+                <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
+                <div class="border-4 border-gray-400 rounded overflow-hidden bg-white flex-1">
+                    <canvas id="signatureCanvasModal" class="w-full h-full cursor-crosshair bg-white"></canvas>
+                </div>
+                <div class="mt-4 flex gap-4">
+                    <button type="button" onclick="clearModalSignature()" class="flex-1 bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 font-semibold text-lg">
+                        <i class="fas fa-eraser mr-2"></i>지우기
+                    </button>
+                    <button type="button" onclick="saveModalSignature()" class="flex-1 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-semibold text-lg">
+                        <i class="fas fa-check mr-2"></i>서명 완료
+                    </button>
                 </div>
             </div>
         </div>
@@ -269,7 +308,7 @@
                 document.getElementById('company-name').textContent = companySettings.company_name || 'Z-BIKE';
                 document.getElementById('business-number').textContent = companySettings.business_number || '-';
                 document.getElementById('representative').textContent = companySettings.representative || '-';
-                document.getElementById('company-phone').textContent = companySettings.phone || '-';
+                document.getElementById('company-phone').textContent = companySettings.manager_phone || companySettings.phone || '-';
                 document.getElementById('company-address').textContent = companySettings.address || '-';
             }
             
@@ -663,7 +702,7 @@
             const businessNumber = companySettings?.business_number || '사업자등록번호';
             const representative = companySettings?.representative || '대표자';
             const companyAddress = companySettings?.address || '주소';
-            const companyPhone = companySettings?.phone || '연락처';
+            const companyPhone = companySettings?.manager_phone || companySettings?.phone || '연락처';
             
             if (type === 'loan') {
                 // 차용증 약관
@@ -720,7 +759,7 @@
                             <h4 class="font-bold mb-2">제7조 (분쟁 해결)</h4>
                             <div class="ml-4 space-y-1">
                                 <p class="text-gray-700">① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                                <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 대주의 주소지 관할 법원을 전속관할로 합니다.</p>
+                                <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
                             </div>
                         </div>
                     </div>
@@ -733,7 +772,7 @@
                 // 오토바이 계약 약관 (관리자 페이지와 동일)
                 return `
                     <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
-                        <h3 class="font-bold text-lg mb-3">대여인 (업체) 정보</h3>
+                        <h3 class="font-bold text-lg mb-3">임대인 (업체) 정보</h3>
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
                             <p><span class="font-semibold">사업자등록번호:</span> ${businessNumber}</p>
@@ -753,7 +792,7 @@
                         <div>
                             <h4 class="font-bold mb-2">제1조 (계약의 목적)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 본 계약은 대여인이 소유한 오토바이를 차용인에게 리스 또는 렌트하는 조건과 절차를 정함을 목적으로 합니다.</p>
+                                <p class="text-gray-700">① 본 계약은 임대인이 소유한 오토바이를 임차인에게 리스 또는 렌트하는 조건과 절차를 정함을 목적으로 합니다.</p>
                                 <p class="text-gray-700">② 계약 타입: 위 기재된 계약 타입 (리스/렌트)</p>
                                 <p class="text-gray-700">③ 계약 기간: 위 기재된 계약 시작일부터 종료일까지</p>
                             </div>
@@ -762,78 +801,78 @@
                         <div>
                             <h4 class="font-bold mb-2">제2조 (오토바이의 인도 및 관리)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 대여인은 계약 체결 시 오토바이를 정상 작동 상태로 차용인에게 인도합니다.</p>
-                                <p class="text-gray-700">② 차용인은 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
-                                <p class="text-gray-700">③ 차용인은 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
+                                <p class="text-gray-700">① 임대인은 계약 체결 시 오토바이를 정상 작동 상태로 임차인에게 인도합니다.</p>
+                                <p class="text-gray-700">② 임차인은 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
+                                <p class="text-gray-700">③ 임차인은 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제3조 (사용 제한)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 차용인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
-                                <p class="text-gray-700">② 차용인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
-                                <p class="text-gray-700">③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                                <p class="text-gray-700">① 임차인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
+                                <p class="text-gray-700">② 임차인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
+                                <p class="text-gray-700">③ 오토바이는 임대인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제4조 (일차감 대여료 납부 방식)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
+                                <p class="text-gray-700">① 임차인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
                                 <p class="text-gray-700">② 일차감 금액: 위 기재된 일차감금액</p>
                                 <p class="text-gray-700">③ 보증금: 위 기재된 보증금</p>
-                                <p class="text-gray-700">④ 차감 금액은 차용인의 일당 정산 시 대여인의 전산 프로그램을 통해 자동으로 공제됩니다.</p>
-                                <p class="text-gray-700">⑤ 차용인은 일당 발생 시마다 자동 차감되며, 별도의 월 납부 의무는 없습니다.</p>
+                                <p class="text-gray-700">④ 차감 금액은 임차인의 일당 정산 시 임대인의 전산 프로그램을 통해 자동으로 공제됩니다.</p>
+                                <p class="text-gray-700">⑤ 임차인은 일당 발생 시마다 자동 차감되며, 별도의 월 납부 의무는 없습니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제5조 (정산 및 투명성)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 대여인은 차용인의 일당, 차감 금액, 누적 차감 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
-                                <p class="text-gray-700">② 차용인은 언제든지 본인의 차감 내역과 납부 현황을 조회할 수 있습니다.</p>
-                                <p class="text-gray-700">③ 차감 내역에 대한 이의가 있을 경우 차용인은 즉시 대여인에게 이의를 제기할 수 있으며, 대여인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
+                                <p class="text-gray-700">① 임대인은 임차인의 일당, 차감 금액, 누적 차감 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                                <p class="text-gray-700">② 임차인은 언제든지 본인의 차감 내역과 납부 현황을 조회할 수 있습니다.</p>
+                                <p class="text-gray-700">③ 차감 내역에 대한 이의가 있을 경우 임차인은 즉시 임대인에게 이의를 제기할 수 있으며, 임대인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제6조 (보험 및 사고 처리)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 대여인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
-                                <p class="text-gray-700">② 사고 발생 시 차용인은 즉시 대여인에게 통보하고 보험사에 신고하여야 합니다.</p>
-                                <p class="text-gray-700">③ 차용인의 고의 또는 과실로 발생한 사고의 자기부담금은 차용인이 부담합니다.</p>
-                                <p class="text-gray-700">④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 차용인이 전액 배상하여야 합니다.</p>
+                                <p class="text-gray-700">① 임대인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
+                                <p class="text-gray-700">② 사고 발생 시 임차인은 즉시 임대인에게 통보하고 보험사에 신고하여야 합니다.</p>
+                                <p class="text-gray-700">③ 임차인의 고의 또는 과실로 발생한 사고의 자기부담금은 임차인이 부담합니다.</p>
+                                <p class="text-gray-700">④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 임차인이 전액 배상하여야 합니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제7조 (정비 및 소모품)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 차용인이 전액 부담합니다.</p>
+                                <p class="text-gray-700">① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 임차인이 전액 부담합니다.</p>
                                 <p class="text-gray-700">② 무상정비 제외 항목: 엔진, 미션, 구동계</p>
-                                <p class="text-gray-700">③ 무상정비 항목 제외 소모품: 차용인 부담</p>
-                                <p class="text-gray-700">④ 운전자 과실에 의한 제반 수리비: 차용인 전액 부담</p>
-                                <p class="text-gray-700">⑤ 차용인은 정비가 필요한 경우 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
+                                <p class="text-gray-700">③ 무상정비 항목 제외 소모품: 임차인 부담</p>
+                                <p class="text-gray-700">④ 운전자 과실에 의한 제반 수리비: 임차인 전액 부담</p>
+                                <p class="text-gray-700">⑤ 임차인은 정비가 필요한 경우 사전에 임대인에게 통지하고 승인을 받아야 합니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제8조 (계약의 해지)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 차용인이 다음 각 호에 해당하는 경우 대여인은 계약을 즉시 해지할 수 있습니다:</p>
+                                <p class="text-gray-700">① 임차인이 다음 각 호에 해당하는 경우 임대인은 계약을 즉시 해지할 수 있습니다:</p>
                                 <p class="text-gray-700 ml-4">- 정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우</p>
                                 <p class="text-gray-700 ml-4">- 음주운전, 무면허 운전 등 중대한 법규 위반 시</p>
                                 <p class="text-gray-700 ml-4">- 오토바이를 임의로 개조하거나 제3자에게 재대여한 경우</p>
                                 <p class="text-gray-700 ml-4">- 허위 정보를 제공한 경우</p>
-                                <p class="text-gray-700">② 계약 해지 시 차용인은 오토바이를 즉시 반환하여야 하며, 미차감 대여료 및 손해액을 보증금에서 공제합니다.</p>
+                                <p class="text-gray-700">② 계약 해지 시 임차인은 오토바이를 즉시 반환하여야 하며, 미차감 대여료 및 손해액을 보증금에서 공제합니다.</p>
                             </div>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제9조 (중도 해지)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 차용인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있습니다.</p>
+                                <p class="text-gray-700">① 임차인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있습니다.</p>
                                 <p class="text-gray-700">② 중도 해지 시 보증금에서 위약금(일차감금액의 30일분)을 공제 후 반환합니다.</p>
                                 <p class="text-gray-700">③ 리스 계약의 경우 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부하여야 합니다.</p>
                             </div>
@@ -842,8 +881,8 @@
                         <div>
                             <h4 class="font-bold mb-2">제10조 (계약 종료 시 반환)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 계약 종료 시 차용인은 오토바이를 원상태로 반환하여야 합니다.</p>
-                                <p class="text-gray-700">② 대여인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 보증금에서 공제합니다. 보증금이 없을 시 일차감분에서 일괄 차감합니다.</p>
+                                <p class="text-gray-700">① 계약 종료 시 임차인은 오토바이를 원상태로 반환하여야 합니다.</p>
+                                <p class="text-gray-700">② 임대인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 보증금에서 공제합니다. 보증금이 없을 시 일차감분에서 일괄 차감합니다.</p>
                                 <p class="text-gray-700">③ 보증금 정산은 반환일로부터 7영업일 이내에 완료합니다.</p>
                             </div>
                         </div>
@@ -851,17 +890,17 @@
                         <div>
                             <h4 class="font-bold mb-2">제11조 (무상정비 항목 - 특약)</h4>
                             <div class="ml-4 space-y-1">
-                                <p class="text-gray-700">① 대여인은 계약 기간 중 다음 항목에 대하여 무상으로 정비 서비스를 제공합니다:</p>
+                                <p class="text-gray-700">① 임대인은 계약 기간 중 다음 항목에 대하여 무상으로 정비 서비스를 제공합니다:</p>
                                 <p class="text-gray-700 ml-4">- 엔진오일 교환 (주행거리 1,000km마다)</p>
                                 <p class="text-gray-700 ml-4">- 브레이크패드 교체 (마모 시)</p>
-                                <p class="text-gray-700 ml-4">- 타이어 교체 (마모 또는 손상 시, 단 차용인 과실 제외)</p>
+                                <p class="text-gray-700 ml-4">- 타이어 교체 (마모 또는 손상 시, 단 임차인 과실 제외)</p>
                                 <p class="text-gray-700 ml-4">- 정기 점검 (계기판 점검, 등화장치, 제동장치 등)</p>
                                 <p class="text-gray-700">② 무상정비 제외 항목:</p>
                                 <p class="text-gray-700 ml-4">- 엔진, 미션, 구동계 관련 수리</p>
                                 <p class="text-gray-700 ml-4">- 무상정비 항목 이외의 모든 소모품</p>
                                 <p class="text-gray-700 ml-4">- 운전자 과실에 의한 제반 수리비</p>
-                                <p class="text-gray-700">③ 무상정비는 대여인이 지정한 정비소에서만 가능하며, 임의 정비 시 비용은 차용인이 부담합니다.</p>
-                                <p class="text-gray-700">④ 차용인의 고의 또는 과실로 인한 부품 손상은 무상정비 대상에서 제외됩니다.</p>
+                                <p class="text-gray-700">③ 무상정비는 임대인이 지정한 정비소에서만 가능하며, 임의 정비 시 비용은 임차인이 부담합니다.</p>
+                                <p class="text-gray-700">④ 임차인의 고의 또는 과실로 인한 부품 손상은 무상정비 대상에서 제외됩니다.</p>
                             </div>
                         </div>
                         
@@ -869,14 +908,15 @@
                             <h4 class="font-bold mb-2">제12조 (분쟁 해결 및 기타)</h4>
                             <div class="ml-4 space-y-1">
                                 <p class="text-gray-700">① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                                <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 대여인의 주소지 관할 법원을 전속관할로 합니다.</p>
+                                <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
                                 <p class="text-gray-700">③ 위 기재된 특약사항이 있는 경우 특약사항이 본 계약서에 우선합니다.</p>
+                                <p class="text-gray-700">④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
                             </div>
                         </div>
                     </div>
                     
                     <p class="mt-6 text-center font-bold">
-                        본 계약을 증명하기 위하여 계약서를 작성하고 차용인이 서명합니다.
+                        본 계약을 증명하기 위하여 계약서를 작성하고 임차인이 서명합니다.
                     </p>
                 `;
             }
@@ -986,11 +1026,29 @@
         function capturePhoto() {
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+            
+            // 최대 크기 제한하면서 비율 유지
+            const maxWidth = 1920;
+            const maxHeight = 1080;
+            const aspectRatio = width / height;
+            
+            if (width > maxWidth) {
+                width = maxWidth;
+                height = width / aspectRatio;
+            }
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = height * aspectRatio;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
             
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
+            ctx.drawImage(video, 0, 0, width, height);
             
             idCardPhoto = canvas.toDataURL('image/jpeg', 0.8);
             
@@ -1016,10 +1074,46 @@
             
             const reader = new FileReader();
             reader.onload = (e) => {
-                idCardPhoto = e.target.result;
-                showPreview(idCardPhoto);
+                // 이미지 리사이징하여 비율 유지
+                resizeImage(e.target.result, 1920, 1080, (resizedDataUrl) => {
+                    idCardPhoto = resizedDataUrl;
+                    showPreview(idCardPhoto);
+                });
             };
             reader.readAsDataURL(file);
+        }
+
+        // 이미지 리사이징 (비율 유지)
+        function resizeImage(dataUrl, maxWidth, maxHeight, callback) {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                
+                // 원본 비율 계산
+                const aspectRatio = width / height;
+                
+                // 최대 크기에 맞추면서 비율 유지
+                if (width > maxWidth) {
+                    width = maxWidth;
+                    height = width / aspectRatio;
+                }
+                if (height > maxHeight) {
+                    height = maxHeight;
+                    width = height * aspectRatio;
+                }
+                
+                // 캔버스에 리사이징
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // JPEG로 변환 (80% 품질)
+                callback(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = dataUrl;
         }
 
         // 미리보기 표시
@@ -1088,6 +1182,150 @@
             document.getElementById('contractContent').classList.add('hidden');
             document.getElementById('completed').classList.remove('hidden');
         }
+
+        // 서명 확대 모달 열기
+        function openSignatureModal() {
+            const modal = document.getElementById('signatureModal');
+            modal.classList.remove('hidden');
+            
+            // 모달 캔버스 크기 설정
+            setTimeout(() => {
+                const modalCanvas = document.getElementById('signatureCanvasModal');
+                const container = modalCanvas.parentElement;
+                modalCanvas.width = container.clientWidth;
+                modalCanvas.height = container.clientHeight;
+                
+                // 기존 서명 복사
+                const mainCanvas = document.getElementById('signatureCanvas');
+                const modalCtx = modalCanvas.getContext('2d');
+                modalCtx.drawImage(mainCanvas, 0, 0, modalCanvas.width, modalCanvas.height);
+                
+                // 모달 캔버스 초기화
+                initModalSignaturePad();
+            }, 100);
+        }
+
+        // 서명 확대 모달 닫기
+        function closeSignatureModal() {
+            const modal = document.getElementById('signatureModal');
+            modal.classList.add('hidden');
+        }
+
+        // 모달 서명 지우기
+        function clearModalSignature() {
+            const canvas = document.getElementById('signatureCanvasModal');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // 모달 서명 저장
+        function saveModalSignature() {
+            const modalCanvas = document.getElementById('signatureCanvasModal');
+            const mainCanvas = document.getElementById('signatureCanvas');
+            const mainCtx = mainCanvas.getContext('2d');
+            
+            // 메인 캔버스에 복사
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            mainCtx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+            
+            closeSignatureModal();
+        }
+
+        // 모달 서명 패드 초기화
+        function initModalSignaturePad() {
+            const canvas = document.getElementById('signatureCanvasModal');
+            const ctx = canvas.getContext('2d');
+            
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // 기존 이벤트 리스너 제거
+            const newCanvas = canvas.cloneNode(true);
+            canvas.parentNode.replaceChild(newCanvas, canvas);
+            const modalCanvas = document.getElementById('signatureCanvasModal');
+            const modalCtx = modalCanvas.getContext('2d');
+            
+            // 기존 서명 다시 그리기
+            modalCtx.drawImage(canvas, 0, 0);
+            
+            function startDrawing(e) {
+                isDrawing = true;
+                const rect = modalCanvas.getBoundingClientRect();
+                if (e.type.includes('touch')) {
+                    lastX = e.touches[0].clientX - rect.left;
+                    lastY = e.touches[0].clientY - rect.top;
+                } else {
+                    lastX = e.clientX - rect.left;
+                    lastY = e.clientY - rect.top;
+                }
+            }
+            
+            function draw(e) {
+                if (!isDrawing) return;
+                e.preventDefault();
+                
+                const rect = modalCanvas.getBoundingClientRect();
+                let x, y;
+                if (e.type.includes('touch')) {
+                    x = e.touches[0].clientX - rect.left;
+                    y = e.touches[0].clientY - rect.top;
+                } else {
+                    x = e.clientX - rect.left;
+                    y = e.clientY - rect.top;
+                }
+                
+                modalCtx.beginPath();
+                modalCtx.moveTo(lastX, lastY);
+                modalCtx.lineTo(x, y);
+                modalCtx.strokeStyle = '#000';
+                modalCtx.lineWidth = 3;
+                modalCtx.lineCap = 'round';
+                modalCtx.stroke();
+                
+                lastX = x;
+                lastY = y;
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            modalCanvas.addEventListener('mousedown', startDrawing);
+            modalCanvas.addEventListener('mousemove', draw);
+            modalCanvas.addEventListener('mouseup', stopDrawing);
+            modalCanvas.addEventListener('mouseout', stopDrawing);
+            
+            modalCanvas.addEventListener('touchstart', startDrawing);
+            modalCanvas.addEventListener('touchmove', draw);
+            modalCanvas.addEventListener('touchend', stopDrawing);
+        }
     </script>
+    <!-- 서명 확대 모달 -->
+    <div id="signatureModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-xl shadow-2xl p-4 w-11/12 max-w-4xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-signature mr-2 text-blue-600"></i>서명하기
+                </h2>
+                <button onclick="closeSignatureModal()" class="text-gray-500 hover:text-gray-700 text-3xl font-bold">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-gray-600 mb-4">아래 영역에 손가락이나 펜으로 서명해주세요</p>
+            <div class="border-4 border-blue-500 rounded-lg overflow-hidden bg-white">
+                <canvas id="signatureCanvasLarge" width="1200" height="400" class="w-full cursor-crosshair bg-white touch-none"></canvas>
+            </div>
+            <div class="mt-4 flex justify-between">
+                <button onclick="clearLargeSignature()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+                    <i class="fas fa-eraser mr-2"></i>다시 쓰기
+                </button>
+                <button onclick="confirmSignature()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition">
+                    <i class="fas fa-check mr-2"></i>완료
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

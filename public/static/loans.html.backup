@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <title>차용증 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    
+    
+    
+    
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=/login">
+    </noscript>
+    <style>
+        body { 
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+        }
+        body.auth-checked {
+            display: block;
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* PDF 컨테이너 스타일 */
+        #pdfContent > div {
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+        }
+        
+        /* PDF 인쇄 스타일 */
+        @media print {
+            /* 전체 body 숨김 */
+            body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            
+            body > * {
+                display: none !important;
+            }
+            
+            /* detailModal만 표시 */
+            body #detailModal {
+                display: block !important;
+                position: static !important;
+                background: white !important;
+                padding: 10mm !important;
+                margin: 0 !important;
+            }
+            
+            /* detailModal의 직접 자식 */
+            #detailModal > div {
+                display: block !important;
+                position: static !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                transform: none !important;
+            }
+            
+            /* loanDetail 표시 */
+            #loanDetail {
+                display: block !important;
+            }
+            
+            #loanDetail * {
+                display: revert !important;
+            }
+            
+            /* pdfContainer 완전 숨김 */
+            #pdfContainer, #pdfContainer * {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                width: 0 !important;
+                overflow: hidden !important;
+            }
+            
+            /* 버튼 숨김 */
+            button, .no-print {
+                display: none !important;
+            }
+            
+            /* A4 설정 */
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+            
+            /* 약관 영역 */
+            .contract-terms {
+                font-size: 9pt;
+                line-height: 1.3;
+                margin-top: 2mm;
+            }
+            .contract-terms h3 {
+                font-size: 10pt;
+                margin-top: 3mm;
+                margin-bottom: 1.5mm;
+                page-break-after: avoid;
+            }
+            .contract-terms p {
+                margin-bottom: 0.5mm;
+                text-indent: 0;
+            }
+            .contract-terms p.font-bold {
+                font-size: 10pt;
+                margin-top: 2mm;
+                page-break-after: avoid;
+            }
+            .contract-terms .ml-4 { margin-left: 4mm; }
+            .contract-terms .ml-8 { margin-left: 8mm; }
+            .contract-terms > div { page-break-inside: avoid; }
+            .contract-terms > p.font-bold { page-break-after: avoid; }
+            
+            /* 약관 동의 */
+            .terms-agreement {
+                background: #fffbea;
+                border: 2px solid #f59e0b;
+                padding: 4mm;
+                margin: 3mm 0;
+                page-break-inside: avoid;
+            }
+            .terms-agreement p {
+                font-size: 12pt;
+                font-weight: bold;
+                line-height: 1.6;
+            }
+            .terms-agreement .fa-check {
+                display: inline;
+            }
+            
+            /* 서명 영역 */
+            .signature-section {
+                page-break-inside: avoid;
+                border: 2px solid #374151 !important;
+                padding: 6mm !important;
+                margin-bottom: 4mm !important;
+            }
+            
+            .signature-section h3, .signature-section h4 {
+                font-size: 12pt !important;
+                font-weight: bold !important;
+                margin-bottom: 3mm !important;
+                text-align: center !important;
+            }
+            
+            .signature-section .border-2 {
+                border: 2px solid #9ca3af !important;
+                padding: 4mm !important;
+                page-break-inside: avoid;
+            }
+            
+            .signature-section img {
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: 60mm !important;
+                page-break-inside: avoid;
+                object-fit: contain !important;
+            }
+            
+            /* 계약 출력 영역 */
+            .contract-print {
+                background: white;
+            }
+            .contract-print h3, .contract-print h4 {
+                font-size: 12pt;
+                font-weight: bold;
+                margin-bottom: 2mm;
+                page-break-after: avoid;
+            }
+            .contract-print .border-2 {
+                border: 2px solid #ccc;
+                padding: 4mm;
+                page-break-inside: avoid;
+            }
+            .contract-print .grid {
+                display: grid;
+            }
+            .contract-print .grid-cols-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    <script>
+        // 즉시 실행: 로그인 체크
+        (function() {
+            var sessionId = localStorage.getItem('sessionId');
+            var user = localStorage.getItem('user');
+            if (!sessionId || !user) {
+                window.location.replace('/login?redirect=' + encodeURIComponent(window.location.pathname));
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('auth-checked');
+                });
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gray-50"  class="" class="authenticated">
+    
+    <div class="min-h-screen">
+        <!-- 헤더 -->
+        <header class="bg-orange-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+                <a href="/" class="text-xl font-bold">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    차용증 목록
+                </a>
+                <a href="/loan/new" class="bg-white text-orange-600 px-4 py-2 rounded-lg font-bold hover:bg-orange-50">
+                    <i class="fas fa-plus mr-2"></i>새 차용증 작성
+                </a>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- 필터 -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-4 items-center">
+                <div>
+                    <label class="block text-sm font-bold mb-2">상태</label>
+                    <select id="statusFilter" onchange="filterLoans()" class="px-3 py-2 border rounded-lg">
+                        <option value="">전체</option>
+                        <option value="active">진행중</option>
+                        <option value="completed">상환완료</option>
+                        <option value="overdue">연체</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-bold mb-2">검색</label>
+                    <input type="text" id="searchInput" onkeyup="filterLoans()" placeholder="차용증번호, 차용인명" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+            </div>
+
+            <!-- 차용증 목록 -->
+            <div id="loanList" class="space-y-4">
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                    <p class="mt-2">로딩 중...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 상세보기 모달 -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">차용증 상세</h2>
+                    <button onclick="hideDetailModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <div class="overflow-y-auto" style="max-height: 70vh;">
+                    <div id="loanDetail" class="contract-print"></div>
+                </div>
+
+                <div class="mt-6 flex gap-3 no-print">
+                    <button onclick="downloadLoanPDF()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
+                        <i class="fas fa-download mr-2"></i>PDF 다운로드
+                    </button>
+                    <button onclick="printLoan()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
+                        <i class="fas fa-print mr-2"></i>인쇄
+                    </button>
+                    <button onclick="hideDetailModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF 전용 숨겨진 컨테이너 -->
+    <div id="pdfContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; background: white; padding: 20px;">
+        <div id="pdfContent" class="contract-print"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        let loans = [];
+        let filteredLoans = [];
+        let currentLoan = null;
+
+        window.addEventListener('DOMContentLoaded', loadLoans);
+
+        async function loadLoans() {
+            try {
+                const response = await axios.get('/api/loan-contracts');
+                loans = response.data;
+                filteredLoans = loans;
+                renderLoans();
+            } catch (error) {
+                console.error('Error loading loans:', error);
+                document.getElementById('loanList').innerHTML = `
+                    <div class="text-center py-12 text-red-500">
+                        <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
+                        <p>차용증 목록을 불러오는데 실패했습니다</p>
+                    </div>
+                `;
+            }
+        }
+
+        function filterLoans() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredLoans = loans.filter(loan => {
+                const matchStatus = !statusFilter || loan.status === statusFilter;
+                const matchSearch = !searchInput || 
+                    loan.loan_number.toLowerCase().includes(searchInput) ||
+                    loan.borrower_name.toLowerCase().includes(searchInput);
+                
+                return matchStatus && matchSearch;
+            });
+
+            renderLoans();
+        }
+
+        function renderLoans() {
+            const listEl = document.getElementById('loanList');
+            
+            if (filteredLoans.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
+                        <p class="text-lg mb-4">차용증이 없습니다</p>
+                        <a href="/loan/new" class="inline-block bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700">
+                            <i class="fas fa-plus mr-2"></i>첫 차용증 작성하기
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = filteredLoans.map(loan => {
+                const statusColors = {
+                    'active': 'bg-green-100 text-green-800',
+                    'completed': 'bg-blue-100 text-blue-800',
+                    'overdue': 'bg-red-100 text-red-800'
+                };
+                const statusTexts = {
+                    'active': '진행중',
+                    'completed': '상환완료',
+                    'overdue': '연체'
+                };
+
+                // 상환일이 지났는지 확인
+                const today = new Date();
+                const repaymentDate = new Date(loan.repayment_date);
+                const isOverdue = loan.status === 'active' && today > repaymentDate;
+                const displayStatus = isOverdue ? 'overdue' : loan.status;
+
+                return `
+                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all">
+                        <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">
+                                    ${loan.loan_number}
+                                </h3>
+                                <div class="flex gap-2">
+                                    <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColors[displayStatus]}">
+                                        ${statusTexts[displayStatus]}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="showDetail(${loan.id})" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+                                    <i class="fas fa-eye mr-2"></i>상세보기
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div>
+                                <p class="mb-2"><i class="fas fa-user w-5 text-orange-600"></i> <strong>차용인:</strong> ${loan.borrower_name}</p>
+                                <p class="mb-2"><i class="fas fa-phone w-5 text-orange-600"></i> <strong>연락처:</strong> ${loan.borrower_phone}</p>
+                                <p><i class="fas fa-won-sign w-5 text-orange-600"></i> <strong>차용금액:</strong> ${Number(loan.loan_amount).toLocaleString()}원</p>
+                            </div>
+                            <div>
+                                <p class="mb-2"><i class="fas fa-calendar w-5 text-orange-600"></i> <strong>차용일:</strong> ${loan.loan_date}</p>
+                                <p class="mb-2"><i class="fas fa-calendar-check w-5 text-orange-600"></i> <strong>상환일:</strong> ${loan.repayment_date}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function showDetail(id) {
+            try {
+                const response = await axios.get(`/api/loan-contracts/${id}`);
+                currentLoan = response.data;
+                renderDetail();
+                document.getElementById('detailModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading loan detail:', error);
+                alert('차용증 상세 정보를 불러오는데 실패했습니다');
+            }
+        }
+
+        function renderDetail() {
+            if (!currentLoan) {
+                console.error('❌ currentLoan이 없습니다');
+                return;
+            }
+            
+            console.log('🔄 renderDetail 호출됨', new Date().toISOString());
+            console.trace('호출 위치 추적');
+            
+            const loan = currentLoan;
+            const statusTexts = { 'active': '진행중', 'completed': '상환완료', 'overdue': '연체' };
+
+            const html = `
+                <div style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                    <!-- 차용증 제목 -->
+                    <div style="text-align: center; border-bottom: 2px solid #1f2937; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                        <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">배달대행 차용증</h1>
+                        <p style="font-size: 1.2rem;">차용증번호: ${loan.loan_number}</p>
+                        <p style="font-size: 1rem; margin-top: 0.5rem;">상태: <span style="font-weight: bold; color: ${loan.status === 'active' ? '#16a34a' : loan.status === 'completed' ? '#2563eb' : '#dc2626'};">${statusTexts[loan.status] || loan.status}</span></p>
+                    </div>
+
+                    <!-- 대여인 (사업자) 정보 -->
+                    <div style="background: #eef2ff; padding: 1.5rem; border-radius: 0.5rem; border: 2px solid #a5b4fc; margin-bottom: 1.5rem;">
+                        <h3 style="font-weight: bold; color: #312e81; margin-bottom: 0.75rem; font-size: 1.4rem;">대여인 (사업자) 정보</h3>
+                        <div style="font-size: 1.1rem;">
+                            <p style="margin-bottom: 0.5rem;"><strong>상호:</strong> 대성</p>
+                            <p style="margin-bottom: 0.5rem;"><strong>사업자등록번호:</strong> 487-39-01128</p>
+                            <p><strong>대표자:</strong> 김상춘</p>
+                        </div>
+                    </div>
+
+                    <!-- 차용인 정보 -->
+                    <div style="border: 2px solid #d1d5db; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                        <h3 style="font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem;">차용인 정보</h3>
+                        <div>
+                        <div>
+                            <p style="margin-bottom: 0.5rem;"><strong>이름:</strong> ${loan.borrower_name}</p>
+                            <p style="margin-bottom: 0.5rem;"><strong>주민번호:</strong> ${loan.borrower_resident_number}</p>
+                            <p style="margin-bottom: 0.5rem;"><strong>전화번호:</strong> ${loan.borrower_phone}</p>
+                            <p><strong>주소:</strong> ${loan.borrower_address}</p>
+                        </div>
+                    </div>
+
+                    <!-- 차용 상세 -->
+                    <div style="border: 2px solid #d1d5db; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                        <h3 style="font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem;">차용 상세</h3>
+                        <div>
+                            <p style="margin-bottom: 0.5rem;"><strong>차용금액:</strong> ${Number(loan.loan_amount).toLocaleString()}원</p>
+                            <p style="margin-bottom: 0.5rem;"><strong>차용일:</strong> ${loan.loan_date}</p>
+                            <p style="margin-bottom: 0.5rem;"><strong>상환일:</strong> ${loan.repayment_date}</p>
+                            ${loan.daily_deduction ? `<p style="margin-bottom: 0.5rem;"><strong>일차감금액:</strong> ${Number(loan.daily_deduction).toLocaleString()}원</p>` : ''}
+                            ${loan.interest_rate ? `<p style="margin-bottom: 0.5rem;"><strong>이자율:</strong> 연 ${loan.interest_rate}%</p>` : ''}
+                            ${loan.account_number ? `<p><strong>계좌번호:</strong> ${loan.account_number}</p>` : ''}
+                        </div>
+                        ${loan.special_terms ? `
+                            <div style="margin-top: 1rem;">
+                                <p style="font-weight: bold; margin-bottom: 0.5rem;">특약사항:</p>
+                                <p style="white-space: pre-wrap; background: white; padding: 0.75rem; border-radius: 0.25rem; border: 1px solid #d1d5db;">${loan.special_terms}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- 차용증 약관 -->
+                    <div style="background: #f9fafb; padding: 1.5rem; border-radius: 0.5rem; border: 2px solid #d1d5db; margin-bottom: 1.5rem;" class="contract-terms">
+                        <h3 style="font-weight: bold; text-align: center; font-size: 1.3rem; margin-bottom: 1rem;">배달대행 차용증 약관</h3>
+                        
+                        <p style="margin-bottom: 0.75rem; text-align: center; line-height: 1.6;">
+                            본인(차용인)은 귀사(대여인)로부터 아래와 같이 금전을 차용하였음을 확인하고,<br>
+                            배달대행 일당에서 매일 차감하는 방식으로 성실히 상환할 것을 확약합니다.
+                        </p>
+
+                        <div style="border-top: 1px solid #9ca3af; border-bottom: 1px solid #9ca3af; padding: 0.5rem 0; margin: 0.75rem 0;">
+                            <p style="text-align: center; font-weight: bold;">- 다 음 -</p>
+                        </div>
+
+                        <p style="font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem;">제1조 (차용금액 및 조건)</p>
+                        <div style="margin-left: 1rem;">
+                            <p style="margin-bottom: 0.25rem;">① 차용인은 위 사업자 상호에 표기된 회사에서 일하는 조건으로 차용금을 대여받으며, 퇴사 시 남아있는 잔액 전부를 일시불로 상환하여야 합니다.</p>
+                            <p style="margin-bottom: 0.25rem;">② 차용금액: ${Number(loan.loan_amount).toLocaleString()}원</p>
+                            <p style="margin-bottom: 0.25rem;">③ 차용일자: ${loan.loan_date}</p>
+                            <p style="margin-bottom: 0.25rem;">④ 대여기간: ${loan.loan_period || '-'}일</p>
+                            <p style="margin-bottom: 0.25rem;">⑤ 상환예정일: ${loan.repayment_date}</p>
+                            <p style="margin-bottom: 0.25rem;">⑥ 이자율: <strong style="color: #c2410c;">연 ${loan.interest_rate || 20}%</strong></p>
+                        </div>
+
+                        <p style="font-weight: bold; margin-top: 0.75rem; margin-bottom: 0.5rem;">제2조 (일차감 상환방식)</p>
+                        <div style="margin-left: 1rem;">
+                            <p style="margin-bottom: 0.25rem;">① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 상환합니다.</p>
+                            ${loan.daily_deduction ? `<p style="margin-bottom: 0.25rem;">② 일차감 금액: ${Number(loan.daily_deduction).toLocaleString()}원</p>` : ''}
+                        </div>
+
+                        <p style="font-weight: bold; margin-top: 0.75rem; margin-bottom: 0.5rem;">제3조 (업무 수행 의무)</p>
+                        <div style="margin-left: 1rem;">
+                            <p style="margin-bottom: 0.25rem;">① 차용인은 차용금 상환을 위하여 성실히 배달대행 업무를 수행할 의무가 있습니다.</p>
+                            <p style="margin-bottom: 0.25rem;">② 차용인이 정당한 사유 없이 3일 이상 연속하여 업무를 수행하지 않는 경우, 대여인은 즉시 잔여 차용금 전액의 상환을 청구할 수 있습니다.</p>
+                        </div>
+
+                        <p style="font-weight: bold; margin-top: 0.75rem; margin-bottom: 0.5rem;">제4조 (정산 및 투명성)</p>
+                        <div style="margin-left: 1rem;">
+                            <p style="margin-bottom: 0.25rem;">① 대여인은 차용인의 일당, 차감 금액, 잔여 차용금을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p style="margin-bottom: 0.25rem;">② 차용인은 언제든지 본인의 차감 내역과 잔여 차용금을 조회할 수 있습니다.</p>
+                        </div>
+
+                        <p style="font-weight: bold; margin-top: 0.75rem; margin-bottom: 0.5rem;">제5조 (이자 및 연체이자)</p>
+                        <div style="margin-left: 1rem;">
+                            <p style="margin-bottom: 0.25rem;">① 이자는 연 20%를 적용하여 계산됩니다.</p>
+                            <p style="margin-bottom: 0.25rem;">② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 연 20%의 연체이자를 부담합니다.</p>
+                        </div>
+
+                        <div style="border-top: 1px solid #9ca3af; margin-top: 1rem; padding-top: 0.75rem;">
+                            <p style="text-align: center; font-size: 0.9rem; line-height: 1.6;">
+                                본인은 위 차용금을 배달대행 일당에서 매일 차감하는 방식으로 성실히 상환할 것을 확약하며,<br>
+                                이를 증명하기 위하여 본 차용증을 작성하고 서명 날인합니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 약관 동의 -->
+                    <div style="background: #fef3c7; border: 2px solid #fbbf24; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;" class="terms-agreement">
+                        <p style="text-align: center; font-weight: bold; font-size: 1.2rem;">
+                            위 차용증 약관을 모두 확인하였으며 이에 동의합니다
+                        </p>
+                    </div>
+
+                    <!-- 서명 섹션 -->
+                    <div style="border: 2px solid #d1d5db; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;" class="signature-section">
+                        <h3 style="font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">계약자 서명</h3>
+                        <div style="display: flex; gap: 1.5rem; justify-content: center;">
+                            <!-- 차용인 서명 -->
+                            ${loan.borrower_signature ? `
+                                <div style="border: 2px solid #9ca3af; padding: 1rem; border-radius: 0.5rem; background: white; flex: 1; max-width: 400px;">
+                                    <h4 style="font-weight: bold; margin-bottom: 0.75rem; text-align: center;">차용인 서명</h4>
+                                    <div style="border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; min-height: 150px;">
+                                        <img src="${loan.borrower_signature}" alt="차용인 서명" style="width: 100%; height: 100%; object-fit: contain;">
+                                    </div>
+                                    <p style="text-align: center; margin-top: 0.75rem; font-weight: bold;">서명인: ${loan.borrower_name}</p>
+                                    <p style="text-align: center; font-size: 0.9rem; color: #4b5563;">서명일: ${new Date(loan.created_at).toLocaleDateString('ko-KR')}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <!-- 차용인 신분증 -->
+                            ${loan.borrower_id_card_photo ? `
+                                <div style="border: 2px solid #9ca3af; padding: 1rem; border-radius: 0.5rem; background: white; flex: 1; max-width: 400px;">
+                                    <h4 style="font-weight: bold; margin-bottom: 0.75rem; text-align: center;">차용인 신분증</h4>
+                                    <div style="border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; min-height: 150px;">
+                                        <img src="${loan.borrower_id_card_photo}" alt="신분증" style="width: 100%; height: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- 계약 체결일 -->
+                    <div style="text-align: center; padding-top: 1rem; padding-bottom: 1rem; border-top: 2px solid #d1d5db;">
+                        <p style="font-size: 1.2rem; font-weight: bold;">계약 체결일: ${new Date(loan.created_at).toLocaleDateString('ko-KR')}</p>
+                    </div>
+                </div>
+            `;
+
+            // 모달과 PDF 컨테이너 모두 렌더링
+            console.log('📝 loanDetail에 렌더링 시작');
+            const loanDetailEl = document.getElementById('loanDetail');
+            const pdfContentEl = document.getElementById('pdfContent');
+            
+            console.log('  loanDetail 현재 길이:', loanDetailEl.innerHTML.length);
+            console.log('  pdfContent 현재 길이:', pdfContentEl.innerHTML.length);
+            
+            loanDetailEl.innerHTML = html;
+            pdfContentEl.innerHTML = html;
+            
+            console.log('  loanDetail 렌더링 후 길이:', loanDetailEl.innerHTML.length);
+            console.log('  pdfContent 렌더링 후 길이:', pdfContentEl.innerHTML.length);
+            
+            console.log('✅ 차용증 렌더링 완료', { loan_number: loan.loan_number });
+        }
+
+        function hideDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            currentLoan = null;
+        }
+
+        function printLoan() {
+            window.print();
+        }
+        
+        // html2pdf 로드
+        function loadHtml2Pdf() {
+            return new Promise((resolve, reject) => {
+                if (window.html2pdf) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // 차용증 전용 PDF 생성기 - jsPDF + html2canvas 직접 사용
+        // html2pdf 라이브러리 로드 함수
+        async function loadHtml2Pdf() {
+            return new Promise((resolve, reject) => {
+                if (typeof html2pdf !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                script.onload = () => {
+                    console.log('✅ html2pdf 로드 완료');
+                    resolve();
+                };
+                script.onerror = () => {
+                    reject(new Error('html2pdf 라이브러리 로드 실패'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // PDF 다운로드 함수 (기본 파일명)
+        async function downloadLoanPDF(customFileName = null) {
+            if (!currentLoan) {
+                alert('차용증 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+
+            try {
+                console.log('📄 PDF 생성 시작:', currentLoan.loan_number);
+                
+                // PDF 전용 컨테이너 사용
+                const element = document.getElementById('pdfContent');
+                
+                if (!element) {
+                    throw new Error('PDF 컨테이너를 찾을 수 없습니다.');
+                }
+                
+                // 내용이 없으면 렌더링
+                if (!element.innerHTML || element.innerHTML.trim() === '') {
+                    console.log('📝 PDF 컨테이너 렌더링...');
+                    renderDetail();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // 최종 확인
+                if (!element.innerHTML || element.innerHTML.trim() === '') {
+                    throw new Error('렌더링된 내용이 없습니다.');
+                }
+                
+                console.log('✅ 렌더링 확인 완료');
+                
+                // html2pdf 라이브러리 로드
+                if (typeof html2pdf === 'undefined') {
+                    console.log('📦 html2pdf 라이브러리 로딩...');
+                    await loadHtml2Pdf();
+                }
+
+                // 파일명 결정
+                let fileName;
+                if (customFileName) {
+                    // 사용자 지정 파일명
+                    fileName = customFileName.endsWith('.pdf') ? customFileName : `${customFileName}.pdf`;
+                } else {
+                    // 기본 파일명
+                    const loanNumber = currentLoan.loan_number || 'loan';
+                    fileName = `차용증_${loanNumber}.pdf`;
+                }
+
+                // A4 최적화 옵션
+                const opt = {
+                    margin: [8, 10, 8, 10],
+                    filename: fileName,
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 0.98 
+                    },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        letterRendering: true,
+                        logging: false,
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait',
+                        compress: true
+                    },
+                    pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy'],
+                        avoid: ['.signature-section', '.terms-agreement', '.contract-terms']
+                    }
+                };
+
+                console.log('🎨 html2canvas 시작...');
+                
+                // PDF 생성 및 다운로드 (Blob 방식)
+                const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                
+                console.log('✅ Blob 생성 완료:', pdfBlob.size, 'bytes');
+                
+                // Blob URL 생성 및 다운로드
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('✅ PDF 다운로드 완료:', fileName);
+            } catch (error) {
+                console.error('❌ PDF 생성 오류:', error);
+                alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}\n\n대안: 브라우저 인쇄 기능(Ctrl+P)을 이용해주세요.`);
+            }
+        }
+
+        // 다른 이름으로 저장
+        async function downloadLoanPDFWithCustomName() {
+            if (!currentLoan) {
+                alert('차용증 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
+            const defaultName = `차용증_${currentLoan.loan_number}`;
+            const customName = prompt(
+                `PDF 파일명을 입력하세요\\n\\n예시:\\n- ${defaultName}\\n- ${currentLoan.borrower_name}_차용증_${currentLoan.loan_number}\\n- 차용증_${new Date().toISOString().split('T')[0]}`,
+                defaultName
+            );
+            
+            if (customName === null) return; // 취소
+            if (!customName.trim()) {
+                alert('파일명을 입력해주세요');
+                return;
+            }
+            
+            // 파일명에서 특수문자 제거 (Windows 호환)
+            const sanitizedName = customName.trim().replace(/[<>:"/\\|?*]/g, '_');
+            const fileName = sanitizedName.endsWith('.pdf') ? sanitizedName : `${sanitizedName}.pdf`;
+            
+            await downloadLoanPDF(fileName);
+        }
+
+        // 빠른 다운로드 (목록에서 직접)
+        async function quickDownloadLoanPDF(id) {
+            try {
+                console.log('🔄 차용증 데이터 로드 중...', id);
+                const response = await axios.get(`/api/loan-contracts/${id}`);
+                currentLoan = response.data;
+                
+                if (!currentLoan) {
+                    throw new Error('차용증 데이터를 불러올 수 없습니다');
+                }
+                
+                console.log('✅ 차용증 데이터 로드 완료:', currentLoan.loan_number);
+                
+                // 렌더링
+                renderDetail();
+                
+                // DOM 업데이트 대기 (더 긴 시간)
+                await new Promise(resolve => setTimeout(resolve, 1200));
+                
+                // pdfContent 검증
+                const pdfContent = document.getElementById('pdfContent');
+                if (!pdfContent || !pdfContent.innerHTML.trim()) {
+                    throw new Error('PDF 콘텐츠가 렌더링되지 않았습니다');
+                }
+                
+                console.log('✅ PDF 콘텐츠 렌더링 완료, 길이:', pdfContent.innerHTML.length);
+                
+                // PDF 다운로드
+                await downloadLoanPDF();
+            } catch (error) {
+                console.error('❌ 빠른 다운로드 오류:', error);
+                alert(`PDF 다운로드에 실패했습니다\n오류: ${error.message}\n\n상세보기를 열고 다시 시도해주세요.`);
+            }
+        }
+    </script>
+</body>
+</html>

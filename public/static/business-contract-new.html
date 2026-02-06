@@ -41,15 +41,15 @@
         })();
     </script>
 </head>
-<body class="bg-gray-50"  class="" class="authenticated">
+<body class="bg-gray-50 authenticated">
     
     <div class="min-h-screen pb-20">
         <!-- 헤더 -->
         <header class="bg-purple-600 text-white shadow-lg">
             <div class="container mx-auto px-4 py-4">
-                <a href="/" class="text-xl font-bold">
+                <a href="/" class="text-xl font-bold flex items-center hover:bg-indigo-700 px-3 py-2 rounded-lg transition-colors cursor-pointer inline-flex">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    업체 리스/렌트 계약서 작성
+                    <span>업체 리스/렌트 계약서 작성</span>
                 </a>
             </div>
         </header>
@@ -59,13 +59,21 @@
             <form id="businessContractForm" class="space-y-6">
                 <!-- 1. 업체 정보 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">
-                        <i class="fas fa-building mr-2 text-purple-600"></i>
-                        1. 업체 정보
-                    </h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">
+                            <i class="fas fa-building mr-2 text-purple-600"></i>
+                            1. 업체 정보
+                        </h2>
+                        <button 
+                            type="button" 
+                            onclick="showCompanySelectModal()"
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-list mr-2"></i>업체 선택
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold mb-2">업체명 *</label>
+                            <label class="block text-sm font-bold mb-2">상호 *</label>
                             <input type="text" id="companyName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                         <div>
@@ -73,34 +81,22 @@
                             <input type="text" id="businessNumber" required placeholder="000-00-00000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">대표자 *</label>
-                            <input type="text" id="representative" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-sm font-bold mb-2">사업장 연락처 *</label>
+                            <input type="tel" id="businessPhone" required placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">종목 *</label>
-                            <input type="text" id="businessType" required placeholder="예: 음식점업" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-sm font-bold mb-2">사업장 우편번호 *</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="businessPostcode" required readonly placeholder="우편번호" class="flex-1 px-3 py-2 border rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-purple-500" onclick="searchBusinessAddress()">
+                                <button type="button" onclick="searchBusinessAddress()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">업태 *</label>
-                            <input type="text" id="businessCategory" required placeholder="예: 도소매업" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">전화번호 *</label>
-                            <input type="tel" id="businessPhone" required placeholder="02-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                        </div>
-                        <!-- 사업장 주소 -->
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold mb-2">사업장 주소 *</label>
-                            <div class="grid grid-cols-1 gap-2">
-                                <div class="flex gap-2">
-                                    <input type="text" id="businessPostcode" placeholder="우편번호" readonly required class="w-32 px-3 py-2 border rounded-lg bg-gray-50">
-                                    <button type="button" onclick="searchBusinessAddress()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap">
-                                        <i class="fas fa-search mr-1"></i>우편번호 찾기
-                                    </button>
-                                </div>
-                                <input type="text" id="businessAddress" placeholder="기본주소" readonly required class="w-full px-3 py-2 border rounded-lg bg-gray-50">
-                                <input type="text" id="businessDetailAddress" placeholder="상세주소" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                            </div>
+                            <input type="text" id="businessAddress" required readonly placeholder="주소 검색 후 자동 입력" class="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 mb-2">
+                            <input type="text" id="businessDetailAddress" placeholder="상세주소" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                     </div>
                 </div>
@@ -113,16 +109,20 @@
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold mb-2">대표자 주민번호 *</label>
+                            <label class="block text-sm font-bold mb-2">대표자 이름 *</label>
+                            <input type="text" id="representative" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">주민등록번호 *</label>
                             <input type="text" id="representativeResidentNumber" required placeholder="000000-0000000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">대표자 전화번호 *</label>
+                            <label class="block text-sm font-bold mb-2">전화번호 *</label>
                             <input type="tel" id="representativePhone" required placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
                         <!-- 대표자 주소 -->
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-bold mb-2">대표자 주소 *</label>
+                            <label class="block text-sm font-bold mb-2">주소 *</label>
                             <div class="grid grid-cols-1 gap-2">
                                 <div class="flex gap-2">
                                     <input type="text" id="representativePostcode" placeholder="우편번호" readonly required class="w-32 px-3 py-2 border rounded-lg bg-gray-50">
@@ -151,15 +151,40 @@
                         <input type="hidden" id="selectedMotorcycleId">
                         <div id="selectedMotorcycleInfo" class="mt-4 hidden">
                             <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                                <div class="flex items-center justify-between">
+                                <div class="flex items-center justify-between mb-4">
                                     <div>
-                                        <p class="text-sm text-gray-600 mb-1">선택된 오토바이</p>
                                         <p class="text-xl font-bold text-purple-800" id="selectedMotorcycleName"></p>
-                                        <p class="text-sm text-gray-600 mt-1" id="selectedMotorcycleDetails"></p>
                                     </div>
                                     <button type="button" onclick="showMotorcycleModal()" class="text-purple-600 hover:text-purple-700">
                                         <i class="fas fa-edit text-2xl"></i>
                                     </button>
+                                </div>
+                                <!-- 오토바이 상세 정보 -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-gray-700 w-24">차량번호:</span>
+                                        <span id="motorcyclePlateNumber" class="text-gray-900"></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-gray-700 w-24">차대번호:</span>
+                                        <span id="motorcycleChassisNumber" class="text-gray-900"></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-gray-700 w-24">차량이름:</span>
+                                        <span id="motorcycleVehicleName" class="text-gray-900"></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-gray-700 w-24">보험사:</span>
+                                        <span id="motorcycleInsuranceCompany" class="text-gray-900"></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-gray-700 w-24">보험기간:</span>
+                                        <span id="motorcycleInsurancePeriod" class="text-gray-900"></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="font-bold text-gray-700 w-24">운전범위:</span>
+                                        <span id="motorcycleDrivingRange" class="text-gray-900"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -173,6 +198,17 @@
                         4. 계약 상세 정보
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-handshake mr-1 text-purple-600"></i>
+                                계약 종류 *
+                            </label>
+                            <select id="contractType" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="">선택하세요</option>
+                                <option value="lease">리스</option>
+                                <option value="rent">렌트</option>
+                            </select>
+                        </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">계약 시작일 *</label>
                             <input type="date" id="contractStartDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
@@ -188,19 +224,6 @@
                         <div>
                             <label class="block text-sm font-bold mb-2">보험 종료일 *</label>
                             <input type="date" id="insuranceEndDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">운전범위 *</label>
-                            <select id="drivingRange" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                                <option value="">선택하세요</option>
-                                <option value="전연령">전연령</option>
-                                <option value="만 19세 이상">만 19세 이상</option>
-                                <option value="만 21세 이상">만 21세 이상</option>
-                                <option value="만 24세 이상">만 24세 이상</option>
-                                <option value="만 26세 이상">만 26세 이상</option>
-                                <option value="만 30세 이상">만 30세 이상</option>
-                                <option value="만 35세 이상">만 35세 이상</option>
-                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">
@@ -247,7 +270,7 @@
                         </p>
                         
                         <p class="text-gray-600">
-                            본 계약은 대여인(사업자)과 차용인(업체) 간의 오토바이 리스/렌트 형태의 계약입니다.
+                            본 계약은 대여인(사업자)과 수요업체 간의 오토바이 리스/렌트 형태의 계약입니다.
                         </p>
 
                         <p class="font-bold mt-4 mb-2 text-purple-700">
@@ -268,6 +291,19 @@
                             </p>
                         </div>
 
+                        <div class="ml-4 space-y-1 bg-red-50 border-l-4 border-red-400 p-3 rounded mt-3">
+                            <p class="font-bold text-red-800">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>대리 작성 동의 및 법적 효력
+                            </p>
+                            <p class="text-gray-700">
+                                업체 계약 특성상 <span class="font-bold text-red-700">업체 대표의 전화 또는 구두로 출고를 요청 시</span>, 
+                                임차인의 최초 정보등록 정보를 사용하여 <span class="font-bold text-red-700">임대인이 계약서를 대리 작성해도 법적 효력이 발생</span>합니다.
+                            </p>
+                            <p class="text-gray-700 mt-2 font-bold text-red-800">
+                                ✓ 본인은 이에 동의하며, 대리 작성된 계약서도 본 계약과 동일한 법적 효력을 갖는다는 것을 확인합니다.
+                            </p>
+                        </div>
+
                         <p class="font-bold mt-4 mb-2">제1조 (목적 및 계약 내용)</p>
                         <div class="ml-4 space-y-1">
                             <p>① 본 계약은 업체 배달대행 목적의 리스/렌트 계약입니다.</p>
@@ -277,45 +313,45 @@
 
                         <p class="font-bold mt-3 mb-2">제2조 (인도 및 관리)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 대여인은 계약 시작일에 오토바이를 업체에 인도하며, 업체는 선량한 관리자의 주의로 관리해야 합니다.</p>
-                            <p>② 업체는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
+                            <p>① 대여인은 계약 시작일에 오토바이를 업체(임차인)에 인도하며, 업체(임차인)는 선량한 관리자의 주의로 관리해야 합니다.</p>
+                            <p>② 업체(임차인)는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 오토바이는 업체의 배달대행 업무에만 사용할 수 있습니다.</p>
-                            <p>② 업체는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
+                            <p>① 오토바이는 업체(임차인)의 배달대행 업무에만 사용할 수 있습니다.</p>
+                            <p>② 업체(임차인)는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
                             <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 업체는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
+                            <p>① 업체(임차인)는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
                             <p>② 일차감 금액: 위 기재된 일차감금액</p>
                             <p>③ 보증금: 위 기재된 보증금</p>
-                            <p>④ 차감 금액은 업체의 일당 정산 시 대여인이 지정한 계좌로 입금해야 합니다.</p>
-                            <p>⑤ 업체는 일당 발생 시마다 입금하며, 별도의 월 납부 의무는 없습니다.</p>
+                            <p>④ 차감 금액은 업체(임차인)의 일당 정산 시 대여인이 지정한 계좌로 입금해야 합니다.</p>
+                            <p>⑤ 모든 정산은 임대인과 업체(임차인)의 합의한 납부방식이 우선한다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 대여인은 업체의 일당, 입금 금액, 누적 입금 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
-                            <p>② 업체는 언제든 본인의 입금 내역 및 납부 현황을 조회할 수 있습니다.</p>
-                            <p>③ 입금 내역에 이의가 있는 경우, 업체는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
+                            <p>① 대여인은 업체(임차인)의 일당, 입금 금액, 누적 입금 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p>② 업체(임차인)는 언제든 본인의 입금 내역 및 납부 현황을 조회할 수 있습니다.</p>
+                            <p>③ 입금 내역에 이의가 있는 경우, 업체(임차인)는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
                         <div class="ml-4 space-y-1">
                             <p>① 대여인은 오토바이에 대한 자동차보험(유상운송보험)에 가입하여야 합니다.</p>
-                            <p>② 사고 발생 시 업체는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
-                            <p>③ 업체의 고의 또는 과실로 발생한 사고의 자기부담금은 업체가 부담합니다.</p>
-                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체가 전액 배상합니다.</p>
+                            <p>② 사고 발생 시 업체(임차인)는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
+                            <p>③ 업체(임차인)의 고의 또는 과실로 발생한 사고의 자기부담금은 업체(임차인)가 부담합니다.</p>
+                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체(임차인)가 전액 배상합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체가 전액 부담합니다.</p>
-                            <p>② 정비 및 수리가 필요한 경우, 업체는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
+                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체(임차인)가 전액 부담합니다.</p>
+                            <p>② 정비 및 수리가 필요한 경우, 업체(임차인)는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
@@ -323,20 +359,20 @@
                             <p>① 대여인은 다음 각 호의 경우 계약을 즉시 해지할 수 있습니다:</p>
                             <p class="ml-4">- 리스/렌트비가 일주일 이상 밀린 경우</p>
                             <p class="ml-4">- 음주운전 등 중대한 법규 위반이 있는 경우</p>
-                            <p class="ml-4">- 업체가 허위 정보를 제공한 경우</p>
-                            <p>② 해지 시 업체는 즉시 오토바이를 반환하며, 미납 대여료 및 손해액은 보증금에서 공제됩니다.</p>
+                            <p class="ml-4">- 업체(임차인)가 허위 정보를 제공한 경우</p>
+                            <p>② 해지 시 업체(임차인)는 즉시 오토바이를 반환하며, 미납 대여료 및 손해액은 보증금에서 공제됩니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 업체는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
+                            <p>① 업체(임차인)는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
                             <p>② 중도 해지 시, 위약금(일차감금액의 30일분)은 보증금에서 공제 후 반환합니다.</p>
                             <p>③ 리스 계약의 경우, 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부해야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제10조 (렌트 종료 시 반환)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 렌트 종료 시 업체는 오토바이를 즉시 반환해야 합니다.</p>
+                            <p>① 렌트 종료 시 업체(임차인)는 오토바이를 즉시 반환해야 합니다.</p>
                             <p>② 오토바이에 손상이 있는 경우, 수리비는 보증금에서 공제됩니다.</p>
                             <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료됩니다.</p>
                         </div>
@@ -356,8 +392,9 @@
                         <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
                         <div class="ml-4 space-y-1">
                             <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                            <p>② 본 계약으로 인한 분쟁 발생 시 대여인의 주소지 관할 법원을 전속관할로 합니다.</p>
+                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 업체(임차인)의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
                             <p>③ 특약사항에 기재된 사항이 있는 경우 우선 적용됩니다.</p>
+                            <p>④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
                         </div>
 
                         <p class="mt-4 text-center text-gray-600">
@@ -387,57 +424,30 @@
                 </div>
 
                 <!-- 6. 서류 첨부 -->
+                <!-- 6. 대표자 서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-purple-600"></i>
+                        6. 대표자 서명
+                    </h2>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
+                    <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
+                        <canvas id="businessSignatureCanvas" width="600" height="150" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <div class="mt-3 flex justify-between items-center">
+                        <button type="button" onclick="clearBusinessSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
+                            <i class="fas fa-eraser mr-1"></i>서명 지우기
+                        </button>
+                        <p class="text-xs text-gray-500">서명일: <span id="businessSignDate"></span></p>
+                    </div>
+                </div>
+
+                <!-- 7. 서류 첨부 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
                         <i class="fas fa-paperclip mr-2 text-purple-600"></i>
-                        6. 서류 첨부
+                        7. 서류 첨부
                     </h2>
-                    
-                    <!-- 사업자등록증 -->
-                    <div class="mb-6">
-                        <h3 class="font-bold text-lg mb-3">
-                            <i class="fas fa-file-alt mr-2 text-purple-600"></i>
-                            사업자등록증
-                        </h3>
-                        <p class="text-sm text-gray-600 mb-4">사업자등록증을 촬영하거나 업로드하세요</p>
-                        
-                        <!-- 웹캠 미리보기 영역 -->
-                        <div id="businessLicenseCameraSection" class="hidden mb-4">
-                            <video id="businessLicenseVideo" width="640" height="480" autoplay class="w-full rounded-lg border-2 border-purple-300 mb-2"></video>
-                            <div class="flex gap-2">
-                                <button type="button" onclick="captureBusinessLicense()" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                                    <i class="fas fa-camera mr-2"></i>촬영하기
-                                </button>
-                                <button type="button" onclick="stopBusinessLicenseCamera()" class="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-                                    <i class="fas fa-stop mr-2"></i>카메라 끄기
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 촬영/업로드 버튼 -->
-                        <div id="businessLicenseButtons" class="flex gap-2 mb-4">
-                            <button type="button" onclick="startBusinessLicenseCamera()" class="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700">
-                                <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                            </button>
-                            <label class="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 text-center cursor-pointer">
-                                <i class="fas fa-upload mr-2"></i>파일 업로드
-                                <input type="file" id="businessLicenseUpload" accept="image/*" onchange="uploadBusinessLicense(event)" class="hidden">
-                            </label>
-                        </div>
-
-                        <!-- 이미지 미리보기 -->
-                        <div id="businessLicensePreview" class="hidden">
-                            <p class="text-sm font-bold mb-2 text-purple-600">
-                                <i class="fas fa-check-circle mr-1"></i>사업자등록증 첨부됨
-                            </p>
-                            <img id="businessLicenseImage" class="w-full rounded-lg border-2 border-purple-300 mb-2">
-                            <button type="button" onclick="removeBusinessLicense()" class="text-red-600 hover:text-red-700 text-sm">
-                                <i class="fas fa-trash mr-1"></i>삭제
-                            </button>
-                        </div>
-                        <input type="hidden" id="businessLicensePhoto">
-                    </div>
-
                     <!-- 대표자 신분증 -->
                     <div>
                         <h3 class="font-bold text-lg mb-3">
@@ -484,79 +494,44 @@
                     </div>
                 </div>
 
-                <!-- 관리자용 신분증 촬영/업로드 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800">
-                        <i class="fas fa-id-card mr-2 text-blue-600"></i>
-                        신분증 촬영 (선택사항)
-                    </h2>
-                    <p class="text-sm text-gray-600 mb-4">
-                        관리자가 직접 고객의 신분증을 촬영하거나 업로드할 수 있습니다. (선택사항)
-                    </p>
-                    
-                    <!-- 촬영/업로드 버튼 -->
-                    <div class="flex gap-3 mb-4">
-                        <button type="button" onclick="startAdminIdCamera()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                        </button>
-                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
-                            <i class="fas fa-upload mr-2"></i>파일 선택
-                        </button>
-                        <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
-                    </div>
-                    
-                    <!-- 미리보기 영역 -->
-                    <div id="adminIdPreview" class="hidden">
-                        <div class="relative border-2 border-gray-300 rounded-lg p-2 bg-gray-50">
-                            <img id="adminIdImage" src="" alt="신분증" class="w-full h-auto rounded">
-                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
-                                <i class="fas fa-trash mr-1"></i>삭제
-                            </button>
-                        </div>
-                        <p class="text-sm text-green-600 mt-2">
-                            <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다.
-                        </p>
-                    </div>
-                </div>
-
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
                     <button type="button" onclick="window.location.href='/'" class="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-bold">
                         <i class="fas fa-times mr-2"></i>취소
                     </button>
                     <button type="submit" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-bold">
-                        <i class="fas fa-check mr-2"></i>계약서 생성
+                        <i class="fas fa-save mr-2"></i>계약서 저장
                     </button>
                 </div>
             </form>
         </main>
     </div>
 
-    <!-- 관리자 신분증 카메라 모달 -->
-    <div id="adminIdCameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
-            <div class="bg-blue-600 text-white p-4 flex items-center justify-between rounded-t-lg">
+    <!-- 업체 선택 모달 -->
+    <div id="companySelectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-green-600 text-white p-4 rounded-t-lg flex justify-between items-center">
                 <h3 class="text-xl font-bold">
-                    <i class="fas fa-camera mr-2"></i>
-                    신분증 촬영
+                    <i class="fas fa-building mr-2"></i>업체 선택
                 </h3>
-                <button type="button" onclick="stopAdminIdCamera()" class="text-white hover:text-gray-200">
+                <button onclick="hideCompanySelectModal()" class="text-white hover:text-gray-200">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
             
-            <div class="p-6">
-                <video id="adminIdVideo" autoplay playsinline class="w-full rounded-lg border-2 border-gray-300"></video>
-                <canvas id="adminIdCanvas" class="hidden"></canvas>
-                
-                <div class="flex gap-3 mt-4">
-                    <button type="button" onclick="captureAdminId()" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                        <i class="fas fa-camera mr-2"></i>촬영
-                    </button>
-                    <button type="button" onclick="stopAdminIdCamera()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
-                        <i class="fas fa-times mr-2"></i>취소
-                    </button>
+            <!-- 검색창 -->
+            <div class="p-4 border-b bg-gray-50">
+                <div class="relative">
+                    <input type="text" id="companySearch" placeholder="업체명/사업자번호로 검색..." 
+                           class="w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-green-500"
+                           oninput="filterCompaniesInModal()">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 </div>
+            </div>
+            
+            <!-- 업체 목록 -->
+            <div id="companyListInModal" class="p-4">
+                <!-- 업체 목록이 여기에 표시됩니다 -->
             </div>
         </div>
     </div>
@@ -593,12 +568,19 @@
     <script>
         let motorcycles = [];
         let selectedMotorcycleId = null;
-        let businessLicenseStream = null;
         let idCardStream = null;
+        
+        // 업체 관련 변수
+        let companies = [];
+        let allCompanies = [];
+        let selectedCompany = null;
 
         // 페이지 로드 시 실행
         window.addEventListener('DOMContentLoaded', () => {
             loadMotorcycles();
+            loadCompanies(); // 업체 목록 로드
+            initBusinessSignatureCanvas(); // 서명 캔버스 초기화
+            
             // 오늘 날짜를 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('contractStartDate').value = today;
@@ -614,6 +596,9 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
             document.getElementById('contractDateTime').textContent = dateTimeString;
+            
+            // 서명일 표시
+            document.getElementById('businessSignDate').textContent = dateTimeString;
         });
 
         // 사업장 주소 검색
@@ -638,25 +623,237 @@
             }).open();
         }
 
+        // 사업장 주소 검색
+        function searchBusinessAddress() {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    document.getElementById('businessPostcode').value = data.zonecode;
+                    document.getElementById('businessAddress').value = data.roadAddress || data.jibunAddress;
+                    document.getElementById('businessDetailAddress').focus();
+                }
+            }).open();
+        }
+
         // 오토바이 목록 로드
         async function loadMotorcycles() {
             try {
-                const response = await axios.get('/api/motorcycles?status=available');
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.get('/api/motorcycles', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
                 motorcycles = response.data.sort((a, b) => {
                     const aNum = a.plate_number || a.chassis_number;
                     const bNum = b.plate_number || b.chassis_number;
                     return aNum.localeCompare(bNum);
                 });
+                console.log('✅ 오토바이 목록 로드 완료:', motorcycles.length, '대');
+                // 첫 번째 오토바이 보험 정보 확인
+                if (motorcycles.length > 0) {
+                    console.log('📋 샘플 오토바이 데이터:', {
+                        vehicle_name: motorcycles[0].vehicle_name,
+                        insurance_start_date: motorcycles[0].insurance_start_date,
+                        insurance_end_date: motorcycles[0].insurance_end_date
+                    });
+                }
             } catch (error) {
-                console.error('Error loading motorcycles:', error);
+                console.error('❌ 오토바이 목록 로드 실패:', error);
+                console.error('에러 상세:', error.response?.data);
+            }
+        }
+
+        // ==================== 업체 관련 함수 ====================
+        
+        // 업체 목록 로드
+        async function loadCompanies() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.get('/api/companies', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                companies = response.data;
+                allCompanies = response.data;
+            } catch (error) {
+                console.error('업체 목록 로드 실패:', error);
+            }
+        }
+        
+        // 업체 선택 모달 표시
+        function showCompanySelectModal() {
+            const modal = document.getElementById('companySelectModal');
+            modal.classList.remove('hidden');
+            renderCompanyList(companies);
+        }
+        
+        // 업체 선택 모달 숨기기
+        function hideCompanySelectModal() {
+            const modal = document.getElementById('companySelectModal');
+            modal.classList.add('hidden');
+            document.getElementById('companySearch').value = '';
+        }
+        
+        // 모달 내 업체 검색 필터
+        function filterCompaniesInModal() {
+            const searchTerm = document.getElementById('companySearch').value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                renderCompanyList(companies);
+                return;
+            }
+            
+            const filtered = companies.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const businessNumber = (c.business_number || '').toLowerCase();
+                return name.includes(searchTerm) || businessNumber.includes(searchTerm);
+            });
+            
+            renderCompanyList(filtered);
+        }
+        
+        // 업체 목록 렌더링
+        function renderCompanyList(list) {
+            const container = document.getElementById('companyListInModal');
+            
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-building text-4xl mb-2"></i>
+                        <p>등록된 업체가 없습니다.</p>
+                        <a href="/static/companies.html" class="text-green-600 hover:underline mt-2 inline-block">
+                            업체 등록하러 가기
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = list.map(company => `
+                <div class="border rounded-lg p-4 hover:bg-green-50 cursor-pointer transition mb-2 ${selectedCompany && selectedCompany.id === company.id ? 'bg-green-50 border-green-500 border-2' : 'border-gray-300'}"
+                     onclick="selectCompany(${company.id})">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-building text-green-600 mr-2"></i>
+                                <h4 class="font-bold text-lg">${company.name}</h4>
+                                ${selectedCompany && selectedCompany.id === company.id ? '<span class="ml-2 bg-green-600 text-white text-xs px-2 py-1 rounded">선택됨</span>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-600 space-y-1">
+                                <p><i class="fas fa-id-card w-4 mr-2"></i>${company.business_number}</p>
+                                <p><i class="fas fa-user-tie w-4 mr-2"></i>${company.representative}</p>
+                                <p><i class="fas fa-phone w-4 mr-2"></i>${company.phone}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 업체 선택
+        function selectCompany(id) {
+            selectedCompany = companies.find(c => c.id === id);
+            if (!selectedCompany) return;
+            
+            console.log('✅ 업체 선택됨:', selectedCompany.name);
+            console.log('📋 서명 데이터:', selectedCompany.signature_data ? '있음' : '없음');
+            console.log('🪪 신분증 데이터:', selectedCompany.id_card_photo ? '있음' : '없음');
+            
+            // 1. 업체 정보 섹션 자동 입력
+            document.getElementById('companyName').value = selectedCompany.name; // 상호
+            document.getElementById('businessNumber').value = selectedCompany.business_number; // 사업자번호
+            
+            // 사업장 연락처 (업체 전화번호와 동일)
+            if (selectedCompany.phone) {
+                document.getElementById('businessPhone').value = selectedCompany.phone;
+            }
+            
+            // 사업장 주소 (업체 주소와 동일)
+            if (selectedCompany.postcode) {
+                document.getElementById('businessPostcode').value = selectedCompany.postcode;
+            }
+            document.getElementById('businessAddress').value = selectedCompany.address || '';
+            document.getElementById('businessDetailAddress').value = selectedCompany.detail_address || '';
+            
+            // 2. 대표자 정보 섹션 자동 입력
+            document.getElementById('representative').value = selectedCompany.representative; // 대표자 이름
+            // 주민등록번호 자동 입력
+            if (selectedCompany.representative_resident_number) {
+                document.getElementById('representativeResidentNumber').value = selectedCompany.representative_resident_number;
+            }
+            document.getElementById('representativePhone').value = selectedCompany.phone; // 전화번호
+            // 우편번호 자동 입력
+            if (selectedCompany.postcode) {
+                document.getElementById('representativePostcode').value = selectedCompany.postcode;
+            }
+            // 주소 입력
+            document.getElementById('representativeAddress').value = selectedCompany.address || ''; // 기본주소
+            document.getElementById('representativeDetailAddress').value = selectedCompany.detail_address || ''; // 상세주소
+            
+            // 3. 서명 자동 입력
+            if (selectedCompany.signature_data) {
+                console.log('✍️ 업체의 저장된 서명을 불러옵니다...');
+                // 서명 캔버스에 이미지 로드
+                const img = new Image();
+                img.onload = function() {
+                    // 캔버스 초기화
+                    businessSignatureCtx.fillStyle = '#FFFFFF';
+                    businessSignatureCtx.fillRect(0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
+                    // 서명 그리기
+                    businessSignatureCtx.drawImage(img, 0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
+                    console.log('✅ 서명 자동 입력 완료');
+                };
+                img.src = selectedCompany.signature_data;
+            }
+            
+            // 4. 신분증 자동 입력
+            if (selectedCompany.id_card_photo) {
+                console.log('🪪 업체의 저장된 신분증을 불러옵니다...');
+                document.getElementById('idCardPhoto').value = selectedCompany.id_card_photo;
+                document.getElementById('idCardImage').src = selectedCompany.id_card_photo;
+                document.getElementById('idCardPreview').classList.remove('hidden');
+                console.log('✅ 신분증 자동 입력 완료');
+            }
+            
+            // 5. 약관 동의 자동 체크
+            if (selectedCompany.terms_agreed) {
+                console.log('✅ 업체의 약관 동의 정보를 불러옵니다...');
+                document.getElementById('agreeTerms').checked = true;
+                console.log('✅ 약관 동의 자동 체크 완료');
+            }
+            
+            // 모달 닫기
+            hideCompanySelectModal();
+            
+            const missingFields = [];
+            if (!selectedCompany.representative_resident_number) missingFields.push('주민등록번호');
+            if (!selectedCompany.postcode) missingFields.push('우편번호');
+            if (!selectedCompany.signature_data) missingFields.push('서명');
+            if (!selectedCompany.id_card_photo) missingFields.push('신분증');
+            if (!selectedCompany.terms_agreed) missingFields.push('약관 동의');
+            
+            if (missingFields.length > 0) {
+                alert(`✅ "${selectedCompany.name}" 업체 정보가 입력되었습니다.\n\n※ ${missingFields.join(', ')}는 직접 입력해주세요.\n\n💡 업체 목록에서 ${missingFields.join(', ')}를 등록하면\n다음부터 자동으로 입력됩니다.`);
+            } else {
+                alert(`✅ "${selectedCompany.name}" 업체 정보가 모두 자동 입력되었습니다!\n\n- 업체 정보\n- 대표자 정보\n- 약관 동의\n- 서명\n- 신분증\n\n이제 오토바이와 계약 조건만 입력하시면 됩니다.`);
             }
         }
 
         // 오토바이 선택 모달 표시
+        // 오토바이 선택 모달 표시
         function showMotorcycleModal() {
+            console.log('🔍 오토바이 선택 모달 열기');
+            console.log('📊 현재 오토바이 목록:', motorcycles.length, '대');
+            
             const modal = document.getElementById('motorcycleModal');
             modal.classList.remove('hidden');
-            renderMotorcycleList(motorcycles);
+            
+            // 목록이 비어있으면 다시 로드
+            if (motorcycles.length === 0) {
+                console.log('⚠️ 오토바이 목록이 비어있습니다. 다시 로드합니다...');
+                loadMotorcycles().then(() => {
+                    renderMotorcycleList(motorcycles);
+                });
+            } else {
+                renderMotorcycleList(motorcycles);
+            }
         }
 
         // 오토바이 선택 모달 숨기기
@@ -686,20 +883,40 @@
 
         // 오토바이 목록 렌더링
         function renderMotorcycleList(list) {
+            console.log('🎨 오토바이 목록 렌더링:', list.length, '대');
             const container = document.getElementById('motorcycleListModal');
             
+            if (!container) {
+                console.error('❌ motorcycleListModal 컨테이너를 찾을 수 없습니다!');
+                return;
+            }
+            
             if (list.length === 0) {
+                console.log('⚠️ 오토바이 목록이 비어있습니다');
                 container.innerHTML = `
                     <div class="text-center py-12 text-gray-500">
                         <i class="fas fa-motorcycle text-4xl mb-4"></i>
-                        <p>사용 가능한 오토바이가 없습니다</p>
-                        <a href="/motorcycles" class="inline-block mt-4 text-purple-600 hover:underline">
+                        <p>오토바이가 없습니다</p>
+                        <a href="/static/motorcycle-register" class="inline-block mt-4 text-purple-600 hover:underline">
                             <i class="fas fa-plus mr-1"></i>오토바이 등록하기
                         </a>
                     </div>
                 `;
                 return;
             }
+
+            const statusColors = {
+                'available': 'bg-green-100 text-green-800',
+                'rented': 'bg-yellow-100 text-yellow-800',
+                'maintenance': 'bg-orange-100 text-orange-800',
+                'scrapped': 'bg-red-100 text-red-800'
+            };
+            const statusTexts = {
+                'available': '휴차중',
+                'rented': '계약중',
+                'maintenance': '정비중',
+                'scrapped': '폐지'
+            };
 
             container.innerHTML = list.map(m => `
                 <div class="border rounded-lg p-4 mb-3 hover:bg-purple-50 cursor-pointer transition ${selectedMotorcycleId === m.id ? 'bg-purple-50 border-purple-500' : 'hover:border-purple-300'}"
@@ -708,15 +925,18 @@
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <p class="font-bold text-lg">${m.vehicle_name}</p>
-                                ${selectedMotorcycleId === m.id ? '<span class="bg-purple-600 text-white px-2 py-1 rounded">선택됨</span>' : ''}
+                                <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[m.status] || 'bg-gray-100 text-gray-800'}">
+                                    ${statusTexts[m.status] || m.status}
+                                </span>
+                                ${selectedMotorcycleId === m.id ? '<span class="bg-purple-600 text-white px-2 py-1 rounded text-xs">선택됨</span>' : ''}
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-600">
                                 <p><i class="fas fa-id-card mr-1 text-purple-600"></i> ${m.plate_number || `(폐지) ${m.chassis_number}`}</p>
                                 <p><i class="fas fa-calendar mr-1 text-purple-600"></i> ${m.model_year}년</p>
                                 <p><i class="fas fa-tachometer-alt mr-1 text-purple-600"></i> ${(m.mileage || 0).toLocaleString()}km</p>
-                                <p><i class="fas fa-shield-alt mr-1 text-purple-600"></i> ${m.insurance}</p>
-                                <p><i class="fas fa-user mr-1 text-purple-600"></i> ${m.owner_name}</p>
-                                <p><i class="fas fa-birthday-cake mr-1 text-purple-600"></i> ${m.driving_range}</p>
+                                <p><i class="fas fa-shield-alt mr-1 text-purple-600"></i> ${m.insurance_company || '-'}</p>
+                                <p><i class="fas fa-calendar-check mr-1 text-purple-600"></i> ${m.insurance_start_date && m.insurance_end_date ? `${m.insurance_start_date} ~ ${m.insurance_end_date}` : '-'}</p>
+                                <p><i class="fas fa-user-shield mr-1 text-purple-600"></i> ${m.driving_range || '-'}</p>
                             </div>
                         </div>
                     </div>
@@ -730,79 +950,86 @@
             const motorcycle = motorcycles.find(m => m.id === id);
             
             if (motorcycle) {
+                console.log('='.repeat(60));
+                console.log('🏍️ 오토바이 선택됨!');
+                console.log('='.repeat(60));
+                console.log('차량명:', motorcycle.vehicle_name);
+                console.log('번호판:', motorcycle.plate_number);
+                console.log('📅 보험 시작일:', motorcycle.insurance_start_date);
+                console.log('📅 보험 종료일:', motorcycle.insurance_end_date);
+                console.log('보험사:', motorcycle.insurance_company);
+                console.log('운전범위:', motorcycle.driving_range);
+                console.log('='.repeat(60));
+                
                 document.getElementById('selectedMotorcycleId').value = id;
                 document.getElementById('selectedMotorcycleName').textContent = motorcycle.vehicle_name;
-                document.getElementById('selectedMotorcycleDetails').textContent = 
-                    `${motorcycle.plate_number || `(폐지) ${motorcycle.chassis_number}`} | ${motorcycle.model_year}년 | ${(motorcycle.mileage || 0).toLocaleString()}km`;
+                
+                // 상세 정보 표시
+                document.getElementById('motorcyclePlateNumber').textContent = motorcycle.plate_number || '(폐지)';
+                document.getElementById('motorcycleChassisNumber').textContent = motorcycle.chassis_number || '-';
+                document.getElementById('motorcycleVehicleName').textContent = motorcycle.vehicle_name || '-';
+                document.getElementById('motorcycleInsuranceCompany').textContent = motorcycle.insurance_company || '-';
+                
+                // 보험기간 표시
+                if (motorcycle.insurance_start_date && motorcycle.insurance_end_date) {
+                    const startDate = new Date(motorcycle.insurance_start_date).toLocaleDateString('ko-KR');
+                    const endDate = new Date(motorcycle.insurance_end_date).toLocaleDateString('ko-KR');
+                    document.getElementById('motorcycleInsurancePeriod').textContent = `${startDate} ~ ${endDate}`;
+                    console.log('✅ 보험기간 표시:', `${startDate} ~ ${endDate}`);
+                } else {
+                    document.getElementById('motorcycleInsurancePeriod').textContent = '-';
+                    console.warn('⚠️ 보험기간 정보 없음');
+                }
+                
+                // 운전범위 표시
+                document.getElementById('motorcycleDrivingRange').textContent = motorcycle.driving_range || '-';
+                
+                console.log('');
+                console.log('📝 4번 섹션 - 계약 상세 정보에 보험 기간 자동 입력 시작...');
+                console.log('');
+                
+                // ✨ 보험 정보 자동 입력 (4번 계약 상세 정보에 자동 적용)
+                const startDateInput = document.getElementById('insuranceStartDate');
+                const endDateInput = document.getElementById('insuranceEndDate');
+                
+                console.log('insuranceStartDate 필드:', startDateInput ? '✅ 존재함' : '❌ 없음');
+                console.log('insuranceEndDate 필드:', endDateInput ? '✅ 존재함' : '❌ 없음');
+                
+                // 보험 시작일 자동 입력
+                if (motorcycle.insurance_start_date) {
+                    if (startDateInput) {
+                        startDateInput.value = motorcycle.insurance_start_date;
+                        console.log('✅ 보험 시작일 자동 입력 성공:', motorcycle.insurance_start_date);
+                        console.log('   → 필드 값 확인:', startDateInput.value);
+                    } else {
+                        console.error('❌ insuranceStartDate 필드를 찾을 수 없습니다');
+                    }
+                } else {
+                    console.warn('⚠️ 선택한 오토바이에 보험 시작일 정보가 없습니다');
+                }
+                
+                // 보험 종료일 자동 입력
+                if (motorcycle.insurance_end_date) {
+                    if (endDateInput) {
+                        endDateInput.value = motorcycle.insurance_end_date;
+                        console.log('✅ 보험 종료일 자동 입력 성공:', motorcycle.insurance_end_date);
+                        console.log('   → 필드 값 확인:', endDateInput.value);
+                    } else {
+                        console.error('❌ insuranceEndDate 필드를 찾을 수 없습니다');
+                    }
+                } else {
+                    console.warn('⚠️ 선택한 오토바이에 보험 종료일 정보가 없습니다');
+                }
+                
+                console.log('');
+                console.log('✅ 보험 정보 자동 입력 완료!');
+                console.log('='.repeat(60));
                 
                 document.getElementById('selectedMotorcycleInfo').classList.remove('hidden');
                 document.getElementById('selectedMotorcycleText').textContent = '다른 오토바이 선택';
                 
                 hideMotorcycleModal();
             }
-        }
-
-        // 사업자등록증 카메라 시작
-        async function startBusinessLicenseCamera() {
-            try {
-                businessLicenseStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                const video = document.getElementById('businessLicenseVideo');
-                video.srcObject = businessLicenseStream;
-                document.getElementById('businessLicenseCameraSection').classList.remove('hidden');
-                document.getElementById('businessLicenseButtons').classList.add('hidden');
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                alert('카메라에 접근할 수 없습니다');
-            }
-        }
-
-        // 사업자등록증 촬영
-        function captureBusinessLicense() {
-            const video = document.getElementById('businessLicenseVideo');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            
-            const photoData = canvas.toDataURL('image/jpeg');
-            document.getElementById('businessLicensePhoto').value = photoData;
-            document.getElementById('businessLicenseImage').src = photoData;
-            document.getElementById('businessLicensePreview').classList.remove('hidden');
-            
-            stopBusinessLicenseCamera();
-        }
-
-        // 사업자등록증 카메라 중지
-        function stopBusinessLicenseCamera() {
-            if (businessLicenseStream) {
-                businessLicenseStream.getTracks().forEach(track => track.stop());
-                businessLicenseStream = null;
-            }
-            document.getElementById('businessLicenseCameraSection').classList.add('hidden');
-            document.getElementById('businessLicenseButtons').classList.remove('hidden');
-        }
-
-        // 사업자등록증 업로드
-        function uploadBusinessLicense(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const photoData = e.target.result;
-                    document.getElementById('businessLicensePhoto').value = photoData;
-                    document.getElementById('businessLicenseImage').src = photoData;
-                    document.getElementById('businessLicensePreview').classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // 사업자등록증 삭제
-        function removeBusinessLicense() {
-            document.getElementById('businessLicensePhoto').value = '';
-            document.getElementById('businessLicenseImage').src = '';
-            document.getElementById('businessLicensePreview').classList.add('hidden');
-            document.getElementById('businessLicenseUpload').value = '';
         }
 
         // 신분증 카메라 시작
@@ -884,10 +1111,18 @@
                 return;
             }
 
-            // 사업자등록증 확인
-            const businessLicensePhoto = document.getElementById('businessLicensePhoto').value;
-            if (!businessLicensePhoto) {
-                alert('사업자등록증을 첨부해주세요');
+            // 서명 확인
+            const signatureData = getBusinessSignatureData();
+            if (!signatureData) {
+                alert('대표자 서명을 해주세요');
+                return;
+            }
+
+            // 빈 캔버스 체크
+            const imageData = businessSignatureCtx.getImageData(0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
+            const isBlank = !imageData.data.some(channel => channel !== 255 && channel !== 0);
+            if (isBlank) {
+                alert('대표자 서명을 해주세요');
                 return;
             }
 
@@ -907,13 +1142,12 @@
             // 계약 데이터 구성
             const contractData = {
                 contract_type: 'business',
+                business_contract_type: document.getElementById('contractType').value, // 리스/렌트 구분
                 motorcycle_id: selectedMotorcycleId,
                 // 업체 정보
                 company_name: document.getElementById('companyName').value,
                 business_number: document.getElementById('businessNumber').value,
                 representative: document.getElementById('representative').value,
-                business_type: document.getElementById('businessType').value,
-                business_category: document.getElementById('businessCategory').value,
                 business_phone: document.getElementById('businessPhone').value,
                 business_address: businessFullAddress,
                 // 대표자 정보
@@ -925,130 +1159,165 @@
                 contract_end_date: document.getElementById('contractEndDate').value,
                 insurance_start_date: document.getElementById('insuranceStartDate').value,
                 insurance_end_date: document.getElementById('insuranceEndDate').value,
-                driving_range: document.getElementById('drivingRange').value,
                 daily_amount: parseInt(document.getElementById('dailyAmount').value),
                 deposit: parseInt(document.getElementById('deposit').value),
                 special_terms: document.getElementById('specialTerms').value,
-                // 서류
-                business_license_photo: businessLicensePhoto,
+                // 서류 및 서명
+                signature_data: signatureData,
                 id_card_photo: idCardPhoto,
                 status: 'active'
             };
 
+            console.log('');
+            console.log('='.repeat(60));
+            // 세션 ID 확인
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('❌ 로그인이 필요합니다.\n\n로그인 페이지로 이동합니다.');
+                window.location.href = '/login';
+                return;
+            }
+            
+            console.log('📤 계약서 저장 시작');
+            console.log('='.repeat(60));
+            console.log('계약 데이터:', contractData);
+            console.log('세션 ID:', sessionId ? '✅ 있음' : '❌ 없음');
+            console.log('='.repeat(60));
+
             try {
-                const response = await axios.post('/api/business-contracts', contractData);
-                alert(`업체 계약서가 생성되었습니다\n계약번호: ${response.data.contract_number}`);
-                window.location.href = '/business-contracts';
+                console.log('🌐 API 호출: POST /api/business-contracts');
+                const response = await axios.post('/api/business-contracts', contractData, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                console.log('✅ 업체 계약서 생성 완료:', response.data);
+                console.log('계약번호:', response.data.contract_number);
+                
+                alert(`✅ 업체 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}`);
+                
+                // 계약서 목록으로 자동 이동
+                console.log('📄 계약서 목록으로 이동...');
+                window.location.href = '/static/contracts.html';
             } catch (error) {
-                console.error('Error creating contract:', error);
-                alert('계약서 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                console.error('');
+                console.error('='.repeat(60));
+                console.error('❌ 계약서 생성 실패');
+                console.error('='.repeat(60));
+                console.error('에러 객체:', error);
+                console.error('응답 상태:', error.response?.status);
+                console.error('응답 데이터:', error.response?.data);
+                console.error('에러 메시지:', error.message);
+                console.error('='.repeat(60));
+                
+                const errorMessage = error.response?.data?.error || error.message || '알 수 없는 오류';
+                alert('계약서 생성에 실패했습니다:\n\n' + errorMessage);
             }
         });
 
-        // ===== 관리자용 신분증 촬영 기능 =====
-        let adminIdStream = null;
-        let adminIdPhotoData = null;
-
-        // 관리자 신분증 카메라 시작
-        async function startAdminIdCamera() {
-            try {
-                // 먼저 기본 제약 조건으로 시도
-                try {
-                    adminIdStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: { ideal: 'environment' },
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        } 
-                    });
-                } catch (e) {
-                    console.log('고급 설정 실패, 기본 설정으로 시도:', e);
-                    adminIdStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: true 
-                    });
-                }
-                
-                const video = document.getElementById('adminIdVideo');
-                video.srcObject = adminIdStream;
-                
-                // 비디오가 로드될 때까지 대기
-                await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        resolve();
-                    };
-                });
-                
-                document.getElementById('adminIdCameraModal').classList.remove('hidden');
-            } catch (error) {
-                console.error('카메라 접근 오류:', error);
-                let errorMsg = '카메라에 접근할 수 없습니다.';
-                
-                if (error.name === 'NotAllowedError') {
-                    errorMsg = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMsg = '카메라를 찾을 수 없습니다.';
-                } else if (error.name === 'NotReadableError') {
-                    errorMsg = '카메라가 다른 앱에서 사용 중입니다.';
-                } else if (error.name === 'NotSupportedError') {
-                    errorMsg = 'HTTPS 연결이 필요합니다.';
-                }
-                
-                alert(errorMsg);
+        // ===== 대표자 서명 캔버스 기능 =====
+        let businessSignatureCanvas = null;
+        let businessSignatureCtx = null;
+        let businessIsDrawing = false;
+        
+        function initBusinessSignatureCanvas() {
+            businessSignatureCanvas = document.getElementById('businessSignatureCanvas');
+            if (!businessSignatureCanvas) return;
+            
+            businessSignatureCtx = businessSignatureCanvas.getContext('2d');
+            
+            // 캔버스 배경을 흰색으로 채우기
+            businessSignatureCtx.fillStyle = '#FFFFFF';
+            businessSignatureCtx.fillRect(0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
+            
+            businessSignatureCtx.strokeStyle = '#000';
+            businessSignatureCtx.lineWidth = 2;
+            businessSignatureCtx.lineCap = 'round';
+            
+            // 마우스 이벤트
+            businessSignatureCanvas.addEventListener('mousedown', startBusinessDrawing);
+            businessSignatureCanvas.addEventListener('mousemove', drawBusiness);
+            businessSignatureCanvas.addEventListener('mouseup', stopBusinessDrawing);
+            businessSignatureCanvas.addEventListener('mouseout', stopBusinessDrawing);
+            
+            // 터치 이벤트
+            businessSignatureCanvas.addEventListener('touchstart', handleBusinessTouchStart);
+            businessSignatureCanvas.addEventListener('touchmove', handleBusinessTouchMove);
+            businessSignatureCanvas.addEventListener('touchend', stopBusinessDrawing);
+        }
+        
+        function startBusinessDrawing(e) {
+            businessIsDrawing = true;
+            const rect = businessSignatureCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            businessSignatureCtx.beginPath();
+            businessSignatureCtx.moveTo(x, y);
+        }
+        
+        function drawBusiness(e) {
+            if (!businessIsDrawing) return;
+            const rect = businessSignatureCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            businessSignatureCtx.lineTo(x, y);
+            businessSignatureCtx.stroke();
+        }
+        
+        function stopBusinessDrawing() {
+            businessIsDrawing = false;
+        }
+        
+        function handleBusinessTouchStart(e) {
+            e.preventDefault();
+            businessIsDrawing = true;
+            const touch = e.touches[0];
+            const rect = businessSignatureCanvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            businessSignatureCtx.beginPath();
+            businessSignatureCtx.moveTo(x, y);
+        }
+        
+        function handleBusinessTouchMove(e) {
+            e.preventDefault();
+            if (!businessIsDrawing) return;
+            const touch = e.touches[0];
+            const rect = businessSignatureCanvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            businessSignatureCtx.lineTo(x, y);
+            businessSignatureCtx.stroke();
+        }
+        
+        function clearBusinessSignature() {
+            if (businessSignatureCtx && businessSignatureCanvas) {
+                // 캔버스를 지우고 다시 흰색 배경으로 채우기
+                businessSignatureCtx.clearRect(0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
+                businessSignatureCtx.fillStyle = '#FFFFFF';
+                businessSignatureCtx.fillRect(0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
             }
         }
-
-        // 관리자 신분증 촬영
-        function captureAdminId() {
-            const video = document.getElementById('adminIdVideo');
-            const canvas = document.getElementById('adminIdCanvas');
+        
+        function getBusinessSignatureData() {
+            if (!businessSignatureCanvas) return '';
             
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            // 임시 캔버스를 생성하여 서명만 추출하고 크기 최적화
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 300;
+            tempCanvas.height = 80;
+            const tempCtx = tempCanvas.getContext('2d');
             
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0);
+            // 흰색 배경 먼저 그리기
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
             
-            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.95);
+            // 원본 캔버스 내용을 축소하여 그리기
+            tempCtx.drawImage(businessSignatureCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // 카메라 중지
-            stopAdminIdCamera();
-            
-            // 미리보기 표시
-            document.getElementById('adminIdImage').src = adminIdPhotoData;
-            document.getElementById('adminIdPreview').classList.remove('hidden');
+            // JPEG 포맷으로 저장 (더 작은 크기, 품질 0.5)
+            return tempCanvas.toDataURL('image/jpeg', 0.5);
         }
 
-        // 관리자 신분증 카메라 중지
-        function stopAdminIdCamera() {
-            if (adminIdStream) {
-                adminIdStream.getTracks().forEach(track => track.stop());
-                adminIdStream = null;
-            }
-            document.getElementById('adminIdCameraModal').classList.add('hidden');
-        }
-
-        // 관리자 신분증 파일 업로드
-        function handleAdminIdUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                adminIdPhotoData = e.target.result;
-                document.getElementById('adminIdImage').src = adminIdPhotoData;
-                document.getElementById('adminIdPreview').classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // 관리자 신분증 사진 삭제
-        function removeAdminIdPhoto() {
-            adminIdPhotoData = null;
-            document.getElementById('adminIdImage').src = '';
-            document.getElementById('adminIdPreview').classList.add('hidden');
-            document.getElementById('adminIdUpload').value = '';
-        }
     </script>
 </body>
 </html>

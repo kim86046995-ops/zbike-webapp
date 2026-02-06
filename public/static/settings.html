@@ -10,8 +10,8 @@
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
         <div class="mb-6">
-            <a href="/" class="text-blue-600 hover:text-blue-800">
-                <i class="fas fa-arrow-left mr-2"></i>메인으로 돌아가기
+            <a href="/" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg inline-flex items-center transition-colors cursor-pointer">
+                <i class="fas fa-arrow-left mr-2"></i><span>메인으로 돌아가기</span>
             </a>
         </div>
 
@@ -67,6 +67,15 @@
                         <input type="tel" id="phone" 
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                placeholder="02-1234-5678">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-mobile-alt mr-1 text-blue-500"></i>관리자번호
+                        </label>
+                        <input type="tel" id="managerPhone" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="010-1234-5678">
                     </div>
 
                     <div class="md:col-span-2">
@@ -127,26 +136,87 @@
                 </div>
             </form>
         </div>
+
+        <!-- 슈퍼관리자 전용: 관리자 목록 -->
+        <div id="adminManagementSection" class="bg-white rounded-lg shadow-lg p-8 max-w-4xl mx-auto mt-8" style="display: none;">
+            <div class="bg-purple-50 border-l-4 border-purple-500 p-4 mb-6">
+                <h2 class="text-xl font-bold mb-2 text-purple-800">
+                    <i class="fas fa-user-shield mr-2"></i>슈퍼관리자 특별 권한
+                </h2>
+                <p class="text-sm text-gray-600">
+                    관리자 계정의 사용 허가 및 중지를 관리할 수 있습니다.
+                </p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 border-b-2 border-gray-300">
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">아이디</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">이름</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">이메일</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">전화번호</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">권한</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">상태</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">가입일</th>
+                            <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody">
+                        <tr>
+                            <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>로딩 중...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
+        // 인증 확인
+        function checkAuth() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+
         // 페이지 로드 시 기존 설정 불러오기
         window.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) return;
+
             try {
-                const response = await axios.get('/api/company-settings');
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.get('/api/company-settings', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
                 const data = response.data;
                 
                 document.getElementById('companyName').value = data.company_name || '';
                 document.getElementById('businessNumber').value = data.business_number || '';
                 document.getElementById('representativeName').value = data.representative_name || '';
                 document.getElementById('phone').value = data.phone || '';
+                document.getElementById('managerPhone').value = data.manager_phone || '';
                 document.getElementById('address').value = data.address || '';
                 document.getElementById('bankName').value = data.bank_name || '';
                 document.getElementById('accountNumber').value = data.account_number || '';
                 document.getElementById('accountHolder').value = data.account_holder || '';
+
+                // 슈퍼관리자인 경우 관리자 목록 불러오기
+                checkSuperAdminAndLoadAdmins();
             } catch (error) {
                 console.error('Error loading settings:', error);
+                if (error.response?.status === 401) {
+                    alert('인증에 실패했습니다. 다시 로그인해주세요.');
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
             }
         });
 
@@ -154,11 +224,14 @@
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            if (!checkAuth()) return;
+
             const settingsData = {
                 company_name: document.getElementById('companyName').value,
                 business_number: document.getElementById('businessNumber').value,
                 representative_name: document.getElementById('representativeName').value,
                 phone: document.getElementById('phone').value,
+                manager_phone: document.getElementById('managerPhone').value,
                 address: document.getElementById('address').value,
                 bank_name: document.getElementById('bankName').value,
                 account_number: document.getElementById('accountNumber').value,
@@ -166,13 +239,135 @@
             };
 
             try {
-                await axios.put('/api/company-settings', settingsData);
-                alert('설정이 저장되었습니다!');
+                const sessionId = localStorage.getItem('sessionId');
+                await axios.put('/api/company-settings', settingsData, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                alert('✅ 설정이 저장되었습니다!');
             } catch (error) {
                 console.error('Error saving settings:', error);
-                alert('설정 저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                if (error.response?.status === 401) {
+                    alert('❌ 인증에 실패했습니다. 다시 로그인해주세요.');
+                    localStorage.clear();
+                    window.location.href = '/login';
+                } else {
+                    alert('❌ 설정 저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                }
             }
         });
+
+        // 슈퍼관리자 확인 및 관리자 목록 로드
+        async function checkSuperAdminAndLoadAdmins() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.get('/api/admins', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+
+                // 슈퍼관리자인 경우 섹션 표시
+                document.getElementById('adminManagementSection').style.display = 'block';
+                
+                // 관리자 목록 렌더링
+                renderAdminTable(response.data);
+            } catch (error) {
+                // 403 에러 = 슈퍼관리자가 아님 (정상)
+                if (error.response?.status === 403) {
+                    console.log('일반 관리자: 관리자 목록 숨김');
+                    document.getElementById('adminManagementSection').style.display = 'none';
+                } else {
+                    console.error('Error loading admins:', error);
+                }
+            }
+        }
+
+        // 관리자 목록 렌더링
+        function renderAdminTable(admins) {
+            const tbody = document.getElementById('adminTableBody');
+            
+            if (!admins || admins.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                            등록된 관리자가 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = admins.map(admin => {
+                const isSuperAdmin = admin.role === 'super_admin';
+                const isActive = admin.status === 'active';
+                const statusColor = isActive ? 'text-green-600' : 'text-red-600';
+                const statusText = isActive ? '사용 중' : '사용 중지';
+                const statusIcon = isActive ? 'fa-check-circle' : 'fa-ban';
+                const roleText = isSuperAdmin ? '슈퍼관리자' : '일반 관리자';
+                const roleBadge = isSuperAdmin ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
+
+                return `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${admin.username}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${admin.name || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${admin.email || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${admin.phone || '-'}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs font-semibold rounded ${roleBadge}">
+                                ${roleText}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="${statusColor} font-semibold text-sm">
+                                <i class="fas ${statusIcon} mr-1"></i>${statusText}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700">
+                            ${new Date(admin.created_at).toLocaleDateString('ko-KR')}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            ${isSuperAdmin ? 
+                                '<span class="text-xs text-gray-400">-</span>' : 
+                                `<button 
+                                    onclick="toggleAdminStatus(${admin.id}, '${isActive ? 'suspended' : 'active'}', '${admin.username}')"
+                                    class="px-3 py-1 text-sm font-semibold rounded transition ${
+                                        isActive ? 
+                                        'bg-red-100 text-red-700 hover:bg-red-200' : 
+                                        'bg-green-100 text-green-700 hover:bg-green-200'
+                                    }">
+                                    <i class="fas ${isActive ? 'fa-ban' : 'fa-check'} mr-1"></i>
+                                    ${isActive ? '사용 중지' : '사용 허가'}
+                                </button>`
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 관리자 상태 변경
+        async function toggleAdminStatus(adminId, newStatus, username) {
+            const statusText = newStatus === 'active' ? '사용 허가' : '사용 중지';
+            const confirmMessage = `정말로 "${username}" 계정을 ${statusText}하시겠습니까?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.put(`/api/admins/${adminId}/status`, 
+                    { status: newStatus },
+                    { headers: { 'X-Session-ID': sessionId } }
+                );
+
+                alert(`✅ ${response.data.message}`);
+                
+                // 목록 새로고침
+                checkSuperAdminAndLoadAdmins();
+            } catch (error) {
+                console.error('Error changing admin status:', error);
+                alert(`❌ 상태 변경에 실패했습니다: ${error.response?.data?.error || error.message}`);
+            }
+        }
     </script>
 </body>
 </html>

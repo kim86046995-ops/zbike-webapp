@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/cloudflare-workers'
+import { serveStatic } from '@hono/node-server/serve-static'
 
-type Bindings = {
-  DB: D1Database;
-}
+// type Bindings = {
+//   DB: D1Database;
+// }
 
-const app = new Hono<{ Bindings: Bindings }>()
+const app = new Hono()
 
 // 캐시 무효화 미들웨어 (모든 HTML 페이지)
 app.use('*', async (c, next) => {
@@ -24,12 +24,12 @@ app.use('*', async (c, next) => {
 // CORS 설정
 app.use('/api/*', cors())
 
-// 정적 파일 서빙 (캐시 무효화는 미들웨어에서)
+// 정적 HTML 파일 직접 서빙
+app.get('/static/:filename', serveStatic({ root: './' }))
+
+// 나머지 정적 파일
 app.use('/static/*', serveStatic({ 
-  root: './public',
-  onNotFound: (path, c) => {
-    console.log('Static file not found:', path)
-  }
+  root: './'
 }))
 
 // ============================================
@@ -38,6 +38,55 @@ app.use('/static/*', serveStatic({
 
 function generateSessionId() {
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
+}
+
+// 한국 시간(KST) 생성 헬퍼 함수
+function getKSTDateTime() {
+  const now = new Date()
+  // UTC 시간에 9시간 추가 (한국 시간)
+  const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000))
+  // SQLite datetime 형식: YYYY-MM-DD HH:mm:ss
+  return kstTime.toISOString().slice(0, 19).replace('T', ' ')
+}
+
+// ============================================
+// 계약 이력 기록 헬퍼 함수
+// ============================================
+
+async function recordContractHistory(
+  DB: D1Database,
+  contractId: number,
+  motorcycleId: number,
+  customerId: number,
+  contractNumber: string,
+  contractType: string,
+  actionType: 'created' | 'updated' | 'completed' | 'cancelled' | 'replaced',
+  oldStatus: string | null,
+  newStatus: string,
+  startDate: string,
+  endDate: string,
+  monthlyFee: number,
+  deposit: number,
+  specialTerms: string,
+  actionReason: string = ''
+) {
+  try {
+    await DB.prepare(`
+      INSERT INTO contract_history (
+        contract_id, motorcycle_id, customer_id, contract_number, contract_type,
+        action_type, old_status, new_status, start_date, end_date,
+        monthly_fee, deposit, special_terms, action_reason
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      contractId, motorcycleId, customerId, contractNumber, contractType,
+      actionType, oldStatus, newStatus, startDate, endDate,
+      monthlyFee, deposit, specialTerms, actionReason
+    ).run()
+    
+    console.log(`📝 Contract history recorded: ${contractNumber} - ${actionType}`)
+  } catch (error) {
+    console.error('❌ Failed to record contract history:', error)
+  }
 }
 
 async function createSession(DB: D1Database, userId: number) {
@@ -231,49 +280,221 @@ app.post('/api/admin/users/:id/status', async (c) => {
   return c.json({ success: true })
 })
 
-// 아이디 찾기 (이름과 전화번호로)
-app.post('/api/auth/find-username', async (c) => {
+// 관리자 상태 변경 PATCH (username 기반, 슈퍼관리자 전용)
+app.patch('/api/admin/users/:username/status', async (c) => {
   const { DB } = c.env
-  const { name, phone } = await c.req.json()
+  const sessionId = c.req.header('X-Session-ID')
   
-  const user = await DB.prepare('SELECT username, created_at FROM users WHERE name = ? AND phone = ?')
-    .bind(name, phone).first()
-  
-  if (!user) {
-    return c.json({ error: '일치하는 사용자를 찾을 수 없습니다' }, 404)
+  const session = await validateSession(DB, sessionId)
+  if (!session || (session as any).role !== 'super_admin') {
+    return c.json({ error: '권한이 없습니다' }, 403)
   }
   
-  return c.json({
+  const username = c.req.param('username')
+  const { status } = await c.req.json()
+  
+  // 유효한 상태값 체크
+  if (!['active', 'inactive'].includes(status)) {
+    return c.json({ error: '유효하지 않은 상태값입니다' }, 400)
+  }
+  
+  // 자기 자신은 변경할 수 없음
+  if ((session as any).username === username) {
+    return c.json({ error: '자기 자신의 상태는 변경할 수 없습니다' }, 400)
+  }
+  
+  // 슈퍼관리자는 정지할 수 없음
+  const targetUser = await DB.prepare('SELECT id, role FROM users WHERE username = ?')
+    .bind(username)
+    .first()
+  
+  if (!targetUser) {
+    return c.json({ error: '사용자를 찾을 수 없습니다' }, 404)
+  }
+  
+  if ((targetUser as any).role === 'super_admin') {
+    return c.json({ error: '슈퍼관리자는 정지할 수 없습니다' }, 400)
+  }
+  
+  // 상태 업데이트
+  await DB.prepare('UPDATE users SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?')
+    .bind(status, username)
+    .run()
+  
+  // 비활성화 시 모든 세션 삭제
+  if (status === 'inactive') {
+    await DB.prepare('DELETE FROM sessions WHERE user_id = ?')
+      .bind((targetUser as any).id)
+      .run()
+  }
+  
+  return c.json({ 
     success: true,
-    username: (user as any).username,
-    created_at: (user as any).created_at
+    message: status === 'active' ? '사용자가 활성화되었습니다' : '사용자가 비활성화되었습니다'
   })
+})
+
+// 아이디 찾기 (이름과 전화번호로)
+app.post('/api/auth/find-username', async (c) => {
+  try {
+    const { DB } = c.env
+    const { name, phone } = await c.req.json()
+    
+    console.log('🔍 아이디 찾기 요청:', { name, phone })
+    
+    const user = await DB.prepare('SELECT username, created_at FROM users WHERE name = ? AND phone = ?')
+      .bind(name, phone).first()
+    
+    console.log('🔍 조회 결과:', user)
+    
+    if (!user) {
+      return c.json({ error: '일치하는 사용자를 찾을 수 없습니다' }, 404)
+    }
+    
+    return c.json({
+      success: true,
+      username: (user as any).username,
+      created_at: (user as any).created_at
+    })
+  } catch (error) {
+    console.error('❌ 아이디 찾기 에러:', error)
+    return c.json({ error: '서버 오류가 발생했습니다: ' + (error as Error).message }, 500)
+  }
 })
 
 // 비밀번호 재설정 토큰 생성 (아이디, 이름, 전화번호로 확인)
 app.post('/api/auth/request-reset', async (c) => {
-  const { DB } = c.env
-  const { username, name, phone } = await c.req.json()
-  
-  const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND name = ? AND phone = ?')
-    .bind(username, name, phone).first()
-  
-  if (!user) {
-    return c.json({ error: '일치하는 사용자를 찾을 수 없습니다' }, 404)
+  try {
+    const { DB } = c.env
+    const { username, name, phone } = await c.req.json()
+    
+    console.log('🔐 비밀번호 재설정 요청:', { username, name, phone })
+    
+    const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND name = ? AND phone = ?')
+      .bind(username, name, phone).first()
+    
+    if (!user) {
+      return c.json({ error: '일치하는 사용자를 찾을 수 없습니다' }, 404)
+    }
+    
+    console.log('✅ 사용자 확인:', { id: (user as any).id, email: (user as any).email })
+    
+    // 토큰 생성 (6자리 숫자)
+    const token = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30분
+    
+    await DB.prepare('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)')
+      .bind((user as any).id, token, expiresAt).run()
+    
+    // 이메일 발송
+    const userEmail = (user as any).email
+    if (userEmail) {
+      try {
+        console.log('📧 이메일 발송 시도:', userEmail)
+        
+        // 이메일 내용
+        const emailContent = `
+          <html>
+            <head>
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #f7fafc; padding: 30px; border: 1px solid #e2e8f0; }
+                .token { font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 20px 0; }
+                .info { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+                .footer { text-align: center; color: #718096; padding: 20px; font-size: 12px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🔐 비밀번호 재설정</h1>
+                  <p>Z-BIKE 오토바이 리스/렌트 시스템</p>
+                </div>
+                <div class="content">
+                  <p>안녕하세요, <strong>${(user as any).name}</strong>님!</p>
+                  <p>비밀번호 재설정을 위한 인증번호가 발급되었습니다.</p>
+                  
+                  <div class="token">${token}</div>
+                  
+                  <div class="info">
+                    <p><strong>⏰ 유효시간: 30분</strong></p>
+                    <p>인증번호는 30분 동안만 유효합니다. 시간 내에 입력해주세요.</p>
+                  </div>
+                  
+                  <p>본인이 요청하지 않은 경우, 이 메일을 무시하셔도 됩니다.</p>
+                </div>
+                <div class="footer">
+                  <p>© 2026 Z-BIKE. All rights reserved.</p>
+                  <p>이 메일은 발신 전용입니다.</p>
+                </div>
+              </div>
+            </body>
+          </html>
+        `
+        
+        // Resend API를 사용한 이메일 발송
+        const RESEND_API_KEY = c.env.RESEND_API_KEY || ''
+        
+        if (RESEND_API_KEY) {
+          const emailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: 'Z-BIKE <noreply@zbike.com>',
+              to: [userEmail],
+              subject: '[Z-BIKE] 비밀번호 재설정 인증번호',
+              html: emailContent
+            })
+          })
+          
+          const emailResult = await emailResponse.json()
+          console.log('📧 이메일 발송 결과:', emailResult)
+          
+          if (emailResponse.ok) {
+            return c.json({
+              success: true,
+              message: `인증번호가 ${userEmail}로 발송되었습니다. 이메일을 확인해주세요.`,
+              email: userEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3') // 이메일 마스킹
+            })
+          }
+        }
+        
+        // 이메일 발송 실패 시 폴백: 화면에 직접 표시 (개발 모드)
+        console.log('⚠️ 이메일 발송 실패 또는 API 키 없음. 토큰을 화면에 표시합니다.')
+        return c.json({
+          success: true,
+          token, // 개발 모드에서만 토큰 반환
+          message: '인증번호가 생성되었습니다. (이메일 발송 기능 미설정)',
+          email: userEmail
+        })
+        
+      } catch (emailError) {
+        console.error('❌ 이메일 발송 에러:', emailError)
+        // 이메일 발송 실패해도 토큰은 생성되었으므로 화면에 표시
+        return c.json({
+          success: true,
+          token, // 폴백으로 토큰 반환
+          message: '인증번호가 생성되었습니다. (이메일 발송 실패)',
+          email: userEmail
+        })
+      }
+    } else {
+      // 이메일이 없는 경우 화면에 표시
+      return c.json({
+        success: true,
+        token,
+        message: '인증번호가 생성되었습니다. (이메일 미등록)',
+      })
+    }
+  } catch (error) {
+    console.error('❌ 비밀번호 재설정 요청 에러:', error)
+    return c.json({ error: '서버 오류가 발생했습니다: ' + (error as Error).message }, 500)
   }
-  
-  // 토큰 생성 (6자리 숫자)
-  const token = Math.floor(100000 + Math.random() * 900000).toString()
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30분
-  
-  await DB.prepare('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)')
-    .bind((user as any).id, token, expiresAt).run()
-  
-  return c.json({
-    success: true,
-    token,
-    message: '인증번호가 생성되었습니다. 30분 이내에 입력해주세요.'
-  })
 })
 
 // 비밀번호 재설정
@@ -310,7 +531,8 @@ app.post('/api/auth/reset-password', async (c) => {
 // ============================================
 
 // 오토바이 목록 조회
-app.get('/api/motorcycles', async (c) => {
+// 오토바이 목록 조회 (인증 필요 - 민감한 정보 포함)
+app.get('/api/motorcycles', authMiddleware, async (c) => {
   const { DB } = c.env
   const status = c.req.query('status')
   
@@ -339,8 +561,92 @@ app.get('/api/motorcycles', async (c) => {
   return c.json(result.results)
 })
 
+// 공개 API: 고객 계약서 작성용 오토바이 목록 (인증 불필요)
+app.get('/api/public/motorcycles', async (c) => {
+  const { DB } = c.env
+  
+  try {
+    // 계약서 작성에 필요한 모든 정보 포함
+    const result = await DB.prepare(`
+      SELECT 
+        id,
+        plate_number,
+        chassis_number,
+        vehicle_name,
+        status,
+        insurance_company,
+        driving_range,
+        insurance_start_date,
+        insurance_end_date
+      FROM motorcycles
+      ORDER BY plate_number
+    `).all()
+    
+    // 페지되지 않은 것만 필터링
+    const filtered = result.results?.filter((m: any) => m.status !== 'scrapped') || []
+    
+    return c.json(filtered)
+  } catch (error) {
+    console.error('Public motorcycles API error:', error)
+    return c.json({ error: 'Failed to load motorcycles', details: error.message }, 500)
+  }
+})
+
+// 공개 API: 고객 계약서 작성용 고객 목록 (인증 불필요)
+app.get('/api/public/customers', async (c) => {
+  const { DB } = c.env
+  
+  try {
+    const result = await DB.prepare(`
+      SELECT 
+        id,
+        name,
+        resident_number,
+        phone,
+        postcode,
+        address,
+        detail_address
+      FROM customers
+      ORDER BY created_at DESC
+    `).all()
+    
+    return c.json(result.results || [])
+  } catch (error) {
+    console.error('Public customers API error:', error)
+    return c.json({ error: 'Failed to load customers', details: error.message }, 500)
+  }
+})
+
+// 고객 포털용 - 번호판으로 오토바이 검색 (민감한 정보 제외)
+app.get('/api/public/motorcycles/search', async (c) => {
+  const { DB } = c.env
+  const plateNumber = c.req.query('plate_number')
+  
+  if (!plateNumber) {
+    return c.json({ error: '번호판을 입력해주세요' }, 400)
+  }
+  
+  // 민감한 정보 제외하고 기본 정보만 반환
+  const result = await DB.prepare(`
+    SELECT 
+      id,
+      plate_number,
+      vehicle_name,
+      model_year
+    FROM motorcycles 
+    WHERE plate_number = ? AND status = 'available' AND deleted_at IS NULL
+  `).bind(plateNumber).first()
+  
+  if (!result) {
+    return c.json({ error: '해당 번호판의 오토바이를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
 // 오토바이 상세 조회
-app.get('/api/motorcycles/:id', async (c) => {
+// 오토바이 상세 조회 (인증 필요)
+app.get('/api/motorcycles/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -396,39 +702,85 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
   const data = await c.req.json()
   
-  await DB.prepare(`
-    UPDATE motorcycles SET
-      plate_number = ?, vehicle_name = ?, chassis_number = ?, mileage = ?,
-      model_year = ?, insurance_company = ?, insurance_start_date = ?,
-      insurance_end_date = ?, inspection_start_date = ?, inspection_end_date = ?,
-      driving_range = ?, owner_name = ?,
-      insurance_fee = ?, vehicle_price = ?, daily_rental_fee = ?, usage_notes = ?, status = ?,
-      certificate_photo = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(
-    data.plate_number,
-    data.vehicle_name,
-    data.chassis_number,
-    data.mileage,
-    data.model_year,
-    data.insurance_company,
-    data.insurance_start_date,
-    data.insurance_end_date,
-    data.inspection_start_date || null,
-    data.inspection_end_date || null,
-    data.driving_range,
-    data.owner_name,
-    data.insurance_fee,
-    data.vehicle_price,
-    data.daily_rental_fee || 0,
-    data.usage_notes || '',
-    data.status,
-    data.certificate_photo || null,
-    id
-  ).run()
-  
-  return c.json({ id, ...data })
+  try {
+    // 먼저 기존 데이터 조회
+    const existing = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
+    
+    if (!existing) {
+      return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+    }
+    
+    // 기존 데이터와 새 데이터 병합 (새 데이터가 우선)
+    const mergedData = {
+      plate_number: data.plate_number !== undefined ? data.plate_number : existing.plate_number,
+      vehicle_name: data.vehicle_name !== undefined ? data.vehicle_name : existing.vehicle_name,
+      chassis_number: data.chassis_number !== undefined ? data.chassis_number : existing.chassis_number,
+      mileage: data.mileage !== undefined ? data.mileage : existing.mileage,
+      model_year: data.model_year !== undefined ? data.model_year : existing.model_year,
+      insurance_company: data.insurance_company !== undefined ? data.insurance_company : existing.insurance_company,
+      insurance_start_date: data.insurance_start_date !== undefined ? data.insurance_start_date : existing.insurance_start_date,
+      insurance_end_date: data.insurance_end_date !== undefined ? data.insurance_end_date : existing.insurance_end_date,
+      inspection_start_date: data.inspection_start_date !== undefined ? data.inspection_start_date : existing.inspection_start_date,
+      inspection_end_date: data.inspection_end_date !== undefined ? data.inspection_end_date : existing.inspection_end_date,
+      driving_range: data.driving_range !== undefined ? data.driving_range : existing.driving_range,
+      owner_name: data.owner_name !== undefined ? data.owner_name : existing.owner_name,
+      insurance_fee: data.insurance_fee !== undefined ? data.insurance_fee : existing.insurance_fee,
+      vehicle_price: data.vehicle_price !== undefined ? data.vehicle_price : existing.vehicle_price,
+      daily_rental_fee: data.daily_rental_fee !== undefined ? data.daily_rental_fee : (existing.daily_rental_fee || 0),
+      usage_notes: data.usage_notes !== undefined ? data.usage_notes : (existing.usage_notes || ''),
+      status: data.status !== undefined ? data.status : existing.status,
+      certificate_photo: data.certificate_photo !== undefined ? data.certificate_photo : existing.certificate_photo,
+      monthly_fee: data.monthly_fee !== undefined ? data.monthly_fee : (existing.monthly_fee || 0),
+      contract_type_text: data.contract_type_text !== undefined ? data.contract_type_text : (existing.contract_type_text || ''),
+      deposit: data.deposit !== undefined ? data.deposit : (existing.deposit || 0),
+      contract_start_date: data.contract_start_date !== undefined ? data.contract_start_date : (existing.contract_start_date || ''),
+      contract_end_date: data.contract_end_date !== undefined ? data.contract_end_date : (existing.contract_end_date || '')
+    }
+    
+    await DB.prepare(`
+      UPDATE motorcycles SET
+        plate_number = ?, vehicle_name = ?, chassis_number = ?, mileage = ?,
+        model_year = ?, insurance_company = ?, insurance_start_date = ?,
+        insurance_end_date = ?, inspection_start_date = ?, inspection_end_date = ?,
+        driving_range = ?, owner_name = ?,
+        insurance_fee = ?, vehicle_price = ?, daily_rental_fee = ?, usage_notes = ?, status = ?,
+        certificate_photo = ?,
+        monthly_fee = ?, contract_type_text = ?, deposit = ?,
+        contract_start_date = ?, contract_end_date = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      mergedData.plate_number,
+      mergedData.vehicle_name,
+      mergedData.chassis_number,
+      mergedData.mileage,
+      mergedData.model_year,
+      mergedData.insurance_company,
+      mergedData.insurance_start_date,
+      mergedData.insurance_end_date,
+      mergedData.inspection_start_date,
+      mergedData.inspection_end_date,
+      mergedData.driving_range,
+      mergedData.owner_name,
+      mergedData.insurance_fee,
+      mergedData.vehicle_price,
+      mergedData.daily_rental_fee,
+      mergedData.usage_notes,
+      mergedData.status,
+      mergedData.certificate_photo,
+      mergedData.monthly_fee,
+      mergedData.contract_type_text,
+      mergedData.deposit,
+      mergedData.contract_start_date,
+      mergedData.contract_end_date,
+      id
+    ).run()
+    
+    return c.json({ success: true, id, ...mergedData })
+  } catch (error) {
+    console.error('오토바이 수정 오류:', error)
+    return c.json({ error: '수정 중 오류가 발생했습니다: ' + error.message }, 500)
+  }
 })
 
 // 오토바이 삭제 (인증 필요)
@@ -436,9 +788,24 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
-  await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
-  
-  return c.json({ message: '삭제되었습니다' })
+  try {
+    // 1. 관련 계약 이력 삭제 (contract_history)
+    await DB.prepare('DELETE FROM contract_history WHERE motorcycle_id = ?').bind(id).run()
+    
+    // 2. 관련 개인 계약 삭제 (contracts)
+    await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
+    
+    // 3. 관련 업체 계약 삭제 (business_contracts)
+    await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
+    
+    // 4. 마지막으로 오토바이 삭제
+    await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
+    
+    return c.json({ message: '삭제되었습니다' })
+  } catch (error) {
+    console.error('오토바이 삭제 실패:', error)
+    return c.json({ error: '삭제에 실패했습니다: ' + error.message }, 500)
+  }
 })
 
 // 오토바이 상태 변경 (해지/폐지)
@@ -461,8 +828,24 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       SET status = ?, usage_notes = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `).bind(status, usage_notes, id).run()
+  } else if (status === 'available') {
+    // 해지 처리: 기본정보와 보험정보는 유지, 계약정보만 초기화
+    console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info only (keeping basic and insurance info)`)
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET status = ?,
+          monthly_fee = NULL,
+          contract_type_text = NULL,
+          deposit = NULL,
+          contract_start_date = NULL,
+          contract_end_date = NULL,
+          owner_name = '',
+          updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(status, id).run()
+    console.log(`✅ Contract info cleared for motorcycle #${id} (basic info and insurance info preserved)`)
   } else {
-    // 일반 상태 변경 (해지 등)
+    // 일반 상태 변경
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = ?, updated_at = CURRENT_TIMESTAMP 
@@ -507,6 +890,11 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
       insurance_fee = 0,
       vehicle_price = 0,
       daily_rental_fee = 0,
+      monthly_fee = NULL,
+      contract_type_text = NULL,
+      deposit = NULL,
+      contract_start_date = NULL,
+      contract_end_date = NULL,
       status = 'scrapped',
       usage_notes = ?,
       inspection_start_date = NULL,
@@ -515,7 +903,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     WHERE id = ?
   `).bind(usage_notes, id).run()
   
-  console.log(`✅ Motorcycle #${id} scrapped. History preserved, data reset.`)
+  console.log(`✅ Motorcycle #${id} scrapped. Only vehicle_name, chassis_number, model_year preserved. All other data cleared.`)
   console.log(`📝 Scrap reason: ${usage_notes}`)
   
   // 3. 계약 이력은 그대로 유지 (아무 작업도 하지 않음)
@@ -531,7 +919,8 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
 })
 
 // 오토바이별 계약 이력 조회
-app.get('/api/motorcycles/:id/contracts', async (c) => {
+// 오토바이별 계약 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
+app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -554,15 +943,40 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
 // ============================================
 
 // 고객 목록 조회
-app.get('/api/customers', async (c) => {
+// 고객 목록 조회 (인증 필요 - 민감한 개인정보)
+app.get('/api/customers', authMiddleware, async (c) => {
   const { DB } = c.env
   
-  const result = await DB.prepare('SELECT * FROM customers ORDER BY created_at DESC').all()
+  // 계약자와 활성 계약 타입을 함께 조회
+  const result = await DB.prepare(`
+    SELECT 
+      c.*,
+      ct.contract_type as active_contract_type
+    FROM customers c
+    LEFT JOIN contracts ct ON c.id = ct.customer_id AND ct.status = 'active'
+    ORDER BY c.created_at DESC
+  `).all()
+  
+  return c.json(result.results)
+})
+
+// 주민번호로 계약자 조회 (공개 API - 차용증 작성용)
+app.get('/api/customers/search', async (c) => {
+  const { DB } = c.env
+  const residentNumber = c.req.query('resident_number')
+  
+  if (!residentNumber) {
+    return c.json({ error: '주민등록번호를 입력해주세요' }, 400)
+  }
+  
+  const result = await DB.prepare('SELECT * FROM customers WHERE resident_number = ?').bind(residentNumber).all()
+  
   return c.json(result.results)
 })
 
 // 고객 상세 조회
-app.get('/api/customers/:id', async (c) => {
+// 고객 상세 조회 (인증 필요)
+app.get('/api/customers/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -575,19 +989,21 @@ app.get('/api/customers/:id', async (c) => {
   return c.json(result)
 })
 
-// 고객 등록
+// 고객 등록 (로그인 불필요 - 고객용 공개 API)
 app.post('/api/customers', async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
   const result = await DB.prepare(`
-    INSERT INTO customers (name, resident_number, phone, address, license_type)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO customers (name, resident_number, phone, postcode, address, detail_address, license_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.name,
     data.resident_number,
     data.phone,
+    data.postcode || '',
     data.address,
+    data.detail_address || '',
     data.license_type
   ).run()
   
@@ -595,21 +1011,24 @@ app.post('/api/customers', async (c) => {
 })
 
 // 고객 수정
-app.put('/api/customers/:id', async (c) => {
+// 고객 정보 수정 (인증 필요)
+app.put('/api/customers/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const data = await c.req.json()
   
   await DB.prepare(`
     UPDATE customers SET
-      name = ?, resident_number = ?, phone = ?, address = ?, license_type = ?,
+      name = ?, resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).bind(
     data.name,
     data.resident_number,
     data.phone,
+    data.postcode || '',
     data.address,
+    data.detail_address || '',
     data.license_type,
     id
   ).run()
@@ -617,20 +1036,263 @@ app.put('/api/customers/:id', async (c) => {
   return c.json({ id, ...data })
 })
 
+// 계약자 삭제
+app.delete('/api/customers/:id', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  // 슈퍼관리자 권한 체크
+  const user = c.get('user')
+  if (user.role !== 'super_admin') {
+    return c.json({ error: '슈퍼관리자만 계약자를 삭제할 수 있습니다' }, 403)
+  }
+  
+  try {
+    console.log('계약자 삭제 시작 (슈퍼관리자):', id)
+    
+    // 먼저 계약자 정보 조회 (주민번호 확인용)
+    const customer = await DB.prepare('SELECT id, name, resident_number FROM customers WHERE id = ?').bind(id).first()
+    if (!customer) {
+      return c.json({ error: '계약자를 찾을 수 없습니다' }, 404)
+    }
+    console.log('📋 삭제할 계약자:', customer.name, '/', customer.resident_number)
+    
+    // 삭제할 contracts 조회
+    const contractsToDelete = await DB.prepare('SELECT id FROM contracts WHERE customer_id = ?').bind(id).all()
+    const contractIds = contractsToDelete.results.map((c: any) => c.id)
+    console.log('📝 삭제할 계약서 ID:', contractIds)
+    
+    // D1 batch API를 사용하여 한 트랜잭션으로 실행
+    console.log('🔄 Batch 삭제 시작...')
+    
+    const batchQueries: any[] = [
+      // 1. 외래 키 제약 조건 비활성화
+      DB.prepare('PRAGMA foreign_keys = OFF'),
+      
+      // 2. UPDATE 트리거 임시 삭제
+      DB.prepare('DROP TRIGGER IF EXISTS prevent_history_update'),
+      
+      // 3. DELETE 트리거 임시 삭제  
+      DB.prepare('DROP TRIGGER IF EXISTS prevent_history_delete')
+    ]
+    
+    // 4. contract_history의 contract_id를 NULL로 업데이트 (외래 키 참조 해제)
+    if (contractIds.length > 0) {
+      const contractIdsStr = contractIds.join(',')
+      batchQueries.push(
+        DB.prepare(`UPDATE contract_history SET contract_id = NULL WHERE contract_id IN (${contractIdsStr})`)
+      )
+      console.log('📝 계약 이력의 참조를 해제합니다 (contract_id를 NULL로 설정)')
+    }
+    
+    // 5. 차용 계약서 삭제 (주민번호로 연결)
+    batchQueries.push(
+      DB.prepare('DELETE FROM loan_contracts WHERE borrower_resident_number = ?').bind(customer.resident_number)
+    )
+    
+    // 6. 개인 계약서 삭제 (customer_id로 연결)
+    batchQueries.push(
+      DB.prepare('DELETE FROM contracts WHERE customer_id = ?').bind(id)
+    )
+    
+    // 7. 계약자 삭제
+    batchQueries.push(
+      DB.prepare('DELETE FROM customers WHERE id = ?').bind(id)
+    )
+    
+    // 8. 트리거 재생성 - UPDATE 방지
+    batchQueries.push(
+      DB.prepare(`CREATE TRIGGER prevent_history_update
+BEFORE UPDATE ON contract_history
+BEGIN
+  SELECT RAISE(ABORT, '❌ 계약 이력은 수정할 수 없습니다. 이력은 영구적으로 보호됩니다.');
+END`)
+    )
+    
+    // 9. 트리거 재생성 - DELETE 방지
+    batchQueries.push(
+      DB.prepare(`CREATE TRIGGER prevent_history_delete
+BEFORE DELETE ON contract_history
+BEGIN
+  SELECT RAISE(ABORT, '❌ 계약 이력은 삭제할 수 없습니다. 이력은 영구적으로 보호됩니다.');
+END`)
+    )
+    
+    // 10. 외래 키 제약 조건 활성화
+    batchQueries.push(
+      DB.prepare('PRAGMA foreign_keys = ON')
+    )
+    
+    const results = await DB.batch(batchQueries)
+    
+    const historyUpdateIndex = contractIds.length > 0 ? 3 : -1
+    const loanDeleteIndex = historyUpdateIndex + 1
+    const contractsDeleteIndex = loanDeleteIndex + 1
+    const customerDeleteIndex = contractsDeleteIndex + 1
+    
+    console.log('✅ Batch 삭제 완료')
+    console.log('📊 삭제 결과:', {
+      history_updated: historyUpdateIndex > 0 ? (results[historyUpdateIndex]?.meta?.changes || 0) : 0,
+      loan_contracts: results[loanDeleteIndex]?.meta?.changes || 0,
+      contracts: results[contractsDeleteIndex]?.meta?.changes || 0,
+      customer: results[customerDeleteIndex]?.meta?.changes || 0
+    })
+    
+    return c.json({ 
+      message: '삭제되었습니다. 계약 이력은 보존됩니다.',
+      deleted: {
+        contracts: results[contractsDeleteIndex]?.meta?.changes || 0,
+        loan_contracts: results[loanDeleteIndex]?.meta?.changes || 0,
+        customer: results[customerDeleteIndex]?.meta?.changes || 0
+      },
+      preserved: {
+        contract_history: `이력 보호 정책에 따라 보존됨 (${historyUpdateIndex > 0 ? results[historyUpdateIndex]?.meta?.changes || 0 : 0}건의 이력 참조 해제)`
+      }
+    })
+  } catch (error) {
+    console.error('❌ 계약자 삭제 최종 실패:', error)
+    console.error('❌ 에러 상세:', error.message)
+    return c.json({ error: '삭제에 실패했습니다: ' + error.message }, 500)
+  }
+})
+
+
+// ============================================
+// 업체 API
+// ============================================
+
+// 업체 목록 조회
+app.get('/api/companies', authMiddleware, async (c) => {
+  const { DB } = c.env
+  
+  const result = await DB.prepare(`
+    SELECT * FROM companies ORDER BY created_at DESC
+  `).all()
+  
+  return c.json(result.results)
+})
+
+// 업체 상세 조회
+app.get('/api/companies/:id', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  const company = await DB.prepare('SELECT * FROM companies WHERE id = ?').bind(id).first()
+  
+  if (!company) {
+    return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(company)
+})
+
+// 업체 생성
+app.post('/api/companies', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  const result = await DB.prepare(`
+    INSERT INTO companies (name, business_number, representative, representative_resident_number, phone, postcode, address, detail_address, signature_data, id_card_photo, terms_agreed)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    data.name,
+    data.business_number,
+    data.representative,
+    data.representative_resident_number || '',
+    data.phone,
+    data.postcode || '',
+    data.address,
+    data.detail_address || '',
+    data.signature_data || '',
+    data.id_card_photo || '',
+    data.terms_agreed ? 1 : 0
+  ).run()
+  
+  return c.json({ id: result.meta.last_row_id, ...data }, 201)
+})
+
+// 업체 수정
+app.put('/api/companies/:id', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  await DB.prepare(`
+    UPDATE companies SET
+      name = ?, business_number = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
+      signature_data = ?, id_card_photo = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    data.name,
+    data.business_number,
+    data.representative,
+    data.representative_resident_number || '',
+    data.phone,
+    data.postcode || '',
+    data.address,
+    data.detail_address || '',
+    data.signature_data || '',
+    data.id_card_photo || '',
+    id
+  ).run()
+  
+  return c.json({ id, ...data })
+})
+
+// 업체 삭제 (슈퍼관리자 전용) - 관련 데이터 완전 삭제
+app.delete('/api/companies/:id', superAdminMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  // 1. 업체 정보 조회 (삭제 전에 company_name과 business_number 가져오기)
+  const company = await DB.prepare(`
+    SELECT name, business_number FROM companies WHERE id = ?
+  `).bind(id).first()
+  
+  if (!company) {
+    return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
+  }
+  
+  // 2. 관련 업체 계약서 삭제 (company_name과 business_number로 매칭)
+  await DB.prepare(`
+    DELETE FROM business_contracts 
+    WHERE company_name = ? AND business_number = ?
+  `).bind(company.name, company.business_number).run()
+  
+  // 3. 업체 정보 삭제
+  await DB.prepare(`
+    DELETE FROM companies WHERE id = ?
+  `).bind(id).run()
+  
+  return c.json({ 
+    message: '업체 및 관련 계약서가 완전히 삭제되었습니다', 
+    id,
+    company_name: company.name 
+  })
+})
+
 // ============================================
 // 계약서 API
 // ============================================
 
 // 대시보드 통계 조회
+// 대시보드 통계 (인증 필요 - 민감한 사업 정보)
 app.get('/api/dashboard/stats', authMiddleware, async (c) => {
   const { DB } = c.env
   
   try {
     // 오토바이 총 대수 및 상태별 집계
+    // 휴차중 (available): 기본정보만 있고 계약정보 없는 것 포함
     const motorcycleStats = await DB.prepare(`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
+        SUM(CASE 
+          WHEN status = 'available' 
+            OR (status != 'maintenance' AND status != 'scrapped' 
+                AND (monthly_fee IS NULL OR contract_start_date IS NULL))
+          THEN 1 ELSE 0 
+        END) as available,
         SUM(CASE WHEN status = 'rented' THEN 1 ELSE 0 END) as rented,
         SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
         SUM(CASE WHEN status = 'scrapped' THEN 1 ELSE 0 END) as scrapped
@@ -643,7 +1305,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       FROM contracts
     `).first()
     
-    // 활성 계약 수 및 총 대여금
+    // 활성 개인계약 수 및 총 대여금
     const contractStats = await DB.prepare(`
       SELECT 
         COUNT(*) as active_contracts,
@@ -651,6 +1313,29 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
         SUM(CAST(deposit as INTEGER)) as total_deposits
       FROM contracts
       WHERE status = 'active'
+    `).first()
+    
+    // 활성 업체계약 수
+    const businessContractStats = await DB.prepare(`
+      SELECT COUNT(*) as active_business_contracts
+      FROM business_contracts
+      WHERE status = 'active'
+    `).first()
+    
+    // 활성 차용증 수 및 총대여금
+    const loanStats = await DB.prepare(`
+      SELECT 
+        COUNT(*) as active_loans,
+        SUM(CAST(loan_amount as INTEGER)) as total_loan_amount
+      FROM loan_contracts
+      WHERE status = 'active'
+    `).first()
+    
+    // 임시계약 수 (contract_type = 'temp_rent')
+    const tempContractStats = await DB.prepare(`
+      SELECT COUNT(*) as active_temp_contracts
+      FROM contracts
+      WHERE status = 'active' AND contract_type = 'temp_rent'
     `).first()
     
     return c.json({
@@ -665,7 +1350,11 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       contracts: {
         active: (contractStats as any)?.active_contracts || 0,
         monthly_revenue: (contractStats as any)?.total_monthly_revenue || 0,
-        total_deposits: (contractStats as any)?.total_deposits || 0
+        total_deposits: (contractStats as any)?.total_deposits || 0,
+        active_business: (businessContractStats as any)?.active_business_contracts || 0,
+        active_temp: (tempContractStats as any)?.active_temp_contracts || 0,
+        active_loans: (loanStats as any)?.active_loans || 0,
+        total_loan_amount: (loanStats as any)?.total_loan_amount || 0
       }
     })
   } catch (error) {
@@ -677,18 +1366,33 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
 // 계약서 목록 조회
 app.get('/api/contracts', async (c) => {
   const { DB } = c.env
+  const residentNumber = c.req.query('resident_number')
   
-  const result = await DB.prepare(`
+  let query = `
     SELECT 
       c.*,
       m.plate_number, m.vehicle_name,
       cu.name as customer_name, cu.phone as customer_phone
     FROM contracts c
     JOIN motorcycles m ON c.motorcycle_id = m.id
-    JOIN customers cu ON c.customer_id = cu.id
+    LEFT JOIN customers cu ON c.customer_id = cu.id
     WHERE c.deleted_at IS NULL
-    ORDER BY c.created_at DESC
-  `).all()
+  `
+  
+  const params = []
+  
+  // 주민등록번호로 필터링 (고객 포털용)
+  if (residentNumber) {
+    query += ` AND cu.resident_number = ?`
+    params.push(residentNumber)
+  }
+  
+  query += ` ORDER BY c.created_at DESC`
+  
+  const stmt = DB.prepare(query)
+  const result = params.length > 0 
+    ? await stmt.bind(...params).all()
+    : await stmt.all()
   
   return c.json(result.results)
 })
@@ -713,7 +1417,8 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
 })
 
 // 계약서 상세 조회
-app.get('/api/contracts/:id', async (c) => {
+// 계약서 상세 조회 (인증 필요 - 민감한 계약 정보)
+app.get('/api/contracts/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -739,10 +1444,82 @@ app.get('/api/contracts/:id', async (c) => {
   return c.json(result)
 })
 
+// 계약서 완료 처리
+// 계약 완료 처리 (인증 필요)
+app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  // 계약서 조회
+  const contract = await DB.prepare(`
+    SELECT motorcycle_id, status FROM contracts WHERE id = ?
+  `).bind(id).first() as any
+  
+  if (!contract) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  if (contract.status === 'completed') {
+    return c.json({ error: '이미 완료된 계약서입니다' }, 400)
+  }
+  
+  // 계약서 상태를 완료로 변경
+  await DB.prepare(`
+    UPDATE contracts 
+    SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(id).run()
+  
+  // 오토바이 상태를 '휴차중'으로 변경
+  await DB.prepare(`
+    UPDATE motorcycles 
+    SET status = 'available', updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(contract.motorcycle_id).run()
+  
+  return c.json({ message: '계약이 완료 처리되었습니다' })
+})
+
 // 계약서 생성 (인증 필요)
-app.post('/api/contracts', authMiddleware, async (c) => {
+// 계약서 생성 (공개 API - 고객 포털용)
+app.post('/api/contracts', async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
+  
+  // 고객 정보가 전달된 경우 업데이트 (우편번호/상세주소 보존)
+  if (data.customer_id && data.customer_name) {
+    console.log('📝 Updating customer info:', {
+      id: data.customer_id,
+      name: data.customer_name,
+      postcode: data.postcode,
+      address: data.address,
+      detail_address: data.detail_address
+    })
+    
+    await DB.prepare(`
+      UPDATE customers SET 
+        name = ?, 
+        phone = ?,
+        resident_number = ?, 
+        postcode = ?,
+        address = ?, 
+        detail_address = ?,
+        license_type = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      data.customer_name, 
+      data.customer_phone || '',
+      data.resident_number || '', 
+      data.postcode || '',
+      data.address || '', 
+      data.detail_address || '',
+      data.license_type || '2종소형', 
+      data.customer_id
+    ).run()
+    
+    console.log('✅ Customer info updated successfully')
+  }
   
   // 계약서 번호 생성 (YYYYMMDD-XXXX 형식)
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
@@ -753,30 +1530,128 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   const count = (countResult as any).count + 1
   const contractNumber = `${today}-${String(count).padStart(4, '0')}`
   
+  // 같은 고객(customer_id)의 기존 개인 계약 자동 해지
+  // 조건: 개인 계약(리스/렌트)만 해지, 임시렌트는 제외
+  if (data.customer_id && data.contract_type !== 'temp_rent') {
+    console.log('🔄 Checking for existing active contracts for customer:', data.customer_id)
+    
+    const existingCustomerContracts = await DB.prepare(`
+      SELECT id, contract_number, contract_type, motorcycle_id FROM contracts 
+      WHERE customer_id = ? AND status = 'active' AND contract_type != 'temp_rent'
+    `).bind(data.customer_id).all()
+    
+    if (existingCustomerContracts.results.length > 0) {
+      console.log(`📋 Found ${existingCustomerContracts.results.length} active personal contract(s) for this customer, cancelling them...`)
+      for (const contract of existingCustomerContracts.results) {
+        const contractData = contract as any
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'cancelled', 
+              end_date = ?, 
+              updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind(today, contractData.id).run()
+        
+        // 기존 계약의 오토바이를 available로 변경
+        await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+          .bind('available', contractData.motorcycle_id).run()
+        
+        // 이력 기록
+        await recordContractHistory(
+          DB,
+          contractData.id,
+          contractData.motorcycle_id,
+          data.customer_id,
+          contractData.contract_number,
+          contractData.contract_type,
+          'replaced',
+          'active',
+          'cancelled',
+          '', // start_date는 알 수 없음
+          today,
+          0, // monthly_fee
+          0, // deposit
+          '',
+          `새 계약(${contractNumber})으로 인한 자동 해지 (같은 고객의 새 계약)`
+        )
+        
+        console.log(`✅ Cancelled personal contract: ${contractData.contract_number} (type: ${contractData.contract_type})`)
+      }
+    }
+  }
+  
   // 같은 오토바이의 기존 활성 계약을 완료 처리
   console.log('🔄 Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+  
+  // 1. 개인 계약 완료 처리 (덮어쓰기)
   const existingContracts = await DB.prepare(`
-    SELECT id, contract_number, status FROM contracts 
+    SELECT * FROM contracts 
     WHERE motorcycle_id = ? AND status = 'active'
   `).bind(data.motorcycle_id).all()
   
   if (existingContracts.results.length > 0) {
-    console.log(`📋 Found ${existingContracts.results.length} active contract(s), completing them...`)
+    console.log(`📋 Found ${existingContracts.results.length} active personal contract(s), replacing them...`)
     for (const contract of existingContracts.results) {
+      const oldContract = contract as any
+      
+      // 기존 계약을 'cancelled' 상태로 변경하고 종료일을 오늘로 설정
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+        SET status = 'cancelled', end_date = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
-      `).bind((contract as any).id).run()
-      console.log(`✅ Completed contract: ${(contract as any).contract_number}`)
+      `).bind(today, oldContract.id).run()
+      
+      // 이력 기록: 새 계약에 의해 대체됨
+      await recordContractHistory(
+        DB,
+        oldContract.id,
+        oldContract.motorcycle_id,
+        oldContract.customer_id,
+        oldContract.contract_number,
+        oldContract.contract_type,
+        'replaced',
+        'active',
+        'cancelled',
+        oldContract.start_date,
+        today,
+        oldContract.monthly_fee,
+        oldContract.deposit,
+        oldContract.special_terms,
+        `새 계약(${contractNumber})으로 인한 자동 해지`
+      )
+      
+      console.log(`✅ Replaced personal contract: ${oldContract.contract_number}`)
     }
   }
+  
+  // 2. 업체 계약 완료 처리 (덮어쓰기)
+  const existingBusinessContracts = await DB.prepare(`
+    SELECT * FROM business_contracts 
+    WHERE motorcycle_id = ? AND status = 'active'
+  `).bind(data.motorcycle_id).all()
+  
+  if (existingBusinessContracts.results.length > 0) {
+    console.log(`📋 Found ${existingBusinessContracts.results.length} active business contract(s), replacing them...`)
+    for (const contract of existingBusinessContracts.results) {
+      const oldContract = contract as any
+      
+      await DB.prepare(`
+        UPDATE business_contracts 
+        SET status = 'cancelled', end_date = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).bind(today, oldContract.id).run()
+      
+      console.log(`✅ Replaced business contract: ${oldContract.contract_number}`)
+    }
+  }
+  
+  const kstNow = getKSTDateTime()
   
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
-      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
     data.motorcycle_id,
@@ -789,8 +1664,31 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     data.signature_data || '',
     data.id_card_photo || '',
     contractNumber,
-    'active'
+    'active',
+    kstNow,
+    kstNow
   ).run()
+  
+  const newContractId = result.meta.last_row_id
+  
+  // 새 계약 이력 기록
+  await recordContractHistory(
+    DB,
+    Number(newContractId),
+    data.motorcycle_id,
+    data.customer_id,
+    contractNumber,
+    data.contract_type,
+    'created',
+    null,
+    'active',
+    data.start_date,
+    data.end_date,
+    data.monthly_fee,
+    data.deposit || 0,
+    data.special_terms || '',
+    '새 계약 생성'
+  )
   
   // 오토바이 상태 업데이트
   await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
@@ -800,6 +1698,124 @@ app.post('/api/contracts', authMiddleware, async (c) => {
 })
 
 // 관리자 계약서 저장 (인증 필요, 고객에게 전송하지 않음)
+// 공개 API: 고객 계약서 작성 저장 (인증 불필요)
+app.post('/api/public/contracts', async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  console.log('📝 [Public] Received contract data from customer')
+  
+  try {
+    // 1. 고객 정보 저장 또는 찾기
+    let customerId;
+    const existingCustomer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
+      .bind(data.customer_phone).first()
+    
+    if (existingCustomer) {
+      customerId = (existingCustomer as any).id
+      // 고객 정보 업데이트 (전화번호 포함)
+      await DB.prepare(`
+        UPDATE customers 
+        SET name = ?, phone = ?, resident_number = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        data.customer_name, 
+        data.customer_phone || '',
+        data.resident_number || '', 
+        data.postcode || '',
+        data.address || '', 
+        data.detail_address || '',
+        data.license_type || '2종소형', 
+        customerId
+      ).run()
+    } else {
+      // 신규 고객 등록
+      const customerResult = await DB.prepare(`
+        INSERT INTO customers (name, phone, resident_number, address, detail_address, postcode, license_type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        data.customer_name, 
+        data.customer_phone, 
+        data.resident_number || '', 
+        data.address || '',
+        data.detail_address || '',
+        data.postcode || '',
+        data.license_type || '2종소형'
+      ).run()
+      customerId = customerResult.meta.last_row_id
+    }
+    
+    // 2. 계약서 번호 생성
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const countResult = await DB.prepare(
+      `SELECT COUNT(*) as count FROM contracts WHERE contract_number LIKE ?`
+    ).bind(`${today}-%`).first()
+    
+    const count = (countResult as any).count + 1
+    const contractNumber = `${today}-${String(count).padStart(4, '0')}`
+    
+    // 3. 같은 오토바이의 기존 활성 계약을 완료 처리
+    const existingContracts = await DB.prepare(`
+      SELECT id, contract_number FROM contracts 
+      WHERE motorcycle_id = ? AND status = 'active'
+    `).bind(data.motorcycle_id).all()
+    
+    if (existingContracts.results.length > 0) {
+      console.log(`📋 [Public] Found ${existingContracts.results.length} active contract(s), completing them...`)
+      for (const contract of existingContracts.results) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind((contract as any).id).run()
+      }
+    }
+    
+    // 4. 계약서 저장 (한국 시간으로 저장)
+    const kstNow = getKSTDateTime()
+    
+    const result = await DB.prepare(`
+      INSERT INTO contracts (
+        contract_type, motorcycle_id, customer_id, start_date, end_date,
+        monthly_fee, deposit, special_terms, signature_data, id_card_photo, 
+        contract_number, status, insurance_age_limit, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.contract_type,
+      data.motorcycle_id,
+      customerId,
+      data.start_date,
+      data.end_date,
+      data.monthly_fee,
+      data.deposit || 0,
+      data.special_terms || '',
+      data.admin_signature || '',
+      data.admin_id_card_photo || '',
+      contractNumber,
+      'active',  // 고객이 작성한 계약서는 즉시 활성화
+      data.insurance_age_limit || '전연령',
+      kstNow,
+      kstNow
+    ).run()
+    
+    // 5. 오토바이 상태 업데이트
+    await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+      .bind('rented', data.motorcycle_id).run()
+    
+    console.log(`✅ [Public] Contract saved: ${contractNumber}`)
+    
+    return c.json({ 
+      id: result.meta.last_row_id, 
+      contract_number: contractNumber,
+      customer_id: customerId,
+      success: true 
+    }, 201)
+  } catch (error) {
+    console.error('계약서 저장 오류:', error)
+    return c.json({ error: '계약서 저장에 실패했습니다', details: error.message }, 500)
+  }
+})
+
 app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
@@ -815,16 +1831,59 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
     
     if (existingCustomer) {
       customerId = (existingCustomer as any).id
-      // 고객 정보 업데이트
+      // 고객 정보 업데이트 (우편번호, 상세주소 포함)
       await DB.prepare(`
-        UPDATE customers SET name = ?, resident_number = ?, address = ?, license_type = ? WHERE id = ?
-      `).bind(data.customer_name, data.resident_number || '', data.address || '', data.license_type || '2종소형', customerId).run()
+        UPDATE customers SET 
+          name = ?, 
+          phone = ?,
+          resident_number = ?, 
+          postcode = ?,
+          address = ?, 
+          detail_address = ?,
+          license_type = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        data.customer_name, 
+        data.customer_phone || '',
+        data.resident_number || '', 
+        data.postcode || '',
+        data.address || '', 
+        data.detail_address || '',
+        data.license_type || '2종소형', 
+        customerId
+      ).run()
+      
+      console.log(`✅ [Admin] Customer updated (ID: ${customerId}):`, {
+        name: data.customer_name,
+        phone: data.customer_phone,
+        postcode: data.postcode,
+        address: data.address,
+        detail_address: data.detail_address
+      })
     } else {
-      // 신규 고객 등록
+      // 신규 고객 등록 (우편번호, 상세주소 포함)
       const customerResult = await DB.prepare(`
-        INSERT INTO customers (name, phone, resident_number, address, license_type) VALUES (?, ?, ?, ?, ?)
-      `).bind(data.customer_name, data.customer_phone, data.resident_number || '', data.address || '', data.license_type || '2종소형').run()
+        INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        data.customer_name, 
+        data.customer_phone || '', 
+        data.resident_number || '', 
+        data.postcode || '',
+        data.address || '', 
+        data.detail_address || '',
+        data.license_type || '2종소형'
+      ).run()
       customerId = customerResult.meta.last_row_id
+      
+      console.log(`✅ [Admin] New customer created (ID: ${customerId}):`, {
+        name: data.customer_name,
+        phone: data.customer_phone,
+        postcode: data.postcode,
+        address: data.address,
+        detail_address: data.detail_address
+      })
     }
     
     // 2. 계약서 번호 생성
@@ -836,34 +1895,85 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
     const count = (countResult as any).count + 1
     const contractNumber = `${today}-${String(count).padStart(4, '0')}`
     
+    // 2.3. 같은 고객(customer_id)의 기존 개인 계약 자동 해지
+    // 조건: 개인 계약(리스/렌트)만 해지, 임시렌트와 업체 계약은 제외
+    if (data.contract_type !== 'temp_rent') {
+      console.log('🔄 [Admin] Checking for existing active contracts for customer:', customerId)
+      
+      const existingCustomerContracts = await DB.prepare(`
+        SELECT id, contract_number, contract_type, motorcycle_id FROM contracts 
+        WHERE customer_id = ? AND status = 'active' AND contract_type != 'temp_rent'
+      `).bind(customerId).all()
+      
+      if (existingCustomerContracts.results.length > 0) {
+        console.log(`📋 [Admin] Found ${existingCustomerContracts.results.length} active personal contract(s) for this customer, cancelling them...`)
+        for (const contract of existingCustomerContracts.results) {
+          const contractData = contract as any
+          await DB.prepare(`
+            UPDATE contracts 
+            SET status = 'cancelled', 
+                end_date = date('now'), 
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+          `).bind(contractData.id).run()
+          
+          // 기존 계약의 오토바이를 available로 변경
+          await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+            .bind('available', contractData.motorcycle_id).run()
+          
+          console.log(`✅ [Admin] Cancelled personal contract: ${contractData.contract_number} (type: ${contractData.contract_type})`)
+        }
+      }
+    }
+    
     // 2.5. 같은 오토바이의 기존 활성 계약을 완료 처리
-    console.log('🔄 Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+    console.log('🔄 [Admin] Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+    
+    // 1. 개인 계약 완료 처리
     const existingContracts = await DB.prepare(`
       SELECT id, contract_number, status FROM contracts 
       WHERE motorcycle_id = ? AND status = 'active'
     `).bind(data.motorcycle_id).all()
     
     if (existingContracts.results.length > 0) {
-      console.log(`📋 Found ${existingContracts.results.length} active contract(s), completing them...`)
+      console.log(`📋 [Admin] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
       for (const contract of existingContracts.results) {
         await DB.prepare(`
           UPDATE contracts 
           SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?
         `).bind((contract as any).id).run()
-        console.log(`✅ Completed contract: ${(contract as any).contract_number}`)
+        console.log(`✅ [Admin] Completed personal contract: ${(contract as any).contract_number}`)
       }
-    } else {
-      console.log('ℹ️ No existing active contracts found')
     }
     
-    // 3. 계약서 저장
+    // 2. 업체 계약 완료 처리
+    const existingBusinessContracts = await DB.prepare(`
+      SELECT id, contract_number, status FROM business_contracts 
+      WHERE motorcycle_id = ? AND status = 'active'
+    `).bind(data.motorcycle_id).all()
+    
+    if (existingBusinessContracts.results.length > 0) {
+      console.log(`📋 [Admin] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
+      for (const contract of existingBusinessContracts.results) {
+        await DB.prepare(`
+          UPDATE business_contracts 
+          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind((contract as any).id).run()
+        console.log(`✅ [Admin] Completed business contract: ${(contract as any).contract_number}`)
+      }
+    }
+    
+    // 3. 계약서 저장 (한국 시간으로 저장)
+    const kstNow = getKSTDateTime()
+    
     const result = await DB.prepare(`
       INSERT INTO contracts (
         contract_type, motorcycle_id, customer_id, start_date, end_date,
         monthly_fee, deposit, special_terms, signature_data, id_card_photo, 
-        contract_number, status, insurance_age_limit
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        contract_number, status, insurance_age_limit, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       data.contract_type,
       data.motorcycle_id,
@@ -877,7 +1987,9 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       data.admin_id_card_photo || '',
       contractNumber,
       data.status || 'pending',
-      data.insurance_age_limit || '전연령'
+      data.insurance_age_limit || '전연령',
+      kstNow,
+      kstNow
     ).run()
     
     // 4. 오토바이 상태 업데이트
@@ -911,17 +2023,150 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
     return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
   }
   
-  // 계약서 상태 업데이트
-  await DB.prepare('UPDATE contracts SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .bind(status, id).run()
+  const oldContract = contract as any
+  const oldStatus = oldContract.status
   
-  // 계약 종료시 오토바이 상태 변경
+  // 계약서 상태 업데이트 (기록은 보존)
+  // 해지/완료 시 종료일을 오늘 날짜로 자동 설정
+  const today = new Date().toISOString().split('T')[0]
+  let endDate = oldContract.end_date
+  
   if (status === 'completed' || status === 'cancelled') {
-    await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
-      .bind('available', (contract as any).motorcycle_id).run()
+    endDate = today
+    await DB.prepare('UPDATE contracts SET status = ?, end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(status, today, id).run()
+    console.log(`📅 Contract #${id} ${status} - end_date set to ${today}`)
+    
+    // 이력 기록: 계약 해지/완료
+    await recordContractHistory(
+      DB,
+      Number(id),
+      oldContract.motorcycle_id,
+      oldContract.customer_id,
+      oldContract.contract_number,
+      oldContract.contract_type,
+      status,
+      oldStatus,
+      status,
+      oldContract.start_date,
+      endDate,
+      oldContract.monthly_fee,
+      oldContract.deposit,
+      oldContract.special_terms,
+      status === 'cancelled' ? '수동 해지' : '계약 완료'
+    )
+  } else {
+    await DB.prepare('UPDATE contracts SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(status, id).run()
+      
+    // 이력 기록: 상태 변경
+    await recordContractHistory(
+      DB,
+      Number(id),
+      oldContract.motorcycle_id,
+      oldContract.customer_id,
+      oldContract.contract_number,
+      oldContract.contract_type,
+      'updated',
+      oldStatus,
+      status,
+      oldContract.start_date,
+      endDate,
+      oldContract.monthly_fee,
+      oldContract.deposit,
+      oldContract.special_terms,
+      `상태 변경: ${oldStatus} → ${status}`
+    )
   }
   
-  return c.json({ message: '상태가 변경되었습니다' })
+  // 계약 해지/완료시 처리
+  if (status === 'completed' || status === 'cancelled') {
+    const motorcycleId = oldContract.motorcycle_id
+    
+    // 1. 오토바이 상태를 '휴차중(available)'으로 변경
+    await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+      .bind('available', motorcycleId).run()
+    
+    // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지)
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET monthly_fee = NULL,
+          contract_type_text = NULL,
+          deposit = NULL,
+          contract_start_date = NULL,
+          contract_end_date = NULL,
+          owner_name = '',
+          updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(motorcycleId).run()
+    
+    console.log(`✅ Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic and insurance info preserved)`)
+  }
+  
+  return c.json({ 
+    message: '상태가 변경되었습니다',
+    status: status,
+    contractId: id 
+  })
+})
+
+// ==========================================
+// 진행 중인 계약서 보험 정보 업데이트 API
+// ==========================================
+// 주의: active 상태의 계약서만 보험 정보를 업데이트할 수 있습니다.
+// completed 또는 cancelled 상태는 업데이트되지 않습니다.
+// ==========================================
+// 계약 보험 정보 수정 (인증 필요)
+app.put('/api/contracts/:id/insurance', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  try {
+    // 계약서 조회 (active 상태만)
+    const contract = await DB.prepare(
+      'SELECT * FROM contracts WHERE id = ? AND status = ? AND deleted_at IS NULL'
+    ).bind(id, 'active').first() as any
+    
+    if (!contract) {
+      console.log('⚠️  계약서가 없거나 active 상태가 아닙니다:', id)
+      return c.json({ error: '진행 중인 계약서만 보험 정보를 업데이트할 수 있습니다' }, 400)
+    }
+    
+    // 보험 정보 업데이트
+    await DB.prepare(`
+      UPDATE contracts 
+      SET insurance_company = ?,
+          driving_range = ?,
+          insurance_start_date = ?,
+          insurance_end_date = ?,
+          insurance_age_limit = ?,
+          updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(
+      data.insurance_company,
+      data.driving_range,
+      data.insurance_start_date,
+      data.insurance_end_date,
+      data.insurance_age_limit || data.driving_range,
+      id
+    ).run()
+    
+    console.log('✅ [진행중 계약서] 보험 정보 업데이트 완료:', {
+      contract_id: id,
+      contract_number: contract.contract_number,
+      insurance_company: data.insurance_company,
+      driving_range: data.driving_range
+    })
+    
+    return c.json({ 
+      message: '보험 정보가 업데이트되었습니다',
+      contract_id: id
+    })
+  } catch (error) {
+    console.error('[진행중 계약서] 보험 정보 업데이트 실패:', error)
+    return c.json({ error: '보험 정보 업데이트에 실패했습니다', details: error.message }, 500)
+  }
 })
 
 // 계약서 삭제 (소프트 삭제) (인증 필요)
@@ -947,8 +2192,62 @@ app.delete('/api/contracts/:id', authMiddleware, async (c) => {
   }
 })
 
+// 계약 이력 조회 (특정 계약의 모든 이력)
+// 계약 이력 조회 (인증 필요)
+app.get('/api/contracts/:id/history', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  try {
+    const history = await DB.prepare(`
+      SELECT 
+        ch.*,
+        cu.name as customer_name,
+        cu.phone as customer_phone,
+        m.plate_number,
+        m.vehicle_name
+      FROM contract_history ch
+      LEFT JOIN customers cu ON ch.customer_id = cu.id
+      LEFT JOIN motorcycles m ON ch.motorcycle_id = m.id
+      WHERE ch.contract_id = ?
+      ORDER BY ch.created_at DESC
+    `).bind(id).all()
+    
+    return c.json(history.results)
+  } catch (error) {
+    console.error('계약 이력 조회 오류:', error)
+    return c.json({ error: '계약 이력 조회에 실패했습니다', details: error.message }, 500)
+  }
+})
+
+// 오토바이 계약 이력 조회 (특정 오토바이의 모든 계약 이력)
+// 오토바이 사용 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
+app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  try {
+    const history = await DB.prepare(`
+      SELECT 
+        ch.*,
+        cu.name as customer_name,
+        cu.phone as customer_phone
+      FROM contract_history ch
+      LEFT JOIN customers cu ON ch.customer_id = cu.id
+      WHERE ch.motorcycle_id = ?
+      ORDER BY ch.created_at DESC
+    `).bind(id).all()
+    
+    return c.json(history.results)
+  } catch (error) {
+    console.error('오토바이 이력 조회 오류:', error)
+    return c.json({ error: '오토바이 이력 조회에 실패했습니다', details: error.message }, 500)
+  }
+})
+
 // 오토바이 사용 이력 조회 (번호판 또는 차대번호로 검색)
-app.get('/api/motorcycles/history/search', async (c) => {
+// 오토바이 이력 검색 (인증 필요 - 민감한 고객 정보 포함)
+app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
   const { DB } = c.env
   const searchTerm = c.req.query('q') || ''
   
@@ -1006,7 +2305,8 @@ app.get('/api/motorcycles/history/search', async (c) => {
 // ============================================
 
 // 사업자 정보 조회
-app.get('/api/company-settings', async (c) => {
+// 회사 설정 조회 (인증 필요)
+app.get('/api/company-settings', authMiddleware, async (c) => {
   const { DB } = c.env
   
   const result = await DB.prepare('SELECT * FROM company_settings ORDER BY id DESC LIMIT 1').first()
@@ -1023,7 +2323,8 @@ app.get('/api/company-settings', async (c) => {
 })
 
 // 사업자 정보 수정
-app.put('/api/company-settings', async (c) => {
+// 회사 설정 수정 (인증 필요)
+app.put('/api/company-settings', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -1035,7 +2336,7 @@ app.put('/api/company-settings', async (c) => {
     await DB.prepare(`
       UPDATE company_settings 
       SET company_name = ?, business_number = ?, representative_name = ?,
-          phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
+          phone = ?, manager_phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(
@@ -1043,6 +2344,7 @@ app.put('/api/company-settings', async (c) => {
       data.business_number,
       data.representative_name,
       data.phone || '',
+      data.manager_phone || '',
       data.address || '',
       data.bank_name || '',
       data.account_number || '',
@@ -1052,13 +2354,14 @@ app.put('/api/company-settings', async (c) => {
   } else {
     // 신규 삽입
     await DB.prepare(`
-      INSERT INTO company_settings (company_name, business_number, representative_name, phone, address, bank_name, account_number, account_holder)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO company_settings (company_name, business_number, representative_name, phone, manager_phone, address, bank_name, account_number, account_holder)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       data.company_name,
       data.business_number,
       data.representative_name,
       data.phone || '',
+      data.manager_phone || '',
       data.address || '',
       data.bank_name || '',
       data.account_number || '',
@@ -1074,9 +2377,19 @@ app.put('/api/company-settings', async (c) => {
 // ============================================
 
 // 업체 계약서 생성
-app.post('/api/business-contracts', async (c) => {
+// 업체 계약 생성 (인증 필요)
+app.post('/api/business-contracts', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
+  
+  // 오토바이 정보 조회 (driving_range를 가져오기 위함)
+  const motorcycle = await DB.prepare(
+    `SELECT driving_range FROM motorcycles WHERE id = ?`
+  ).bind(data.motorcycle_id).first() as any
+  
+  if (!motorcycle) {
+    return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+  }
   
   // 계약서 번호 생성 (B-YYYYMMDD-XXXX 형식)
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
@@ -1087,6 +2400,45 @@ app.post('/api/business-contracts', async (c) => {
   const count = (countResult as any).count + 1
   const contractNumber = `B-${today}-${String(count).padStart(4, '0')}`
   
+  // 같은 오토바이의 기존 활성 계약을 완료 처리
+  console.log('🔄 [Business] Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+  
+  // 1. 개인 계약 완료 처리
+  const existingContracts = await DB.prepare(`
+    SELECT id, contract_number, status FROM contracts 
+    WHERE motorcycle_id = ? AND status = 'active'
+  `).bind(data.motorcycle_id).all()
+  
+  if (existingContracts.results.length > 0) {
+    console.log(`📋 [Business] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
+    for (const contract of existingContracts.results) {
+      await DB.prepare(`
+        UPDATE contracts 
+        SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).bind((contract as any).id).run()
+      console.log(`✅ [Business] Completed personal contract: ${(contract as any).contract_number}`)
+    }
+  }
+  
+  // 2. 업체 계약 완료 처리
+  const existingBusinessContracts = await DB.prepare(`
+    SELECT id, contract_number, status FROM business_contracts 
+    WHERE motorcycle_id = ? AND status = 'active'
+  `).bind(data.motorcycle_id).all()
+  
+  if (existingBusinessContracts.results.length > 0) {
+    console.log(`📋 [Business] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
+    for (const contract of existingBusinessContracts.results) {
+      await DB.prepare(`
+        UPDATE business_contracts 
+        SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).bind((contract as any).id).run()
+      console.log(`✅ [Business] Completed business contract: ${(contract as any).contract_number}`)
+    }
+  }
+  
   const result = await DB.prepare(`
     INSERT INTO business_contracts (
       motorcycle_id, contract_number,
@@ -1094,17 +2446,17 @@ app.post('/api/business-contracts', async (c) => {
       business_phone, business_address,
       representative_resident_number, representative_phone, representative_address,
       contract_start_date, contract_end_date, insurance_start_date, insurance_end_date,
-      driving_range, daily_amount, deposit, special_terms,
-      business_license_photo, id_card_photo, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      license_type, driving_range, daily_amount, deposit, special_terms,
+      signature_data, id_card_photo, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.motorcycle_id,
     contractNumber,
     data.company_name,
     data.business_number,
     data.representative,
-    data.business_type,
-    data.business_category,
+    data.business_contract_type || 'rent',  // 리스/렌트 타입 (기본값: rent)
+    '배달대행',  // business_category 기본값
     data.business_phone,
     data.business_address,
     data.representative_resident_number,
@@ -1114,11 +2466,12 @@ app.post('/api/business-contracts', async (c) => {
     data.contract_end_date,
     data.insurance_start_date,
     data.insurance_end_date,
-    data.driving_range,
+    data.license_type || '2종 소형',  // license_type 기본값 추가
+    motorcycle.driving_range || '',  // 오토바이 테이블에서 가져온 값 사용
     data.daily_amount,
     data.deposit || 0,
     data.special_terms || '',
-    data.business_license_photo || '',
+    data.signature_data || '',
     data.id_card_photo || '',
     'active'
   ).run()
@@ -1134,30 +2487,49 @@ app.post('/api/business-contracts', async (c) => {
 // 업체 계약서 목록 조회
 app.get('/api/business-contracts', async (c) => {
   const { DB } = c.env
+  const residentNumber = c.req.query('resident_number')
   
-  const result = await DB.prepare(`
+  let query = `
     SELECT 
       bc.*,
       m.plate_number, m.vehicle_name, m.chassis_number
     FROM business_contracts bc
     JOIN motorcycles m ON bc.motorcycle_id = m.id
-    ORDER BY bc.created_at DESC
-  `).all()
+    WHERE 1=1
+  `
+  
+  const params = []
+  
+  // 주민등록번호로 필터링 (고객 포털용 - 대표자 주민번호)
+  if (residentNumber) {
+    query += ` AND bc.representative_resident_number = ?`
+    params.push(residentNumber)
+  }
+  
+  query += ` ORDER BY bc.created_at DESC`
+  
+  const stmt = DB.prepare(query)
+  const result = params.length > 0 
+    ? await stmt.bind(...params).all()
+    : await stmt.all()
   
   return c.json(result.results)
 })
 
 // 업체 계약서 상세 조회
-app.get('/api/business-contracts/:id', async (c) => {
+// 업체 계약서 상세 조회 (인증 필요)
+app.get('/api/business-contracts/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
   const result = await DB.prepare(`
     SELECT 
       bc.*,
-      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage
+      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage,
+      co.terms_agreed
     FROM business_contracts bc
     JOIN motorcycles m ON bc.motorcycle_id = m.id
+    LEFT JOIN companies co ON bc.business_number = co.business_number
     WHERE bc.id = ?
   `).bind(id).first()
   
@@ -1168,17 +2540,97 @@ app.get('/api/business-contracts/:id', async (c) => {
   return c.json(result)
 })
 
+// 업체 계약서 완료 처리
+// 업체 계약 완료 처리 (인증 필요)
+app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  // 계약서 조회
+  const contract = await DB.prepare(`
+    SELECT motorcycle_id, status FROM business_contracts WHERE id = ?
+  `).bind(id).first() as any
+  
+  if (!contract) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  if (contract.status === 'completed') {
+    return c.json({ error: '이미 완료된 계약서입니다' }, 400)
+  }
+  
+  // 계약서 상태를 완료로 변경
+  await DB.prepare(`
+    UPDATE business_contracts 
+    SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(id).run()
+  
+  // 오토바이 상태를 '휴차중'으로 변경
+  await DB.prepare(`
+    UPDATE motorcycles 
+    SET status = 'available', updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(contract.motorcycle_id).run()
+  
+  return c.json({ message: '계약이 완료 처리되었습니다' })
+})
+
+// 업체 계약서 삭제
+// 업체 계약 삭제 (인증 필요)
+app.delete('/api/business-contracts/:id', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  // 계약서 조회
+  const contract = await DB.prepare(`
+    SELECT motorcycle_id FROM business_contracts WHERE id = ?
+  `).bind(id).first() as any
+  
+  if (!contract) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  // 계약서 삭제
+  await DB.prepare(`
+    DELETE FROM business_contracts WHERE id = ?
+  `).bind(id).run()
+  
+  // 오토바이 상태를 '휴차중'으로 변경
+  await DB.prepare(`
+    UPDATE motorcycles 
+    SET status = 'available', updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(contract.motorcycle_id).run()
+  
+  return c.json({ message: '계약서가 삭제되었습니다' })
+})
+
 // ============================================
 // 차용증 API
 // ============================================
 
 // 차용증 목록 조회
+// 차용증 목록 조회 (인증 필요)
 app.get('/api/loan-contracts', async (c) => {
   const { DB } = c.env
+  const residentNumber = c.req.query('resident_number')
   
-  const result = await DB.prepare(`
-    SELECT * FROM loan_contracts ORDER BY created_at DESC
-  `).all()
+  let query = `SELECT * FROM loan_contracts WHERE 1=1`
+  const params = []
+  
+  // 주민등록번호로 필터링 (고객 포털용)
+  if (residentNumber) {
+    query += ` AND borrower_resident_number = ?`
+    params.push(residentNumber)
+  }
+  
+  query += ` ORDER BY created_at DESC`
+  
+  const stmt = DB.prepare(query)
+  const result = params.length > 0 
+    ? await stmt.bind(...params).all()
+    : await stmt.all()
   
   return c.json(result.results)
 })
@@ -1340,7 +2792,8 @@ app.put('/api/admins/:id/status', async (c) => {
 // ============================================
 
 // 계약서 공유 링크 생성
-app.post('/api/contract-share/create', async (c) => {
+// 계약 공유 링크 생성 (인증 필요)
+app.post('/api/contract-share/create', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -1433,29 +2886,34 @@ app.post('/api/contract-share/:token/sign', async (c) => {
     
     if (existingCustomer) {
       customerId = existingCustomer.id
-      // 고객 정보 업데이트
+      // 고객 정보 업데이트 (전화번호, 우편번호, 상세주소 포함)
       await DB.prepare(`
         UPDATE customers 
-        SET name = ?, resident_number = ?, address = ?, license_type = ?, updated_at = ?
+        SET name = ?, phone = ?, resident_number = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?, updated_at = ?
         WHERE id = ?
       `).bind(
         shareData.customer_name,
+        shareData.customer_phone || '',
         contractInfo.resident_number || '',
+        contractInfo.postcode || '',
         contractInfo.address || '',
+        contractInfo.detail_address || '',
         contractInfo.license_type || '',
         now,
         customerId
       ).run()
     } else {
-      // 신규 고객 생성
+      // 신규 고객 생성 (우편번호, 상세주소 포함)
       const customerResult = await DB.prepare(`
-        INSERT INTO customers (name, resident_number, phone, address, license_type)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(
         shareData.customer_name,
-        contractInfo.resident_number || '',
         shareData.customer_phone,
+        contractInfo.resident_number || '',
+        contractInfo.postcode || '',
         contractInfo.address || '',
+        contractInfo.detail_address || '',
         contractInfo.license_type || ''
       ).run()
       customerId = customerResult.meta.last_row_id
@@ -1472,13 +2930,14 @@ app.post('/api/contract-share/:token/sign', async (c) => {
       `).bind(`${today}-%`).first() as any
       const sequence = String((countResult?.count || 0) + 1).padStart(4, '0')
       const contractNumber = `${today}-${sequence}`
+      const kstNow = getKSTDateTime()
       
       await DB.prepare(`
         INSERT INTO contracts (
           contract_number, contract_type, motorcycle_id, customer_id,
           start_date, end_date, monthly_fee, deposit, special_terms,
-          signature_data, id_card_photo, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+          signature_data, id_card_photo, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
       `).bind(
         contractNumber,
         contractInfo.contract_type || 'lease',
@@ -1490,7 +2949,9 @@ app.post('/api/contract-share/:token/sign', async (c) => {
         contractInfo.deposit || 0,
         contractInfo.special_terms || '',
         signature_data,
-        id_card_photo
+        id_card_photo,
+        kstNow,
+        kstNow
       ).run()
       
       // 오토바이 상태 업데이트
@@ -1602,7 +3063,8 @@ app.post('/api/contract-share/:token/sign', async (c) => {
 })
 
 // 계약서 공유 목록 조회 (관리자용)
-app.get('/api/contract-shares', async (c) => {
+// 계약 공유 목록 조회 (인증 필요)
+app.get('/api/contract-shares', authMiddleware, async (c) => {
   const { DB } = c.env
   
   const result = await DB.prepare(`
@@ -1613,7 +3075,8 @@ app.get('/api/contract-shares', async (c) => {
 })
 
 // SMS 전송 API (계약서 공유 링크 전송)
-app.post('/api/send-sms', async (c) => {
+// SMS 전송 (인증 필요)
+app.post('/api/send-sms', authMiddleware, async (c) => {
   const { phone, share_url, customer_name, contract_type } = await c.req.json()
   
   const message = `[오토바이 계약서]\n\n${customer_name}님, 계약서를 검토하시고 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
@@ -1692,7 +3155,8 @@ app.post('/api/send-sms', async (c) => {
 })
 
 // 차용증 상세 조회
-app.get('/api/loan-contracts/:id', async (c) => {
+// 차용증 상세 조회 (인증 필요)
+app.get('/api/loan-contracts/:id', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -1706,7 +3170,127 @@ app.get('/api/loan-contracts/:id', async (c) => {
 })
 
 // 차용증 생성
-app.post('/api/loan-contracts', async (c) => {
+// 차용증 생성 (인증 필요)
+app.post('/api/loan-contracts', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const data = await c.req.json()
+  
+  try {
+    // 1. 고객 정보 저장 또는 업데이트
+    let customerId;
+    const existingCustomer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
+      .bind(data.borrower_phone).first()
+    
+    if (existingCustomer) {
+      customerId = (existingCustomer as any).id
+      // 고객 정보 업데이트 (우편번호, 상세주소 포함)
+      await DB.prepare(`
+        UPDATE customers SET 
+          name = ?, 
+          phone = ?,
+          resident_number = ?, 
+          postcode = ?,
+          address = ?, 
+          detail_address = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        data.borrower_name, 
+        data.borrower_phone || '',
+        data.borrower_resident_number || '', 
+        data.postcode || '',
+        data.address || '', 
+        data.detail_address || '',
+        customerId
+      ).run()
+      
+      console.log(`✅ [Admin Loan] Customer updated (ID: ${customerId}):`, {
+        name: data.borrower_name,
+        phone: data.borrower_phone,
+        postcode: data.postcode,
+        address: data.address,
+        detail_address: data.detail_address
+      })
+    } else {
+      // 신규 고객 등록 (우편번호, 상세주소 포함)
+      const customerResult = await DB.prepare(`
+        INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        data.borrower_name, 
+        data.borrower_phone || '', 
+        data.borrower_resident_number || '', 
+        data.postcode || '',
+        data.address || '', 
+        data.detail_address || '',
+        '2종소형'
+      ).run()
+      customerId = customerResult.meta.last_row_id
+      
+      console.log(`✅ [Admin Loan] New customer created (ID: ${customerId}):`, {
+        name: data.borrower_name,
+        phone: data.borrower_phone,
+        postcode: data.postcode,
+        address: data.address,
+        detail_address: data.detail_address
+      })
+    }
+  
+    // 2. 차용증 번호 생성 (LOAN-YYYYMMDD-XXXX 형식)
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const countResult = await DB.prepare(
+      `SELECT COUNT(*) as count FROM loan_contracts WHERE loan_number LIKE ?`
+    ).bind(`LOAN-${today}-%`).first()
+    
+    const count = (countResult as any).count + 1
+    const loanNumber = `LOAN-${today}-${String(count).padStart(4, '0')}`
+    
+    // 남은 차용금은 처음에 차용금액과 동일
+    const remainingAmount = data.loan_amount
+    
+    // borrower_address는 전체 주소 (우편번호 + 주소 + 상세주소)
+    const fullAddress = data.postcode && data.address 
+      ? `(${data.postcode}) ${data.address} ${data.detail_address || ''}`.trim()
+      : data.borrower_address || data.address || '';
+    
+    const result = await DB.prepare(`
+      INSERT INTO loan_contracts (
+        loan_number, borrower_name, borrower_resident_number, borrower_phone, borrower_address,
+        loan_amount, loan_date, loan_period, repayment_date, interest_rate, daily_deduction,
+        remaining_amount, total_deducted,
+        account_number, special_terms, borrower_signature, lender_signature, borrower_id_card_photo, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      loanNumber,
+      data.borrower_name,
+      data.borrower_resident_number,
+      data.borrower_phone,
+      fullAddress,
+      data.loan_amount,
+      data.loan_date,
+      data.loan_period,
+      data.repayment_date,
+      data.interest_rate || 0,
+      data.daily_deduction,
+      remainingAmount,
+      0, // total_deducted
+      data.account_number || '',
+      data.special_terms || '',
+      data.borrower_signature || '',
+      data.lender_signature || '',
+      data.borrower_id_card_photo || '',
+      'active'
+    ).run()
+    
+    return c.json({ id: result.meta.last_row_id, loan_number: loanNumber, customer_id: customerId, ...data }, 201)
+  } catch (error) {
+    console.error('Loan contract creation error:', error)
+    return c.json({ error: '차용증 저장에 실패했습니다', details: error.message }, 500)
+  }
+})
+
+// 고객용 공개 API - 차용증 생성 (로그인 불필요)
+app.post('/api/loan-contracts/public', async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
   
@@ -1767,7 +3351,8 @@ app.patch('/api/loan-contracts/:id/status', async (c) => {
 })
 
 // 일차감 기록 추가
-app.post('/api/loan-contracts/:id/deduction', async (c) => {
+// 차용증 차감 기록 추가 (인증 필요)
+app.post('/api/loan-contracts/:id/deduction', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   const { work_amount, deduction_amount, notes } = await c.req.json()
@@ -1806,7 +3391,8 @@ app.post('/api/loan-contracts/:id/deduction', async (c) => {
 })
 
 // 차감 기록 조회
-app.get('/api/loan-contracts/:id/deductions', async (c) => {
+// 차용증 차감 내역 조회 (인증 필요)
+app.get('/api/loan-contracts/:id/deductions', authMiddleware, async (c) => {
   const { DB } = c.env
   const id = c.req.param('id')
   
@@ -1838,22 +3424,6 @@ app.get('/clear-session', (c) => {
 })
 
 // 로그인 페이지
-app.get('/login', (c) => {
-  return c.html(`<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <title>로그인</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-50">
-<iframe src="/static/login" class="w-full h-screen border-0"></iframe>
-</body>
-</html>`)
-})
-
 // 아이디/비밀번호 찾기 페이지
 app.get('/find-account', (c) => {
   return c.html(`<!DOCTYPE html>
@@ -1974,6 +3544,23 @@ app.get('/loans', (c) => {
 </html>`)
 })
 
+// 계약자 목록 페이지
+app.get('/customers', (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <title>계약자 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+<iframe src="/static/customers-simple" class="w-full h-screen border-0"></iframe>
+</body>
+</html>`)
+})
+
 // 관리자 설정 페이지
 app.get('/settings', (c) => {
   return c.html(`<!DOCTYPE html>
@@ -1992,634 +3579,607 @@ app.get('/settings', (c) => {
 })
 
 // ============================================
-// 메인 페이지 - 로그인 페이지로 리디렉션
+// 메인 페이지 - 운영현황 대시보드
 // ============================================
 
+// 대시보드 (루트 경로) - 운영현황 페이지
 app.get('/', (c) => {
-  return c.redirect('/login')
-})
-
-// 대시보드 페이지 (로그인 후)
-app.get('/dashboard', (c) => {
   return c.html(`
     <!DOCTYPE html>
     <html lang="ko">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-        <title>Z-BIKE 전자계약서</title>
-        <noscript>
-            <meta http-equiv="refresh" content="0; url=/login">
-        </noscript>
-        <style>
-            body { 
-                opacity: 0;
-                transition: opacity 0.2s ease-in;
-            }
-            body.loaded {
-                opacity: 1;
-            }
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>운영현황 - 오토바이 렌탈 관리</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <style>
+            body { font-family: 'Noto Sans KR', sans-serif; }
+            .stat-card {
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            }
+        </style>
     </head>
-    <body class="bg-gray-50">
-        <div class="min-h-screen">
-            <!-- 헤더 -->
-            <header class="bg-blue-600 text-white shadow-lg">
-                <div class="container mx-auto px-4 py-6 flex items-center justify-between">
-                    <h1 class="text-3xl font-bold">
-                        <i class="fas fa-motorcycle mr-3"></i>
-                        Z-BIKE 전자계약서
-                    </h1>
-                    
-                    <!-- 로그인 상태 표시 -->
-                    <div id="loginStatus" class="flex items-center gap-4">
-                        <!-- 로그아웃 상태 -->
-                        <div id="loggedOut" class="flex gap-2">
-                            <a href="/login" class="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold">
-                                <i class="fas fa-sign-in-alt mr-2"></i>로그인
-                            </a>
-                            <a href="/register" class="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition font-semibold">
-                                <i class="fas fa-user-plus mr-2"></i>회원가입
-                            </a>
-                        </div>
-                        
-                        <!-- 로그인 상태 -->
-                        <div id="loggedIn" class="hidden flex items-center gap-4">
-                            <div onclick="showMyInfo()" class="flex items-center bg-blue-700 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-800 transition">
-                                <i class="fas fa-user-circle text-2xl mr-2"></i>
-                                <div>
-                                    <p class="text-sm font-semibold" id="userName"></p>
-                                    <p class="text-xs opacity-80" id="userEmail"></p>
-                                </div>
-                            </div>
-                            <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
-                                <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- 메인 컨텐츠 -->
-            <main class="container mx-auto px-4 py-8">
-                <!-- 통계 대시보드 -->
-                <div id="statsSection" class="mb-8">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-800">
-                        <i class="fas fa-chart-line mr-2"></i>운영 현황
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <!-- 총 바이크 수 -->
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
-                            <div class="flex items-center justify-between mb-1">
-                                <h3 class="text-base font-semibold opacity-90">총 바이크</h3>
-                                <i class="fas fa-motorcycle text-2xl opacity-80"></i>
-                            </div>
-                            <p class="text-3xl font-bold" id="totalBikes">-</p>
-                            <p class="text-xs opacity-80 mt-1">등록된 오토바이</p>
-                        </div>
-                        
-                        <!-- 사용가능 -->
-                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white">
-                            <div class="flex items-center justify-between mb-1">
-                                <h3 class="text-base font-semibold opacity-90">사용가능</h3>
-                                <i class="fas fa-check-circle text-2xl opacity-80"></i>
-                            </div>
-                            <p class="text-3xl font-bold" id="availableBikes">-</p>
-                            <p class="text-xs opacity-80 mt-1">대여 가능 차량</p>
-                        </div>
-                        
-                        <!-- 렌트중 -->
-                        <div class="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg shadow-lg p-4 text-white">
-                            <div class="flex items-center justify-between mb-1">
-                                <h3 class="text-base font-semibold opacity-90">렌트중</h3>
-                                <i class="fas fa-clock text-2xl opacity-80"></i>
-                            </div>
-                            <p class="text-3xl font-bold" id="rentedBikes">-</p>
-                            <p class="text-xs opacity-80 mt-1">대여 중인 차량</p>
-                        </div>
-                        
-                        <!-- 정비/폐지 -->
-                        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white">
-                            <div class="flex items-center justify-between mb-1">
-                                <h3 class="text-base font-semibold opacity-90">정비/폐지</h3>
-                                <i class="fas fa-tools text-2xl opacity-80"></i>
-                            </div>
-                            <p class="text-3xl font-bold"><span id="maintenanceBikes">-</span> / <span id="scrappedBikes">-</span></p>
-                            <p class="text-xs opacity-80 mt-1">수리중 / 사용불가</p>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- 총 사용자 -->
-                        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-gray-600 text-xs font-semibold mb-1">총 고객 수</p>
-                                    <p class="text-2xl font-bold text-gray-800" id="totalCustomers">-</p>
-                                </div>
-                                <i class="fas fa-users text-3xl text-purple-500 opacity-80"></i>
-                            </div>
-                        </div>
-                        
-                        <!-- 활성 계약 -->
-                        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-gray-600 text-xs font-semibold mb-1">활성 계약</p>
-                                    <p class="text-2xl font-bold text-gray-800" id="activeContracts">-</p>
-                                </div>
-                                <i class="fas fa-file-contract text-3xl text-indigo-500 opacity-80"></i>
-                            </div>
-                        </div>
-                        
-                        <!-- 월 대여금 총액 -->
-                        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-emerald-500">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-gray-600 text-xs font-semibold mb-1">총 대여금</p>
-                                    <p class="text-2xl font-bold text-gray-800" id="monthlyRevenue">-</p>
-                                </div>
-                                <i class="fas fa-won-sign text-3xl text-emerald-500 opacity-80"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 관리자 설정 링크 -->
-                <div class="mb-6 text-right">
-                    <a href="/settings" class="inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
-                        <i class="fas fa-cog mr-2"></i>관리자 설정
-                    </a>
-                </div>
-                
-                <h2 class="text-2xl font-bold mb-4 text-gray-800">
-                    <i class="fas fa-th-large mr-2"></i>빠른 메뉴
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- 오토바이 관리 -->
-                    <a href="/motorcycles" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-blue-100 p-3 rounded-full">
-                                <i class="fas fa-motorcycle text-blue-600 text-2xl"></i>
-                            </div>
-                            <h2 class="text-xl font-bold ml-4">오토바이 관리</h2>
-                        </div>
-                        <p class="text-gray-600">오토바이 등록 및 관리</p>
-                    </a>
-
-                    <!-- 개인 계약서 작성 -->
-                    <a href="/contract/new" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-green-100 p-3 rounded-full">
-                                <i class="fas fa-file-signature text-green-600 text-2xl"></i>
-                            </div>
-                            <h2 class="text-xl font-bold ml-4">개인 계약서</h2>
-                        </div>
-                        <p class="text-gray-600">개인 리스/렌트 계약서</p>
-                    </a>
-
-                    <!-- 업체 계약서 작성 -->
-                    <a href="/business-contract/new" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-purple-100 p-3 rounded-full">
-                                <i class="fas fa-building text-purple-600 text-2xl"></i>
-                            </div>
-                            <h2 class="text-xl font-bold ml-4">업체 계약서</h2>
-                        </div>
-                        <p class="text-gray-600">업체 리스/렌트 계약서</p>
-                    </a>
-
-                    <!-- 계약서 목록 -->
-                    <a href="/contracts" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-indigo-100 p-3 rounded-full">
-                                <i class="fas fa-list text-indigo-600 text-2xl"></i>
-                            </div>
-                            <h2 class="text-xl font-bold ml-4">계약서 목록</h2>
-                        </div>
-                        <p class="text-gray-600">계약 내역 조회 및 관리</p>
-                    </a>
-
-                    <!-- 차용증 관리 -->
-                    <a href="/loans" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-orange-100 p-3 rounded-full">
-                                <i class="fas fa-money-bill-wave text-orange-600 text-2xl"></i>
-                            </div>
-                            <h2 class="text-xl font-bold ml-4">차용증 관리</h2>
-                        </div>
-                        <p class="text-gray-600">차용증 작성 및 조회</p>
-                    </a>
-
-                    <!-- 데이터 가져오기 -->
-                    <a href="/import-data" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow border-2 border-cyan-200">
-                        <div class="flex items-center mb-4">
-                            <div class="bg-cyan-100 p-3 rounded-full">
-                                <i class="fas fa-download text-cyan-600 text-2xl"></i>
-                            </div>
-                            <h2 class="text-xl font-bold ml-4">데이터 가져오기</h2>
-                        </div>
-                        <p class="text-gray-600">웹 페이지에서 데이터 불러오기</p>
-                    </a>
-                </div>
-
-                <!-- 시스템 안내 -->
-                <div class="mt-8 bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-lg font-bold mb-4">
-                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
-                        시스템 안내
-                    </h3>
-                    <ul class="space-y-2 text-gray-700">
-                        <li><i class="fas fa-check text-green-600 mr-2"></i>오토바이 정보를 등록하고 관리할 수 있습니다</li>
-                        <li><i class="fas fa-check text-green-600 mr-2"></i>리스/렌트 계약서를 전자로 작성할 수 있습니다</li>
-                        <li><i class="fas fa-check text-green-600 mr-2"></i>전자서명을 통해 계약을 체결할 수 있습니다</li>
-                        <li><i class="fas fa-check text-green-600 mr-2"></i>계약 내역을 조회하고 관리할 수 있습니다</li>
-                        <li><i class="fas fa-check text-green-600 mr-2"></i>차용증을 작성하고 관리할 수 있습니다</li>
-                    </ul>
-                </div>
-            </main>
-            
-            <!-- 내 정보 모달 -->
-            <div id="myInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-                <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">
-                                <i class="fas fa-user-circle mr-2 text-blue-600"></i>내 정보
-                            </h2>
-                            <button onclick="hideMyInfo()" class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-times text-2xl"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- 왼쪽: 내 정보 -->
-                            <div>
-                                <!-- 프로필 카드 -->
-                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg mb-6">
-                                    <div class="flex items-center mb-4">
-                                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold">
-                                            <span id="modalUserInitial"></span>
-                                        </div>
-                                        <div class="ml-4">
-                                            <h3 class="text-xl font-bold text-gray-800" id="modalUserName"></h3>
-                                            <p class="text-sm text-gray-600" id="modalUsername"></p>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 역할 배지 -->
-                                    <div class="flex items-center justify-center">
-                                        <span id="modalUserRole" class="px-4 py-2 rounded-full text-sm font-bold"></span>
-                                    </div>
-                                </div>
-                                
-                                <!-- 상세 정보 -->
-                                <div class="space-y-4">
-                                    <div class="flex items-start">
-                                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
-                                            <i class="fas fa-user text-blue-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-xs text-gray-500 mb-1">이름</p>
-                                            <p class="font-semibold text-gray-800" id="modalUserNameDetail"></p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-start">
-                                        <div class="bg-green-100 p-2 rounded-lg mr-3">
-                                            <i class="fas fa-phone text-green-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-xs text-gray-500 mb-1">전화번호</p>
-                                            <p class="font-semibold text-gray-800" id="modalUserPhone"></p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-start">
-                                        <div class="bg-purple-100 p-2 rounded-lg mr-3">
-                                            <i class="fas fa-envelope text-purple-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-xs text-gray-500 mb-1">이메일</p>
-                                            <p class="font-semibold text-gray-800" id="modalUserEmail"></p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-start">
-                                        <div class="bg-red-100 p-2 rounded-lg mr-3">
-                                            <i class="fas fa-key text-red-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-xs text-gray-500 mb-1">비밀번호</p>
-                                            <p class="font-semibold text-gray-800">••••••••</p>
-                                            <p class="text-xs text-gray-400 mt-1">보안을 위해 표시되지 않습니다</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 오른쪽: 관리자 목록 (슈퍼관리자만 표시) -->
-                            <div id="adminListSection" class="hidden">
-                                <h3 class="text-lg font-bold mb-4 text-gray-800">
-                                    <i class="fas fa-users-cog mr-2 text-purple-600"></i>
-                                    관리자 목록
-                                </h3>
-                                
-                                <div id="adminListContainer" class="space-y-3 max-h-[500px] overflow-y-auto">
-                                    <!-- 관리자 목록이 여기에 동적으로 추가됩니다 -->
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 닫기 버튼 -->
-                        <div class="mt-6">
-                            <button onclick="hideMyInfo()" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                                <i class="fas fa-check mr-2"></i>확인
-                            </button>
-                        </div>
+    <body class="bg-gray-100">
+        <!-- 헤더 -->
+        <div class="bg-white shadow-md">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                    운영현황
+                </h1>
+                <div class="flex items-center space-x-6">
+                    <nav class="flex space-x-4">
+                        <a href="/" class="text-blue-600 font-medium">운영현황</a>
+                        <a href="/static/motorcycles.html" class="text-gray-600 hover:text-blue-600">오토바이 관리</a>
+                        <a href="/static/contracts.html" class="text-gray-600 hover:text-blue-600">계약서 관리</a>
+                        <a href="/static/loans.html" class="text-gray-600 hover:text-blue-600">차용증 관리</a>
+                        <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600">설정</a>
+                    </nav>
+                    <!-- 로그인/로그아웃 -->
+                    <div class="flex items-center space-x-3 border-l pl-6">
+                        <button id="userInfoBtn" onclick="showAdminManagement()" class="hidden hover:opacity-80 transition">
+                            <span id="userName" class="text-gray-700 font-medium"></span>
+                            <span id="userRole" class="ml-2 px-2 py-1 rounded text-xs font-bold"></span>
+                        </button>
+                        <button id="logoutBtn" onclick="handleLogout()" class="hidden bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                            <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
+                        </button>
+                        <a id="loginBtn" href="/login" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition inline-block">
+                            <i class="fas fa-sign-in-alt mr-2"></i>로그인
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- 메인 콘텐츠 -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- 운영 통계 카드 4개 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <!-- 총 바이크 -->
+                <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('all')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-motorcycle"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">총 바이크</div>
+                            <div id="totalCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 사용중 -->
+                <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('rented')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-check-circle"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">사용중</div>
+                            <div id="rentedCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 휴차중 -->
+                <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('available')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-pause-circle"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">휴차중</div>
+                            <div id="availableCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 수리중/폐지 -->
+                <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('maintenance_scrapped')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-tools"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">수리중/폐지</div>
+                            <div id="maintenanceCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 추가 통계 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <!-- 개인 계약 -->
+                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all"
+                     onclick="filterByContractType('personal')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">개인계약</p>
+                            <p id="activeContracts" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <div class="text-3xl text-blue-600"><i class="fas fa-file-contract"></i></div>
+                    </div>
+                </div>
+
+                <!-- 업체 계약 -->
+                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all"
+                     onclick="filterByContractType('business')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">업체계약</p>
+                            <p id="businessContracts" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <div class="text-3xl text-green-600"><i class="fas fa-building"></i></div>
+                    </div>
+                </div>
+
+                <!-- 임시계약 -->
+                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all"
+                     onclick="filterByContractType('temp')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">임시계약</p>
+                            <p id="tempContracts" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <div class="text-3xl text-yellow-600"><i class="fas fa-clock"></i></div>
+                    </div>
+                </div>
+
+                <!-- 차용증 -->
+                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all"
+                     onclick="filterByContractType('loan')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">차용증</p>
+                            <p id="activeLoans" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <div class="text-3xl text-orange-600"><i class="fas fa-hand-holding-usd"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빠른 액세스 -->
+            <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-bolt mr-2 text-yellow-500"></i>빠른 액세스
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- 1. 오토바이 등록 -->
+                    <a href="/static/motorcycle-register" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-plus-circle text-3xl text-blue-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">오토바이 등록</p>
+                    </a>
+                    <!-- 2. 계약서 목록 -->
+                    <a href="/static/contracts.html" class="bg-cyan-50 hover:bg-cyan-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-folder-open text-3xl text-cyan-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">계약서 목록</p>
+                    </a>
+                    <!-- 3. 계약자 정보 등록 -->
+                    <a href="/static/customer-register" class="bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-user-plus text-3xl text-indigo-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">계약자 정보 등록</p>
+                    </a>
+                    <!-- 4. 업체 정보 등록 -->
+                    <a href="/static/companies.html" class="bg-pink-50 hover:bg-pink-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-building-user text-3xl text-pink-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업체 정보 등록</p>
+                    </a>
+                    <!-- 5. 개인계약서 작성 -->
+                    <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-file-signature text-3xl text-green-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">개인계약서 작성</p>
+                    </a>
+                    <!-- 6. 차용계약서 작성 -->
+                    <a href="/static/loan-new" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-hand-holding-usd text-3xl text-orange-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">차용계약서 작성</p>
+                    </a>
+                    <!-- 7. 업체계약서 작성 -->
+                    <a href="/static/business-contract-new.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업체계약서 작성</p>
+                    </a>
+                    <!-- 8. 계약자 목록 -->
+                    <a href="/static/customers-simple" class="bg-teal-50 hover:bg-teal-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-users text-3xl text-teal-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">계약자 목록</p>
+                    </a>
+                    <!-- 9. 업체 등록 목록 -->
+                    <a href="/static/companies-list.html" class="bg-rose-50 hover:bg-rose-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-building-circle-check text-3xl text-rose-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업체 등록 목록</p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 계약자 정보 등록 섹션 (토글 가능) -->
+            <div id="customerFormSection" class="hidden bg-white p-6 rounded-xl shadow-md mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-user-plus mr-2 text-indigo-600"></i>계약자 정보 등록
+                    </h2>
+                    <button onclick="toggleCustomerForm()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <form id="customerForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 이름 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-user mr-1 text-indigo-500"></i>이름 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="customerName" 
+                                required
+                                placeholder="홍길동" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </div>
+
+                        <!-- 주민등록번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-id-card mr-1 text-indigo-500"></i>주민등록번호 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="customerResidentNumber" 
+                                required
+                                placeholder="123456-1234567" 
+                                maxlength="14"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </div>
+
+                        <!-- 전화번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-phone mr-1 text-indigo-500"></i>전화번호 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                id="customerPhone" 
+                                required
+                                placeholder="010-1234-5678" 
+                                maxlength="13"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </div>
+
+                        <!-- 우편번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-map-marker-alt mr-1 text-indigo-500"></i>우편번호 <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    id="customerPostcode" 
+                                    required
+                                    readonly
+                                    placeholder="12345" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
+                                    onclick="searchAddress()"
+                                >
+                                <button 
+                                    type="button" 
+                                    onclick="searchAddress()" 
+                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+                                    <i class="fas fa-search mr-1"></i>검색
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 주소 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-home mr-1 text-indigo-500"></i>주소 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="customerAddress" 
+                            required
+                            readonly
+                            placeholder="우편번호 검색 버튼을 클릭하세요" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer mb-2"
+                            onclick="searchAddress()"
+                        >
+                        <input 
+                            type="text" 
+                            id="customerDetailAddress" 
+                            placeholder="상세주소 (동/호수 등)" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                    </div>
+
+                    <!-- 버튼 -->
+                    <div class="flex justify-end gap-3">
+                        <button 
+                            type="button" 
+                            onclick="toggleCustomerForm()" 
+                            class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-times mr-2"></i>닫기
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="clearCustomerForm()" 
+                            class="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-redo mr-2"></i>초기화
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-save mr-2"></i>저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 정보 등록 섹션 (업체만) -->
+            <div class="grid grid-cols-1 gap-6">
+
+        <!-- 관리자 관리 모달 (슈퍼관리자 전용) -->
+        <div id="adminManagementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-users-cog mr-2 text-blue-600"></i>관리자 관리
+                    </h2>
+                    <button onclick="closeAdminManagement()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div id="adminList" class="space-y-4">
+                    <!-- 관리자 목록이 여기에 동적으로 로드됩니다 -->
+                </div>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script>
-            // 로그인 상태 확인 및 표시
-            async function checkLoginStatus() {
+            // 로그인 상태 확인
+            async function checkAuth() {
                 const sessionId = localStorage.getItem('sessionId');
-                const user = localStorage.getItem('user');
-                const loggedIn = document.getElementById('loggedIn');
-                const loggedOut = document.getElementById('loggedOut');
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
                 
-                console.log('[DASHBOARD] checkLoginStatus called');
-                console.log('[DASHBOARD] localStorage sessionId:', sessionId);
-                console.log('[DASHBOARD] localStorage user:', user);
+                // 디버깅
+                console.log('=== checkAuth 실행 ===');
+                console.log('SessionID:', sessionId);
+                console.log('User:', user);
+                console.log('==================');
                 
-                if (sessionId && user) {
-                    try {
-                        console.log('[DASHBOARD] Verifying session with server...');
-                        // 세션 유효성 확인
-                        const response = await axios.get('/api/auth/check', {
-                            headers: { 'X-Session-ID': sessionId }
-                        });
-                        
-                        console.log('[DASHBOARD] Auth check response:', response.data);
-                        
-                        if (!response.data.authenticated) {
-                            console.log('[DASHBOARD] Not authenticated, redirecting to login');
-                            // 인증 실패 시 로그인 페이지로 리다이렉트
-                            localStorage.removeItem('sessionId');
-                            localStorage.removeItem('user');
-                            window.location.href = '/login';
-                            return;
-                        }
-                        
-                        console.log('[DASHBOARD] Authenticated! Displaying dashboard...');
-                        const userData = JSON.parse(user);
-                        
-                        // 로그인 상태 표시
-                        document.getElementById('userName').textContent = userData.name || userData.username;
-                        document.getElementById('userEmail').textContent = userData.username;
-                        
-                        loggedIn.classList.remove('hidden');
-                        loggedIn.classList.add('flex');
-                        loggedOut.classList.add('hidden');
-                        
-                        // 통계 로드
-                        loadStats();
-                    } catch (e) {
-                        console.error('[DASHBOARD] Session check error:', e);
-                        // 세션 만료 시 로그인 페이지로 리다이렉트
-                        localStorage.removeItem('sessionId');
-                        localStorage.removeItem('user');
-                        window.location.href = '/login';
-                    }
-                } else {
-                    console.log('[DASHBOARD] No session found, redirecting to login');
-                    // 세션이 없으면 로그인 페이지로 리다이렉트
-                    window.location.href = '/login';
-                }
-            }
-            
-            // 로그아웃 상태 표시
-            function showLoggedOut() {
-                // 로그인 페이지로 리다이렉트
-                window.location.href = '/login';
-            }
-            
-            // 통계 로드
-            async function loadStats() {
-                const sessionId = localStorage.getItem('sessionId');
-                if (!sessionId) return;
-                
-                try {
-                    const response = await axios.get('/api/dashboard/stats', {
-                        headers: { 'X-Session-ID': sessionId }
-                    });
+                if (sessionId && user.name) {
+                    // 로그인 상태
+                    console.log('✅ 로그인 상태 - UI 업데이트');
+                    document.getElementById('userInfoBtn').classList.remove('hidden');
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    document.getElementById('loginBtn').classList.add('hidden');
+                    document.getElementById('userName').textContent = user.name;
                     
-                    const stats = response.data;
-                    
-                    // 오토바이 통계
-                    document.getElementById('totalBikes').textContent = stats.motorcycles.total;
-                    document.getElementById('availableBikes').textContent = stats.motorcycles.available;
-                    document.getElementById('rentedBikes').textContent = stats.motorcycles.rented;
-                    document.getElementById('maintenanceBikes').textContent = stats.motorcycles.maintenance;
-                    document.getElementById('scrappedBikes').textContent = stats.motorcycles.scrapped;
-                    
-                    // 고객 및 계약 통계
-                    document.getElementById('totalCustomers').textContent = stats.customers;
-                    document.getElementById('activeContracts').textContent = stats.contracts.active;
-                    
-                    // 월 대여금 포맷팅
-                    const revenue = stats.contracts.monthly_revenue || 0;
-                    document.getElementById('monthlyRevenue').textContent = 
-                        new Intl.NumberFormat('ko-KR').format(revenue) + '원';
-                    
-                    document.getElementById('statsSection').style.display = 'block';
-                } catch (error) {
-                    console.error('통계 로드 오류:', error);
-                    document.getElementById('statsSection').style.display = 'none';
-                }
-            }
-            
-            // 로그아웃
-            async function logout() {
-                if (confirm('로그아웃 하시겠습니까?')) {
-                    const sessionId = localStorage.getItem('sessionId');
-                    
-                    if (sessionId) {
-                        try {
-                            await axios.post('/api/auth/logout', {}, {
-                                headers: { 'X-Session-ID': sessionId }
-                            });
-                        } catch (e) {
-                            console.error('Logout error:', e);
-                        }
-                    }
-                    
-                    localStorage.removeItem('sessionId');
-                    localStorage.removeItem('user');
-                    window.location.href = '/login';
-                }
-            }
-            
-            // 내 정보 모달 표시
-            async function showMyInfo() {
-                const sessionId = localStorage.getItem('sessionId');
-                if (!sessionId) return;
-                
-                try {
-                    const response = await axios.get('/api/auth/check', {
-                        headers: { 'X-Session-ID': sessionId }
-                    });
-                    
-                    const user = response.data.user;
-                    
-                    // 이름 첫 글자 (이니셜)
-                    const initial = user.name ? user.name.charAt(0) : user.username.charAt(0);
-                    document.getElementById('modalUserInitial').textContent = initial;
-                    
-                    // 사용자 정보 설정
-                    document.getElementById('modalUserName').textContent = user.name || user.username;
-                    document.getElementById('modalUsername').textContent = '@' + user.username;
-                    document.getElementById('modalUserNameDetail').textContent = user.name || user.username;
-                    document.getElementById('modalUserPhone').textContent = user.phone || '등록된 전화번호 없음';
-                    document.getElementById('modalUserEmail').textContent = user.email || '등록된 이메일 없음';
-                    
-                    // 역할 배지 설정
-                    const roleEl = document.getElementById('modalUserRole');
+                    // 역할 표시
+                    const roleEl = document.getElementById('userRole');
                     if (user.role === 'super_admin') {
-                        roleEl.textContent = '슈퍼 관리자';
-                        roleEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white';
-                        
-                        // 슈퍼관리자인 경우 관리자 목록 로드
-                        await loadAdminList(sessionId);
+                        roleEl.textContent = '슈퍼관리자';
+                        roleEl.className = 'ml-2 px-2 py-1 rounded text-xs font-bold bg-gradient-to-r from-purple-500 to-purple-600 text-white';
                     } else {
-                        roleEl.textContent = '일반 관리자';
-                        roleEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-blue-600 text-white';
-                        
-                        // 일반 관리자는 관리자 목록 숨김
-                        document.getElementById('adminListSection').classList.add('hidden');
+                        roleEl.textContent = '관리자';
+                        roleEl.className = 'ml-2 px-2 py-1 rounded text-xs font-bold bg-gray-500 text-white';
                     }
                     
-                    // 모달 표시
-                    document.getElementById('myInfoModal').classList.remove('hidden');
-                } catch (error) {
-                    console.error('사용자 정보 로드 오류:', error);
-                    alert('사용자 정보를 불러오는데 실패했습니다');
+                    // 로그인 상태일 때만 통계 로드
+                    return true;
+                } else {
+                    // 비로그인 상태 - 로그인 페이지로 리다이렉트 (알림 없이)
+                    console.log('❌ 비로그인 상태 - 로그인 페이지로 이동');
+                    window.location.href = '/static/login.html';
+                    return false;
                 }
             }
             
-            // 관리자 목록 로드 (슈퍼관리자 전용)
-            async function loadAdminList(sessionId) {
+            // 관리자 관리 모달 표시
+            async function showAdminManagement() {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                
+                // 슈퍼관리자만 접근 가능
+                if (user.role !== 'super_admin') {
+                    return;
+                }
+                
+                document.getElementById('adminManagementModal').classList.remove('hidden');
+                document.getElementById('adminManagementModal').style.display = 'flex';
+                await loadAdminList();
+            }
+            
+            // 관리자 목록 로드
+            async function loadAdminList() {
+                const sessionId = localStorage.getItem('sessionId');
+                
                 try {
                     const response = await axios.get('/api/admin/users', {
                         headers: { 'X-Session-ID': sessionId }
                     });
                     
-                    const admins = response.data.admins;
-                    const container = document.getElementById('adminListContainer');
+                    const adminList = document.getElementById('adminList');
+                    adminList.innerHTML = '';
                     
-                    let html = '';
-                    for (const admin of admins) {
-                        const isActive = admin.status !== 'inactive';
-                        const isLoggedIn = admin.is_logged_in > 0;
-                        const roleText = admin.role === 'super_admin' ? '슈퍼관리자' : '일반관리자';
-                        const statusColor = isActive ? 'text-green-600' : 'text-red-600';
-                        const statusText = isActive ? '활성' : '정지';
-                        const borderColor = isActive ? 'border-green-200' : 'border-red-200';
-                        const buttonBg = isActive ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600';
-                        const buttonIcon = isActive ? 'ban' : 'check';
-                        const buttonText = isActive ? '정지' : '활성화';
-                        const statusAction = isActive ? 'inactive' : 'active';
-                        
-                        html += '<div style="background-color: #f9fafb; padding: 1rem; border-radius: 0.5rem; border: 2px solid; border-color: ' + (isActive ? '#bbf7d0' : '#fecaca') + ';">';
-                        html += '<div style="display: flex; align-items: center; justify-content: space-between;">';
-                        html += '<div style="flex: 1;">';
-                        html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">';
-                        html += '<span style="font-weight: bold; color: #1f2937;">' + admin.username + '</span>';
-                        html += '<span style="font-size: 0.875rem; color: #4b5563;">' + (admin.name || '이름없음') + '</span>';
-                        if (isLoggedIn) {
-                            html += '<span style="font-size: 0.75rem; background-color: #d1fae5; color: #047857; padding: 0.25rem 0.5rem; border-radius: 9999px; font-weight: 600;"><i style="font-size: 6px;" aria-hidden="true"></i>사용중</span>';
-                        }
-                        html += '</div>';
-                        html += '<div style="font-size: 0.75rem; color: #6b7280;">';
-                        html += '<div><i aria-hidden="true"></i>' + roleText + '</div>';
-                        html += '<div><i aria-hidden="true"></i>' + (admin.email || '이메일 없음') + '</div>';
-                        html += '<div><i aria-hidden="true"></i>' + (admin.phone || '전화번호 없음') + '</div>';
-                        html += '<div><span style="' + (isActive ? 'color: #16a34a;' : 'color: #dc2626;') + ' font-weight: 600;">' + statusText + '</span></div>';
-                        html += '</div>';
-                        html += '</div>';
-                        
-                        if (admin.role !== 'super_admin') {
-                            html += '<button onclick="toggleAdminStatus(' + admin.id + ', &quot;' + statusAction + '&quot;)" style="margin-left: 1rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.875rem; color: white; background-color: ' + (isActive ? '#ef4444' : '#22c55e') + ';">' + buttonText + '</button>';
-                        } else {
-                            html += '<span style="margin-left: 1rem; font-size: 0.75rem; color: #9333ea; font-weight: 600;">변경불가</span>';
-                        }
-                        
-                        html += '</div>';
-                        html += '</div>';
+                    const admins = response.data.admins || [];
+                    
+                    if (admins.length === 0) {
+                        adminList.innerHTML = '<p class="text-center text-gray-500 py-8">등록된 관리자가 없습니다.</p>';
+                        return;
                     }
                     
-                    container.innerHTML = html;
-                    
-                    // 관리자 목록 섹션 표시
-                    document.getElementById('adminListSection').classList.remove('hidden');
+                    admins.forEach(admin => {
+                        const isActive = admin.status !== 'inactive';
+                        const roleText = admin.role === 'super_admin' ? '슈퍼관리자' : '관리자';
+                        const statusColor = isActive ? 'green' : 'red';
+                        const statusText = isActive ? '사용중' : '사용중지';
+                        
+                        const roleBadgeClass = admin.role === 'super_admin' ? 'bg-purple-500' : 'bg-gray-500';
+                        const statusBadgeClass = 'bg-' + statusColor + '-500';
+                        
+                        const buttonHTML = isActive 
+                            ? '<button onclick="toggleAdminStatus(&quot;' + admin.username + '&quot;, &quot;inactive&quot;)" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-ban mr-1"></i>사용중지</button>'
+                            : '<button onclick="toggleAdminStatus(&quot;' + admin.username + '&quot;, &quot;active&quot;)" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-check mr-1"></i>사용허가</button>';
+                        
+                        const adminCard = '<div class="border rounded-lg p-4 hover:shadow-md transition">' +
+                            '<div class="flex items-center justify-between">' +
+                                '<div class="flex-1">' +
+                                    '<div class="flex items-center space-x-3">' +
+                                        '<h3 class="font-bold text-lg">' + admin.name + '</h3>' +
+                                        '<span class="px-2 py-1 rounded text-xs font-bold ' + roleBadgeClass + ' text-white">' + roleText + '</span>' +
+                                        '<span class="px-2 py-1 rounded text-xs font-bold ' + statusBadgeClass + ' text-white">' + statusText + '</span>' +
+                                    '</div>' +
+                                    '<p class="text-sm text-gray-600 mt-1">아이디: ' + admin.username + '</p>' +
+                                    '<p class="text-sm text-gray-600">이메일: ' + (admin.email || '-') + '</p>' +
+                                '</div>' +
+                                '<div class="flex space-x-2">' + buttonHTML + '</div>' +
+                            '</div>' +
+                        '</div>';
+                        
+                        adminList.innerHTML += adminCard;
+                    });
                 } catch (error) {
-                    console.error('관리자 목록 로드 오류:', error);
+                    console.error('관리자 목록 로드 실패:', error);
+                    alert('관리자 목록을 불러오는데 실패했습니다.');
                 }
             }
             
             // 관리자 상태 변경
-            async function toggleAdminStatus(userId, newStatus) {
-                const statusText = newStatus === 'active' ? '활성화' : '정지';
-                const confirmMsg = '정말로 이 관리자를 ' + statusText + '하시겠습니까?' + (newStatus === 'inactive' ? '\\n정지 시 해당 관리자의 모든 세션이 종료됩니다.' : '');
+            async function toggleAdminStatus(username, status) {
+                const sessionId = localStorage.getItem('sessionId');
+                const action = status === 'active' ? '사용허가' : '사용중지';
                 
-                if (!confirm(confirmMsg)) {
+                if (!confirm(username + ' 관리자를 ' + action + ' 하시겠습니까?')) {
+                    return;
+                }
+                
+                try {
+                    await axios.patch('/api/admin/users/' + username + '/status', 
+                        { status }, 
+                        { headers: { 'X-Session-ID': sessionId } }
+                    );
+                    
+                    alert(action + ' 완료되었습니다.');
+                    await loadAdminList();
+                } catch (error) {
+                    console.error('상태 변경 실패:', error);
+                    alert('상태 변경에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                }
+            }
+            
+            // 관리자 관리 모달 닫기
+            function closeAdminManagement() {
+                document.getElementById('adminManagementModal').classList.add('hidden');
+                document.getElementById('adminManagementModal').style.display = 'none';
+            }
+
+            
+            // 로그아웃 처리
+            async function handleLogout() {
+                if (!confirm('로그아웃 하시겠습니까?')) {
                     return;
                 }
                 
                 const sessionId = localStorage.getItem('sessionId');
-                if (!sessionId) return;
+                if (sessionId) {
+                    try {
+                        await axios.post('/api/auth/logout', {}, {
+                            headers: { 'X-Session-ID': sessionId }
+                        });
+                    } catch (error) {
+                        console.error('로그아웃 실패:', error);
+                    }
+                }
                 
+                localStorage.removeItem('sessionId');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+            
+            // 통계 로드
+            async function loadStats() {
                 try {
-                    await axios.post('/api/admin/users/' + userId + '/status', 
-                        { status: newStatus },
-                        { headers: { 'X-Session-ID': sessionId } }
-                    );
+                    const sessionId = localStorage.getItem('sessionId');
+                    console.log('📊 [loadStats] SessionID:', sessionId);
                     
-                    alert('관리자 상태가 ' + statusText + '되었습니다');
+                    const response = await axios.get('/api/dashboard/stats', {
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    });
+                    const data = response.data;
                     
-                    // 관리자 목록 다시 로드
-                    await loadAdminList(sessionId);
+                    console.log('✅ [loadStats] 데이터 로드 성공:', data);
+                    
+                    // 오토바이 통계
+                    const total = data.motorcycles.total;
+                    const rented = data.motorcycles.rented;
+                    const maintenance = data.motorcycles.maintenance;
+                    const scrapped = data.motorcycles.scrapped;
+                    
+                    // 휴차중 = 총 바이크 - 사용중 - 수리중 - 폐지
+                    const available = total - rented - maintenance - scrapped;
+                    
+                    console.log('📊 [계산] 총:', total, '사용중:', rented, '수리중:', maintenance, '폐지:', scrapped, '→ 휴차중:', available);
+                    
+                    document.getElementById('totalCount').textContent = total;
+                    document.getElementById('rentedCount').textContent = rented;
+                    document.getElementById('availableCount').textContent = available;
+                    document.getElementById('maintenanceCount').textContent = maintenance + scrapped;
+                    
+                    // 계약 통계
+                    document.getElementById('activeContracts').textContent = data.contracts.active;
+                    document.getElementById('businessContracts').textContent = data.contracts.active_business || 0;
+                    document.getElementById('tempContracts').textContent = data.contracts.active_temp || 0;
+                    document.getElementById('activeLoans').textContent = data.contracts.active_loans || 0;
                 } catch (error) {
-                    console.error('상태 변경 오류:', error);
-                    const errorMsg = (error.response && error.response.data && error.response.data.error) || '상태 변경에 실패했습니다';
-                    alert(errorMsg);
+                    console.error('❌ [loadStats] 통계 로드 실패:', error);
+                    console.error('❌ [loadStats] 오류 상세:', error.response?.status, error.response?.data);
                 }
             }
             
-            // 내 정보 모달 숨기기
-            function hideMyInfo() {
-                document.getElementById('myInfoModal').classList.add('hidden');
+            // 상태별 필터링 (오토바이 관리 페이지로 이동)
+            function filterByStatus(status) {
+                window.location.href = '/static/motorcycles.html?status=' + status;
             }
             
-            // 페이지 로드 시 로그인 상태 확인 및 body 표시
-            window.addEventListener('DOMContentLoaded', function() {
-                console.log('[DASHBOARD] DOMContentLoaded fired');
-                
-                // 먼저 body를 즉시 표시 (하얀 화면 방지)
-                document.body.classList.add('loaded');
-                
-                // localStorage 동기화를 위해 충분히 대기
-                setTimeout(() => {
-                    console.log('[DASHBOARD] Starting checkLoginStatus after delay');
-                    // 로그인 상태 확인
-                    checkLoginStatus();
-                }, 1000); // 1000ms로 증가하여 localStorage 완전 동기화 보장
-            });
+            // 계약 유형별 필터링 (계약서 관리 페이지로 이동)
+            function filterByContractType(type) {
+                if (type === 'personal') {
+                    // 개인계약 진행중만 표시
+                    window.location.href = '/static/contracts.html?type=personal&status=active';
+                } else if (type === 'business') {
+                    // 업체계약 진행중만 표시
+                    window.location.href = '/static/contracts.html?type=business&status=active';
+                } else if (type === 'temp') {
+                    // 임시계약 진행중만 표시
+                    window.location.href = '/static/contracts.html?type=temp&status=active';
+                } else if (type === 'loan') {
+                    // 차용증 페이지로 이동
+                    window.location.href = '/static/loans.html';
+                }
+            }
+            
+            // 페이지 로드 시 인증 확인 후 통계 로드
+            (async function() {
+                const isAuthenticated = await checkAuth();
+                if (isAuthenticated) {
+                    // 로그인 상태일 때만 통계 로드
+                    await loadStats();
+                    
+                    // 5분마다 자동 새로고침
+                    setInterval(loadStats, 300000);
+                }
+            })();
         </script>
     </body>
     </html>
@@ -2645,23 +4205,8 @@ app.get('/register', (c) => {
 
 // 관리자 로그인 페이지
 app.get('/login', (c) => {
-  const version = Date.now() // 캐시 무효화용 타임스탬프
-  return c.html(`<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>관리자 로그인</title>
-    <script src="https://cdn.tailwindcss.com?v=${version}"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css?v=${version}" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; overflow: hidden;">
-<iframe src="/static/login?v=${version}" class="w-full h-screen border-0" style="border: none; display: block;"></iframe>
-</body>
-</html>`)
+  // /static/login으로 리다이렉트 (iframe 문제 해결)
+  return c.redirect('/static/login')
 })
 
 // 계약서 서명 페이지
@@ -3043,13 +4588,54 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
 })
 
 // 임시렌트 계약서 생성 API
+// 임시렌트 계약 조회 (주민등록번호로 필터링 가능)
+app.get('/api/temp-rent-contracts', async (c) => {
+  const { DB } = c.env
+  const residentNumber = c.req.query('resident_number')
+  
+  let query = `
+    SELECT 
+      c.*,
+      m.plate_number, m.vehicle_name,
+      cu.name as customer_name, cu.phone, cu.resident_number
+    FROM contracts c
+    JOIN motorcycles m ON c.motorcycle_id = m.id
+    LEFT JOIN customers cu ON c.customer_id = cu.id
+    WHERE c.contract_type = 'temp_rent' AND c.deleted_at IS NULL
+  `
+  
+  const params = []
+  
+  // 주민등록번호로 필터링 (고객 포털용)
+  if (residentNumber) {
+    query += ` AND cu.resident_number = ?`
+    params.push(residentNumber)
+  }
+  
+  query += ` ORDER BY c.created_at DESC`
+  
+  const stmt = DB.prepare(query)
+  const result = params.length > 0 
+    ? await stmt.bind(...params).all()
+    : await stmt.all()
+  
+  return c.json(result.results)
+})
+
 app.post('/api/temp-rent-contracts', authMiddleware, async (c) => {
   const { DB } = c.env
   const data = await c.req.json()
 
   try {
-    // 계약 번호 생성
-    const contractNumber = 'TR' + Date.now()
+    // 계약 번호 생성 (T-YYYYMMDD-XXXX 형식)
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const todayContracts = await DB.prepare(`
+      SELECT COUNT(*) as count FROM contracts 
+      WHERE contract_number LIKE ?
+    `).bind(`T-${today}-%`).first() as any
+    
+    const sequence = String((todayContracts?.count || 0) + 1).padStart(4, '0')
+    const contractNumber = `T-${today}-${sequence}`
 
     // 오토바이 정보 가져오기
     const motorcycle = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?')
@@ -3104,13 +4690,52 @@ app.post('/api/temp-rent-contracts', authMiddleware, async (c) => {
       created_at: new Date().toISOString()
     }
 
+    // contracts 테이블에 임시렌트 계약 저장하기 전에 기존 계약 완료 처리
+    console.log('🔄 [TempRent] Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+    
+    // 1. 개인 계약 완료 처리
+    const existingContracts = await DB.prepare(`
+      SELECT id, contract_number, status FROM contracts 
+      WHERE motorcycle_id = ? AND status = 'active'
+    `).bind(data.motorcycle_id).all()
+    
+    if (existingContracts.results.length > 0) {
+      console.log(`📋 [TempRent] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
+      for (const contract of existingContracts.results) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind((contract as any).id).run()
+        console.log(`✅ [TempRent] Completed personal contract: ${(contract as any).contract_number}`)
+      }
+    }
+    
+    // 2. 업체 계약 완료 처리
+    const existingBusinessContracts = await DB.prepare(`
+      SELECT id, contract_number, status FROM business_contracts 
+      WHERE motorcycle_id = ? AND status = 'active'
+    `).bind(data.motorcycle_id).all()
+    
+    if (existingBusinessContracts.results.length > 0) {
+      console.log(`📋 [TempRent] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
+      for (const contract of existingBusinessContracts.results) {
+        await DB.prepare(`
+          UPDATE business_contracts 
+          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind((contract as any).id).run()
+        console.log(`✅ [TempRent] Completed business contract: ${(contract as any).contract_number}`)
+      }
+    }
+    
     // contracts 테이블에 임시렌트 계약 저장
     await DB.prepare(`
       INSERT INTO contracts (
         contract_number, contract_type, motorcycle_id, customer_id,
-        start_date, end_date, monthly_fee, deposit,
-        contract_data, signature, status, created_at
-      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, 'active', datetime('now'))
+        start_date, end_date, monthly_fee, deposit, special_terms,
+        signature_data, id_card_photo, status, created_at
+      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, ?, 'active', datetime('now'))
     `).bind(
       contractNumber,
       data.motorcycle_id,
@@ -3118,8 +4743,9 @@ app.post('/api/temp-rent-contracts', authMiddleware, async (c) => {
       data.start_date || new Date().toISOString().split('T')[0],
       data.end_date || new Date().toISOString().split('T')[0],
       parseInt(data.daily_fee) || 0,
-      JSON.stringify(contractData),
-      data.signature || ''
+      data.special_terms || '',
+      data.signature || '',
+      data.admin_id_card_photo || ''
     ).run()
 
     return c.json({
@@ -3434,6 +5060,431 @@ app.post('/api/import/analyze-pdfs', authMiddleware, async (c) => {
       contracts: []
     }, 500)
   }
+})
+
+// 대시보드 (루트 경로) - 운영현황 페이지
+app.get('/', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>운영현황 - 오토바이 렌탈 관리</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <style>
+            body { font-family: 'Noto Sans KR', sans-serif; }
+            .stat-card {
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100">
+        <!-- 헤더 -->
+        <div class="bg-white shadow-md">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                    운영현황
+                </h1>
+                <nav class="flex space-x-4">
+                    <a href="/" class="text-blue-600 font-medium">운영현황</a>
+                    <a href="/static/motorcycles.html" class="text-gray-600 hover:text-blue-600">오토바이 관리</a>
+                    <a href="/static/contracts.html" class="text-gray-600 hover:text-blue-600">계약서 관리</a>
+                    <a href="/static/loans.html" class="text-gray-600 hover:text-blue-600">차용증 관리</a>
+                    <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600">설정</a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- 운영 통계 카드 4개 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <!-- 총 바이크 -->
+                <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('all')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-motorcycle"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">총 바이크</div>
+                            <div id="totalCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 사용중 -->
+                <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('rented')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-check-circle"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">사용중</div>
+                            <div id="rentedCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 휴차중 -->
+                <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('available')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-pause-circle"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">휴차중</div>
+                            <div id="availableCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 수리중/폐지 -->
+                <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg" 
+                     onclick="filterByStatus('maintenance_scrapped')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-4xl"><i class="fas fa-tools"></i></div>
+                        <div class="text-right">
+                            <div class="text-sm opacity-90">수리중/폐지</div>
+                            <div id="maintenanceCount" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 추가 통계 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- 활성 계약 수 -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">활성 계약</p>
+                            <p id="activeContracts" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <div class="text-3xl text-blue-600"><i class="fas fa-file-contract"></i></div>
+                    </div>
+                </div>
+
+                <!-- 총 고객 수 -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">총 고객</p>
+                            <p id="totalCustomers" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <div class="text-3xl text-green-600"><i class="fas fa-users"></i></div>
+                    </div>
+                </div>
+
+                <!-- 월 예상 수익 -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">월 예상 수익</p>
+                            <p id="monthlyRevenue" class="text-2xl font-bold text-gray-800">0원</p>
+                        </div>
+                        <div class="text-3xl text-purple-600"><i class="fas fa-won-sign"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빠른 액세스 -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-bolt mr-2 text-yellow-500"></i>빠른 액세스
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <a href="/static/motorcycle-register" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-plus-circle text-3xl text-blue-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">오토바이 등록</p>
+                    </a>
+                    <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-file-signature text-3xl text-green-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">개인계약서 작성</p>
+                    </a>
+                    <a href="/static/motorcycles.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-list text-3xl text-purple-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">오토바이 목록</p>
+                    </a>
+                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-folder-open text-3xl text-orange-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">계약서 목록</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 관리자 관리 모달 (슈퍼관리자 전용) -->
+        <div id="adminManagementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-users-cog mr-2 text-blue-600"></i>관리자 관리
+                    </h2>
+                    <button onclick="closeAdminManagement()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div id="adminList" class="space-y-4">
+                    <!-- 관리자 목록이 여기에 동적으로 로드됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        <script>
+            // Axios 인터셉터 설정 - 세션 ID 자동 추가 (동적으로 읽기)
+            axios.interceptors.request.use(config => {
+                const sessionId = localStorage.getItem('sessionId');
+                console.log('🔍 [Axios Interceptor] SessionID:', sessionId);
+                console.log('🔍 [Axios Interceptor] Request URL:', config.url);
+                if (sessionId) {
+                    config.headers['X-Session-ID'] = sessionId;
+                    console.log('✅ [Axios Interceptor] X-Session-ID 헤더 추가됨');
+                } else {
+                    console.log('❌ [Axios Interceptor] SessionID 없음 - 헤더 추가 안됨');
+                }
+                return config;
+            });
+
+            axios.interceptors.response.use(
+                response => response,
+                error => {
+                    if (error.response?.status === 401) {
+                        // 인증 실패 시 로그인 페이지로 이동
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('user');
+                        window.location.href = '/static/login.html';
+                    }
+                    return Promise.reject(error);
+                }
+            );
+
+            // 통계 로드
+            async function loadStats() {
+                try {
+                    const response = await axios.get('/api/dashboard/stats');
+                    const data = response.data;
+                    
+                    // 오토바이 통계
+                    const total = data.motorcycles.total;
+                    const rented = data.motorcycles.rented;
+                    const maintenance = data.motorcycles.maintenance;
+                    const scrapped = data.motorcycles.scrapped;
+                    
+                    // 휴차중 = 총 바이크 - 사용중 - 수리중 - 폐지
+                    const available = total - rented - maintenance - scrapped;
+                    
+                    document.getElementById('totalCount').textContent = total;
+                    document.getElementById('rentedCount').textContent = rented;
+                    document.getElementById('availableCount').textContent = available;
+                    document.getElementById('maintenanceCount').textContent = maintenance + scrapped;
+                    
+                    // 계약 및 고객 통계
+                    document.getElementById('activeContracts').textContent = data.contracts.active;
+                    document.getElementById('totalCustomers').textContent = data.customers;
+                    document.getElementById('monthlyRevenue').textContent = 
+                        (data.contracts.monthly_revenue || 0).toLocaleString() + '원';
+                } catch (error) {
+                    console.error('통계 로드 실패:', error);
+                    if (error.response?.status === 401) {
+                        alert('⚠️ 로그인이 필요합니다.');
+                    }
+                }
+            }
+            
+            // 상태별 필터링 (오토바이 관리 페이지로 이동)
+            function filterByStatus(status) {
+                window.location.href = '/static/motorcycles.html?status=' + status;
+            }
+            
+            // 페이지 로드 시 인증 확인 및 통계 로드
+            (async function() {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    console.log('❌ 세션 없음 - 로그인 페이지로 이동');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                console.log('✅ 세션 확인:', sessionId);
+                await loadStats();
+            })();
+            
+            // 5분마다 자동 새로고침
+            setInterval(loadStats, 300000);
+
+            // ========================================
+            // 계약자 정보 관리 함수
+            // ========================================
+
+            // Daum 우편번호 검색
+            function searchAddress() {
+                new daum.Postcode({
+                    oncomplete: function(data) {
+                        // 우편번호와 주소 정보를 필드에 입력
+                        document.getElementById('customerPostcode').value = data.zonecode;
+                        
+                        // 기본 주소 (도로명 또는 지번)
+                        let fullAddress = '';
+                        if (data.userSelectedType === 'R') { // 도로명 주소
+                            fullAddress = data.roadAddress;
+                        } else { // 지번 주소
+                            fullAddress = data.jibunAddress;
+                        }
+                        
+                        // 건물명 추가
+                        if (data.buildingName !== '') {
+                            fullAddress += ' (' + data.buildingName + ')';
+                        }
+                        
+                        document.getElementById('customerAddress').value = fullAddress;
+                        
+                        // 상세주소 입력 필드에 포커스
+                        document.getElementById('customerDetailAddress').focus();
+                    }
+                }).open();
+            }
+
+            // 주민등록번호 자동 하이픈 추가 (입력 및 붙여넣기 모두 처리)
+            function formatResidentNumber(value) {
+                let numbers = value.replace(/[^0-9]/g, '');
+                numbers = numbers.substring(0, 13);
+                if (numbers.length > 6) {
+                    return numbers.substring(0, 6) + '-' + numbers.substring(6);
+                }
+                return numbers;
+            }
+
+            document.getElementById('customerResidentNumber').addEventListener('input', function(e) {
+                e.target.value = formatResidentNumber(e.target.value);
+            });
+
+            document.getElementById('customerResidentNumber').addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                e.target.value = formatResidentNumber(pastedText);
+            });
+
+            // 전화번호 자동 하이픈 추가 (입력 및 붙여넣기 모두 처리)
+            function formatPhoneNumber(value) {
+                let numbers = value.replace(/[^0-9]/g, '');
+                numbers = numbers.substring(0, 11);
+                if (numbers.length > 3 && numbers.length <= 7) {
+                    return numbers.substring(0, 3) + '-' + numbers.substring(3);
+                } else if (numbers.length > 7) {
+                    return numbers.substring(0, 3) + '-' + numbers.substring(3, 7) + '-' + numbers.substring(7);
+                }
+                return numbers;
+            }
+
+            document.getElementById('customerPhone').addEventListener('input', function(e) {
+                e.target.value = formatPhoneNumber(e.target.value);
+            });
+
+            document.getElementById('customerPhone').addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                e.target.value = formatPhoneNumber(pastedText);
+            });
+
+            // 폼 초기화
+            function clearCustomerForm() {
+                document.getElementById('customerForm').reset();
+            }
+
+            // 계약자 폼 토글 (표시/숨김)
+            function toggleCustomerForm() {
+                const section = document.getElementById('customerFormSection');
+                if (section.classList.contains('hidden')) {
+                    section.classList.remove('hidden');
+                    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        document.getElementById('customerName').focus();
+                    }, 500);
+                } else {
+                    section.classList.add('hidden');
+                }
+            }
+
+            // 폼 제출 처리
+            document.getElementById('customerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const customerData = {
+                    name: document.getElementById('customerName').value.trim(),
+                    resident_number: document.getElementById('customerResidentNumber').value.trim(),
+                    phone: document.getElementById('customerPhone').value.trim(),
+                    postcode: document.getElementById('customerPostcode').value.trim(),
+                    address: document.getElementById('customerAddress').value.trim(),
+                    detail_address: document.getElementById('customerDetailAddress').value.trim() || '',
+                    license_type: '보통' // 기본값
+                };
+
+                // 유효성 검사
+                if (!customerData.name) {
+                    alert('이름을 입력하세요.');
+                    return;
+                }
+                if (!customerData.resident_number || customerData.resident_number.length !== 14) {
+                    alert('주민등록번호를 정확히 입력하세요. (123456-1234567)');
+                    return;
+                }
+                if (!customerData.phone) {
+                    alert('전화번호를 입력하세요.');
+                    return;
+                }
+                if (!document.getElementById('customerPostcode').value) {
+                    alert('우편번호를 검색하세요.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/customers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Session-ID': sessionId
+                        },
+                        body: JSON.stringify(customerData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || '저장 실패');
+                    }
+
+                    const result = await response.json();
+                    alert('✅ 계약자 정보가 저장되었습니다.\\n\\n이름: ' + customerData.name + '\\n전화번호: ' + customerData.phone);
+                    
+                    // 폼 초기화
+                    clearCustomerForm();
+                    
+                    // 폼 섹션 닫기
+                    document.getElementById('customerFormSection').classList.add('hidden');
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ 저장 실패: ' + error.message);
+                }
+            });
+        </script>
+        <!-- Daum 우편번호 API -->
+        <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    </body>
+    </html>
+  `)
 })
 
 export default app

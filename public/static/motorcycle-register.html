@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <title>오토바이 등록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-6 max-w-5xl">
+        <!-- 헤더 -->
+        <div class="mb-6">
+            <a href="/" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm mb-2 inline-flex items-center transition-colors cursor-pointer">
+                <i class="fas fa-arrow-left mr-1"></i><span>메인으로</span>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800 mt-4">
+                <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                오토바이 등록
+            </h1>
+            <p class="text-gray-600 text-sm mt-1">새로운 오토바이 정보를 등록합니다.</p>
+        </div>
+
+        <!-- 등록 폼 (모달 대신 직접 표시) -->
+        <div class="bg-white rounded-lg shadow-xl">
+            <form id="motorcycleForm" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">차량번호 *</label>
+                        <input type="text" id="plateNumber" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">차량이름 *</label>
+                        <input type="text" id="vehicleName" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">차대번호 *</label>
+                        <input type="text" id="chassisNumber" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">키로수 *</label>
+                        <input type="number" id="mileage" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">연식 *</label>
+                        <input type="number" id="modelYear" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">보험사 *</label>
+                        <input type="text" id="insuranceCompany" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">보험 시작일 *</label>
+                        <input type="date" id="insuranceStartDate" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">보험 종료일 *</label>
+                        <input type="date" id="insuranceEndDate" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">운전범위 *</label>
+                        <select id="drivingRange" required class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">선택하세요</option>
+                            <option value="전연령">전연령</option>
+                            <option value="만19세이상">만19세이상</option>
+                            <option value="만21세이상">만21세이상</option>
+                            <option value="만24세이상">만24세이상</option>
+                            <option value="만26세이상">만26세이상</option>
+                            <option value="만30세이상">만30세이상</option>
+                            <option value="만35세이상">만35세이상</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">명의자 *</label>
+                        <input type="text" id="ownerName" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">보험료 (원) *</label>
+                        <input type="number" id="insuranceFee" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">차량금액 (원) *</label>
+                        <input type="number" id="vehiclePrice" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">검사 시작일</label>
+                        <input type="date" id="inspectionStartDate" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">검사 종료일</label>
+                        <input type="date" id="inspectionEndDate" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-bold mb-2">사용 현황 메모</label>
+                        <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-6">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
+                        <i class="fas fa-save mr-2"></i>등록하기
+                    </button>
+                    <button type="button" onclick="window.location.href='/'" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
+                        취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // 세션 체크 및 인증
+        const sessionId = localStorage.getItem('sessionId');
+        
+        // 로그인 체크
+        if (!sessionId) {
+            alert('⚠️ 로그인이 필요합니다.');
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        }
+        
+        // Axios 인터셉터 설정 - 모든 요청에 세션 ID 추가
+        axios.interceptors.request.use(config => {
+            if (sessionId) {
+                config.headers['X-Session-ID'] = sessionId;
+            }
+            return config;
+        });
+        
+        // 401 에러 처리 - 세션 만료 시 로그인 페이지로 이동
+        axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                    alert('⚠️ 세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                }
+                return Promise.reject(error);
+            }
+        );
+        
+        document.getElementById('motorcycleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                plate_number: document.getElementById('plateNumber').value,
+                vehicle_name: document.getElementById('vehicleName').value,
+                chassis_number: document.getElementById('chassisNumber').value,
+                mileage: parseInt(document.getElementById('mileage').value),
+                model_year: parseInt(document.getElementById('modelYear').value),
+                insurance_company: document.getElementById('insuranceCompany').value,
+                insurance_start_date: document.getElementById('insuranceStartDate').value,
+                insurance_end_date: document.getElementById('insuranceEndDate').value,
+                driving_range: document.getElementById('drivingRange').value,
+                owner_name: document.getElementById('ownerName').value,
+                insurance_fee: parseInt(document.getElementById('insuranceFee').value),
+                vehicle_price: parseInt(document.getElementById('vehiclePrice').value),
+                inspection_start_date: document.getElementById('inspectionStartDate').value || null,
+                inspection_end_date: document.getElementById('inspectionEndDate').value || null,
+                usage_notes: document.getElementById('usageNotes').value || '',
+                status: 'available' // 신규 등록시 자동으로 사용가능 상태
+            };
+
+            try {
+                console.log('등록 데이터:', data);
+                const response = await axios.post('/api/motorcycles', data);
+                console.log('등록 성공:', response.data);
+                alert('✅ 오토바이가 등록되었습니다.\n\n계속해서 추가 등록이 가능합니다.');
+                
+                // 폼 초기화 (추가 등록을 위해)
+                document.getElementById('motorcycleForm').reset();
+                
+                // 첫 번째 입력 필드에 포커스
+                document.getElementById('plateNumber').focus();
+            } catch (error) {
+                console.error('등록 실패:', error);
+                console.error('에러 응답:', error.response?.data);
+                alert('❌ 저장에 실패했습니다.\n' + (error.response?.data?.error || error.message));
+            }
+        });
+    </script>
+</body>
+</html>

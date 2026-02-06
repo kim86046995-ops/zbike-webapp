@@ -145,20 +145,26 @@
             .contract-print img {
                 max-width: 100% !important;
                 height: auto !important;
-                max-height: 60mm !important;
-                page-break-inside: avoid;
+                max-height: 50mm !important;
+                page-break-inside: avoid !important;
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+                break-inside: avoid !important;
                 border: 2px solid #374151 !important;
                 border-radius: 2mm !important;
                 padding: 2mm !important;
                 background: white !important;
+                object-fit: contain !important;
             }
             
             /* 서명/신분증 컨테이너 */
             .border-2 {
                 border-width: 2px !important;
                 padding: 4mm !important;
-                page-break-inside: avoid;
-                page-break-before: avoid;
+                page-break-inside: avoid !important;
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+                break-inside: avoid !important;
                 margin-bottom: 4mm !important;
             }
             
@@ -268,9 +274,9 @@
         <!-- 헤더 -->
         <header class="bg-purple-600 text-white shadow-lg">
             <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-                <a href="/dashboard" class="text-xl font-bold">
+                <a href="/" class="text-xl font-bold flex items-center hover:bg-purple-700 px-3 py-2 rounded-lg transition-colors cursor-pointer">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    계약서 목록
+                    <span>계약서 목록</span>
                 </a>
                 <a href="/contract/new" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-purple-50">
                     <i class="fas fa-plus mr-2"></i>새 계약서 작성
@@ -289,6 +295,7 @@
                         <option value="lease">리스</option>
                         <option value="rent">렌트</option>
                         <option value="business">업체리스/렌트</option>
+                        <option value="temp_rent">임시렌트</option>
                     </select>
                 </div>
                 <div>
@@ -347,6 +354,9 @@
                 <button onclick="window.print()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
                     <i class="fas fa-print mr-2"></i>인쇄
                 </button>
+                <button id="cancelContractBtn" onclick="cancelContract()" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700" style="display: none;">
+                    <i class="fas fa-ban mr-2"></i>계약 해지
+                </button>
                 <button onclick="hideDetailModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
                     닫기
                 </button>
@@ -364,6 +374,7 @@
         let contracts = [];
         let filteredContracts = [];
         let currentContract = null;
+        let companySettings = null;
         let sessionId = localStorage.getItem('sessionId');
 
         // 인증 체크
@@ -408,16 +419,82 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (await checkAuth()) {
+                // URL 파라미터로 전달된 계약 유형 및 상태 필터 확인
+                const urlParams = new URLSearchParams(window.location.search);
+                const typeParam = urlParams.get('type');
+                const statusParam = urlParams.get('status');
+                
+                // 계약 유형 필터 설정
+                if (typeParam) {
+                    const typeFilterElement = document.getElementById('typeFilter');
+                    if (typeParam === 'personal') {
+                        typeFilterElement.value = 'personal';
+                    } else if (typeParam === 'business') {
+                        typeFilterElement.value = 'business';
+                    } else if (typeParam === 'temp') {
+                        typeFilterElement.value = 'temp_rent';
+                    }
+                }
+                
+                // 상태 필터 설정
+                if (statusParam) {
+                    const statusFilterElement = document.getElementById('statusFilter');
+                    statusFilterElement.value = statusParam;
+                }
+                
+                loadCompanySettings();
                 loadContracts();
             }
         });
 
+        async function loadCompanySettings() {
+            try {
+                const response = await axios.get('/api/company-settings', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                companySettings = response.data;
+                console.log('✅ 회사 설정 로드 완료:', companySettings);
+            } catch (error) {
+                console.error('❌ 회사 설정 로드 실패:', error);
+                companySettings = {
+                    company_name: '대성',
+                    business_number: '487-39-01128',
+                    representative_name: '김상춘',
+                    manager_phone: '-'
+                };
+            }
+        }
+
         async function loadContracts() {
             try {
-                const response = await axios.get('/api/contracts');
-                contracts = response.data;
+                // 개인 계약서와 업체 계약서를 모두 불러오기
+                const [personalResponse, businessResponse] = await Promise.all([
+                    axios.get('/api/contracts'),
+                    axios.get('/api/business-contracts')
+                ]);
+                
+                // 개인 계약서 데이터 (원본 contract_type 유지)
+                const personalContracts = personalResponse.data.map(c => ({
+                    ...c,
+                    // contract_type은 원본 유지 (temp_rent, lease, rent 등)
+                }));
+                
+                // 업체 계약서 데이터
+                const businessContracts = businessResponse.data.map(c => ({
+                    ...c,
+                    contract_type: 'business',
+                    customer_name: c.company_name,  // 업체명을 customer_name으로 매핑
+                    plate_number: c.plate_number || ''  // 번호판 정보
+                }));
+                
+                // 두 목록을 합치고 생성일 기준 정렬
+                contracts = [...personalContracts, ...businessContracts].sort((a, b) => {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+                
                 filteredContracts = contracts;
-                renderContracts();
+                console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
+                filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
             } catch (error) {
                 console.error('Error loading contracts:', error);
                 document.getElementById('contractList').innerHTML = `
@@ -435,12 +512,29 @@
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
 
             filteredContracts = contracts.filter(c => {
-                const matchType = !typeFilter || c.contract_type === typeFilter;
+                // 타입 매칭 로직 개선
+                let matchType = !typeFilter;
+                if (typeFilter) {
+                    if (typeFilter === 'temp_rent') {
+                        // 임시렌트
+                        matchType = c.contract_type === 'temp_rent';
+                    } else if (typeFilter === 'business') {
+                        // 업체 계약서
+                        matchType = c.contract_type === 'business';
+                    } else if (typeFilter === 'lease') {
+                        // 개인 리스
+                        matchType = c.contract_type === 'lease' || c.contract_type === 'individual';
+                    } else if (typeFilter === 'rent') {
+                        // 개인 렌트
+                        matchType = c.contract_type === 'rent';
+                    }
+                }
+                
                 const matchStatus = !statusFilter || c.status === statusFilter;
                 const matchSearch = !searchInput || 
                     c.contract_number.toLowerCase().includes(searchInput) ||
-                    c.customer_name.toLowerCase().includes(searchInput) ||
-                    c.plate_number.toLowerCase().includes(searchInput);
+                    (c.customer_name && c.customer_name.toLowerCase().includes(searchInput)) ||
+                    (c.plate_number && c.plate_number.toLowerCase().includes(searchInput));
                 
                 return matchType && matchStatus && matchSearch;
             });
@@ -467,24 +561,42 @@
             listEl.innerHTML = filteredContracts.map(c => {
                 const typeColors = {
                     'lease': 'bg-blue-100 text-blue-800',
+                    'individual': 'bg-blue-100 text-blue-800',
                     'rent': 'bg-green-100 text-green-800',
-                    'business': 'bg-purple-100 text-purple-800'
+                    'business': 'bg-purple-100 text-purple-800',
+                    'temp_rent': 'bg-orange-100 text-orange-800'
                 };
-                const typeTexts = {
-                    'lease': '리스',
-                    'rent': '렌트',
-                    'business': '업체리스/렌트'
-                };
+                
+                // 계약서 타입별 표시 설정
+                let displayType = c.contract_type;
+                let displayTypeText = '';
+                
+                if (c.contract_type === 'temp_rent') {
+                    // 임시렌트 (최우선 처리)
+                    displayType = 'temp_rent';
+                    displayTypeText = '임시렌트';
+                } else if (c.contract_type === 'business') {
+                    // 업체 계약서: business_type에 따라 리스/렌트 구분
+                    displayType = c.business_type || 'rent';
+                    displayTypeText = displayType === 'lease' ? '업체 리스' : '업체 렌트';
+                } else {
+                    // 개인 계약서
+                    displayTypeText = c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스' : '렌트';
+                }
+                
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
-                    'completed': 'bg-gray-100 text-gray-800',
-                    'cancelled': 'bg-red-100 text-red-800'
+                    'completed': 'bg-red-600 text-white',
+                    'cancelled': 'bg-gray-100 text-gray-800'
                 };
                 const statusTexts = {
                     'active': '진행중',
                     'completed': '완료',
                     'cancelled': '취소'
                 };
+
+                // 완료 버튼 표시 여부 (진행중 계약서만)
+                const showCompleteButton = c.status === 'active';
 
                 return `
                     <div class="bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-all">
@@ -494,8 +606,8 @@
                                     ${c.contract_number}
                                 </h3>
                                 <div class="flex gap-1">
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${typeColors[c.contract_type]}">
-                                        ${typeTexts[c.contract_type]}
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${c.status === 'completed' ? 'bg-gray-100 text-gray-800' : typeColors[displayType]}">
+                                        ${displayTypeText}
                                     </span>
                                     <span class="px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[c.status]}">
                                         ${statusTexts[c.status]}
@@ -503,13 +615,18 @@
                                 </div>
                             </div>
                             <div class="flex gap-1">
-                                <button onclick="showDetail(${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
+                                <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
                                     <i class="fas fa-eye mr-1"></i>상세
                                 </button>
-                                <button onclick="quickDownloadPDF(${c.id})" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded hover:bg-green-700" title="PDF 다운로드">
+                                ${showCompleteButton ? `
+                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded hover:bg-blue-700" title="계약 완료">
+                                    <i class="fas fa-check mr-1"></i>완료
+                                </button>
+                                ` : ''}
+                                <button onclick="quickDownloadPDF('${c.contract_type}', ${c.id})" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded hover:bg-green-700" title="PDF 다운로드">
                                     <i class="fas fa-download"></i>
                                 </button>
-                                <button onclick="deleteContract(${c.id})" class="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700">
+                                <button onclick="deleteContract('${c.contract_type}', ${c.id})" class="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -517,13 +634,13 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
                             <div>
-                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> ${c.customer_name}</p>
-                                <p class="mb-1"><i class="fas fa-phone w-4 text-purple-600"></i> ${c.customer_phone}</p>
-                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> ${c.vehicle_name} (${c.plate_number})</p>
+                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> <span class="text-base font-bold text-gray-800">${c.customer_name}</span></p>
+                                <p class="mb-1"><i class="fas fa-phone w-4 text-purple-600"></i> ${c.customer_phone || c.business_phone || '-'}</p>
+                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-base font-bold text-gray-800">${c.plate_number}</span> <span class="text-gray-600">(${c.vehicle_name})</span></p>
                             </div>
                             <div>
-                                <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.start_date} ~ ${c.end_date}</p>
-                                <p class="mb-1"><i class="fas fa-won-sign w-4 text-purple-600"></i> ${Number(c.monthly_fee).toLocaleString()}원</p>
+                                <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.contract_start_date || c.start_date} ~ ${c.contract_end_date || c.end_date}</p>
+                                <p class="mb-1"><i class="fas fa-won-sign w-4 text-purple-600"></i> ${Number(c.daily_amount || c.monthly_fee || 0).toLocaleString()}원</p>
                                 <p><i class="fas fa-clock w-4 text-purple-600"></i> ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
                             </div>
                         </div>
@@ -532,17 +649,152 @@
             }).join('');
         }
 
-        async function showDetail(id) {
+        async function showDetail(contractType, id) {
             try {
-                const response = await axios.get(`/api/contracts/${id}`);
+                let response;
+                if (contractType === 'business') {
+                    // 업체 계약서
+                    response = await axios.get(`/api/business-contracts/${id}`);
+                } else {
+                    // 개인 계약서
+                    response = await axios.get(`/api/contracts/${id}`);
+                }
+                
                 currentContract = response.data;
                 renderDetail();
                 document.getElementById('detailModal').classList.remove('hidden');
+                
+                // 진행중인 계약일 때만 해지 버튼 표시
+                const cancelBtn = document.getElementById('cancelContractBtn');
+                if (currentContract.status === 'active') {
+                    cancelBtn.style.display = 'block';
+                } else {
+                    cancelBtn.style.display = 'none';
+                }
+                
+                // active 상태인 계약서만 실시간 보험 정보 업데이트 시작
+                if (currentContract.status === 'active' && currentContract.motorcycle_id) {
+                    console.log('✅ [진행중 계약서] 실시간 보험 정보 업데이트 시작:', currentContract.contract_number);
+                    startInsuranceAutoUpdate();
+                }
             } catch (error) {
                 console.error('Error loading contract detail:', error);
                 alert('계약서 상세 정보를 불러오는데 실패했습니다');
             }
         }
+
+        // ==========================================
+        // 진행 중인 계약서 보험 정보 실시간 업데이트
+        // ==========================================
+        // 주의: active 상태의 계약서만 실시간 업데이트됩니다.
+        // completed 또는 cancelled 상태는 업데이트되지 않습니다.
+        // ==========================================
+        
+        let insuranceUpdateInterval = null;
+        
+        // 보험 정보 실시간 업데이트 시작
+        function startInsuranceAutoUpdate() {
+            // 기존 인터벌 정리
+            if (insuranceUpdateInterval) {
+                clearInterval(insuranceUpdateInterval);
+            }
+            
+            // 30초마다 오토바이 보험 정보 확인
+            insuranceUpdateInterval = setInterval(async () => {
+                if (currentContract && currentContract.status === 'active' && currentContract.motorcycle_id) {
+                    await refreshInsuranceInfo();
+                } else {
+                    // active 상태가 아니면 업데이트 중지
+                    stopInsuranceAutoUpdate();
+                }
+            }, 30000); // 30초
+            
+            console.log('🔄 [진행중 계약서] 보험 정보 자동 업데이트 활성화 (30초마다)');
+        }
+        
+        // 보험 정보 실시간 업데이트 중지
+        function stopInsuranceAutoUpdate() {
+            if (insuranceUpdateInterval) {
+                clearInterval(insuranceUpdateInterval);
+                insuranceUpdateInterval = null;
+                console.log('⏹️  [진행중 계약서] 보험 정보 자동 업데이트 중지');
+            }
+        }
+        
+        // 오토바이 보험 정보 새로고침
+        async function refreshInsuranceInfo() {
+            if (!currentContract || !currentContract.motorcycle_id) return;
+            if (currentContract.status !== 'active') {
+                console.log('⚠️  계약 상태가 active가 아니므로 업데이트하지 않습니다:', currentContract.status);
+                return;
+            }
+            
+            try {
+                const response = await axios.get(`/api/motorcycles/${currentContract.motorcycle_id}`);
+                const motorcycle = response.data;
+                
+                // 보험 정보가 변경되었는지 확인
+                const insuranceChanged = 
+                    currentContract.insurance_company !== motorcycle.insurance_company ||
+                    currentContract.driving_range !== motorcycle.driving_range ||
+                    currentContract.insurance_start_date !== motorcycle.insurance_start_date ||
+                    currentContract.insurance_end_date !== motorcycle.insurance_end_date;
+                
+                if (insuranceChanged) {
+                    console.log('🔄 [진행중 계약서] 보험 정보가 변경되었습니다. 계약서 정보 업데이트 중...');
+                    console.log('  계약번호:', currentContract.contract_number);
+                    console.log('  상태:', currentContract.status);
+                    
+                    // 현재 계약 객체 업데이트
+                    currentContract.insurance_company = motorcycle.insurance_company;
+                    currentContract.driving_range = motorcycle.driving_range;
+                    currentContract.insurance_start_date = motorcycle.insurance_start_date;
+                    currentContract.insurance_end_date = motorcycle.insurance_end_date;
+                    currentContract.insurance_age_limit = motorcycle.driving_range; // 보험운전범위
+                    
+                    // 화면 다시 렌더링
+                    renderDetail();
+                    
+                    // DB에도 업데이트 (진행중인 계약만)
+                    await updateContractInsurance();
+                    
+                    console.log('✅ [진행중 계약서] 보험 정보 업데이트 완료:', {
+                        company: motorcycle.insurance_company,
+                        range: motorcycle.driving_range,
+                        start: motorcycle.insurance_start_date,
+                        end: motorcycle.insurance_end_date
+                    });
+                }
+            } catch (error) {
+                console.error('[진행중 계약서] 보험 정보 업데이트 실패:', error);
+            }
+        }
+        
+        // 계약서 DB의 보험 정보 업데이트 (진행중인 계약만)
+        async function updateContractInsurance() {
+            if (!currentContract || currentContract.status !== 'active') return;
+            
+            try {
+                await axios.put(`/api/contracts/${currentContract.id}/insurance`, {
+                    insurance_company: currentContract.insurance_company,
+                    driving_range: currentContract.driving_range,
+                    insurance_start_date: currentContract.insurance_start_date,
+                    insurance_end_date: currentContract.insurance_end_date,
+                    insurance_age_limit: currentContract.driving_range
+                });
+                console.log('💾 [진행중 계약서] DB 보험 정보 업데이트 완료');
+            } catch (error) {
+                console.error('[진행중 계약서] DB 보험 정보 업데이트 실패:', error);
+            }
+        }
+        
+        // 페이지 포커스 시 보험 정보 새로고침 (진행중인 계약만)
+        window.addEventListener('focus', () => {
+            if (currentContract && currentContract.status === 'active' && currentContract.motorcycle_id) {
+                console.log('📍 [진행중 계약서] 페이지 포커스 - 보험 정보 새로고침');
+                refreshInsuranceInfo();
+            }
+        });
 
         function renderDetail() {
             const c = currentContract;
@@ -551,14 +803,26 @@
                 return;
             }
             
-            const typeTexts = { 'lease': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
+            // 업체 계약서인 경우 별도 렌더링
+            if (c.contract_type === 'business' || c.company_name) {
+                renderBusinessContractDetail();
+                return;
+            }
+            
+            // 임시렌트 계약서인 경우 별도 렌더링
+            if (c.contract_type === 'temp_rent') {
+                renderTempRentDetail();
+                return;
+            }
+            
+            const typeTexts = { 'lease': '리스', 'individual': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
             const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
             
             const html = `
                 <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
                     <!-- 계약서 제목 -->
                     <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
-                        <h1 class="text-3xl font-bold mb-2">오토바이 ${typeTexts[c.contract_type] || c.contract_type} 계약서</h1>
+                        <h1 class="text-3xl font-bold mb-2">오토바이${typeTexts[c.contract_type] || c.contract_type}계약서</h1>
                         <p class="text-lg">계약번호: ${c.contract_number}</p>
                         <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : c.status === 'completed' ? 'text-blue-600' : 'text-red-600'}">${statusTexts[c.status] || c.status}</span></p>
                     </div>
@@ -567,15 +831,16 @@
                     <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
                         <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
                         <div class="grid grid-cols-3 gap-3" style="font-size: 1.1rem;">
-                            <p><strong>상호:</strong> 대성</p>
-                            <p><strong>사업자등록번호:</strong> 487-39-01128</p>
-                            <p><strong>대표자:</strong> 김상춘</p>
+                            <p><strong>상호:</strong> ${companySettings?.company_name || '대성'}</p>
+                            <p><strong>사업자등록번호:</strong> ${companySettings?.business_number || '487-39-01128'}</p>
+                            <p><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}</p>
+                            <p><strong>관리자 전화번호:</strong> ${companySettings?.manager_phone || companySettings?.phone || '-'}</p>
                         </div>
                     </div>
 
-                    <!-- 고객(차용인) 정보 -->
+                    <!-- 고객(임차인) 정보 -->
                     <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
-                        <h3 class="font-bold text-lg mb-4">차용인 정보</h3>
+                        <h3 class="font-bold text-lg mb-4">임차인 정보</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>성명:</strong> ${c.customer_name}</p>
                             <p><strong>주민등록번호:</strong> ${c.resident_number}</p>
@@ -592,7 +857,6 @@
                             <p><strong>번호판:</strong> ${c.plate_number}</p>
                             <p><strong>차대번호:</strong> ${c.chassis_number}</p>
                             <p><strong>연식:</strong> ${c.model_year}년</p>
-                            <p><strong>주행거리:</strong> ${Number(c.mileage || 0).toLocaleString()} km</p>
                             <p><strong>보험사:</strong> ${c.insurance_company || '-'}</p>
                             <p><strong>보험기간:</strong> ${c.insurance_start_date || '-'} ~ ${c.insurance_end_date || '-'}</p>
                             <p><strong>보험운전범위:</strong> ${c.insurance_age_limit || c.driving_range || '-'}</p>
@@ -603,10 +867,20 @@
                     <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
                         <h3 class="font-bold text-lg mb-4">계약 조건</h3>
                         <div class="grid grid-cols-2 gap-4">
+                            <p><strong>계약 타입:</strong> ${c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스' : c.contract_type === 'rent' ? '렌트' : '업체리스/렌트'}</p>
+                            <p><strong>일차감금액:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
                             <p><strong>계약 시작일:</strong> ${c.start_date}</p>
                             <p><strong>계약 종료일:</strong> ${c.end_date}</p>
-                            <p><strong>일차감금액:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
-                            <p><strong>보증금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
+                            <p class="col-span-2"><strong>보증금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
+                            <p class="col-span-2"><strong>계약체결일:</strong> ${new Date(c.created_at).toLocaleString('ko-KR', { 
+                                year: 'numeric', 
+                                month: '2-digit', 
+                                day: '2-digit', 
+                                hour: '2-digit', 
+                                minute: '2-digit', 
+                                second: '2-digit',
+                                hour12: false 
+                            })}</p>
                         </div>
                         ${c.special_terms ? `
                             <div class="mt-4">
@@ -621,7 +895,7 @@
                         <h3 class="font-bold text-center text-lg mb-3">오토바이 리스/렌트 계약 약관</h3>
                         
                         <p class="mb-3 text-center leading-relaxed">
-                            대여인(위 사업자)과 차용인(고객)은 배달대행 업무를 위한 오토바이 리스/렌트 계약을 아래와 같이 체결합니다.
+                            임대인(위 사업자)과 임차인(고객)은 배달대행 업무를 위한 오토바이 리스/렌트 계약을 아래와 같이 체결합니다.
                         </p>
 
                         <div class="border-t border-b border-gray-400 py-2 my-3">
@@ -630,106 +904,107 @@
 
                         <p class="font-bold mt-4 mb-2">제1조 (계약의 목적)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 본 계약은 대여인이 소유한 오토바이를 차용인에게 리스 또는 렌트하는 조건과 절차를 정함을 목적으로 합니다.</p>
+                            <p>① 본 계약은 임대인이 소유한 오토바이를 임차인에게 리스 또는 렌트하는 조건과 절차를 정함을 목적으로 합니다.</p>
                             <p>② 계약 타입: 위 기재된 계약 타입 (리스/렌트)</p>
                             <p>③ 계약 기간: 위 기재된 계약 시작일부터 종료일까지</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제2조 (오토바이의 인도 및 관리)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 대여인은 계약 체결 시 오토바이를 정상 작동 상태로 차용인에게 인도합니다.</p>
-                            <p>② 차용인은 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
-                            <p>③ 차용인은 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
+                            <p>① 임대인은 계약 체결 시 오토바이를 정상 작동 상태로 임차인에게 인도합니다.</p>
+                            <p>② 임차인은 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
+                            <p>③ 임차인은 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 차용인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
-                            <p>② 차용인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
-                            <p>③ 오토바이는 대여인이 지정한 보험운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                            <p>① 임차인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
+                            <p>② 임차인은 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
+                            <p>③ 오토바이는 임대인이 지정한 보험운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
+                            <p>① 임차인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
                             <p>② 일차감 금액: 위 기재된 일차감금액</p>
                             <p>③ 보증금: 위 기재된 보증금</p>
-                            <p>④ 차감 금액은 차용인의 일당 정산 시 대여인의 전산 프로그램을 통해 자동으로 공제됩니다.</p>
-                            <p>⑤ 차용인은 일당 발생 시마다 자동 차감되며, 별도의 월 납부 의무는 없습니다.</p>
+                            <p>④ 차감 금액은 임차인의 일당 정산 시 임대인의 전산 프로그램을 통해 자동으로 공제됩니다.</p>
+                            <p>⑤ 임차인은 일당 발생 시마다 자동 차감되며, 별도의 월 납부 의무는 없습니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 대여인은 차용인의 일당, 차감 금액, 누적 차감 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
-                            <p>② 차용인은 언제든지 본인의 차감 내역과 납부 현황을 조회할 수 있습니다.</p>
-                            <p>③ 차감 내역에 대한 이의가 있을 경우 차용인은 즉시 대여인에게 이의를 제기할 수 있으며, 대여인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
+                            <p>① 임대인은 임차인의 일당, 차감 금액, 누적 차감 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p>② 임차인은 언제든지 본인의 차감 내역과 납부 현황을 조회할 수 있습니다.</p>
+                            <p>③ 차감 내역에 대한 이의가 있을 경우 임차인은 즉시 임대인에게 이의를 제기할 수 있으며, 임대인은 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 대여인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
-                            <p>② 사고 발생 시 차용인은 즉시 대여인에게 통보하고 보험사에 신고하여야 합니다.</p>
-                            <p>③ 차용인의 고의 또는 과실로 발생한 사고의 자기부담금은 차용인이 부담합니다.</p>
-                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 차용인이 전액 배상하여야 합니다.</p>
+                            <p>① 임대인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
+                            <p>② 사고 발생 시 임차인은 즉시 임대인에게 통보하고 보험사에 신고하여야 합니다.</p>
+                            <p>③ 임차인의 고의 또는 과실로 발생한 사고의 자기부담금은 임차인이 부담합니다.</p>
+                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 임차인이 전액 배상하여야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 차용인이 전액 부담합니다.</p>
+                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 임차인이 전액 부담합니다.</p>
                             <p>② 무상정비 제외 항목: 엔진, 미션, 구동계</p>
-                            <p>③ 무상정비 항목 제외 소모품: 차용인 부담</p>
-                            <p>④ 운전자 과실에 의한 제반 수리비: 차용인 전액 부담</p>
-                            <p>⑤ 차용인은 정비가 필요한 경우 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
+                            <p>③ 무상정비 항목 제외 소모품: 임차인 부담</p>
+                            <p>④ 운전자 과실에 의한 제반 수리비: 임차인 전액 부담</p>
+                            <p>⑤ 임차인은 정비가 필요한 경우 사전에 임대인에게 통지하고 승인을 받아야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 차용인이 다음 각 호에 해당하는 경우 대여인은 계약을 즉시 해지할 수 있습니다:</p>
+                            <p>① 임차인이 다음 각 호에 해당하는 경우 임대인은 계약을 즉시 해지할 수 있습니다:</p>
                             <p class="ml-4">- 정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우</p>
                             <p class="ml-4">- 음주운전, 무면허 운전 등 중대한 법규 위반 시</p>
                             <p class="ml-4">- 오토바이를 임의로 개조하거나 제3자에게 재대여한 경우</p>
                             <p class="ml-4">- 허위 정보를 제공한 경우</p>
-                            <p>② 계약 해지 시 차용인은 오토바이를 즉시 반환하여야 하며, 미차감 대여료 및 손해액을 보증금에서 공제합니다.</p>
+                            <p>② 계약 해지 시 임차인은 오토바이를 즉시 반환하여야 하며, 미차감 대여료 및 손해액을 보증금에서 공제합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 차용인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있습니다.</p>
+                            <p>① 임차인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있습니다.</p>
                             <p>② 중도 해지 시 보증금에서 위약금(일차감금액의 30일분)을 공제 후 반환합니다.</p>
                             <p>③ 리스 계약의 경우 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부하여야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제10조 (계약 종료 시 반환)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 계약 종료 시 차용인은 오토바이를 원상태로 반환하여야 합니다.</p>
-                            <p>② 대여인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 보증금에서 공제합니다. 보증금이 없을 시 일차감분에서 일괄 차감합니다.</p>
+                            <p>① 계약 종료 시 임차인은 오토바이를 원상태로 반환하여야 합니다.</p>
+                            <p>② 임대인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 보증금에서 공제합니다. 보증금이 없을 시 일차감분에서 일괄 차감합니다.</p>
                             <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제11조 (무상정비 항목 - 특약)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 대여인은 계약 기간 중 다음 항목에 대하여 무상으로 정비 서비스를 제공합니다:</p>
+                            <p>① 임대인은 계약 기간 중 다음 항목에 대하여 무상으로 정비 서비스를 제공합니다:</p>
                             <p class="ml-4">- 엔진오일 교환 (주행거리 1,000km마다)</p>
                             <p class="ml-4">- 브레이크패드 교체 (마모 시)</p>
-                            <p class="ml-4">- 타이어 교체 (마모 또는 손상 시, 단 차용인 과실 제외)</p>
+                            <p class="ml-4">- 타이어 교체 (마모 또는 손상 시, 단 임차인 과실 제외)</p>
                             <p class="ml-4">- 정기 점검 (계기판 점검, 등화장치, 제동장치 등)</p>
                             <p>② 무상정비 제외 항목:</p>
                             <p class="ml-4">- 엔진, 미션, 구동계 관련 수리</p>
                             <p class="ml-4">- 무상정비 항목 이외의 모든 소모품</p>
                             <p class="ml-4">- 운전자 과실에 의한 제반 수리비</p>
-                            <p>③ 무상정비는 대여인이 지정한 정비소에서만 가능하며, 임의 정비 시 비용은 차용인이 부담합니다.</p>
-                            <p>④ 차용인의 고의 또는 과실로 인한 부품 손상은 무상정비 대상에서 제외됩니다.</p>
+                            <p>③ 무상정비는 임대인이 지정한 정비소에서만 가능하며, 임의 정비 시 비용은 임차인이 부담합니다.</p>
+                            <p>④ 임차인의 고의 또는 과실로 인한 부품 손상은 무상정비 대상에서 제외됩니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
                         <div class="ml-4 space-y-1">
                             <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                            <p>② 본 계약으로 인한 분쟁 발생 시 대여인의 주소지 관할 법원을 전속관할로 합니다.</p>
+                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
                             <p>③ 위 기재된 특약사항이 있는 경우 특약사항이 본 계약서에 우선합니다.</p>
+                            <p>④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
                         </div>
 
                         <p class="mt-4 text-center font-bold">
-                            본 계약을 증명하기 위하여 계약서를 작성하고 차용인이 서명합니다.
+                            본 계약을 증명하기 위하여 계약서를 작성하고 임차인이 서명합니다.
                         </p>
                     </div>
                     
@@ -747,19 +1022,19 @@
                     <div class="border-2 border-gray-300 p-6 rounded-lg mb-6 signature-section">
                         <h3 class="font-bold text-lg mb-4 text-center">계약자 서명</h3>
                         <div class="grid ${c.id_card_photo ? 'grid-cols-2' : 'grid-cols-1'} gap-6">
-                            <!-- 차용인 서명 -->
+                            <!-- 임차인 서명 -->
                             ${c.signature_data ? `
                                 <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
-                                    <h4 class="font-bold mb-3 text-center">차용인 서명</h4>
+                                    <h4 class="font-bold mb-3 text-center">임차인 서명</h4>
                                     <div class="border rounded bg-white" style="min-height: 150px;">
-                                        <img src="${c.signature_data}" alt="차용인 서명" class="w-full h-full" style="object-fit: contain;">
+                                        <img src="${c.signature_data}" alt="임차인 서명" class="w-full h-full" style="object-fit: contain;">
                                     </div>
                                     <p class="text-center mt-3 font-bold">서명인: ${c.customer_name}</p>
                                     <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
                                 </div>
                             ` : `
                                 <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50">
-                                    <h4 class="font-bold mb-3 text-center text-gray-500">차용인 서명</h4>
+                                    <h4 class="font-bold mb-3 text-center text-gray-500">임차인 서명</h4>
                                     <div class="flex items-center justify-center bg-white border rounded" style="min-height: 150px;">
                                         <p class="text-gray-400">서명 없음</p>
                                     </div>
@@ -803,6 +1078,75 @@
         function hideDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
             currentContract = null;
+        }
+        
+        // 계약 해지
+        async function cancelContract() {
+            if (!currentContract) {
+                alert('❌ 계약서 정보를 불러올 수 없습니다.');
+                return;
+            }
+            
+            if (currentContract.status !== 'active') {
+                alert('⚠️ 진행중인 계약만 해지할 수 있습니다.');
+                return;
+            }
+            
+            // 확인 메시지
+            const confirmMessage = `정말로 이 계약을 해지하시겠습니까?\n\n` +
+                `📋 계약번호: ${currentContract.contract_number}\n` +
+                `👤 계약자: ${currentContract.customer_name} (${currentContract.customer_phone})\n` +
+                `🏍️ 오토바이: ${currentContract.vehicle_name} (${currentContract.plate_number})\n\n` +
+                `⚠️ 해지 시:\n` +
+                `- 계약 상태: 진행중 → 취소\n` +
+                `- 오토바이 상태: 휴차중으로 변경\n` +
+                `- 계약 정보 초기화 (월차감, 보증금, 계약기간, 소유자명)\n` +
+                `- 기본 정보 유지 (번호판, 차대번호, 차량명, 키로수 등)\n` +
+                `- 보험 정보 유지 (보험사, 보험기간, 운전범위 등)\n\n` +
+                `💡 해지 후에도 보험은 유지되어 다음 계약에 사용할 수 있습니다.\n\n` +
+                `계속 진행하시겠습니까?`;
+            
+            if (!confirm(confirmMessage)) {
+                console.log('❌ 계약 해지 취소됨');
+                return;
+            }
+            
+            try {
+                console.log('🔄 계약 해지 시작:', currentContract.id);
+                
+                // 계약 상태를 cancelled로 변경
+                const response = await axios.patch(
+                    `/api/contracts/${currentContract.id}/status`,
+                    { status: 'cancelled' },
+                    {
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    }
+                );
+                
+                console.log('✅ 계약 해지 완료:', response.data);
+                
+                // 성공 메시지
+                alert(
+                    `✅ 계약이 해지되었습니다!\n\n` +
+                    `📋 계약번호: ${currentContract.contract_number}\n` +
+                    `👤 계약자: ${currentContract.customer_name}\n\n` +
+                    `🏍️ 오토바이가 자동으로 휴차중으로 변경되었습니다.\n` +
+                    `💡 계약 정보만 초기화되었습니다.\n` +
+                    `✅ 기본 정보와 보험 정보는 유지되어 다음 계약에 사용할 수 있습니다.`
+                );
+                
+                // 모달 닫기
+                hideDetailModal();
+                
+                // 목록 새로고침
+                await loadContracts();
+                
+            } catch (error) {
+                console.error('❌ 계약 해지 실패:', error);
+                alert(`❌ 계약 해지에 실패했습니다.\n\n${error.response?.data?.error || error.message}`);
+            }
         }
         
         // 다운로드 위치 선택 가이드
@@ -878,13 +1222,13 @@
                     filename: fileName,
                     image: { 
                         type: 'jpeg', 
-                        quality: 0.98 
+                        quality: 0.95 
                     },
                     html2canvas: { 
                         scale: 2,
                         useCORS: true,
                         letterRendering: true,
-                        logging: true,
+                        logging: false,
                         scrollY: 0,
                         scrollX: 0
                     },
@@ -896,7 +1240,9 @@
                     },
                     pagebreak: { 
                         mode: ['avoid-all', 'css', 'legacy'],
-                        avoid: ['.signature-section', '.terms-agreement', '.contract-terms']
+                        before: '.page-break-before',
+                        after: '.page-break-after',
+                        avoid: ['.signature-section', '.terms-agreement', '.contract-terms', '.border-2', 'img', '.bg-indigo-50', '.bg-yellow-50']
                     }
                 };
 
@@ -1048,18 +1394,479 @@
             });
         }
 
-        async function deleteContract(id) {
+        async function completeContract(contractType, id) {
+            if (!confirm('이 계약을 완료 처리하시겠습니까?\n\n완료된 계약은 "완료" 상태로 표시되며,\n해당 오토바이는 다시 휴차중 상태가 됩니다.')) {
+                return;
+            }
+
+            try {
+                if (contractType === 'business') {
+                    // 업체 계약서 완료
+                    await axios.put(`/api/business-contracts/${id}/complete`);
+                } else {
+                    // 개인 계약서 완료
+                    await axios.put(`/api/contracts/${id}/complete`);
+                }
+                
+                alert('✅ 계약이 완료 처리되었습니다.\n\n해당 오토바이는 다시 계약할 수 있습니다.');
+                loadContracts(); // 목록 새로고침
+            } catch (error) {
+                console.error('Error completing contract:', error);
+                alert('계약 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+
+        async function deleteContract(contractType, id) {
             if (!confirm('정말로 이 계약서를 삭제하시겠습니까?\n\n삭제된 계약서는 목록에서 사라지지만,\n오토바이 사용 이력에서는 계속 조회할 수 있습니다.')) {
                 return;
             }
 
             try {
-                await axios.delete(`/api/contracts/${id}`);
+                console.log('🗑️ 계약서 삭제 시작:', { contractType, id });
+                
+                let response;
+                if (contractType === 'business') {
+                    // 업체 계약서 삭제
+                    console.log('📋 업체 계약서 삭제 API 호출: /api/business-contracts/' + id);
+                    response = await axios.delete(`/api/business-contracts/${id}`);
+                } else {
+                    // 개인 계약서 삭제
+                    console.log('📋 개인 계약서 삭제 API 호출: /api/contracts/' + id);
+                    response = await axios.delete(`/api/contracts/${id}`);
+                }
+                
+                console.log('✅ 삭제 API 응답:', response.data);
+                
                 alert('계약서가 삭제되었습니다.\n\n※ 오토바이 번호판이나 차대번호로\n사용 이력은 계속 조회할 수 있습니다.');
-                loadContracts(); // 목록 새로고침
+                
+                // 상세 모달이 열려있으면 닫기
+                const detailModal = document.getElementById('contractDetailModal');
+                if (detailModal && !detailModal.classList.contains('hidden')) {
+                    detailModal.classList.add('hidden');
+                }
+                
+                // 목록 새로고침
+                console.log('🔄 계약서 목록 새로고침 시작');
+                await loadContracts();
+                console.log('✅ 계약서 목록 새로고침 완료');
+                
             } catch (error) {
-                console.error('Error deleting contract:', error);
+                console.error('❌ 계약서 삭제 실패:', error);
+                console.error('❌ 에러 상세:', error.response?.data);
                 alert('계약서 삭제에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+
+        // 업체 계약서 상세 렌더링
+        function renderBusinessContractDetail() {
+            const c = currentContract;
+            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
+            
+            // business_type 필드 사용 (리스/렌트 구분)
+            const contractTypeText = c.business_type === 'lease' ? '리스' : '렌트';
+            
+            const html = `
+                <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                    <!-- 계약서 제목 -->
+                    <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
+                        <h1 class="text-3xl font-bold mb-2">오토바이 업체 ${contractTypeText} 계약서</h1>
+                        <p class="text-lg">계약번호: ${c.contract_number}</p>
+                        <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : c.status === 'completed' ? 'text-red-600' : 'text-gray-600'}">${statusTexts[c.status] || c.status}</span></p>
+                    </div>
+
+                    <!-- 1. 임대인 정보 (사업자) -->
+                    <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
+                        <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
+                        <div class="grid grid-cols-3 gap-3" style="font-size: 1.1rem;">
+                            <p><strong>상호:</strong> 대성</p>
+                            <p><strong>사업자등록번호:</strong> 487-39-01128</p>
+                            <p><strong>대표자:</strong> 김상춘</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. 임차인 정보 (업체) -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">임차인 (업체) 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>업체명:</strong> ${c.company_name}</p>
+                            <p><strong>사업자번호:</strong> ${c.business_number}</p>
+                            <p><strong>대표자:</strong> ${c.representative}</p>
+                            <p><strong>업체 연락처:</strong> ${c.business_phone}</p>
+                            <p class="col-span-2"><strong>사업장 주소:</strong> ${c.business_address}</p>
+                            <p class="col-span-2 mt-3 border-t pt-3"><strong>대표자 주민등록번호:</strong> ${c.representative_resident_number || '-'}</p>
+                            <p><strong>대표자 연락처:</strong> ${c.representative_phone || '-'}</p>
+                            <p class="col-span-2"><strong>대표자 주소:</strong> ${c.representative_address || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. 오토바이 정보 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">오토바이 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>차량명:</strong> ${c.vehicle_name}</p>
+                            <p><strong>번호판:</strong> ${c.plate_number}</p>
+                            <p><strong>차대번호:</strong> ${c.chassis_number}</p>
+                            <p><strong>연식:</strong> ${c.model_year}년</p>
+                            <p><strong>보험 시작일:</strong> ${c.insurance_start_date || '-'}</p>
+                            <p><strong>보험 종료일:</strong> ${c.insurance_end_date || '-'}</p>
+                            <p><strong>운전범위:</strong> ${c.driving_range || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. 계약 조건 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">계약 조건</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>계약 종류:</strong> ${contractTypeText}</p>
+                            <p><strong>일금액:</strong> ${Number(c.daily_amount || 0).toLocaleString()}원</p>
+                            <p><strong>계약 시작일:</strong> ${c.contract_start_date}</p>
+                            <p><strong>계약 종료일:</strong> ${c.contract_end_date}</p>
+                            <p class="col-span-2"><strong>보증금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
+                            <p class="col-span-2"><strong>계약체결일:</strong> ${new Date(c.created_at).toLocaleString('ko-KR', { 
+                                year: 'numeric', 
+                                month: '2-digit', 
+                                day: '2-digit', 
+                                hour: '2-digit', 
+                                minute: '2-digit', 
+                                second: '2-digit',
+                                hour12: false 
+                            })}</p>
+                        </div>
+                        ${c.special_terms ? `
+                            <div class="mt-4">
+                                <p class="font-bold mb-2">특약사항:</p>
+                                <p class="whitespace-pre-wrap bg-gray-50 p-4 rounded border">${c.special_terms}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- 5. 약관 전체 (업체용) -->
+                    <div class="border-2 border-gray-800 p-6 rounded-lg mb-6 contract-terms">
+                        <h3 class="font-bold text-center text-lg mb-3">오토바이 업체 ${contractTypeText} 계약 약관</h3>
+                        
+                        <p class="mb-3 text-center leading-relaxed">
+                            임대인(위 사업자)과 임차인(업체)은 배달대행 업무를 위한 오토바이 ${contractTypeText} 계약을 아래와 같이 체결합니다.
+                        </p>
+
+                        <div class="border-t border-b border-gray-400 py-2 my-3">
+                            <p class="text-center font-bold">- 다 음 -</p>
+                        </div>
+
+                        <!-- 특별 안내 섹션 -->
+                        <p class="font-bold mt-4 mb-2 text-purple-700">
+                            <i class="fas fa-star mr-1 text-yellow-500"></i>특별 안내
+                        </p>
+                        <div class="ml-4 space-y-3 mb-4">
+                            <!-- 업체 계약 간소화 제도 -->
+                            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                                <p class="font-bold text-yellow-800">
+                                    <i class="fas fa-info-circle mr-1"></i>업체 계약 간소화 제도
+                                </p>
+                                <p class="text-gray-700 mt-1">
+                                    대표자가 최초 1회 계약 체결 시 업체 정보, 대표자 정보, 서류를 등록하시면, 
+                                    <span class="font-bold text-purple-700">이후 추가 오토바이 출고 시에는 별도의 계약서 작성 없이 자동으로 모든 계약서 서식이 완성</span>됩니다.
+                                </p>
+                                <p class="text-gray-700 mt-2">
+                                    ✓ 최초 등록 정보 재사용<br>
+                                    ✓ 간편한 추가 출고 절차<br>
+                                    ✓ 동일한 약관 및 조건 적용
+                                </p>
+                            </div>
+
+                            <!-- 대리 작성 동의 및 법적 효력 -->
+                            <div class="bg-red-50 border-l-4 border-red-400 p-3 rounded">
+                                <p class="font-bold text-red-800">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>대리 작성 동의 및 법적 효력
+                                </p>
+                                <p class="text-gray-700 mt-1">
+                                    업체 계약 특성상 <span class="font-bold text-red-700">업체 대표의 전화 또는 구두로 출고를 요청 시</span>, 
+                                    임차인의 최초 정보등록 정보를 사용하여 <span class="font-bold text-red-700">임대인이 계약서를 대리 작성해도 법적 효력이 발생</span>합니다.
+                                </p>
+                                <p class="text-gray-700 mt-2 font-bold text-red-800">
+                                    ✓ 본인은 이에 동의하며, 대리 작성된 계약서도 본 계약과 동일한 법적 효력을 갖는다는 것을 확인합니다.
+                                </p>
+                            </div>
+                        </div>
+
+                        <p class="font-bold mt-4 mb-2">제1조 (계약의 목적 및 적용 범위)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 본 계약은 임대인이 소유한 오토바이를 업체(임차인)에게 ${contractTypeText}하는 조건과 절차를 정함을 목적으로 합니다.</p>
+                            <p>② 업체가 추가로 오토바이를 출고하는 경우, 본 약관이 자동으로 적용되며 별도의 약관 동의는 필요하지 않습니다.</p>
+                            <p>③ 업체는 최초 계약 체결 시 등록한 업체 정보, 대표자 정보, 약관 동의, 서명 및 신분증이 이후 추가 계약에도 동일하게 적용됨에 동의합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제2조 (자동 계약서 생성)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 업체가 최초 계약 체결 시 등록한 정보는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
+                            <p>② 추가 출고 시에는 오토바이 선택, 계약 기간 및 금액 조건만 입력하면 계약서가 자동으로 생성됩니다.</p>
+                            <p>③ 업체 정보나 대표자 정보가 변경된 경우, 업체 목록에서 정보를 수정할 수 있습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제3조 (복수 계약 관리)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 업체는 여러 대의 오토바이를 동시에 ${contractTypeText}할 수 있습니다.</p>
+                            <p>② 각 오토바이마다 독립적인 계약서가 생성되며, 개별적으로 관리됩니다.</p>
+                            <p>③ 전체 계약서는 업체 목록에서 통합 조회가 가능합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제4조 (오토바이의 인도 및 관리)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 임대인은 계약 체결 시 오토바이를 정상 작동 상태로 업체에게 인도합니다.</p>
+                            <p>② 업체는 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
+                            <p>③ 업체는 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제5조 (사용 제한)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 업체는 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
+                            <p>② 업체 소속 라이더는 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
+                            <p>③ 오토바이는 임대인이 지정한 보험운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제6조 (대여료 납부)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 업체는 계약서에 명시된 일금액을 매일 납부합니다.</p>
+                            <p>② 일금액: 위 기재된 일금액</p>
+                            <p>③ 보증금: 위 기재된 보증금</p>
+                            <p>④ 대여료는 업체의 정산 시스템을 통해 자동으로 공제됩니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제7조 (보험 및 사고 처리)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 임대인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
+                            <p>② 사고 발생 시 업체는 즉시 임대인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
+                            <p>③ 라이더의 고의 또는 과실로 발생한 사고의 자기부담금은 업체가 부담합니다.</p>
+                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 업체가 전액 배상하여야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제8조 (정비 및 소모품)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 업체(임차인)가 전액 부담합니다.</p>
+                            <p>② 무상정비 제외 항목: 엔진, 미션, 구동계</p>
+                            <p>③ 무상정비 항목 제외 소모품: 업체 부담</p>
+                            <p>④ 라이더 과실에 의한 제반 수리비: 업체 전액 부담</p>
+                            <p>⑤ 업체는 정비가 필요한 경우 사전에 임대인에게 통지하고 승인을 받아야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제9조 (계약의 해지)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 업체가 다음 각 호에 해당하는 경우 임대인은 계약을 즉시 해지할 수 있습니다:</p>
+                            <p class="ml-4">- 정당한 사유 없이 3일 이상 연속하여 대여료를 납부하지 않은 경우</p>
+                            <p class="ml-4">- 중대한 법규 위반 시</p>
+                            <p class="ml-4">- 오토바이를 임의로 개조하거나 제3자에게 재대여한 경우</p>
+                            <p>② 계약 해지 시 업체는 오토바이를 즉시 반환하여야 하며, 미납 대여료 및 손해액을 보증금에서 공제합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제10조 (계약 종료 시 반환)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 계약 종료 시 업체는 오토바이를 원상태로 반환하여야 합니다.</p>
+                            <p>② 임대인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 보증금에서 공제합니다.</p>
+                            <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제11조 (정보 변경)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 업체 정보, 대표자 정보가 변경된 경우 업체는 즉시 임대인에게 통보하여야 합니다.</p>
+                            <p>② 정보 변경은 업체 목록에서 수정할 수 있으며, 변경 시점 이후 생성되는 계약서에 자동으로 반영됩니다.</p>
+                            <p>③ 이미 체결된 계약서의 정보는 변경되지 않습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
+                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
+                            <p>③ 추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
+                        </div>
+
+                        <p class="mt-4 text-center font-bold">
+                            본 계약을 증명하기 위하여 계약서를 작성하고 대표자가 서명합니다.
+                        </p>
+                    </div>
+                    
+                    <!-- 6. 약관 동의 표시 -->
+                    <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded mb-6 terms-agreement">
+                        <div class="mt-1 w-5 h-5 ${c.terms_agreed ? 'bg-green-600' : 'bg-red-600'} rounded flex items-center justify-center">
+                            <i class="fas ${c.terms_agreed ? 'fa-check' : 'fa-times'} text-white text-xs"></i>
+                        </div>
+                        <label class="ml-3 text-base font-bold ${c.terms_agreed ? 'text-gray-800' : 'text-red-600'}">
+                            위 계약 약관을 모두 확인하였으며 이에 ${c.terms_agreed ? '동의합니다' : '동의하지 않았습니다'} <span class="text-red-600">*</span>
+                        </label>
+                    </div>
+
+                    <!-- 7. 서명 섹션 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6 signature-section">
+                        <h3 class="font-bold text-lg mb-4 text-center">대표자 서명</h3>
+                        ${c.signature_data ? `
+                            <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                <div class="border rounded bg-white" style="min-height: 150px;">
+                                    <img src="${c.signature_data}" alt="대표자 서명" class="w-full h-full" style="object-fit: contain;">
+                                </div>
+                                <p class="text-center mt-3 font-bold">서명인: ${c.representative}</p>
+                                <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            </div>
+                        ` : `
+                            <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50">
+                                <div class="flex items-center justify-center bg-white border rounded" style="min-height: 150px;">
+                                    <p class="text-gray-400">서명 없음</p>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- 8. 신분증 섹션 -->
+                    ${c.id_card_photo ? `
+                        <div class="border-2 border-gray-400 p-4 rounded-lg bg-white mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">대표자 신분증</h3>
+                            <div class="rounded bg-white overflow-hidden">
+                                <img src="${c.id_card_photo}" alt="대표자 신분증" class="w-full" style="max-height: 400px; object-fit: contain;">
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('contractDetail').innerHTML = html;
+            // PDF 생성을 위해 pdfContent에도 동일한 HTML 삽입
+            const pdfContentElement = document.getElementById('pdfContent');
+            if (pdfContentElement) {
+                pdfContentElement.innerHTML = html;
+            }
+        }
+
+        // 임시렌트 계약서 상세보기 렌더링
+        function renderTempRentDetail() {
+            const c = currentContract;
+            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
+            
+            const html = `
+                <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                    <!-- 계약서 제목 -->
+                    <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
+                        <h1 class="text-3xl font-bold mb-2">오토바이 임시렌트 계약서</h1>
+                        <p class="text-lg">계약번호: ${c.contract_number}</p>
+                        <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : c.status === 'completed' ? 'text-blue-600' : 'text-red-600'}">${statusTexts[c.status] || c.status}</span></p>
+                    </div>
+
+                    <!-- 사업자 정보 -->
+                    <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
+                        <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
+                        <div class="grid grid-cols-3 gap-3" style="font-size: 1.1rem;">
+                            <p><strong>상호:</strong> ${companySettings?.company_name || '대성'}</p>
+                            <p><strong>사업자등록번호:</strong> ${companySettings?.business_number || '487-39-01128'}</p>
+                            <p><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}</p>
+                            <p><strong>관리자 전화번호:</strong> ${companySettings?.manager_phone || companySettings?.phone || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 임차인 정보 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">임차인 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>성명:</strong> ${c.customer_name || '미입력'}</p>
+                            <p><strong>연락처:</strong> ${c.customer_phone || '-'}</p>
+                            <p class="col-span-2"><strong>주민등록번호:</strong> ${c.resident_number || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 오토바이 정보 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">오토바이 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>번호판:</strong> ${c.plate_number || '-'}</p>
+                            <p><strong>차량명:</strong> ${c.motorcycle_name || c.vehicle_name || '-'}</p>
+                            <p><strong>차대번호:</strong> ${c.chassis_number || '-'}</p>
+                            <p><strong>연식:</strong> ${c.model_year || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 계약 조건 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">계약 조건</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>계약 종류:</strong> 임시렌트</p>
+                            <p><strong>일 금액:</strong> ${parseInt(c.daily_fee || 0).toLocaleString()}원</p>
+                            <p><strong>계약 시작일:</strong> ${c.start_date || '-'}</p>
+                            <p><strong>계약 종료일:</strong> ${c.end_date || '-'}</p>
+                            <p class="col-span-2"><strong>특약사항:</strong> ${c.special_terms || '없음'}</p>
+                            <p class="col-span-2"><strong>계약체결일:</strong> ${c.created_at ? new Date(c.created_at).toLocaleDateString('ko-KR') : '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 임시렌트 약관 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-xl mb-4 text-center">오토바이 임시렌트 계약 약관</h3>
+                        
+                        <div class="space-y-3">
+                            <p class="mb-2">
+                                <strong>제1조 (목적)</strong><br>
+                                본 약관은 임시렌트 계약에 관한 사항을 규정함을 목적으로 합니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제2조 (렌트 기간)</strong><br>
+                                렌트 기간은 계약서에 명시된 기간으로 하며, 필요 시 협의하에 연장할 수 있습니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제3조 (렌트료)</strong><br>
+                                렌트료는 계약서에 명시된 금액으로 하며, 지정된 기한 내에 납부해야 합니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제4조 (차량 관리)</strong><br>
+                                임차인은 차량을 선량한 관리자의 주의로 관리해야 하며, 임의로 개조하거나 제3자에게 양도할 수 없습니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제5조 (사고 및 보험)</strong><br>
+                                사고 발생 시 즉시 임대인에게 통보하여야 하며, 보험 처리는 고의 또는 과실로 발생한 사고의 자기부담금은 임차인이 부담합니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제6조 (반납)</strong><br>
+                                계약 종료 시 차량을 원상태로 반납하며, 연료는 인수 시 상태로 반납합니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제7조 (해지)</strong><br>
+                                계약 위반 시 즉시 해지할 수 있으며, 이 경우 위약금이 부과될 수 있습니다.
+                            </p>
+                            
+                            <p class="mb-2">
+                                <strong>제8조 (분쟁 해결)</strong><br>
+                                ① 본 계약에서 발생하는 모든 분쟁은 상호 협의하에 원만히 해결한다.<br>
+                                ② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 서명 -->
+                    ${c.signature ? `
+                        <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                            <h3 class="font-bold text-lg mb-4">고객 서명</h3>
+                            <div class="flex justify-center">
+                                <img src="${c.signature}" alt="서명" class="border border-gray-300 rounded max-w-md">
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 신분증 -->
+                    ${c.admin_id_card_photo ? `
+                        <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                            <h3 class="font-bold text-lg mb-4">신분증 사진</h3>
+                            <div class="flex justify-center">
+                                <img src="${c.admin_id_card_photo}" alt="신분증" class="border border-gray-300 rounded max-w-md cursor-pointer hover:scale-110 transition-transform" onclick="window.open(this.src)">
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('contractDetail').innerHTML = html;
+            // PDF 생성을 위해 pdfContent에도 동일한 HTML 삽입
+            const pdfContentElement = document.getElementById('pdfContent');
+            if (pdfContentElement) {
+                pdfContentElement.innerHTML = html;
             }
         }
 

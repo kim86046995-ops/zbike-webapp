@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PDF 레이아웃 디버그</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="p-8 bg-gray-100">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow">
+        <h1 class="text-2xl font-bold mb-4">PDF 레이아웃 디버그 도구</h1>
+        
+        <div class="space-y-4">
+            <button onclick="showContainer()" class="bg-blue-500 text-white px-4 py-2 rounded">
+                1️⃣ pdfContainer 화면에 표시
+            </button>
+            
+            <button onclick="generatePDF()" class="bg-green-500 text-white px-4 py-2 rounded">
+                2️⃣ PDF 생성
+            </button>
+            
+            <button onclick="hideContainer()" class="bg-gray-500 text-white px-4 py-2 rounded">
+                3️⃣ pdfContainer 숨기기
+            </button>
+        </div>
+        
+        <div id="info" class="mt-6 p-4 bg-yellow-50 border border-yellow-300 rounded">
+            <h3 class="font-bold mb-2">📊 현재 상태:</h3>
+            <pre id="status"></pre>
+        </div>
+    </div>
+    
+    <!-- PDF 생성 전용 숨겨진 컨테이너 -->
+    <div id="pdfContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; background: white; padding: 20px;">
+        <div id="pdfContent">
+            <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
+                    <h1 class="text-3xl font-bold mb-2">배달대행 차용증</h1>
+                    <p class="text-lg">차용증번호: TEST-001</p>
+                </div>
+                
+                <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
+                    <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
+                    <div class="grid grid-cols-3 gap-3" style="font-size: 1.1rem;">
+                        <p><strong>상호:</strong> 대성</p>
+                        <p><strong>사업자등록번호:</strong> 487-39-01128</p>
+                        <p><strong>대표자:</strong> 김상춘</p>
+                    </div>
+                </div>
+                
+                <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                    <h3 class="font-bold text-lg mb-4">임차인 정보</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <p><strong>이름:</strong> 테스트</p>
+                        <p><strong>주민번호:</strong> 123456-1234567</p>
+                        <p><strong>전화번호:</strong> 010-1234-5678</p>
+                        <p class="col-span-2"><strong>주소:</strong> 서울시 강남구</p>
+                    </div>
+                </div>
+                
+                <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                    <h3 class="font-bold text-lg mb-4">차용 내용</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <p><strong>차용일:</strong> 2026-02-01</p>
+                        <p><strong>차용금액:</strong> 50,000원</p>
+                        <p><strong>이자율:</strong> 2.0%</p>
+                        <p><strong>변제기일:</strong> 2026-03-01</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function updateStatus() {
+            const container = document.getElementById('pdfContainer');
+            const content = document.getElementById('pdfContent');
+            
+            const info = {
+                'container.offsetWidth': container.offsetWidth,
+                'container.clientWidth': container.clientWidth,
+                'container.scrollWidth': container.scrollWidth,
+                'container.padding': window.getComputedStyle(container).padding,
+                'content.offsetWidth': content.offsetWidth,
+                'content.clientWidth': content.clientWidth,
+                'content.scrollWidth': content.scrollWidth
+            };
+            
+            document.getElementById('status').textContent = JSON.stringify(info, null, 2);
+        }
+        
+        function showContainer() {
+            const container = document.getElementById('pdfContainer');
+            container.style.position = 'static';
+            container.style.left = '0';
+            container.style.margin = '20px auto';
+            updateStatus();
+            alert('✅ pdfContainer가 화면에 표시되었습니다!\n\n레이아웃을 확인하세요.');
+        }
+        
+        function hideContainer() {
+            const container = document.getElementById('pdfContainer');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.margin = '0';
+            alert('✅ pdfContainer가 숨겨졌습니다.');
+        }
+        
+        async function generatePDF() {
+            const element = document.getElementById('pdfContent');
+            
+            const opt = {
+                margin: [8, 10, 8, 10],
+                filename: '차용증_TEST.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: true,
+                    scrollY: 0,
+                    scrollX: 0
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    compress: true
+                },
+                pagebreak: { 
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    avoid: ['.signature-section', '.terms-agreement', '.contract-terms']
+                }
+            };
+            
+            console.log('🎨 PDF 생성 시작...');
+            updateStatus();
+            
+            const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+            
+            console.log('✅ Blob 생성 완료:', pdfBlob.size, 'bytes');
+            
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '차용증_TEST.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ PDF 다운로드 완료!\n\n파일 크기: ' + pdfBlob.size + ' bytes');
+        }
+        
+        // 페이지 로드 시 상태 업데이트
+        setTimeout(updateStatus, 1000);
+    </script>
+</body>
+</html>

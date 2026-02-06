@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=yes">
+    <title>계약자 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .mobile-card {
+                display: block !important;
+            }
+            .desktop-table {
+                display: none !important;
+            }
+        }
+        @media (min-width: 769px) {
+            .mobile-card {
+                display: none !important;
+            }
+            .desktop-table {
+                display: block !important;
+            }
+        }
+        /* 터치 영역 확대 */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        /* 스크롤 개선 */
+        .smooth-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-purple-600 text-white shadow-md sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <a href="/" class="flex items-center touch-target">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    <span class="text-xl font-bold">계약자 목록</span>
+                </a>
+                <button onclick="printList()" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 touch-target">
+                    <i class="fas fa-print mr-2"></i><span class="hidden md:inline">인쇄</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-2 md:px-4 py-4 md:py-6">
+        <!-- 검색 및 필터 -->
+        <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-4 md:mb-6">
+            <div class="flex flex-col gap-3 md:gap-4">
+                <input type="text" id="search" placeholder="이름/전화번호/주소 검색..." 
+                    class="w-full px-4 py-3 md:py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base md:text-sm">
+                <select id="filter" class="w-full px-4 py-3 md:py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-base md:text-sm">
+                    <option value="">전체 계약 타입</option>
+                    <option value="lease">리스</option>
+                    <option value="rent">렌트</option>
+                    <option value="business">업체리스/렌트</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 로딩 -->
+        <div id="loading" class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-4xl text-purple-600"></i>
+            <p class="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+
+        <!-- 데스크톱 테이블 -->
+        <div id="desktopContent" class="desktop-table hidden"></div>
+
+        <!-- 모바일 카드 -->
+        <div id="mobileContent" class="mobile-card hidden"></div>
+    </div>
+
+    <!-- 상세보기 모달 -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onclick="closeModal(event)">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto smooth-scroll" onclick="event.stopPropagation()">
+            <div class="p-4 md:p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">계약자 상세정보</h2>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 touch-target">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        let allCustomers = [];
+        let filteredCustomers = [];
+
+        function checkAuth() {
+            const sid = localStorage.getItem('sessionId');
+            if (!sid) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+
+        async function loadData() {
+            if (!checkAuth()) return;
+            try {
+                const sid = localStorage.getItem('sessionId');
+                const res = await axios.get('/api/customers', {
+                    headers: { 'X-Session-ID': sid }
+                });
+                allCustomers = res.data;
+                applyFilters();
+            } catch (err) {
+                alert('데이터 로드 실패: ' + err.message);
+            }
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const filterType = document.getElementById('filter').value;
+
+            filteredCustomers = allCustomers.filter(c => {
+                const matchSearch = !searchTerm || 
+                    (c.name && c.name.toLowerCase().includes(searchTerm)) ||
+                    (c.phone && c.phone.includes(searchTerm)) ||
+                    (c.address && c.address.toLowerCase().includes(searchTerm));
+
+                const matchType = !filterType || 
+                    (filterType === 'lease' && c.active_contract_type === 'individual') ||
+                    (filterType === 'rent' && c.active_contract_type === 'rent') ||
+                    (filterType === 'business' && c.active_contract_type === 'business');
+
+                return matchSearch && matchType;
+            });
+
+            showData();
+        }
+
+        function showData() {
+            document.getElementById('loading').classList.add('hidden');
+            
+            // 데스크톱 테이블
+            showDesktopTable();
+            
+            // 모바일 카드
+            showMobileCards();
+        }
+
+        function showDesktopTable() {
+            document.getElementById('desktopContent').classList.remove('hidden');
+            
+            let html = '<div class="bg-white rounded-lg shadow-md overflow-x-auto smooth-scroll"><table class="w-full table-fixed">';
+            html += '<thead><tr class="bg-purple-600 text-white">';
+            html += '<th class="p-3 w-16">번호</th>';
+            html += '<th class="p-3 w-24">이름</th>';
+            html += '<th class="p-3 w-32">전화번호</th>';
+            html += '<th class="p-3 w-36">주민등록번호</th>';
+            html += '<th class="p-3">주소</th>';
+            html += '<th class="p-3 w-28">등록일</th>';
+            html += '<th class="p-3 w-24">관리</th>';
+            html += '</tr></thead><tbody>';
+
+            filteredCustomers.forEach((c, i) => {
+                const masked = c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-';
+                const phone = c.phone || '-';
+                const addr = c.address || '-';
+                const date = c.created_at ? c.created_at.substring(0, 10) : '-';
+                
+                html += '<tr class="border-t hover:bg-purple-50 cursor-pointer" onclick="showDetail(' + c.id + ')">';
+                html += '<td class="p-3 text-center">' + (i + 1) + '</td>';
+                html += '<td class="p-3">' + c.name + '</td>';
+                html += '<td class="p-3">' + phone + '</td>';
+                html += '<td class="p-3">' + masked + '</td>';
+                html += '<td class="p-3"><div class="truncate" title="' + addr + '">' + addr + '</div></td>';
+                html += '<td class="p-3">' + date + '</td>';
+                html += '<td class="p-3 text-center">';
+                html += '<button onclick="event.stopPropagation(); showDetail(' + c.id + ')" class="text-purple-600 hover:text-purple-800 mr-2 touch-target" title="상세보기">';
+                html += '<i class="fas fa-eye"></i></button>';
+                html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-600 hover:text-red-800 touch-target" title="삭제">';
+                html += '<i class="fas fa-trash"></i></button>';
+                html += '</td></tr>';
+            });
+
+            html += '</tbody></table></div>';
+            document.getElementById('desktopContent').innerHTML = html;
+        }
+
+        function showMobileCards() {
+            document.getElementById('mobileContent').classList.remove('hidden');
+            
+            let html = '<div class="space-y-3">';
+            
+            filteredCustomers.forEach((c, i) => {
+                const masked = c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-';
+                const phone = c.phone || '-';
+                const addr = c.address || '-';
+                const date = c.created_at ? c.created_at.substring(0, 10) : '-';
+                
+                html += '<div class="bg-white rounded-lg shadow-md p-4" onclick="showDetail(' + c.id + ')">';
+                html += '<div class="flex justify-between items-start mb-3">';
+                html += '<div class="flex-1">';
+                html += '<div class="flex items-center mb-2">';
+                html += '<span class="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded mr-2">' + (i + 1) + '</span>';
+                html += '<h3 class="text-lg font-bold text-gray-800">' + c.name + '</h3>';
+                html += '</div>';
+                html += '<div class="space-y-1 text-sm text-gray-600">';
+                html += '<div><i class="fas fa-phone w-4 text-purple-600"></i> ' + phone + '</div>';
+                html += '<div><i class="fas fa-id-card w-4 text-purple-600"></i> ' + masked + '</div>';
+                html += '<div><i class="fas fa-map-marker-alt w-4 text-purple-600"></i> ' + addr + '</div>';
+                html += '<div><i class="fas fa-calendar w-4 text-purple-600"></i> ' + date + '</div>';
+                html += '</div></div>';
+                html += '<div class="flex flex-col gap-2">';
+                html += '<button onclick="event.stopPropagation(); showDetail(' + c.id + ')" class="text-purple-600 hover:text-purple-800 p-2 touch-target">';
+                html += '<i class="fas fa-eye text-xl"></i></button>';
+                html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-600 hover:text-red-800 p-2 touch-target">';
+                html += '<i class="fas fa-trash text-xl"></i></button>';
+                html += '</div></div></div>';
+            });
+            
+            html += '</div>';
+            document.getElementById('mobileContent').innerHTML = html;
+        }
+
+        async function showDetail(id) {
+            try {
+                const sid = localStorage.getItem('sessionId');
+                const res = await axios.get('/api/customers/' + id, {
+                    headers: { 'X-Session-ID': sid }
+                });
+                const c = res.data;
+                
+                const masked = c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-';
+                
+                let html = '<div class="space-y-4">';
+                html += '<div class="bg-purple-50 p-4 rounded-lg">';
+                html += '<p class="text-sm text-gray-600">이름</p>';
+                html += '<p class="text-lg md:text-xl font-semibold">' + c.name + '</p>';
+                html += '</div>';
+                html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+                html += '<div><p class="text-sm text-gray-600">주민등록번호</p><p class="font-semibold">' + masked + '</p></div>';
+                html += '<div><p class="text-sm text-gray-600">전화번호</p><p class="font-semibold">' + (c.phone || '-') + '</p></div>';
+                html += '<div><p class="text-sm text-gray-600">우편번호</p><p class="font-semibold">' + (c.postcode || '-') + '</p></div>';
+                html += '</div>';
+                html += '<div><p class="text-sm text-gray-600">주소</p><p class="font-semibold">' + (c.address || '-') + '</p></div>';
+                html += '<div><p class="text-sm text-gray-600">상세주소</p><p class="font-semibold">' + (c.detail_address || '-') + '</p></div>';
+                html += '<div><p class="text-sm text-gray-600">등록일</p><p class="font-semibold">' + (c.created_at || '-') + '</p></div>';
+                html += '</div>';
+                
+                document.getElementById('modalContent').innerHTML = html;
+                document.getElementById('modal').classList.remove('hidden');
+            } catch (err) {
+                alert('상세정보 로드 실패: ' + err.message);
+            }
+        }
+
+        function closeModal(event) {
+            if (!event || event.target.id === 'modal') {
+                document.getElementById('modal').classList.add('hidden');
+            }
+        }
+
+        async function deleteCustomer(id, name) {
+            if (!confirm(name + ' 계약자를 삭제하시겠습니까?\n\n⚠️ 관련된 모든 계약서도 함께 삭제됩니다.')) return;
+            
+            try {
+                const sid = localStorage.getItem('sessionId');
+                await axios.delete('/api/customers/' + id, {
+                    headers: { 'X-Session-ID': sid }
+                });
+                alert('✅ 계약자가 삭제되었습니다.');
+                loadData();
+            } catch (err) {
+                alert('❌ 삭제 실패: ' + (err.response?.data?.error || err.message));
+            }
+        }
+
+        function printList() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isSuperAdmin = user.role === 'super_admin';
+            
+            const pw = window.open('', '', 'width=800,height=600');
+            let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>계약자 목록</title>';
+            html += '<style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}';
+            html += 'th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f3f4f6}</style></head>';
+            html += '<body><h1 style="text-align:center">계약자 목록</h1>';
+            html += '<p style="text-align:right">출력일시: ' + new Date().toLocaleString('ko-KR') + '<br>';
+            html += '출력자: ' + (user.name || '-') + '<br>총 인원: ' + filteredCustomers.length + '명</p>';
+            html += '<table><thead><tr><th>번호</th><th>이름</th><th>전화번호</th><th>주민등록번호</th><th>주소</th><th>등록일</th></tr></thead><tbody>';
+            
+            filteredCustomers.forEach((c, i) => {
+                const rn = isSuperAdmin ? (c.resident_number || '-') : (c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-');
+                html += '<tr><td>' + (i+1) + '</td><td>' + c.name + '</td><td>' + (c.phone||'-') + '</td>';
+                html += '<td>' + rn + '</td><td>' + (c.address||'-') + '</td><td>' + (c.created_at?c.created_at.substring(0,10):'-') + '</td></tr>';
+            });
+            
+            html += '</tbody></table><script>window.onload=function(){window.print()}<\/script></body></html>';
+            pw.document.write(html);
+            pw.document.close();
+        }
+
+        document.getElementById('search').addEventListener('input', applyFilters);
+        document.getElementById('filter').addEventListener('change', applyFilters);
+        window.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

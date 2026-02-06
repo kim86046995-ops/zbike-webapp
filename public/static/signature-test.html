@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서명 확대 기능 테스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-signature mr-2 text-indigo-600"></i>
+            서명 확대 기능 테스트
+        </h1>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+            <div class="bg-indigo-600 px-6 py-4">
+                <h2 class="text-xl font-bold text-white">임차인 서명</h2>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-700 mb-4 font-semibold">
+                    ※ 아래 박스에 직접 서명해주세요 (터치하면 확대됩니다)
+                </p>
+                <div class="border-2 border-gray-400 rounded overflow-hidden bg-white" onclick="openSignatureModal()" style="cursor: pointer;">
+                    <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                </div>
+                <div class="mt-3 flex justify-between items-center">
+                    <button type="button" onclick="clearSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
+                        <i class="fas fa-eraser mr-1"></i>서명 지우기
+                    </button>
+                    <p class="text-xs text-gray-500">서명일: <span id="signDate"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="font-bold text-blue-800 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>기능 설명
+            </h3>
+            <ul class="text-sm text-gray-700 space-y-2">
+                <li><i class="fas fa-check text-green-600 mr-2"></i>서명 영역을 클릭/터치하면 전체 화면으로 확대됩니다</li>
+                <li><i class="fas fa-check text-green-600 mr-2"></i>큰 화면에서 편하게 서명할 수 있습니다</li>
+                <li><i class="fas fa-check text-green-600 mr-2"></i>모바일/데스크톱 모두 지원합니다</li>
+                <li><i class="fas fa-check text-green-600 mr-2"></i>마우스와 터치 모두 사용 가능합니다</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 서명 확대 모달 -->
+    <div id="signatureModal" class="fixed inset-0 bg-black bg-opacity-90 hidden z-50 flex items-center justify-center">
+        <div class="bg-white w-full h-full md:w-11/12 md:h-5/6 md:rounded-lg overflow-hidden flex flex-col">
+            <!-- 모달 헤더 -->
+            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">서명하기</h2>
+                <button type="button" onclick="closeSignatureModal()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- 모달 바디 -->
+            <div class="flex-1 p-6 flex flex-col">
+                <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
+                <div class="border-4 border-gray-400 rounded overflow-hidden bg-white flex-1">
+                    <canvas id="signatureCanvasModal" class="w-full h-full cursor-crosshair bg-white"></canvas>
+                </div>
+                <div class="mt-4 flex gap-4">
+                    <button type="button" onclick="clearModalSignature()" class="flex-1 bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 font-semibold text-lg">
+                        <i class="fas fa-eraser mr-2"></i>지우기
+                    </button>
+                    <button type="button" onclick="saveModalSignature()" class="flex-1 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-semibold text-lg">
+                        <i class="fas fa-check mr-2"></i>서명 완료
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 오늘 날짜 설정
+        document.getElementById('signDate').textContent = new Date().toLocaleDateString('ko-KR');
+
+        // 메인 서명 패드 초기화
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            if (e.type.includes('touch')) {
+                lastX = e.touches[0].clientX - rect.left;
+                lastY = e.touches[0].clientY - rect.top;
+            } else {
+                lastX = e.clientX - rect.left;
+                lastY = e.clientY - rect.top;
+            }
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            if (e.type.includes('touch')) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            lastX = x;
+            lastY = y;
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // 메인 서명 지우기
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // 서명 확대 모달 열기
+        function openSignatureModal() {
+            const modal = document.getElementById('signatureModal');
+            modal.classList.remove('hidden');
+            
+            // 모달 캔버스 크기 설정
+            setTimeout(() => {
+                const modalCanvas = document.getElementById('signatureCanvasModal');
+                const container = modalCanvas.parentElement;
+                modalCanvas.width = container.clientWidth;
+                modalCanvas.height = container.clientHeight;
+                
+                // 기존 서명 복사
+                const mainCanvas = document.getElementById('signatureCanvas');
+                const modalCtx = modalCanvas.getContext('2d');
+                modalCtx.drawImage(mainCanvas, 0, 0, modalCanvas.width, modalCanvas.height);
+                
+                // 모달 캔버스 초기화
+                initModalSignaturePad();
+            }, 100);
+        }
+
+        // 서명 확대 모달 닫기
+        function closeSignatureModal() {
+            const modal = document.getElementById('signatureModal');
+            modal.classList.add('hidden');
+        }
+
+        // 모달 서명 지우기
+        function clearModalSignature() {
+            const canvas = document.getElementById('signatureCanvasModal');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // 모달 서명 저장
+        function saveModalSignature() {
+            const modalCanvas = document.getElementById('signatureCanvasModal');
+            const mainCanvas = document.getElementById('signatureCanvas');
+            const mainCtx = mainCanvas.getContext('2d');
+            
+            // 메인 캔버스에 복사
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            mainCtx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+            
+            closeSignatureModal();
+        }
+
+        // 모달 서명 패드 초기화
+        function initModalSignaturePad() {
+            const canvas = document.getElementById('signatureCanvasModal');
+            const ctx = canvas.getContext('2d');
+            
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // 기존 이벤트 리스너 제거
+            const newCanvas = canvas.cloneNode(true);
+            canvas.parentNode.replaceChild(newCanvas, canvas);
+            const modalCanvas = document.getElementById('signatureCanvasModal');
+            const modalCtx = modalCanvas.getContext('2d');
+            
+            // 기존 서명 다시 그리기
+            const mainCanvas = document.getElementById('signatureCanvas');
+            modalCtx.drawImage(mainCanvas, 0, 0, modalCanvas.width, modalCanvas.height);
+            
+            function startDrawing(e) {
+                isDrawing = true;
+                const rect = modalCanvas.getBoundingClientRect();
+                if (e.type.includes('touch')) {
+                    lastX = e.touches[0].clientX - rect.left;
+                    lastY = e.touches[0].clientY - rect.top;
+                } else {
+                    lastX = e.clientX - rect.left;
+                    lastY = e.clientY - rect.top;
+                }
+            }
+            
+            function draw(e) {
+                if (!isDrawing) return;
+                e.preventDefault();
+                
+                const rect = modalCanvas.getBoundingClientRect();
+                let x, y;
+                if (e.type.includes('touch')) {
+                    x = e.touches[0].clientX - rect.left;
+                    y = e.touches[0].clientY - rect.top;
+                } else {
+                    x = e.clientX - rect.left;
+                    y = e.clientY - rect.top;
+                }
+                
+                modalCtx.beginPath();
+                modalCtx.moveTo(lastX, lastY);
+                modalCtx.lineTo(x, y);
+                modalCtx.strokeStyle = '#000';
+                modalCtx.lineWidth = 3;
+                modalCtx.lineCap = 'round';
+                modalCtx.stroke();
+                
+                lastX = x;
+                lastY = y;
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            modalCanvas.addEventListener('mousedown', startDrawing);
+            modalCanvas.addEventListener('mousemove', draw);
+            modalCanvas.addEventListener('mouseup', stopDrawing);
+            modalCanvas.addEventListener('mouseout', stopDrawing);
+            
+            modalCanvas.addEventListener('touchstart', startDrawing);
+            modalCanvas.addEventListener('touchmove', draw);
+            modalCanvas.addEventListener('touchend', stopDrawing);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-BIKE 전자계약서</title>
+    
+    <!-- Open Graph / 카카오톡 공유 미리보기 -->
+    <meta property="og:title" content="Z-BIKE 전자계약서">
+    <meta property="og:description" content="오토바이 리스/렌트 계약 및 차용증 작성 - 간편하고 안전한 전자계약">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://www.genspark.ai/api/files/s/ZeDZUgbT">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="description" content="Z-BIKE 전자계약서 - 오토바이 계약을 간편하게">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-purple-500 to-pink-600 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto py-8">
+        <!-- 헤더 -->
+        <div class="text-center mb-8">
+            <div class="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl">
+                <i class="fas fa-motorcycle text-purple-600 text-5xl"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2">고객 계약 등록</h1>
+            <p class="text-white text-lg">필요한 항목을 선택하여 작성해주세요</p>
+        </div>
+
+        <!-- 메뉴 카드 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- 고객 정보 등록 카드 -->
+            <div class="bg-white rounded-2xl shadow-2xl p-5 hover:shadow-3xl transition transform hover:scale-105">
+                <div class="text-center mb-4">
+                    <div class="bg-blue-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-user-edit text-blue-600 text-3xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-1">고객 정보 등록</h2>
+                    <p class="text-gray-600 text-sm">계약자 정보를 입력해주세요</p>
+                </div>
+                
+                <ul class="space-y-1.5 mb-4 text-gray-700 text-sm">
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>이름, 연락처 입력</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>주민등록번호 입력</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>주소 입력</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>면허 정보 입력</li>
+                </ul>
+
+                <button 
+                    onclick="openCustomerForm()"
+                    class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-base hover:bg-blue-700 transition transform hover:scale-105 active:scale-95"
+                >
+                    <i class="fas fa-arrow-right mr-2"></i>고객 정보 등록하기
+                </button>
+            </div>
+
+            <!-- 계약서 작성 카드 -->
+            <div class="bg-white rounded-2xl shadow-2xl p-5 hover:shadow-3xl transition transform hover:scale-105">
+                <div class="text-center mb-4">
+                    <div class="bg-green-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-file-contract text-green-600 text-3xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-1">계약서 작성</h2>
+                    <p class="text-gray-600 text-sm">리스/렌트 계약서를 작성해주세요</p>
+                </div>
+                
+                <ul class="space-y-1.5 mb-4 text-gray-700 text-sm">
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>오토바이 선택</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>계약 정보 입력</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>보험 나이 제한 선택</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>서명 및 제출</li>
+                </ul>
+
+                <button 
+                    onclick="openContractForm()"
+                    class="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-base hover:bg-green-700 transition transform hover:scale-105 active:scale-95"
+                >
+                    <i class="fas fa-arrow-right mr-2"></i>계약서 작성하기
+                </button>
+            </div>
+
+            <!-- 차용계약서 작성 카드 -->
+            <div class="bg-white rounded-2xl shadow-2xl p-5 hover:shadow-3xl transition transform hover:scale-105">
+                <div class="text-center mb-4">
+                    <div class="bg-orange-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-hand-holding-usd text-orange-600 text-3xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-1">차용계약서 작성</h2>
+                    <p class="text-gray-600 text-sm">차용증을 작성해주세요</p>
+                </div>
+                
+                <ul class="space-y-1.5 mb-4 text-gray-700 text-sm">
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>차용인 정보 입력</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>차용 금액 입력</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>약관 확인 및 동의</li>
+                    <li><i class="fas fa-check text-green-500 mr-2 text-xs"></i>서명 및 제출</li>
+                </ul>
+
+                <button 
+                    onclick="openLoanForm()"
+                    class="w-full bg-orange-600 text-white py-3 rounded-xl font-bold text-base hover:bg-orange-700 transition transform hover:scale-105 active:scale-95"
+                >
+                    <i class="fas fa-arrow-right mr-2"></i>차용계약서 작성하기
+                </button>
+            </div>
+        </div>
+
+        <!-- 본인 계약서 확인하기 -->
+        <div class="mt-8 bg-white rounded-2xl shadow-2xl p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mr-3">
+                        <i class="fas fa-search text-purple-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">본인 계약서 확인하기</h2>
+                        <p class="text-sm text-gray-600">주민등록번호로 내 계약서를 조회할 수 있습니다</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div class="flex items-start">
+                    <i class="fas fa-id-card text-purple-600 text-lg mr-2 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">주민번호 입력</h4>
+                        <p class="text-xs text-gray-600">본인 확인용</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="fas fa-file-alt text-purple-600 text-lg mr-2 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">계약서 조회</h4>
+                        <p class="text-xs text-gray-600">진행 중인 계약 확인</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-purple-600 text-lg mr-2 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">상세 정보</h4>
+                        <p class="text-xs text-gray-600">계약 내용 확인</p>
+                    </div>
+                </div>
+            </div>
+
+            <button 
+                onclick="openContractSearch()"
+                class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold text-base hover:from-purple-700 hover:to-pink-700 transition transform hover:scale-105 active:scale-95 shadow-lg"
+            >
+                <i class="fas fa-search mr-2"></i>내 계약서 확인하기
+            </button>
+        </div>
+
+        <!-- 안내 사항 -->
+        <div class="mt-8 bg-white rounded-2xl shadow-xl p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>안내 사항
+            </h3>
+            <ul class="space-y-2 text-gray-700">
+                <li><i class="fas fa-chevron-right text-purple-600 mr-2"></i>먼저 <strong>고객 정보 등록</strong>을 완료한 후 <strong>계약서 작성</strong>을 진행해주세요.</li>
+                <li><i class="fas fa-chevron-right text-purple-600 mr-2"></i>모든 정보는 정확하게 입력해주세요.</li>
+                <li><i class="fas fa-chevron-right text-purple-600 mr-2"></i>계약서 작성 시 서명이 필요합니다.</li>
+                <li><i class="fas fa-chevron-right text-purple-600 mr-2"></i>문의사항이 있으시면 담당자에게 연락주세요.</li>
+            </ul>
+        </div>
+
+        <!-- 돌아가기 버튼 -->
+        <div class="mt-6 text-center">
+            <a href="/static/login.html" class="inline-block bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i>로그인 페이지로 돌아가기
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function openCustomerForm() {
+            // 고객 정보 등록 페이지로 이동 (로그인 없이)
+            window.location.href = '/static/customer-register.html';
+        }
+
+        function openContractForm() {
+            // 계약서 작성 페이지로 이동 (로그인 없이)
+            window.location.href = '/static/customer-contract.html';
+        }
+
+        function openLoanForm() {
+            // 차용계약서 작성 페이지로 이동 (로그인 없이)
+            window.location.href = '/static/customer-loan.html';
+        }
+
+        function openContractSearch() {
+            // 본인 계약서 확인 페이지로 이동
+            window.location.href = '/static/contract-search.html';
+        }
+    </script>
+</body>
+</html>

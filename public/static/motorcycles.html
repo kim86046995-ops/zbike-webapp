@@ -123,14 +123,11 @@
     <div class="min-h-screen">
         <!-- 헤더 -->
         <header class="bg-blue-600 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-                <a href="/dashboard" class="text-xl font-bold">
+            <div class="container mx-auto px-4 py-4">
+                <a href="/" class="text-xl font-bold flex items-center hover:bg-blue-700 px-3 py-2 rounded-lg transition-colors cursor-pointer inline-flex">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    오토바이 관리
+                    <span>오토바이 관리</span>
                 </a>
-                <button id="addMotorcycleBtn" onclick="showAddModal()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50">
-                    <i class="fas fa-plus mr-2"></i>오토바이 등록
-                </button>
             </div>
         </header>
 
@@ -237,9 +234,14 @@
 
     <!-- 등록/수정 모달 -->
     <div id="motorcycleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
+        <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full my-8 max-h-[95vh] overflow-y-auto">
             <div class="p-6">
-                <h2 id="modalTitle" class="text-2xl font-bold mb-4">오토바이 등록</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="modalTitle" class="text-2xl font-bold">오토바이 등록</h2>
+                    <button onclick="hideModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
                 
                 <!-- 문서 자동 입력 -->
                 <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg">
@@ -268,107 +270,166 @@
                     </div>
                 </div>
                 
-                <form id="motorcycleForm" class="space-y-4">
+                <form id="motorcycleForm" class="space-y-6">
                     <input type="hidden" id="motorcycleId">
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold mb-2">번호판 *</label>
-                            <input type="text" id="plateNumber" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <!-- 기본 정보 섹션 -->
+                    <div class="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-blue-800">
+                                <i class="fas fa-motorcycle mr-2"></i>기본 정보
+                            </h3>
+                            <button type="button" onclick="saveBasicInfo()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                                <i class="fas fa-save mr-1"></i>기본 정보 수정
+                            </button>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">차량이름 *</label>
-                            <input type="text" id="vehicleName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">차대번호 *</label>
-                            <input type="text" id="chassisNumber" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">키로수 *</label>
-                            <input type="number" id="mileage" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">연식 *</label>
-                            <input type="number" id="modelYear" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="예: 2023">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">보험사 *</label>
-                            <input type="text" id="insuranceCompany" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">보험 시작일 *</label>
-                            <input type="date" id="insuranceStartDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">보험 종료일 *</label>
-                            <input type="date" id="insuranceEndDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">검사 시작일</label>
-                            <input type="date" id="inspectionStartDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">검사 종료일</label>
-                            <input type="date" id="inspectionEndDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">운전연령 *</label>
-                            <select id="drivingRange" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="">선택하세요</option>
-                                <option value="전연령">전연령</option>
-                                <option value="만19세이상">만19세이상</option>
-                                <option value="만21세이상">만21세이상</option>
-                                <option value="만24세이상">만24세이상</option>
-                                <option value="만26세이상">만26세이상</option>
-                                <option value="만30세이상">만30세이상</option>
-                                <option value="만35세이상">만35세이상</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">명의자 *</label>
-                            <input type="text" id="ownerName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">보험료 (원) *</label>
-                            <input type="number" id="insuranceFee" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">차량금액 (원) *</label>
-                            <input type="number" id="vehiclePrice" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2">상태 *</label>
-                            <select id="status" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="available">사용가능</option>
-                                <option value="rented">렌트중</option>
-                                <option value="maintenance">정비중</option>
-                                <option value="scrapped">폐지</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-bold mb-2">차량 사용필증 촬영</label>
-                            <div class="space-y-2">
-                                <div class="flex gap-2">
-                                    <button type="button" onclick="startCertificateCamera()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                                        <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                                    </button>
-                                    <input type="file" id="certificateUpload" accept="image/*" onchange="handleCertificateUpload(event)" class="hidden">
-                                    <button type="button" onclick="document.getElementById('certificateUpload').click()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                                        <i class="fas fa-upload mr-2"></i>파일 선택
-                                    </button>
-                                </div>
-                                <div id="certificatePreview" class="hidden">
-                                    <img id="certificateImage" class="max-w-full h-48 object-contain border rounded-lg">
-                                    <button type="button" onclick="clearCertificate()" class="mt-2 text-red-600 hover:text-red-700">
-                                        <i class="fas fa-times mr-1"></i>삭제
-                                    </button>
-                                </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2">차량번호 *</label>
+                                <input type="text" id="plateNumber" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">차량이름 *</label>
+                                <input type="text" id="vehicleName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">년식 *</label>
+                                <input type="number" id="modelYear" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="예: 2024">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">차대번호</label>
+                                <input type="text" id="chassisNumber" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="차대번호 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">키로수 (km)</label>
+                                <input type="number" id="mileage" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="주행거리 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">검사 시작일</label>
+                                <input type="date" id="inspectionStartDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">검사 종료일</label>
+                                <input type="date" id="inspectionEndDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
                             </div>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-bold mb-2">사용페지</label>
-                            <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="오토바이 사용 관련 특이사항을 입력하세요"></textarea>
+                    </div>
+                    
+                    <!-- 계약 정보 섹션 -->
+                    <div class="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-green-800">
+                                <i class="fas fa-file-contract mr-2"></i>계약 정보
+                            </h3>
+                            <button type="button" onclick="saveContractInfo()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
+                                <i class="fas fa-save mr-1"></i>계약 정보 수정
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2">대여료 (원)</label>
+                                <input type="number" id="monthlyFee" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="대여료 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">계약종류</label>
+                                <input type="text" id="contractType" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="계약종류 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">선납/보증금 (원)</label>
+                                <input type="number" id="deposit" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="보증금 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">계약 시작일</label>
+                                <input type="date" id="contractStartDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">계약 종료일</label>
+                                <input type="date" id="contractEndDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 보험 정보 섹션 -->
+                    <div class="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-purple-800">
+                                <i class="fas fa-shield-alt mr-2"></i>보험 정보
+                            </h3>
+                            <button type="button" onclick="saveInsuranceInfo()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-semibold">
+                                <i class="fas fa-save mr-1"></i>보험 정보 수정
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2">보험사</label>
+                                <input type="text" id="insuranceCompany" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 bg-white" placeholder="보험사 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">명의자</label>
+                                <input type="text" id="ownerName" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 bg-white" placeholder="명의자 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">보험 시작일</label>
+                                <input type="date" id="insuranceStartDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">보험 종료일</label>
+                                <input type="date" id="insuranceEndDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">보험 운전범위</label>
+                                <select id="drivingRange" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 bg-white">
+                                    <option value="">선택하세요</option>
+                                    <option value="전연령">전연령</option>
+                                    <option value="만19세이상">만19세이상</option>
+                                    <option value="만21세이상">만21세이상</option>
+                                    <option value="만24세이상">만24세이상</option>
+                                    <option value="만26세이상">만26세이상</option>
+                                    <option value="만30세이상">만30세이상</option>
+                                    <option value="만35세이상">만35세이상</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 추가 정보 -->
+                    <div class="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-cog mr-2"></i>추가 정보
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2">차량금액 (원)</label>
+                                <input type="number" id="vehiclePrice" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2">보험료 (원)</label>
+                                <input type="number" id="insuranceFee" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold mb-2">차량 사용필증 촬영</label>
+                                <div class="space-y-2">
+                                    <div class="flex gap-2">
+                                        <button type="button" onclick="startCertificateCamera()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                                        </button>
+                                        <input type="file" id="certificateUpload" accept="image/*" onchange="handleCertificateUpload(event)" class="hidden">
+                                        <button type="button" onclick="document.getElementById('certificateUpload').click()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                            <i class="fas fa-upload mr-2"></i>파일 선택
+                                        </button>
+                                    </div>
+                                    <div id="certificatePreview" class="hidden">
+                                        <img id="certificateImage" class="max-w-full h-48 object-contain border rounded-lg">
+                                        <button type="button" onclick="clearCertificate()" class="mt-2 text-red-600 hover:text-red-700">
+                                            <i class="fas fa-times mr-1"></i>삭제
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold mb-2">사용페지</label>
+                                <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white" placeholder="오토바이 사용 관련 특이사항을 입력하세요"></textarea>
+                            </div>
                         </div>
                     </div>
                     
@@ -407,11 +468,8 @@
                     </div>
 
                     <div class="flex gap-3 pt-4">
-                        <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
-                            <i class="fas fa-save mr-2"></i>저장
-                        </button>
                         <button type="button" onclick="hideModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400 transition">
-                            취소
+                            <i class="fas fa-times mr-2"></i>닫기
                         </button>
                     </div>
                 </form>
@@ -509,6 +567,22 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (await checkAuth()) {
+                // URL 파라미터로 전달된 상태 필터 확인
+                const urlParams = new URLSearchParams(window.location.search);
+                const statusParam = urlParams.get('status');
+                
+                // 상태 필터 설정
+                if (statusParam) {
+                    const statusFilterElement = document.getElementById('statusFilter');
+                    if (statusParam === 'all') {
+                        statusFilterElement.value = '';
+                    } else if (statusParam === 'maintenance_scrapped') {
+                        statusFilterElement.value = 'maintenance';
+                    } else {
+                        statusFilterElement.value = statusParam;
+                    }
+                }
+                
                 loadMotorcycles();
             }
         });
@@ -536,6 +610,7 @@
             }
         }
 
+        // 통계 카드 업데이트
         function filterAndSortMotorcycles() {
             // 검색어
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -549,8 +624,15 @@
             // 필터링
             let filtered = motorcycles.filter(m => {
                 // 상태 필터
-                if (statusFilter && m.status !== statusFilter) {
-                    return false;
+                if (statusFilter) {
+                    // 수리중/폐지 복합 필터 처리
+                    if (statusFilter === 'maintenance') {
+                        if (m.status !== 'maintenance' && m.status !== 'scrapped') {
+                            return false;
+                        }
+                    } else if (m.status !== statusFilter) {
+                        return false;
+                    }
                 }
                 
                 // 검색어 필터 (번호판, 계약자, 명의자)
@@ -649,9 +731,9 @@
 
             listEl.innerHTML = filteredMotorcycles.map(m => {
                 const statusConfig = {
-                    'available': { bg: 'bg-green-100', text: 'text-green-800', icon: 'fa-check-circle', label: '사용가능', border: 'status-available' },
-                    'rented': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'fa-motorcycle', label: '렌트중', border: 'status-rented' },
-                    'maintenance': { bg: 'bg-red-100', text: 'text-red-800', icon: 'fa-tools', label: '정비중', border: 'status-maintenance' },
+                    'available': { bg: 'bg-green-100', text: 'text-green-800', icon: 'fa-check-circle', label: '휴차중', border: 'status-available' },
+                    'rented': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'fa-motorcycle', label: '사용중', border: 'status-rented' },
+                    'maintenance': { bg: 'bg-red-100', text: 'text-red-800', icon: 'fa-tools', label: '수리중', border: 'status-maintenance' },
                     'scrapped': { bg: 'bg-gray-100', text: 'text-gray-800', icon: 'fa-ban', label: '폐지', border: 'status-scrapped' }
                 };
 
@@ -670,52 +752,49 @@
                 return `
                     <div class="motorcycle-card ${status.border} bg-white rounded-lg shadow-md overflow-hidden">
                         <!-- 상단: 번호판/차대번호 클릭 영역 -->
-                        <div class="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-3 cursor-pointer hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all active:scale-95" onclick="showHistory(${m.id})">
+                        <div class="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-1 cursor-pointer hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all active:scale-95" onclick="showHistory(${m.id})">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="text-blue-100 text-xs font-semibold mb-0.5">
+                                    <p class="text-blue-100 text-xs font-semibold mb-0">
                                         <i class="fas fa-id-card mr-1"></i>${displayLabel}
                                     </p>
-                                    <p class="text-white text-2xl font-black tracking-tight">${displayNumber}</p>
+                                    <p class="text-white text-lg font-black tracking-tight">${displayNumber}</p>
                                 </div>
                                 <div class="flex flex-col items-center">
-                                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-history text-lg text-white"></i>
+                                    <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-history text-xs text-white"></i>
                                     </div>
-                                    <p class="text-white text-xs mt-0.5 font-medium">이력</p>
+                                    <p class="text-white text-xs mt-0 font-medium">이력</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="p-2.5 bg-gradient-to-br from-white to-gray-50">
+                        <div class="p-1 bg-gradient-to-br from-white to-gray-50">
                             <!-- 차량명 및 상태 -->
-                            <div class="flex justify-between items-start mb-2">
+                            <div class="flex justify-between items-start mb-0.5">
                                 <div>
-                                    <h3 class="text-base font-bold text-gray-800">${m.vehicle_name}</h3>
+                                    <h3 class="text-xs font-bold text-gray-800">${m.vehicle_name}</h3>
                                     <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year}년식</p>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="info-badge ${status.bg} ${status.text} text-xs">
-                                        <i class="fas ${status.icon} mr-1"></i>${status.label}
+                                    <span id="status-badge-${m.id}" class="info-badge ${status.bg} ${status.text} text-xs">
+                                        <i id="status-icon-${m.id}" class="fas ${status.icon} mr-1"></i><span id="status-label-${m.id}">${status.label}</span>
                                     </span>
-                                    <button onclick="deleteMotorcycle(${m.id})" class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600 transition-all text-xs font-semibold" title="오토바이 삭제">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
                                 </div>
                             </div>
                             
                             ${m.status === 'scrapped' ? `
                                 <!-- 폐지 오토바이: 사용페지 표시 -->
-                                <div class="mb-2 bg-gray-50 p-2 rounded-md border border-gray-200">
-                                    <p class="text-xs font-bold text-gray-700 mb-1">
+                                <div class="mb-0.5 bg-gray-50 p-1 rounded border border-gray-200">
+                                    <p class="text-xs font-bold text-gray-700 mb-0">
                                         <i class="fas fa-info-circle mr-1 text-gray-500"></i>사용페지
                                     </p>
                                     <p class="text-xs text-gray-600 whitespace-pre-wrap">${m.usage_notes || '정보 없음'}</p>
                                 </div>
                             ` : `
                             <!-- 계약 기간 진행률 -->
-                            <div class="mb-1.5 bg-white p-2 rounded-md shadow-sm border border-gray-100" id="contract-progress-${m.id}">
-                                <div class="flex justify-between items-center mb-1">
+                            <div class="mb-0.5 bg-white p-1 rounded shadow-sm border border-gray-100" id="contract-progress-${m.id}">
+                                <div class="flex justify-between items-center mb-0.5">
                                     <span class="text-xs font-bold text-gray-700 flex items-center">
                                         <i class="fas fa-file-contract mr-1 text-purple-500"></i>계약
                                     </span>
@@ -724,15 +803,15 @@
                                 <div class="progress-bar-wrapper" id="contract-bar-${m.id}">
                                     <div class="progress-bar progress-safe" style="width: 0%"></div>
                                 </div>
-                                <div class="flex justify-between text-xs text-gray-400 mt-0.5" id="contract-dates-${m.id}">
+                                <div class="flex justify-between text-xs text-gray-400 mt-0" id="contract-dates-${m.id}">
                                     <span>-</span>
                                     <span>-</span>
                                 </div>
                             </div>
                             
                             <!-- 보험 기간 진행률 -->
-                            <div class="mb-1.5 bg-white p-2 rounded-md shadow-sm border border-gray-100">
-                                <div class="flex justify-between items-center mb-1">
+                            <div class="mb-0.5 bg-white p-1 rounded shadow-sm border border-gray-100">
+                                <div class="flex justify-between items-center mb-0.5">
                                     <span class="text-xs font-bold text-gray-700 flex items-center">
                                         <i class="fas fa-shield-alt mr-1 text-blue-500"></i>보험
                                     </span>
@@ -747,25 +826,25 @@
                                     </div>
                                 </div>
                                 
-                                <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+                                <div class="flex justify-between text-xs text-gray-400 mt-0">
                                     <span>${m.insurance_start_date}</span>
                                     <span>${m.insurance_end_date}</span>
                                 </div>
                                 
                                 ${progress.isExpired ? `
-                                    <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                                    <div class="mt-0.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1 py-0.5 rounded text-xs font-bold flex items-center">
                                         <i class="fas fa-exclamation-triangle mr-1"></i>만료
                                     </div>
                                 ` : progress.isExpiringSoon ? `
-                                    <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                                    <div class="mt-0.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1 py-0.5 rounded text-xs font-bold flex items-center">
                                         <i class="fas fa-exclamation-circle mr-1"></i>갱신필요
                                     </div>
                                 ` : ''}
                             </div>
                             
                             <!-- 검사 기간 진행률 -->
-                            <div class="mb-2 bg-white p-2 rounded-md shadow-sm border border-gray-100" id="inspection-progress-${m.id}">
-                                <div class="flex justify-between items-center mb-1">
+                            <div class="mb-0.5 bg-white p-1 rounded shadow-sm border border-gray-100" id="inspection-progress-${m.id}">
+                                <div class="flex justify-between items-center mb-0.5">
                                     <span class="text-xs font-bold text-gray-700 flex items-center">
                                         <i class="fas fa-clipboard-check mr-1 text-green-500"></i>검사
                                     </span>
@@ -774,7 +853,7 @@
                                 <div class="progress-bar-wrapper" id="inspection-bar-${m.id}">
                                     <div class="progress-bar progress-safe" style="width: 0%"></div>
                                 </div>
-                                <div class="flex justify-between text-xs text-gray-400 mt-0.5" id="inspection-dates-${m.id}">
+                                <div class="flex justify-between text-xs text-gray-400 mt-0" id="inspection-dates-${m.id}">
                                     <span>-</span>
                                     <span>-</span>
                                 </div>
@@ -782,8 +861,8 @@
                             `}
 
                             <!-- 차량 상세 정보 -->
-                            <div class="bg-white p-2 rounded-md shadow-sm border border-gray-100 mb-2">
-                                <div class="grid grid-cols-2 gap-1.5 text-xs">
+                            <div class="bg-white p-1 rounded shadow-sm border border-gray-100 mb-0.5">
+                                <div class="grid grid-cols-2 gap-0.5 text-xs">
                                     <div class="flex items-center">
                                         <i class="fas fa-user w-3 text-blue-500 mr-1"></i>
                                         <div>
@@ -809,15 +888,18 @@
                             </div>
 
                             <!-- 버튼 -->
-                            <div class="flex gap-1.5">
-                                <button onclick="editMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-1.5 rounded-md hover:from-blue-600 hover:to-blue-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
+                            <div class="grid grid-cols-2 gap-0.5">
+                                <button onclick="editMotorcycle(${m.id})" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-0.5 rounded hover:from-blue-600 hover:to-blue-700 transition-all active:scale-95 shadow-sm text-xs font-semibold">
                                     <i class="fas fa-edit mr-1"></i>수정
                                 </button>
-                                <button onclick="terminateMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-1.5 rounded-md hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="계약 해지">
+                                <button onclick="terminateMotorcycle(${m.id})" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-0.5 rounded hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="계약 해지">
                                     <i class="fas fa-ban mr-1"></i>해지
                                 </button>
-                                <button onclick="scrapMotorcycle(${m.id})" class="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white py-1.5 rounded-md hover:from-gray-600 hover:to-gray-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="사용 폐지">
+                                <button onclick="scrapMotorcycle(${m.id})" class="bg-gradient-to-r from-gray-500 to-gray-600 text-white py-0.5 rounded hover:from-gray-600 hover:to-gray-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="사용 폐지">
                                     <i class="fas fa-times-circle mr-1"></i>폐지
+                                </button>
+                                <button onclick="deleteMotorcycle(${m.id})" class="bg-gradient-to-r from-red-500 to-red-600 text-white py-0.5 rounded hover:from-red-600 hover:to-red-700 transition-all active:scale-95 shadow-sm text-xs font-semibold" title="오토바이 삭제">
+                                    <i class="fas fa-trash-alt mr-1"></i>삭제
                                 </button>
                             </div>
                         </div>
@@ -844,14 +926,14 @@
                 if (progress.remainingDays <= 20 && progress.remainingDays > 0) {
                     progressClass = 'progress-danger';
                     warningMessage = `
-                        <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                        <div class="mt-0.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1 py-0.5 rounded text-xs font-bold flex items-center">
                             <i class="fas fa-exclamation-triangle mr-1"></i>검사임박
                         </div>
                     `;
                 } else if (progress.isExpired) {
                     progressClass = 'progress-danger';
                     warningMessage = `
-                        <div class="mt-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold flex items-center">
+                        <div class="mt-0.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 px-1 py-0.5 rounded text-xs font-bold flex items-center">
                             <i class="fas fa-exclamation-triangle mr-1"></i>만료
                         </div>
                     `;
@@ -898,6 +980,30 @@
                 
                 // 진행 중인 계약 찾기
                 const activeContract = contracts.find(c => c.status === 'active');
+                
+                // 오토바이 정보 찾기
+                const motorcycle = motorcycles.find(m => m.id === motorcycleId);
+                
+                // 상태 배지 업데이트 (폐지, 수리중이 아닌 경우만)
+                if (motorcycle && motorcycle.status !== 'scrapped' && motorcycle.status !== 'maintenance') {
+                    const statusBadge = document.getElementById(`status-badge-${motorcycleId}`);
+                    const statusIcon = document.getElementById(`status-icon-${motorcycleId}`);
+                    const statusLabel = document.getElementById(`status-label-${motorcycleId}`);
+                    
+                    if (statusBadge && statusIcon && statusLabel) {
+                        if (activeContract) {
+                            // 계약자가 있으면 '사용중'
+                            statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
+                            statusIcon.className = 'fas fa-motorcycle mr-1';
+                            statusLabel.textContent = '사용중';
+                        } else {
+                            // 계약자가 없으면 '휴차중'
+                            statusBadge.className = 'info-badge bg-green-100 text-green-800 text-xs';
+                            statusIcon.className = 'fas fa-check-circle mr-1';
+                            statusLabel.textContent = '휴차중';
+                        }
+                    }
+                }
                 
                 if (activeContract) {
                     // 계약자 정보 업데이트
@@ -981,6 +1087,10 @@
                 const historyResponse = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`);
                 const contracts = historyResponse.data;
                 
+                // 상세 이력 조회
+                const detailedHistoryResponse = await axios.get(`/api/motorcycles/${motorcycleId}/history`);
+                const detailedHistory = detailedHistoryResponse.data;
+                
                 // 오토바이 정보 표시
                 document.getElementById('motorcycleInfo').innerHTML = `
                     <h3 class="text-lg font-bold mb-2">${motorcycle.vehicle_name}</h3>
@@ -988,7 +1098,6 @@
                         <p><strong>번호판:</strong> ${motorcycle.plate_number}</p>
                         <p><strong>차대번호:</strong> ${motorcycle.chassis_number}</p>
                         <p><strong>연식:</strong> ${motorcycle.model_year}년</p>
-                        <p><strong>주행거리:</strong> ${Number(motorcycle.mileage).toLocaleString()} km</p>
                     </div>
                 `;
                 
@@ -1013,38 +1122,94 @@
                     };
                     const typeTexts = {
                         'lease': '리스',
-                        'rent': '렌트'
+                        'rent': '렌트',
+                        'individual': '개인',
+                        'temp_rent': '임시렌트'
+                    };
+                    const actionTypeTexts = {
+                        'created': '생성',
+                        'updated': '변경',
+                        'completed': '완료',
+                        'cancelled': '해지',
+                        'replaced': '대체'
+                    };
+                    const actionTypeColors = {
+                        'created': 'text-blue-600',
+                        'updated': 'text-purple-600',
+                        'completed': 'text-gray-600',
+                        'cancelled': 'text-red-600',
+                        'replaced': 'text-orange-600'
                     };
                     
-                    document.getElementById('contractHistory').innerHTML = `
-                        <div class="space-y-4">
-                            <h4 class="font-bold text-gray-700">총 ${contracts.length}건의 계약</h4>
-                            ${contracts.map(contract => `
-                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    <div class="flex justify-between items-start mb-3">
-                                        <div>
-                                            <p class="font-bold text-gray-800">${contract.contract_number}</p>
-                                            <p class="text-sm text-gray-600">${contract.customer_name} (${contract.customer_phone})</p>
+                    let historyHtml = `
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-bold text-gray-700 mb-4">📋 계약 목록 (총 ${contracts.length}건)</h4>
+                                <div class="space-y-3">
+                                    ${contracts.map(contract => `
+                                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                            <div class="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <p class="font-bold text-gray-800">${contract.contract_number || '번호없음'}</p>
+                                                    <p class="text-sm text-gray-600">${contract.customer_name} (${contract.customer_phone})</p>
+                                                </div>
+                                                <div class="flex gap-2">
+                                                    <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[contract.status]}">
+                                                        ${statusTexts[contract.status]}
+                                                    </span>
+                                                    <span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                                                        ${typeTexts[contract.contract_type] || contract.contract_type}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                                <p><strong>계약기간:</strong> ${contract.start_date} ~ ${contract.end_date}</p>
+                                                <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
+                                                <p><strong>보증금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
+                                                <p><strong>작성일:</strong> ${new Date(contract.created_at).toLocaleDateString('ko-KR')}</p>
+                                            </div>
                                         </div>
-                                        <div class="flex gap-2">
-                                            <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[contract.status]}">
-                                                ${statusTexts[contract.status]}
-                                            </span>
-                                            <span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
-                                                ${typeTexts[contract.contract_type]}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                        <p><strong>계약기간:</strong> ${contract.start_date} ~ ${contract.end_date}</p>
-                                        <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
-                                        <p><strong>보증금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
-                                        <p><strong>작성일:</strong> ${new Date(contract.created_at).toLocaleDateString('ko-KR')}</p>
-                                    </div>
+                                    `).join('')}
                                 </div>
-                            `).join('')}
-                        </div>
-                    `;
+                            </div>`;
+                    
+                    // 상세 이력이 있으면 추가
+                    if (detailedHistory && detailedHistory.length > 0) {
+                        historyHtml += `
+                            <div class="border-t pt-4">
+                                <h4 class="font-bold text-gray-700 mb-3">📝 상세 이력 (총 ${detailedHistory.length}건)</h4>
+                                <div class="space-y-1.5 max-h-96 overflow-y-auto">
+                                    ${detailedHistory.map(h => `
+                                        <div class="bg-white p-2 rounded border border-gray-200 text-xs hover:bg-gray-50 transition-colors">
+                                            <div class="flex justify-between items-center gap-2">
+                                                <div class="flex items-center gap-2 flex-1 min-w-0">
+                                                    <span class="font-bold ${actionTypeColors[h.action_type]} flex-shrink-0">
+                                                        <i class="fas fa-circle" style="font-size: 6px;"></i>
+                                                        ${actionTypeTexts[h.action_type] || h.action_type}
+                                                    </span>
+                                                    <span class="text-gray-700 font-medium truncate">${h.contract_number}</span>
+                                                    ${h.old_status && h.new_status && h.old_status !== h.new_status ? 
+                                                        `<span class="text-gray-500 flex-shrink-0">${statusTexts[h.old_status] || h.old_status}→${statusTexts[h.new_status] || h.new_status}</span>` 
+                                                        : ''}
+                                                </div>
+                                                <span class="text-gray-400 flex-shrink-0">
+                                                    ${new Date(h.created_at).toLocaleDateString('ko-KR')} ${new Date(h.created_at).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
+                                                </span>
+                                            </div>
+                                            ${h.action_reason ? `
+                                                <div class="mt-1 text-gray-500 truncate pl-4">
+                                                    ${h.action_reason}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    historyHtml += `</div>`;
+                    document.getElementById('contractHistory').innerHTML = historyHtml;
                 }
                 
                 document.getElementById('historyModal').classList.remove('hidden');
@@ -1193,7 +1358,6 @@
                     document.getElementById('plateNumber').value = '서울' + Math.floor(Math.random() * 90 + 10) + '가' + Math.floor(Math.random() * 9000 + 1000);
                     document.getElementById('vehicleName').value = '혼다 PCX 150';
                     document.getElementById('chassisNumber').value = 'MLHJE' + Math.random().toString(36).substring(2, 12).toUpperCase();
-                    document.getElementById('mileage').value = Math.floor(Math.random() * 50000);
                     document.getElementById('modelYear').value = currentYear - Math.floor(Math.random() * 3);
                     document.getElementById('insuranceCompany').value = '삼성화재';
                     
@@ -1316,22 +1480,86 @@
 
                 document.getElementById('modalTitle').textContent = '오토바이 수정';
                 document.getElementById('motorcycleId').value = m.id;
+                
+                // 기본 정보
                 document.getElementById('plateNumber').value = m.plate_number;
                 document.getElementById('vehicleName').value = m.vehicle_name;
-                document.getElementById('chassisNumber').value = m.chassis_number;
-                document.getElementById('mileage').value = m.mileage;
                 document.getElementById('modelYear').value = m.model_year;
-                document.getElementById('insuranceCompany').value = m.insurance_company;
-                document.getElementById('insuranceStartDate').value = m.insurance_start_date;
-                document.getElementById('insuranceEndDate').value = m.insurance_end_date;
+                document.getElementById('chassisNumber').value = m.chassis_number || '';
+                document.getElementById('mileage').value = m.mileage || 0;
                 document.getElementById('inspectionStartDate').value = m.inspection_start_date || '';
                 document.getElementById('inspectionEndDate').value = m.inspection_end_date || '';
-                document.getElementById('drivingRange').value = m.driving_range;
-                document.getElementById('ownerName').value = m.owner_name;
-                document.getElementById('insuranceFee').value = m.insurance_fee;
+                
+                // 추가 정보
                 document.getElementById('vehiclePrice').value = m.vehicle_price;
+                document.getElementById('insuranceFee').value = m.insurance_fee;
                 document.getElementById('usageNotes').value = m.usage_notes || '';
-                document.getElementById('status').value = m.status;
+                // status는 항상 available로 설정 (UI에서 삭제됨)
+                
+                // 계약 정보 로드 (개인 계약 + 업체 계약 통합)
+                try {
+                    // 개인 계약 조회
+                    const contractResponse = await axios.get(`/api/motorcycles/${id}/contracts`);
+                    const activeContract = contractResponse.data.find(c => c.status === 'active');
+                    
+                    if (activeContract) {
+                        document.getElementById('monthlyFee').value = activeContract.monthly_fee || '';
+                        document.getElementById('contractType').value = activeContract.contract_type === 'personal' ? '개인' : 
+                                                                         activeContract.contract_type === 'business' ? '업체' : 
+                                                                         activeContract.contract_type === 'temp_rent' ? '임시렌트' : '';
+                        document.getElementById('deposit').value = activeContract.deposit || '';
+                        document.getElementById('contractStartDate').value = activeContract.start_date || '';
+                        document.getElementById('contractEndDate').value = activeContract.end_date || '';
+                        
+                        // 보험 정보도 계약서에서 가져오기
+                        document.getElementById('insuranceCompany').value = activeContract.insurance_company || m.insurance_company || '';
+                        document.getElementById('ownerName').value = activeContract.owner_name || m.owner_name || '';
+                        document.getElementById('insuranceStartDate').value = activeContract.insurance_start_date || m.insurance_start_date || '';
+                        document.getElementById('insuranceEndDate').value = activeContract.insurance_end_date || m.insurance_end_date || '';
+                        document.getElementById('drivingRange').value = activeContract.driving_range || m.driving_range || '';
+                    } else {
+                        // 업체 계약 조회
+                        const businessResponse = await axios.get('/api/business-contracts');
+                        const activeBusiness = businessResponse.data.find(bc => bc.motorcycle_id === id && bc.status === 'active');
+                        
+                        if (activeBusiness) {
+                            document.getElementById('monthlyFee').value = activeBusiness.daily_amount || '';
+                            document.getElementById('contractType').value = '업체';
+                            document.getElementById('deposit').value = activeBusiness.deposit || '';
+                            document.getElementById('contractStartDate').value = activeBusiness.contract_start_date || '';
+                            document.getElementById('contractEndDate').value = activeBusiness.contract_end_date || '';
+                            
+                            // 보험 정보
+                            document.getElementById('insuranceCompany').value = m.insurance_company || '';
+                            document.getElementById('ownerName').value = m.owner_name || '';
+                            document.getElementById('insuranceStartDate').value = activeBusiness.insurance_start_date || m.insurance_start_date || '';
+                            document.getElementById('insuranceEndDate').value = activeBusiness.insurance_end_date || m.insurance_end_date || '';
+                            document.getElementById('drivingRange').value = activeBusiness.driving_range || m.driving_range || '';
+                        } else {
+                            // 계약 없음 - 기본값 설정
+                            document.getElementById('monthlyFee').value = '';
+                            document.getElementById('contractType').value = '';
+                            document.getElementById('deposit').value = '';
+                            document.getElementById('contractStartDate').value = '';
+                            document.getElementById('contractEndDate').value = '';
+                            
+                            // 보험 정보는 오토바이 정보에서
+                            document.getElementById('insuranceCompany').value = m.insurance_company || '';
+                            document.getElementById('ownerName').value = m.owner_name || '';
+                            document.getElementById('insuranceStartDate').value = m.insurance_start_date || '';
+                            document.getElementById('insuranceEndDate').value = m.insurance_end_date || '';
+                            document.getElementById('drivingRange').value = m.driving_range || '';
+                        }
+                    }
+                } catch (err) {
+                    console.error('계약 정보 로드 실패:', err);
+                    // 계약 정보 없으면 오토바이 기본 정보 사용
+                    document.getElementById('insuranceCompany').value = m.insurance_company || '';
+                    document.getElementById('ownerName').value = m.owner_name || '';
+                    document.getElementById('insuranceStartDate').value = m.insurance_start_date || '';
+                    document.getElementById('insuranceEndDate').value = m.insurance_end_date || '';
+                    document.getElementById('drivingRange').value = m.driving_range || '';
+                }
                 
                 // 사용필증 로드
                 if (m.certificate_photo) {
@@ -1346,6 +1574,186 @@
             } catch (error) {
                 console.error('Error loading motorcycle:', error);
                 alert('오토바이 정보를 불러오는데 실패했습니다');
+            }
+        }
+
+        // 기본 정보 저장
+        async function saveBasicInfo() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const id = document.getElementById('motorcycleId').value;
+                if (!id) {
+                    alert('오토바이 ID가 없습니다');
+                    return;
+                }
+                
+                const data = {
+                    plate_number: document.getElementById('plateNumber').value,
+                    vehicle_name: document.getElementById('vehicleName').value,
+                    model_year: document.getElementById('modelYear').value,
+                    mileage: document.getElementById('mileage').value,
+                    chassis_number: document.getElementById('chassisNumber').value,
+                    vehicle_price: document.getElementById('vehiclePrice').value,
+                    insurance_fee: document.getElementById('insuranceFee').value,
+                    inspection_start_date: document.getElementById('inspectionStartDate').value,
+                    inspection_end_date: document.getElementById('inspectionEndDate').value,
+                    usage_notes: document.getElementById('usageNotes').value,
+                    certificate_photo: certificatePhotoData
+                };
+                
+                console.log('📝 기본 정보 수정 요청:', id, data);
+                
+                await axios.put(`/api/motorcycles/${id}`, data, {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+                
+                console.log('✅ 기본 정보 수정 완료');
+                alert('✅ 기본 정보가 수정되었습니다');
+                loadMotorcycles();
+            } catch (error) {
+                console.error('❌ 기본 정보 저장 실패:', error);
+                alert(`❌ 기본 정보 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
+            }
+        }
+
+        // 계약 정보 저장
+        async function saveContractInfo() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const id = document.getElementById('motorcycleId').value;
+                if (!id) {
+                    alert('오토바이 ID가 없습니다');
+                    return;
+                }
+                
+                const data = {
+                    monthly_fee: document.getElementById('monthlyFee').value,
+                    contract_type_text: document.getElementById('contractType').value,
+                    deposit: document.getElementById('deposit').value,
+                    contract_start_date: document.getElementById('contractStartDate').value,
+                    contract_end_date: document.getElementById('contractEndDate').value
+                };
+                
+                console.log('📝 계약 정보 수정 요청:', id, data);
+                
+                await axios.put(`/api/motorcycles/${id}`, data, {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+                
+                console.log('✅ 계약 정보 수정 완료');
+                alert('✅ 계약 정보가 수정되었습니다');
+                loadMotorcycles();
+            } catch (error) {
+                console.error('❌ 계약 정보 저장 실패:', error);
+                alert(`❌ 계약 정보 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
+            }
+        }
+
+        // 보험 정보 저장
+        async function saveInsuranceInfo() {
+            try {
+                const id = document.getElementById('motorcycleId').value;
+                if (!id) {
+                    alert('오토바이 ID가 없습니다');
+                    return;
+                }
+                
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // 1. 진행 중인 계약 확인
+                const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                const activeContracts = contractsResponse.data.filter(c => c.status === 'active');
+                
+                // 2. 진행 중인 계약이 있으면 계약 해지 확인
+                if (activeContracts.length > 0) {
+                    const contractInfo = activeContracts.map(c => 
+                        `• ${c.contract_number} - ${c.customer_name} (${c.customer_phone})`
+                    ).join('\n');
+                    
+                    const shouldTerminate = confirm(
+                        `⚠️ 현재 진행 중인 계약이 있습니다\n\n` +
+                        `진행 중인 계약 ${activeContracts.length}건:\n${contractInfo}\n\n` +
+                        `보험 정보를 수정하면 위 계약들이 해지됩니다.\n\n` +
+                        `계약을 해지하고 보험 정보를 수정하시겠습니까?\n\n` +
+                        `[확인] - 계약 해지 후 보험 정보 수정\n` +
+                        `[취소] - 보험 정보 수정 취소`
+                    );
+                    
+                    if (!shouldTerminate) {
+                        console.log('보험 정보 수정 취소됨 (사용자가 취소 선택)');
+                        return;
+                    }
+                    
+                    // 3. 계약 해지 진행
+                    console.log(`계약 해지 진행: ${activeContracts.length}건`);
+                    for (const contract of activeContracts) {
+                        await axios.patch(`/api/contracts/${contract.id}/status`, 
+                            { status: 'cancelled' },
+                            { headers: { 'X-Session-ID': sessionId } }
+                        );
+                    }
+                    console.log('✅ 계약 해지 완료');
+                    
+                    // 4. 오토바이 상태를 available로 변경하고 계약정보 초기화
+                    await axios.patch(`/api/motorcycles/${id}/status`, 
+                        { status: 'available' },
+                        { headers: { 'X-Session-ID': sessionId } }
+                    );
+                    console.log('✅ 오토바이 상태 초기화 완료');
+                }
+                
+                // 5. 보험 정보 수정
+                const data = {
+                    insurance_company: document.getElementById('insuranceCompany').value,
+                    owner_name: document.getElementById('ownerName').value,
+                    insurance_start_date: document.getElementById('insuranceStartDate').value,
+                    insurance_end_date: document.getElementById('insuranceEndDate').value,
+                    driving_range: document.getElementById('drivingRange').value
+                };
+                
+                await axios.put(`/api/motorcycles/${id}`, data);
+                
+                // 6. 결과 메시지
+                if (activeContracts.length > 0) {
+                    alert(
+                        `✅ 보험 정보가 수정되었습니다\n\n` +
+                        `해지된 계약: ${activeContracts.length}건\n` +
+                        `• 계약 상태: 해지됨\n` +
+                        `• 오토바이 상태: 휴차중\n` +
+                        `• 계약 이력: 보존됨`
+                    );
+                } else {
+                    alert('✅ 보험 정보가 수정되었습니다');
+                }
+                
+                loadMotorcycles();
+            } catch (error) {
+                console.error('보험 정보 저장 실패:', error);
+                alert('❌ 보험 정보 저장에 실패했습니다\n\n' + (error.response?.data?.error || error.message));
             }
         }
 
@@ -1370,17 +1778,60 @@
             }
         }
 
-        // 계약 해지 (상태를 available로 변경)
+        // 계약 해지 (상태를 available로 변경 + 계약정보만 초기화, 기본정보와 보험정보는 유지)
         async function terminateMotorcycle(id) {
-            if (!confirm('계약을 해지하시겠습니까?\n\n오토바이 상태가 "가용"으로 변경됩니다.')) return;
+            if (!confirm('계약을 해지하시겠습니까?\n\n해지하면:\n✅ 오토바이 상태가 "휴차중"으로 변경됩니다\n✅ 계약 정보만 초기화됩니다 (월차감, 보증금, 계약기간 등)\n✅ 기본 정보는 유지됩니다 (번호판, 차대번호, 차량명 등)\n✅ 보험 정보는 유지됩니다 (보험사, 보험기간, 운전범위 등)\n✅ 관련 계약서는 "해지" 상태로 보존됩니다\n\n💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.')) return;
 
             try {
-                await axios.patch(`/api/motorcycles/${id}/status`, { status: 'available' });
-                alert('✅ 계약이 해지되었습니다.\n오토바이가 가용 상태로 변경되었습니다.');
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                console.log(`🔄 계약 해지 시작: 오토바이 #${id}`);
+
+                // 1. 해당 오토바이의 진행중인 모든 계약 찾기
+                const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                const activeContracts = contractsResponse.data.filter(c => c.status === 'active');
+                console.log(`📋 진행중인 계약 ${activeContracts.length}건 발견`);
+                
+                // 2. 모든 진행중인 계약을 'cancelled' 상태로 변경
+                for (const contract of activeContracts) {
+                    console.log(`  - 계약 해지: ${contract.contract_number}`);
+                    await axios.patch(`/api/contracts/${contract.id}/status`, 
+                        { status: 'cancelled' },
+                        { headers: { 'X-Session-ID': sessionId } }
+                    );
+                }
+                console.log(`✅ 계약서 해지 완료: ${activeContracts.length}건`);
+                
+                // 3. 오토바이 상태를 available로 변경 (계약정보만 초기화, 기본정보와 보험정보는 유지)
+                console.log(`🔄 오토바이 상태 변경: available`);
+                await axios.patch(`/api/motorcycles/${id}/status`, 
+                    { status: 'available' },
+                    { headers: { 'X-Session-ID': sessionId } }
+                );
+                console.log(`✅ 오토바이 상태 변경 완료`);
+                
+                alert(
+                    `✅ 계약이 해지되었습니다!\n\n` +
+                    `🏍️ 오토바이 상태: 휴차중\n` +
+                    `📋 해지된 계약서: ${activeContracts.length}건 (기록 보존)\n\n` +
+                    `✅ 계약 정보: 초기화됨 (월차감, 보증금, 계약기간 등)\n` +
+                    `✅ 기본 정보: 유지됨 (번호판, 차대번호, 차량명 등)\n` +
+                    `✅ 보험 정보: 유지됨 (보험사, 보험기간, 운전범위 등)\n\n` +
+                    `💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.`
+                );
+                
                 loadMotorcycles();
             } catch (error) {
-                console.error('Error terminating contract:', error);
-                alert('❌ 계약 해지에 실패했습니다');
+                console.error('❌ 계약 해지 실패:', error);
+                alert(`❌ 계약 해지에 실패했습니다.\n\n${error.response?.data?.error || error.message}`);
             }
         }
 
@@ -1432,7 +1883,6 @@
                 plate_number: document.getElementById('plateNumber').value,
                 vehicle_name: document.getElementById('vehicleName').value,
                 chassis_number: document.getElementById('chassisNumber').value,
-                mileage: parseInt(document.getElementById('mileage').value),
                 model_year: parseInt(document.getElementById('modelYear').value),
                 insurance_company: document.getElementById('insuranceCompany').value,
                 insurance_start_date: document.getElementById('insuranceStartDate').value,
@@ -1444,7 +1894,7 @@
                 insurance_fee: parseInt(document.getElementById('insuranceFee').value),
                 vehicle_price: parseInt(document.getElementById('vehiclePrice').value),
                 usage_notes: document.getElementById('usageNotes').value || '',
-                status: document.getElementById('status').value,
+                status: 'available', // 항상 available로 설정
                 certificate_photo: certificatePhotoData || null
             };
 
@@ -1540,7 +1990,7 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                             <div>
-                                <p class="mb-1"><strong>계약자:</strong> ${h.customer_name}</p>
+                                <p class="mb-1"><strong>계약자:</strong> <span class="text-lg font-bold text-gray-900">${h.customer_name}</span></p>
                                 <p class="mb-1"><strong>전화번호:</strong> ${h.customer_phone}</p>
                                 <p><strong>주민번호:</strong> ${h.resident_number || '-'}</p>
                             </div>

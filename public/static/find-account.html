@@ -38,6 +38,12 @@
 
         <!-- 아이디 찾기 -->
         <div id="findIdSection">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p class="text-xs text-blue-700">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    가입 시 등록한 이름과 전화번호를 정확히 입력해주세요.
+                </p>
+            </div>
             <form id="findIdForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">
@@ -60,8 +66,10 @@
                         type="tel" 
                         id="findIdPhone" 
                         required 
+                        maxlength="13"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="010-0000-0000"
+                        oninput="autoHyphenPhone(this)"
                     >
                 </div>
 
@@ -75,8 +83,20 @@
 
             <div id="findIdResult" class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p class="text-sm text-gray-600 mb-2">회원님의 아이디는:</p>
-                <p class="text-2xl font-bold text-green-700" id="foundUsername"></p>
+                <p class="text-2xl font-bold text-green-700 cursor-pointer hover:text-green-800 hover:underline" 
+                   id="foundUsername" 
+                   onclick="goToLoginWithUsername()"
+                   title="클릭하면 로그인 페이지로 이동합니다"></p>
                 <p class="text-xs text-gray-500 mt-2">가입일: <span id="foundCreatedAt"></span></p>
+                <button 
+                    onclick="goToLoginWithUsername()" 
+                    class="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition"
+                >
+                    <i class="fas fa-sign-in-alt mr-2"></i>이 아이디로 로그인하기
+                </button>
+                <p class="text-xs text-center text-gray-500 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>아이디를 클릭해도 로그인 페이지로 이동합니다
+                </p>
             </div>
         </div>
 
@@ -119,8 +139,10 @@
                             type="tel" 
                             id="verifyPhone" 
                             required 
+                            maxlength="13"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="010-0000-0000"
+                            oninput="autoHyphenPhone(this)"
                         >
                     </div>
 
@@ -135,12 +157,29 @@
 
             <!-- 2단계: 인증번호 입력 및 비밀번호 재설정 -->
             <div id="resetStep" class="hidden">
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <p class="text-sm text-green-700 font-bold">
-                        <i class="fas fa-check-circle mr-2"></i>본인 확인 완료
+                <!-- 이메일 발송 성공 메시지 -->
+                <div id="emailSentMessage" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 hidden">
+                    <p class="text-sm text-blue-700 font-bold">
+                        <i class="fas fa-envelope mr-2"></i>이메일 발송 완료
                     </p>
-                    <p class="text-xs text-gray-600 mt-1">인증번호: <span id="displayToken" class="font-mono font-bold text-lg"></span></p>
-                    <p class="text-xs text-red-600 mt-1">※ 실제 서비스에서는 SMS/이메일로 전송됩니다</p>
+                    <p class="text-xs text-gray-600 mt-1">
+                        <span id="maskedEmail" class="font-bold"></span>으로 인증번호가 발송되었습니다.
+                    </p>
+                    <p class="text-xs text-gray-600 mt-1">
+                        📧 이메일을 확인하고 인증번호를 입력해주세요.
+                    </p>
+                    <p class="text-xs text-orange-600 mt-2">
+                        ⏰ <strong>유효시간: 30분</strong>
+                    </p>
+                </div>
+                
+                <!-- 개발 모드: 인증번호 직접 표시 -->
+                <div id="tokenDisplayMessage" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 hidden">
+                    <p class="text-sm text-yellow-700 font-bold">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>개발 모드
+                    </p>
+                    <p class="text-xs text-gray-600 mt-1">인증번호: <span id="displayToken" class="font-mono font-bold text-xl text-purple-600"></span></p>
+                    <p class="text-xs text-red-600 mt-1">※ 이메일 설정 후에는 이 메시지가 표시되지 않습니다</p>
                 </div>
 
                 <form id="resetForm" class="space-y-4">
@@ -219,6 +258,37 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         let currentToken = '';
+        let foundUsernameValue = ''; // 찾은 아이디 저장
+
+        // 로그인 페이지로 이동하면서 아이디 전달
+        function goToLoginWithUsername() {
+            if (foundUsernameValue) {
+                // localStorage에 저장
+                localStorage.setItem('tempUsername', foundUsernameValue);
+                // 로그인 페이지로 이동
+                window.location.href = '/login';
+            }
+        }
+
+        // 전화번호 자동 하이픈
+        function autoHyphenPhone(target) {
+            // 숫자만 추출
+            let value = target.value.replace(/[^0-9]/g, '');
+            let result = '';
+            
+            // 하이픈 자동 삽입
+            if (value.length < 4) {
+                result = value;
+            } else if (value.length < 7) {
+                result = value.substr(0, 3) + '-' + value.substr(3);
+            } else if (value.length < 11) {
+                result = value.substr(0, 3) + '-' + value.substr(3, 3) + '-' + value.substr(6);
+            } else {
+                result = value.substr(0, 3) + '-' + value.substr(3, 4) + '-' + value.substr(7, 4);
+            }
+            
+            target.value = result;
+        }
 
         function showTab(tab) {
             const findIdTab = document.getElementById('findIdTab');
@@ -249,8 +319,13 @@
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
-            errorText.textContent = message;
+            errorText.innerHTML = message.replace(/\n/g, '<br>');
             errorDiv.classList.remove('hidden');
+            
+            // 5초 후 자동으로 숨기기
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 10000);
         }
 
         function resetPasswordProcess() {
@@ -264,8 +339,10 @@
         document.getElementById('findIdForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const name = document.getElementById('findIdName').value;
-            const phone = document.getElementById('findIdPhone').value;
+            const name = document.getElementById('findIdName').value.trim();
+            const phone = document.getElementById('findIdPhone').value.trim();
+
+            console.log('🔍 아이디 찾기 시도:', { name, phone });
 
             try {
                 const response = await axios.post('/api/auth/find-username', {
@@ -273,7 +350,10 @@
                     phone
                 });
 
+                console.log('✅ 응답 성공:', response.data);
+
                 if (response.data.success) {
+                    foundUsernameValue = response.data.username; // 아이디 저장
                     document.getElementById('foundUsername').textContent = response.data.username;
                     document.getElementById('foundCreatedAt').textContent = 
                         new Date(response.data.created_at).toLocaleDateString('ko-KR');
@@ -281,8 +361,14 @@
                     document.getElementById('errorMessage').classList.add('hidden');
                 }
             } catch (error) {
-                console.error('Find ID error:', error);
-                showError(error.response?.data?.error || '아이디를 찾을 수 없습니다');
+                console.error('❌ Find ID error:', error);
+                console.error('❌ Error response:', error.response?.data);
+                console.error('❌ 입력값:', { name, phone });
+                
+                let errorMsg = error.response?.data?.error || '아이디를 찾을 수 없습니다';
+                errorMsg += '\n\n입력하신 정보:\n이름: ' + name + '\n전화번호: ' + phone;
+                
+                showError(errorMsg);
                 document.getElementById('findIdResult').classList.add('hidden');
             }
         });
@@ -291,9 +377,11 @@
         document.getElementById('verifyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('verifyUsername').value;
-            const name = document.getElementById('verifyName').value;
-            const phone = document.getElementById('verifyPhone').value;
+            const username = document.getElementById('verifyUsername').value.trim();
+            const name = document.getElementById('verifyName').value.trim();
+            const phone = document.getElementById('verifyPhone').value.trim();
+
+            console.log('🔐 본인 확인 시도:', { username, name, phone });
 
             try {
                 const response = await axios.post('/api/auth/request-reset', {
@@ -302,15 +390,38 @@
                     phone
                 });
 
+                console.log('✅ 본인 확인 응답:', response.data);
+
                 if (response.data.success) {
-                    currentToken = response.data.token;
-                    document.getElementById('displayToken').textContent = currentToken;
+                    // 화면 전환
                     document.getElementById('verifyStep').classList.add('hidden');
                     document.getElementById('resetStep').classList.remove('hidden');
                     document.getElementById('errorMessage').classList.add('hidden');
+                    
+                    // 이메일 발송 성공 여부에 따라 다른 메시지 표시
+                    if (response.data.email && !response.data.token) {
+                        // 이메일 발송 성공
+                        document.getElementById('emailSentMessage').classList.remove('hidden');
+                        document.getElementById('tokenDisplayMessage').classList.add('hidden');
+                        document.getElementById('maskedEmail').textContent = response.data.email;
+                        
+                        console.log('📧 이메일 발송 완료:', response.data.email);
+                    } else if (response.data.token) {
+                        // 개발 모드: 토큰 직접 표시
+                        currentToken = response.data.token;
+                        document.getElementById('displayToken').textContent = currentToken;
+                        document.getElementById('tokenDisplayMessage').classList.remove('hidden');
+                        document.getElementById('emailSentMessage').classList.add('hidden');
+                        
+                        console.log('⚠️ 개발 모드: 토큰 직접 표시');
+                    }
+                    
+                    // 인증번호 입력란에 포커스
+                    document.getElementById('resetToken').focus();
                 }
             } catch (error) {
-                console.error('Verify error:', error);
+                console.error('❌ Verify error:', error);
+                console.error('❌ Error response:', error.response?.data);
                 showError(error.response?.data?.error || '본인 확인에 실패했습니다');
             }
         });

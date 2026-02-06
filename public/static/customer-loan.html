@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <title>Z-BIKE 전자계약서</title>
+    
+    <!-- Open Graph / 카카오톡 공유 미리보기 -->
+    <meta property="og:title" content="Z-BIKE 전자계약서">
+    <meta property="og:description" content="차용증 작성 - 간편하고 안전한 전자계약">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://www.genspark.ai/api/files/s/ZeDZUgbT">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="description" content="Z-BIKE 전자계약서 - 차용증 작성">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    
+    <style>
+        /* A4 출력 스타일 */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* 약관 영역 A4 페이지 분할 */
+            .contract-terms {
+                page-break-inside: auto;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            .contract-terms > * {
+                page-break-inside: avoid;
+            }
+            
+            .contract-terms p.font-bold {
+                page-break-after: avoid;
+            }
+            
+            /* A4 페이지 크기 설정 */
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+            
+            /* 출력 시 불필요한 요소 숨김 */
+            nav, .no-print, button:not(.print-only), header {
+                display: none !important;
+            }
+            
+            /* 약관 섹션만 출력 시 강조 */
+            .contract-terms {
+                border: none;
+                background: white;
+                padding: 0;
+            }
+        }
+        
+        /* 화면 표시용 - 스크롤 제거, 전체 내용 보이기 */
+        .contract-terms {
+            max-height: none;
+            overflow-y: visible;
+        }
+    </style>
+    
+    
+    
+    
+    <!-- 고객용 페이지 - 로그인 불필요 -->
+</head>
+<body class="bg-gray-50">
+    
+    <div class="min-h-screen pb-20">
+        <!-- 헤더 -->
+        <header class="bg-orange-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <a href="/static/customer-portal.html" class="text-xl font-bold flex items-center hover:bg-orange-700 px-3 py-2 rounded-lg transition-colors cursor-pointer inline-flex">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    <span>고객 차용계약서 작성</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="container mx-auto px-4 py-8 max-w-4xl">
+            <form id="loanForm" class="space-y-6">
+                <!-- 1. 차용인 정보 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-user mr-2 text-orange-600"></i>
+                        1. 차용인 정보
+                    </h2>
+                    
+                    <!-- 주민번호로 정보 조회 -->
+                    <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-600 text-xl mr-3 mt-1"></i>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-blue-800 mb-2">기존 계약자이신가요?</h3>
+                                <p class="text-sm text-blue-700 mb-3">주민번호를 입력하고 조회 버튼을 누르면 등록된 정보를 자동으로 불러옵니다.</p>
+                                <div class="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        id="searchResidentNumber" 
+                                        placeholder="123456-1234567" 
+                                        maxlength="14"
+                                        class="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                    <button 
+                                        type="button" 
+                                        onclick="searchCustomerByResidentNumber()" 
+                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold">
+                                        <i class="fas fa-search mr-2"></i>정보 조회
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">이름 *</label>
+                            <input type="text" id="borrowerName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">주민번호 *</label>
+                            <input type="text" id="borrowerResidentNumber" required placeholder="000000-0000000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">전화번호 *</label>
+                            <input type="tel" id="borrowerPhone" required placeholder="010-0000-0000" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">주소 *</label>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <input type="text" id="postcode" placeholder="우편번호" readonly class="w-32 px-3 py-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-orange-500">
+                                    <button type="button" onclick="execDaumPostcode()" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                                        <i class="fas fa-search mr-1"></i>우편번호 검색
+                                    </button>
+                                </div>
+                                <input type="text" id="address" placeholder="기본주소" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-orange-500">
+                                <input type="text" id="detailAddress" placeholder="상세주소를 입력하세요" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <input type="hidden" id="borrowerAddress">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 차용 상세 정보 (배달대행 특화) -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-invoice-dollar mr-2 text-orange-600"></i>
+                        2. 차용 상세 정보
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차용금액 (원) *</label>
+                            <input type="number" id="loanAmount" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="1000000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-wallet mr-1 text-orange-500"></i>일차감금액 (원) *
+                            </label>
+                            <input type="number" id="dailyDeduction" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="50000">
+                            <p class="text-xs text-gray-500 mt-1">매일 일당에서 차감할 금액</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">차용일 *</label>
+                            <input type="date" id="loanDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-calendar-days mr-1 text-orange-500"></i>대여기간 (일) *
+                            </label>
+                            <input type="number" id="loanPeriod" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="30">
+                            <p class="text-xs text-gray-500 mt-1">상환 예정 기간 (일수)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">상환예정일</label>
+                            <input type="date" id="repaymentDate" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed">
+                            <p class="text-xs text-gray-500 mt-1">차용일 + 대여기간으로 자동 계산</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">이자율 (연%)</label>
+                            <input type="number" id="interestRate" value="20" step="0.1" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100 focus:ring-2 focus:ring-orange-500 cursor-not-allowed">
+                            <p class="text-xs text-orange-600 mt-1 font-bold"><i class="fas fa-info-circle mr-1"></i>고정 이자율: 연 20%</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-university mr-1 text-orange-500"></i>계좌번호
+                            </label>
+                            <input type="text" id="accountNumber" placeholder="입금 계좌번호" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <p class="text-xs text-gray-500 mt-1">차용금 입금계좌 번호</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold mb-2">특약사항</label>
+                            <textarea id="specialTerms" rows="4" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="추가 특약사항이 있으면 입력하세요"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 차용증 약관 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-contract mr-2 text-orange-600"></i>
+                        3. 차용증 약관
+                    </h2>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 contract-terms" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                        <!-- 사업자 정보 표기 -->
+                        <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
+                            <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">채권자 (사업자) 정보</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="font-size: 1.1rem;">
+                                <p><strong>상호:</strong> <span id="terms-company-name" class="font-bold">로딩중...</span></p>
+                                <p><strong>사업자번호:</strong> <span id="terms-business-number" class="font-bold">로딩중...</span></p>
+                                <p><strong>대표자:</strong> <span id="terms-representative-name" class="font-bold">로딩중...</span></p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="font-bold text-center text-lg mb-3">배달대행 차용증</h3>
+                        
+                        <p class="mb-3 text-center leading-relaxed">
+                            본인(차용인)은 귀사(채권자)로부터 아래와 같이 금전을 차용하였음을 확인하고,<br>
+                            배달대행 일당에서 매일 차감하는 방식으로 성실히 상환할 것을 확약합니다.
+                        </p>
+
+                        <div class="border-t border-b border-gray-400 py-2 my-3">
+                            <p class="text-center font-bold">- 다 음 -</p>
+                        </div>
+
+                        <p class="font-bold mt-4 mb-2">제1조 (차용금액 및 조건)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 차용인은 위 사업자 상호에 표기된 회사에서 일하는 조건으로 차용금을 대여받으며, 퇴사 시 남아있는 잔액 전부를 일시불로 상환하여야 합니다.</p>
+                            <p>② 차용금액: 위 기재된 차용금액</p>
+                            <p>③ 차용일자: 위 기재된 차용일</p>
+                            <p>④ 대여기간: 위 기재된 대여기간 (일수)</p>
+                            <p>⑤ 상환예정일: 위 기재된 상환예정일</p>
+                            <p>⑥ 이자율: <strong class="text-orange-700">연 20%</strong></p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제2조 (일차감 상환방식)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 차용인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 상환합니다.</p>
+                            <p>② 일차감 금액: 위 기재된 일차감금액</p>
+                            <p>③ 차감 금액은 차용인의 일당 정산 시 자동으로 공제되어 차용금 상환에 충당됩니다.</p>
+                            <p>④ 차용인은 언제든지 잔여 차용금을 일시 상환할 수 있습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제3조 (업무 수행 의무)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 차용인은 차용금 상환을 위하여 성실히 배달대행 업무를 수행할 의무가 있습니다.</p>
+                            <p>② 차용인이 정당한 사유 없이 3일 이상 연속하여 업무를 수행하지 않는 경우, 채권자는 즉시 잔여 차용금 전액의 상환을 청구할 수 있습니다.</p>
+                            <p>③ 차용인은 배달대행 플랫폼에 등록된 정보(본인 인증 정보, 계좌 정보 등)를 유지할 의무가 있습니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제4조 (정산 및 투명성)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 채권자는 차용인의 일당, 차감 금액, 잔여 차용금을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p>② 차용인은 언제든지 본인의 차감 내역과 잔여 차용금을 조회할 수 있습니다.</p>
+                            <p>③ 차감 내역에 대한 이의가 있을 경우 차용인은 즉시 채권자에게 이의를 제기할 수 있으며, 채권자는 3영업일 이내에 이를 확인하고 답변하여야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제5조 (계좌번호)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 차용인의 계좌번호: 위 기재된 계좌번호</p>
+                            <p>② 차용인은 계좌번호 변경 시 즉시 채권자에게 통보하여야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제6조 (기한의 이익 상실)</p>
+                        <p class="ml-4 mb-1">
+                            차용인이 다음 각 호의 어느 하나에 해당하는 경우 통보 없이 당연히 기한의 이익을 상실하며,<br>
+                            채권자는 즉시 잔여 원금과 경과이자 및 연체이자의 전액을 청구할 수 있습니다.
+                        </p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우</p>
+                            <p>② 배달대행 플랫폼에서 계정이 정지되거나 탈퇴한 경우</p>
+                            <p>⑤ 차용인이 본 계약상의 의무를 위반한 경우</p>
+                            <p>⑥ 차용인이 채권자에게 허위 정보를 제공한 경우</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제7조 (이자 및 연체이자)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 이자는 <strong class="text-orange-700">연 20%</strong>를 적용하여 계산됩니다.</p>
+                            <p>② 차용인이 기한의 이익을 상실하거나 상환기일까지 상환을 완료하지 못한 경우, 잔여 원금에 대하여 <strong class="text-red-600">연 15%의 연체이자</strong>를 부담합니다.</p>
+                            <p>③ 연체기간 산정은 연체 개시일로부터 실제 변제일까지로 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제8조 (중도 상환)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 차용인은 언제든지 잔여 차용금을 중도 상환할 수 있으며, 이 경우 별도의 중도상환 수수료는 없습니다.</p>
+                            <p>② 중도 상환 시 경과 이자는 일할 계산하여 정산합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제9조 (비용 부담)</p>
+                        <p class="ml-4 mb-2">
+                            본 차용금의 회수를 위하여 발생하는 일체의 비용(제소비용, 변호사 선임비용 등)은 차용인이 부담합니다.
+                        </p>
+
+                        <p class="font-bold mt-3 mb-2">제10조 (계약의 해석 및 합의)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
+                            <p>② 본 계약의 내용을 변경하고자 할 때는 쌍방 합의 하에 서면으로 작성하여야 합니다.</p>
+                            <p>③ 특약사항은 위 기재된 특약사항에 따릅니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제11조 (분쟁 해결)</p>
+                        <p class="ml-4 mb-3">
+                            본 계약으로 인한 분쟁 발생 시 채권자와 차용인의 합의가 안될시 채권자는 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.
+                        </p>
+                        <p class="font-bold mt-3 mb-2">제12조 (계약의 효력)</p>
+                        <p class="ml-4">
+                            본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.
+                        </p>
+
+                        <div class="border-t border-gray-400 mt-4 pt-3">
+                            <p class="text-center text-xs leading-relaxed">
+                                본인은 위 차용금을 배달대행 일당에서 매일 차감하는 방식으로 성실히 상환할 것을 확약하며,<br>
+                                이를 증명하기 위하여 본 차용증을 작성하고 서명 날인합니다.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="agreeTerms" required class="w-4 h-4 text-orange-600 rounded focus:ring-orange-500">
+                            <span class="ml-2 text-sm font-bold">위 차용증 약관을 모두 읽었으며 이에 동의합니다 *</span>
+                        </label>
+                    </div>
+                    
+                    <!-- 계약 생성 날짜/시간 및 작성 위치 -->
+                    <div class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p class="text-sm text-orange-800 mb-2">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            <span class="font-bold">차용증 생성 일시:</span>
+                            <span id="contractDateTime" class="ml-2"></span>
+                        </p>
+                        <p class="text-sm text-orange-800">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span class="font-bold">작성 위치:</span>
+                            <span id="contractLocation" class="ml-2">위치 확인 중...</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 4. 차용인 서명 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-signature mr-2 text-orange-600"></i>
+                        4. 차용인 서명
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">차용인의 서명을 받아주세요</p>
+                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                        <canvas id="borrowerSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    </div>
+                    <button type="button" onclick="clearBorrowerSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-eraser mr-1"></i>서명 지우기
+                    </button>
+                </div>
+
+                <!-- 5. 임차인 신분증 촬영 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-id-card mr-2 text-orange-600"></i>
+                        5. 임차인 신분증 촬영
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-4">임차인의 신분증을 촬영하거나 업로드하세요</p>
+                    
+                    <div id="loanCameraSection" class="hidden mb-4">
+                        <video id="loanVideo" width="640" height="480" autoplay class="w-full border rounded-lg"></video>
+                        <button type="button" onclick="captureLoanPhoto()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-camera mr-2"></i>촬영하기
+                        </button>
+                        <button type="button" onclick="stopLoanCamera()" class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                            <i class="fas fa-times mr-2"></i>카메라 닫기
+                        </button>
+                    </div>
+
+                    <div id="loanPhotoPreview" class="hidden mb-4">
+                        <img id="loanCapturedPhoto" class="w-full border rounded-lg">
+                        <button type="button" onclick="clearLoanPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash mr-1"></i>사진 삭제
+                        </button>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button type="button" onclick="startLoanCamera()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
+                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                        </button>
+                        <label class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 cursor-pointer text-center">
+                            <i class="fas fa-upload mr-2"></i>파일 업로드
+                            <input type="file" id="loanIdCardFile" accept="image/*" onchange="handleLoanFileUpload(event)" class="hidden">
+                        </label>
+                    </div>
+                    
+                    <canvas id="loanPhotoCanvas" class="hidden"></canvas>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-orange-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-orange-700 transition">
+                        <i class="fas fa-check-circle mr-2"></i>차용증 생성
+                    </button>
+                    <a href="/" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        let borrowerCanvas, borrowerCtx, borrowerIsDrawing = false;
+        let loanStream = null;
+        let loanIdCardPhotoData = null;
+
+        // Daum 우편번호 검색
+        function execDaumPostcode() {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    let addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+                    document.getElementById('postcode').value = data.zonecode;
+                    document.getElementById('address').value = addr;
+                    document.getElementById('detailAddress').focus();
+                }
+            }).open();
+        }
+
+        // 주민번호로 계약자 정보 조회 (공개 API)
+        async function searchCustomerByResidentNumber() {
+            const residentNumber = document.getElementById('searchResidentNumber').value.trim();
+            
+            if (!residentNumber) {
+                alert('주민등록번호를 입력해주세요.');
+                return;
+            }
+            
+            // 주민번호 형식 검증 (간단)
+            if (!/^\d{6}-\d{7}$/.test(residentNumber)) {
+                alert('주민등록번호 형식이 올바르지 않습니다.\n(예: 123456-1234567)');
+                return;
+            }
+            
+            try {
+                // 공개 API로 주민번호 조회
+                const response = await axios.get(`/api/customers/search?resident_number=${encodeURIComponent(residentNumber)}`);
+                
+                if (response.data && response.data.length > 0) {
+                    const customer = response.data[0]; // 첫 번째 결과 사용
+                    
+                    console.log('========== 고객 정보 조회 시작 ==========');
+                    console.log('✅ 고객 정보 조회 성공:', customer);
+                    console.log('🔍 고객 데이터 상세:');
+                    console.log('   - ID:', customer.id);
+                    console.log('   - 이름:', customer.name);
+                    console.log('   - 주민번호:', customer.resident_number);
+                    console.log('   - 전화번호:', customer.phone);
+                    console.log('   - 우편번호:', customer.postcode, `(타입: ${typeof customer.postcode})`);
+                    console.log('   - 주소:', customer.address, `(타입: ${typeof customer.address})`);
+                    console.log('   - 상세주소:', customer.detail_address, `(타입: ${typeof customer.detail_address})`);
+                    
+                    // 폼에 데이터 자동 입력
+                    console.log('📝 폼 필드 자동 입력 시작...');
+                    document.getElementById('borrowerName').value = customer.name || '';
+                    console.log('   ✓ 이름 입력 완료');
+                    document.getElementById('borrowerResidentNumber').value = customer.resident_number || '';
+                    console.log('   ✓ 주민번호 입력 완료');
+                    document.getElementById('borrowerPhone').value = customer.phone || '';
+                    console.log('   ✓ 전화번호 입력 완료');
+                    
+                    const postcodeValue = customer.postcode || '';
+                    document.getElementById('postcode').value = postcodeValue;
+                    console.log(`   ✓ 우편번호 입력 완료: "${postcodeValue}"`);
+                    
+                    const addressValue = customer.address || '';
+                    document.getElementById('address').value = addressValue;
+                    console.log(`   ✓ 주소 입력 완료: "${addressValue}"`);
+                    
+                    const detailAddressValue = customer.detail_address || '';
+                    document.getElementById('detailAddress').value = detailAddressValue;
+                    console.log(`   ✓ 상세주소 입력 완료: "${detailAddressValue}"`);
+                    
+                    // 주소 hidden 필드 업데이트
+                    const fullAddr = customer.postcode && customer.address 
+                        ? `(${customer.postcode}) ${customer.address} ${customer.detail_address || ''}`.trim()
+                        : customer.address || '';
+                    document.getElementById('borrowerAddress').value = fullAddr;
+                    console.log(`   ✓ 전체주소 hidden 필드: "${fullAddr}"`);
+                    
+                    console.log('✅ 폼 필드 자동 입력 완료');
+                    console.log('🔍 입력 후 필드 값 확인:');
+                    console.log('   - 우편번호 필드:', document.getElementById('postcode').value);
+                    console.log('   - 주소 필드:', document.getElementById('address').value);
+                    console.log('   - 상세주소 필드:', document.getElementById('detailAddress').value);
+                    console.log('========== 고객 정보 조회 종료 ==========');
+                    
+                    alert(`✅ ${customer.name}님의 정보를 불러왔습니다.\n\n우편번호: ${postcodeValue || '(없음)'}\n주소: ${addressValue || '(없음)'}\n상세주소: ${detailAddressValue || '(없음)'}`);
+                    
+                    // 조회 입력창 초기화
+                    document.getElementById('searchResidentNumber').value = '';
+                } else {
+                    alert('⚠️ 해당 주민번호로 등록된 계약자 정보가 없습니다.\n직접 입력해주세요.');
+                }
+            } catch (error) {
+                console.error('계약자 조회 오류:', error);
+                if (error.response?.status === 404) {
+                    alert('⚠️ 해당 주민번호로 등록된 계약자 정보가 없습니다.\n직접 입력해주세요.');
+                } else {
+                    alert('계약자 정보를 조회하는 중 오류가 발생했습니다.\n직접 입력해주세요.');
+                }
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initSignaturePads();
+            loadCompanySettings();
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('loanDate').value = today;
+            
+            // 주민번호 자동 하이픈 추가 (조회용)
+            document.getElementById('searchResidentNumber').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 13);
+                }
+                e.target.value = value;
+            });
+            
+            // 주민번호 자동 하이픈 추가 (입력용)
+            document.getElementById('borrowerResidentNumber').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 13);
+                }
+                e.target.value = value;
+            });
+            
+            // 이벤트 리스너 추가: 자동 계산
+            document.getElementById('loanDate').addEventListener('change', calculateRepaymentDate);
+            document.getElementById('loanPeriod').addEventListener('input', calculateRepaymentDate);
+            
+            // 계약 생성 날짜/시간 표시
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const dateTimeString = `${year}년 ${month}월 ${day}일 ${hours}:${minutes}:${seconds}`;
+            document.getElementById('contractDateTime').textContent = dateTimeString;
+            
+            // GPS 위치 정보 가져오기
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lng = position.coords.longitude.toFixed(6);
+                        document.getElementById('contractLocation').textContent = `위도 ${lat}, 경도 ${lng}`;
+                    },
+                    (error) => {
+                        console.error('위치 정보를 가져올 수 없습니다:', error);
+                        document.getElementById('contractLocation').textContent = '위치 정보 사용 불가';
+                    }
+                );
+            } else {
+                document.getElementById('contractLocation').textContent = '브라우저가 위치 서비스를 지원하지 않습니다';
+            }
+        });
+        
+        // 사업자 정보 로드
+        async function loadCompanySettings() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.get('/api/company-settings', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                const company = response.data;
+                
+                // 약관 임대인 정보에 자동 입력
+                if (company.company_name) {
+                    document.getElementById('terms-company-name').textContent = company.company_name;
+                } else {
+                    document.getElementById('terms-company-name').textContent = '(사업자명)';
+                }
+                
+                if (company.business_number) {
+                    document.getElementById('terms-business-number').textContent = company.business_number;
+                } else {
+                    document.getElementById('terms-business-number').textContent = '(사업자번호)';
+                }
+                
+                if (company.representative_name) {
+                    document.getElementById('terms-representative-name').textContent = company.representative_name;
+                } else {
+                    document.getElementById('terms-representative-name').textContent = '(대표자명)';
+                }
+                
+                console.log('✅ 사업자 정보 로드 완료:', company);
+            } catch (error) {
+                console.error('❌ 사업자 정보 로드 실패:', error);
+                document.getElementById('terms-company-name').textContent = '(설정 필요)';
+                document.getElementById('terms-business-number').textContent = '(설정 필요)';
+                document.getElementById('terms-representative-name').textContent = '(설정 필요)';
+            }
+        }
+        
+        // 상환예정일 자동 계산
+        function calculateRepaymentDate() {
+            const loanDateStr = document.getElementById('loanDate').value;
+            const loanPeriod = parseInt(document.getElementById('loanPeriod').value) || 0;
+            
+            if (loanDateStr && loanPeriod > 0) {
+                const loanDate = new Date(loanDateStr);
+                loanDate.setDate(loanDate.getDate() + loanPeriod);
+                
+                const year = loanDate.getFullYear();
+                const month = String(loanDate.getMonth() + 1).padStart(2, '0');
+                const day = String(loanDate.getDate()).padStart(2, '0');
+                
+                document.getElementById('repaymentDate').value = `${year}-${month}-${day}`;
+            }
+        }
+
+
+        function initSignaturePads() {
+            // 임차인 서명
+            borrowerCanvas = document.getElementById('borrowerSignatureCanvas');
+            borrowerCtx = borrowerCanvas.getContext('2d');
+            
+            // 캔버스 배경을 흰색으로 채우기 (중요!)
+            borrowerCtx.fillStyle = '#FFFFFF';
+            borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            
+            borrowerCtx.strokeStyle = '#000';
+            borrowerCtx.lineWidth = 2;
+            borrowerCtx.lineCap = 'round';
+            borrowerCtx.lineJoin = 'round';
+
+            borrowerCanvas.addEventListener('mousedown', (e) => startDrawing(e));
+            borrowerCanvas.addEventListener('mousemove', (e) => draw(e));
+            borrowerCanvas.addEventListener('mouseup', () => stopDrawing());
+            borrowerCanvas.addEventListener('mouseout', () => stopDrawing());
+        }
+
+        function startDrawing(e) {
+            borrowerIsDrawing = true;
+            
+            const rect = borrowerCanvas.getBoundingClientRect();
+            borrowerCtx.beginPath();
+            borrowerCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function draw(e) {
+            if (!borrowerIsDrawing) return;
+            
+            const rect = borrowerCanvas.getBoundingClientRect();
+            borrowerCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            borrowerCtx.stroke();
+        }
+
+        function stopDrawing() {
+            borrowerIsDrawing = false;
+        }
+
+        function clearBorrowerSignature() {
+            // 캔버스를 지우고 다시 흰색 배경으로 채우기
+            borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            borrowerCtx.fillStyle = '#FFFFFF';
+            borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+        }
+
+        // 신분증 촬영 관련 함수
+        async function startLoanCamera() {
+            try {
+                loanStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                const video = document.getElementById('loanVideo');
+                video.srcObject = loanStream;
+                
+                document.getElementById('loanCameraSection').classList.remove('hidden');
+                document.getElementById('loanPhotoPreview').classList.add('hidden');
+            } catch (error) {
+                console.error('카메라 접근 오류:', error);
+                alert('카메라에 접근할 수 없습니다. 권한을 확인해주세요.');
+            }
+        }
+
+        function captureLoanPhoto() {
+            const video = document.getElementById('loanVideo');
+            const photoCanvas = document.getElementById('loanPhotoCanvas');
+            const capturedPhoto = document.getElementById('loanCapturedPhoto');
+            
+            // 최대 크기 제한 (가로 800px로 더 축소)
+            const maxWidth = 800;
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+            
+            if (width > maxWidth) {
+                height = Math.floor(height * (maxWidth / width));
+                width = maxWidth;
+            }
+            
+            photoCanvas.width = width;
+            photoCanvas.height = height;
+            
+            const photoCtx = photoCanvas.getContext('2d');
+            photoCtx.drawImage(video, 0, 0, width, height);
+            
+            // 품질을 0.4로 더 낮춤
+            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.4);
+            capturedPhoto.src = loanIdCardPhotoData;
+            
+            stopLoanCamera();
+            document.getElementById('loanPhotoPreview').classList.remove('hidden');
+        }
+
+        function stopLoanCamera() {
+            if (loanStream) {
+                loanStream.getTracks().forEach(track => track.stop());
+                loanStream = null;
+            }
+            document.getElementById('loanCameraSection').classList.add('hidden');
+        }
+
+        function handleLoanFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 최대 크기 제한 (가로 800px로 더 축소)
+                    const maxWidth = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height = Math.floor(height * (maxWidth / width));
+                        width = maxWidth;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 품질을 0.4로 더 낮춤
+                    loanIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.4);
+                    document.getElementById('loanCapturedPhoto').src = loanIdCardPhotoData;
+                    document.getElementById('loanPhotoPreview').classList.remove('hidden');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearLoanPhoto() {
+            loanIdCardPhotoData = null;
+            document.getElementById('loanPhotoPreview').classList.add('hidden');
+            document.getElementById('loanIdCardFile').value = '';
+        }
+
+        document.getElementById('loanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 약관 동의 확인
+            if (!document.getElementById('agreeTerms').checked) {
+                alert('차용증 약관에 동의해주세요');
+                return;
+            }
+
+            // 서명 확인 및 최적화
+            // 임시 캔버스를 생성하여 서명 크기 최적화
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 300;  // 너비를 300px로 더 축소
+            tempCanvas.height = 80;  // 높이를 80px로 더 축소
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 흰색 배경 먼저 그리기
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // 원본 캔버스 내용을 축소하여 그리기
+            tempCtx.drawImage(borrowerCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const borrowerSignatureData = tempCanvas.toDataURL('image/jpeg', 0.5);
+            
+            const borrowerSignatureEmpty = borrowerCtx.getImageData(0, 0, borrowerCanvas.width, borrowerCanvas.height).data.every((val, i) => i % 4 === 3 ? val === 0 : val === 255);
+            
+            if (borrowerSignatureEmpty) {
+                alert('임차인 서명을 해주세요');
+                return;
+            }
+
+            // 필수 필드 확인
+            const loanAmount = parseInt(document.getElementById('loanAmount').value);
+            const dailyDeduction = parseInt(document.getElementById('dailyDeduction').value);
+            const loanPeriod = parseInt(document.getElementById('loanPeriod').value);
+            
+            if (!loanAmount || !dailyDeduction || !loanPeriod) {
+                alert('차용금액, 일차감금액, 대여기간을 모두 입력해주세요');
+                return;
+            }
+
+            // 주소 합치기
+            const postcode = document.getElementById('postcode').value;
+            const address = document.getElementById('address').value;
+            const detailAddress = document.getElementById('detailAddress').value;
+            const fullAddress = postcode && address 
+                ? `(${postcode}) ${address} ${detailAddress}`.trim()
+                : document.getElementById('borrowerAddress').value;
+            
+            const loanData = {
+                borrower_name: document.getElementById('borrowerName').value,
+                borrower_resident_number: document.getElementById('borrowerResidentNumber').value,
+                borrower_phone: document.getElementById('borrowerPhone').value,
+                borrower_address: fullAddress,
+                loan_amount: loanAmount,
+                daily_deduction: dailyDeduction,
+                loan_date: document.getElementById('loanDate').value,
+                loan_period: loanPeriod,
+                repayment_date: document.getElementById('repaymentDate').value,
+                interest_rate: parseFloat(document.getElementById('interestRate').value) || 0,
+                account_number: document.getElementById('accountNumber').value || '',
+                special_terms: document.getElementById('specialTerms').value || '',
+                borrower_signature: borrowerSignatureData,
+                lender_signature: '',
+                borrower_id_card_photo: loanIdCardPhotoData || ''
+            };
+
+            try {
+                // 고객용 공개 API 호출 (인증 불필요)
+                const response = await axios.post('/api/loan-contracts/public', loanData);
+                alert(`차용증이 생성되었습니다!\n차용증번호: ${response.data.loan_number}\n\n담당자가 확인 후 연락드리겠습니다.`);
+                window.location.href = '/static/customer-portal.html';
+            } catch (error) {
+                console.error('Error creating loan contract:', error);
+                alert('차용증 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        });
+    </script>
+</body>
+</html>

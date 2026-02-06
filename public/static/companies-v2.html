@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>업체 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-pink-600 mb-6">업체 정보 등록 (새 버전)</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">우편번호 검색 테스트</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-2">우편번호</label>
+                <div class="flex gap-2">
+                    <input type="text" id="postcode" readonly placeholder="우편번호" 
+                        class="flex-1 px-4 py-2 border rounded-lg bg-gray-50">
+                    <button id="searchBtn" 
+                        class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
+                        <i class="fas fa-search mr-1"></i>검색
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-2">주소</label>
+                <input type="text" id="address" readonly placeholder="주소" 
+                    class="w-full px-4 py-2 border rounded-lg bg-gray-50 mb-2">
+                <input type="text" id="detailAddress" placeholder="상세주소" 
+                    class="w-full px-4 py-2 border rounded-lg">
+            </div>
+        </div>
+        
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+            <h3 class="font-bold mb-2">로그:</h3>
+            <div id="logArea" class="font-mono text-sm"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(msg) {
+            const logArea = document.getElementById('logArea');
+            const time = new Date().toLocaleTimeString();
+            logArea.innerHTML += `<div>[${time}] ${msg}</div>`;
+            console.log(msg);
+        }
+
+        function searchAddress() {
+            log('🔍 searchAddress 함수 호출됨');
+            
+            if (typeof daum === 'undefined') {
+                log('❌ daum 객체 없음');
+                alert('Daum API가 로드되지 않았습니다.');
+                return;
+            }
+            
+            if (typeof daum.Postcode === 'undefined') {
+                log('❌ daum.Postcode 없음');
+                alert('Daum Postcode API가 로드되지 않았습니다.');
+                return;
+            }
+            
+            try {
+                log('✅ new daum.Postcode() 호출');
+                new daum.Postcode({
+                    oncomplete: function(data) {
+                        log('✅ 주소 선택: ' + data.address);
+                        document.getElementById('postcode').value = data.zonecode;
+                        document.getElementById('address').value = data.address;
+                        document.getElementById('detailAddress').focus();
+                    }
+                }).open();
+                log('✅ 팝업 열림');
+            } catch (error) {
+                log('❌ 에러: ' + error.message);
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // DOM 로드 완료 후 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            log('✅ DOMContentLoaded 이벤트 발생');
+            log('Daum API: ' + (typeof daum !== 'undefined' ? '✅ 로드됨' : '❌ 없음'));
+            log('daum.Postcode: ' + (typeof daum?.Postcode !== 'undefined' ? '✅ 있음' : '❌ 없음'));
+            
+            const searchBtn = document.getElementById('searchBtn');
+            if (searchBtn) {
+                searchBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    log('🖱️ 검색 버튼 클릭됨');
+                    searchAddress();
+                });
+                log('✅ 검색 버튼 이벤트 리스너 연결됨');
+            } else {
+                log('❌ 검색 버튼을 찾을 수 없음');
+            }
+        });
+
+        log('📄 스크립트 로드 완료');
+    </script>
+</body>
+</html>

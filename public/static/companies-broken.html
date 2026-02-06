@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>업체 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <style>
+        @media print {
+            /* 인쇄 시 배경색 제거 및 A4 용지 설정 */
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+            
+            body {
+                background: white !important;
+            }
+            
+            /* 모달 배경 제거 */
+            #detailModal {
+                position: static !important;
+                background: white !important;
+            }
+            
+            /* 모달 컨텐츠만 인쇄 */
+            #detailModal > div {
+                box-shadow: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            /* 헤더, 버튼 등 숨기기 */
+            .print\\:hidden {
+                display: none !important;
+            }
+            
+            /* 페이지 나누기 방지 */
+            img {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 헤더 -->
+    <header class="bg-pink-600 text-white shadow-md sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a href="/" class="flex items-center px-3 py-2 hover:bg-pink-700 transition-colors rounded-lg cursor-pointer">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    <span class="text-xl font-bold">업체 목록</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- 업체 정보 등록 섹션 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">
+                <i class="fas fa-building mr-2 text-pink-600"></i>업체 정보 등록
+            </h2>
+            <form id="companyForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 업체명 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-building mr-1 text-pink-500"></i>업체명 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="companyName" 
+                            required
+                            placeholder="예: 대성모터스" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                        >
+                    </div>
+
+                    <!-- 사업자번호 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-id-card mr-1 text-pink-500"></i>사업자번호 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="companyBusinessNumber" 
+                            required
+                            placeholder="123-45-67890" 
+                            maxlength="12"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                        >
+                    </div>
+
+                    <!-- 대표자 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-user-tie mr-1 text-pink-500"></i>대표자 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="companyRepresentative" 
+                            required
+                            placeholder="홍길동" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                        >
+                    </div>
+
+                    <!-- 대표자 주민등록번호 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-id-card-alt mr-1 text-pink-500"></i>대표자 주민등록번호 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="companyResidentNumber" 
+                            required
+                            placeholder="000000-0000000" 
+                            maxlength="14"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                        >
+                    </div>
+
+                    <!-- 전화번호 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-1 text-pink-500"></i>전화번호 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="companyPhone" 
+                            required
+                            placeholder="02-1234-5678" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- 우편번호 -->
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        id="companyPostcode" 
+                        required
+                        readonly
+                        placeholder="12345" 
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
+                    >
+                    <button 
+                        type="button"
+                        id="postcodeSearchBtn"
+                        class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition">
+                        <i class="fas fa-search mr-1"></i>검색
+                    </button>
+                </div>
+
+                <!-- 주소 -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">
+                        <i class="fas fa-home mr-1 text-pink-500"></i>주소 <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="companyAddress" 
+                        required
+                        readonly
+                        placeholder="우편번호 검색 버튼을 클릭하세요" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer mb-2"
+                    >
+                    <input 
+                        type="text" 
+                        id="companyDetailAddress" 
+                        placeholder="상세주소 (동/호수 등)" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    >
+                </div>
+
+                <!-- 대표자 서명 -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">
+                        <i class="fas fa-signature mr-1 text-pink-500"></i>대표자 서명 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                        <canvas 
+                            id="companySignatureCanvas" 
+                            width="400" 
+                            height="150"
+                            onclick="openSignatureModal('company')"
+                            class="w-full bg-white rounded cursor-pointer hover:border-pink-300 border-2 border-transparent transition"
+                        ></canvas>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-xs text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i>클릭하여 서명 입력
+                            </p>
+                            <button 
+                                type="button" 
+                                onclick="clearSignature('company')" 
+                                class="text-xs text-red-600 hover:text-red-700">
+                                <i class="fas fa-eraser mr-1"></i>지우기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 신분증 촬영/업로드 -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">
+                        <i class="fas fa-id-card mr-1 text-pink-500"></i>대표자 신분증 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                        <div id="companyIdPreview" class="hidden mb-3">
+                            <img id="companyIdImage" src="" alt="신분증" class="w-full max-w-md mx-auto rounded">
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <button 
+                                type="button" 
+                                onclick="startCompanyIdCamera()" 
+                                class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                                <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                            </button>
+                            <label class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition text-center cursor-pointer">
+                                <i class="fas fa-upload mr-2"></i>파일 선택
+                                <input 
+                                    type="file" 
+                                    id="companyIdUpload" 
+                                    accept="image/*" 
+                                    onchange="handleCompanyIdUpload(event)"
+                                    class="hidden"
+                                >
+                            </label>
+                            <button 
+                                type="button" 
+                                onclick="clearCompanyId()" 
+                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
+                                <i class="fas fa-trash mr-2"></i>삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex justify-end gap-3">
+                    <button 
+                        type="button" 
+                        onclick="clearCompanyForm()" 
+                        class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition">
+                        <i class="fas fa-redo mr-2"></i>초기화
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition">
+                        <i class="fas fa-save mr-2"></i>저장
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 검색 및 필터 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="업체명/사업자번호/대표자/전화번호/주소 검색..." 
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                            oninput="filterCompanies()"
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 업체 목록 테이블 -->
+        <div id="companyList">
+            <!-- 업체 목록 테이블이 여기에 동적으로 추가됩니다 -->
+        </div>
+
+        <!-- 빈 상태 메시지 -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <i class="fas fa-building text-gray-400 text-6xl mb-4"></i>
+            <p class="text-gray-500 text-lg">등록된 업체가 없습니다.</p>
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div id="loadingState" class="text-center py-12">
+            <i class="fas fa-spinner fa-spin text-pink-600 text-6xl mb-4"></i>
+            <p class="text-gray-600 text-lg">업체 목록을 불러오는 중...</p>
+        </div>
+    </div>
+
+    <!-- 업체 상세 모달 -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <!-- A4 용지 크기: 210mm x 297mm (약 794px x 1123px at 96dpi) -->
+            <div class="bg-white rounded-lg shadow-xl w-[210mm] max-h-[90vh] overflow-y-auto print:shadow-none print:max-h-none">
+                <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10 print:static">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-building mr-2 text-pink-600"></i>
+                        업체 상세정보
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="printCompanyDetail()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors print:hidden">
+                            <i class="fas fa-print mr-1"></i>인쇄
+                        </button>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-xl print:hidden">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="companyDetail" class="p-4 text-sm">
+                    <!-- 상세 정보가 여기에 표시됩니다 -->
+                </div>
+
+                <div class="flex justify-end gap-3 p-4 border-t bg-gray-50 sticky bottom-0 print:hidden">
+                    <button onclick="closeModal()" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- 서명 확대 모달 -->
+    <div id="signatureModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-signature mr-2 text-pink-600"></i>
+                    서명 입력
+                </h2>
+                <button onclick="closeSignatureModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="border-2 border-gray-300 rounded-lg overflow-hidden mb-4">
+                    <canvas 
+                        id="signatureModalCanvas" 
+                        width="800" 
+                        height="400"
+                        class="w-full bg-white cursor-crosshair touch-none"
+                    ></canvas>
+                </div>
+                <p class="text-sm text-gray-500 text-center mb-4">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    마우스나 터치로 서명해주세요
+                </p>
+            </div>
+
+            <div class="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <button 
+                    onclick="clearModalSignature()" 
+                    class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-eraser mr-2"></i>지우기
+                </button>
+                <button 
+                    onclick="closeSignatureModal()" 
+                    class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-times mr-2"></i>취소
+                </button>
+                <button 
+                    onclick="saveModalSignature()" 
+                    class="px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-check mr-2"></i>저장
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 카메라 모달 -->
+    <div id="cameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-camera mr-2 text-blue-600"></i>
+                    신분증 촬영
+                </h2>
+                <button onclick="closeCameraModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-4">
+                    <video 
+                        id="cameraVideo" 
+                        autoplay 
+                        playsinline
+                        class="w-full h-auto"
+                    ></video>
+                    <canvas id="cameraCanvas" class="hidden"></canvas>
+                </div>
+                <p class="text-sm text-gray-500 text-center mb-4">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    신분증을 화면에 맞춰주세요
+                </p>
+            </div>
+
+            <div class="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <button 
+                    onclick="closeCameraModal()" 
+                    class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-times mr-2"></i>취소
+                </button>
+                <button 
+                    onclick="captureIdPhoto()" 
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-camera mr-2"></i>촬영
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOMContentLoaded로 전체 스크립트 감싸기
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOMContentLoaded - 스크립트 시작');
+            
+        // ==================== 전역 변수 ====================
+        let companies = [];
+        let allCompanies = [];
+        let currentUser = null;
+        let isSuperAdmin = false;
+        
+        // 서명 관련 변수
+        let companySignatureData = null;
+        let currentSignatureType = null; // 'company' 등
+        let signatureCanvas = null;
+        let signatureCtx = null;
+        let isDrawing = false;
+        
+        // 모달 서명 캔버스
+        let modalSignatureCanvas = null;
+        let modalSignatureCtx = null;
+        let modalIsDrawing = false;
+        
+        // 카메라 관련 변수
+        let cameraStream = null;
+        let companyIdPhotoData = null;
+
+        // 세션 확인
+        window.checkAuth = function() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+                return false;
+            }
+            
+            // 사용자 정보 가져오기
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                try {
+                    currentUser = JSON.parse(userStr);
+                    isSuperAdmin = currentUser.role === 'super_admin';
+                } catch (e) {
+                    console.error('사용자 정보 파싱 실패:', e);
+                }
+            }
+            
+            return true;
+        }
+
+        // Daum 우편번호 검색
+        window.searchCompanyAddress = function() {
+            console.log('🔍 우편번호 검색 시작');
+            
+            if (typeof daum === 'undefined' || typeof daum.Postcode === 'undefined') {
+                console.error('❌ Daum Postcode API가 로드되지 않았습니다.');
+                alert('우편번호 검색 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
+            try {
+                new daum.Postcode({
+                    oncomplete: function(data) {
+                        console.log('✅ 주소 선택:', data);
+                        document.getElementById('companyPostcode').value = data.zonecode;
+                        document.getElementById('companyAddress').value = data.address;
+                        document.getElementById('companyDetailAddress').focus();
+                    }
+                }).open();
+            } catch (error) {
+                console.error('❌ 우편번호 검색 오류:', error);
+                alert('우편번호 검색 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 폼 초기화
+        window.clearCompanyForm = function() {
+            document.getElementById('companyForm').reset();
+            clearSignature('company');
+            clearCompanyId();
+        }
+
+        // ==================== 서명 관련 함수 ====================
+        
+        // 서명 모달 열기
+        window.openSignatureModal = function(type) {
+            currentSignatureType = type;
+            const modal = document.getElementById('signatureModal');
+            modal.classList.remove('hidden');
+            
+            // 모달 캔버스 초기화
+            if (!modalSignatureCanvas) {
+                modalSignatureCanvas = document.getElementById('signatureModalCanvas');
+                modalSignatureCtx = modalSignatureCanvas.getContext('2d');
+                
+                // 배경을 흰색으로 설정 (JPEG 변환 시 필요)
+                modalSignatureCtx.fillStyle = 'white';
+                modalSignatureCtx.fillRect(0, 0, modalSignatureCanvas.width, modalSignatureCanvas.height);
+                
+                // 이벤트 리스너 설정
+                modalSignatureCanvas.addEventListener('mousedown', startModalDrawing);
+                modalSignatureCanvas.addEventListener('mousemove', drawModal);
+                modalSignatureCanvas.addEventListener('mouseup', stopModalDrawing);
+                modalSignatureCanvas.addEventListener('mouseleave', stopModalDrawing);
+                
+                // 터치 이벤트
+                modalSignatureCanvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    modalSignatureCanvas.dispatchEvent(mouseEvent);
+                });
+                
+                modalSignatureCanvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    modalSignatureCanvas.dispatchEvent(mouseEvent);
+                });
+                
+                modalSignatureCanvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    modalSignatureCanvas.dispatchEvent(mouseEvent);
+                });
+            }
+            
+            // 기존 서명 데이터 로드
+            if (type === 'company' && companySignatureData) {
+                const img = new Image();
+                img.onload = function() {
+                    // 배경을 흰색으로 먼저 채움
+                    modalSignatureCtx.fillStyle = 'white';
+                    modalSignatureCtx.fillRect(0, 0, modalSignatureCanvas.width, modalSignatureCanvas.height);
+                    // 서명 이미지 그리기
+                    modalSignatureCtx.drawImage(img, 0, 0, modalSignatureCanvas.width, modalSignatureCanvas.height);
+                };
+                img.src = companySignatureData;
+            } else {
+                // 배경을 흰색으로 채움
+                modalSignatureCtx.fillStyle = 'white';
+                modalSignatureCtx.fillRect(0, 0, modalSignatureCanvas.width, modalSignatureCanvas.height);
+            }
+        }
+        
+        // 모달 서명 시작
+        function startModalDrawing(e) {
+            modalIsDrawing = true;
+            const rect = modalSignatureCanvas.getBoundingClientRect();
+            modalSignatureCtx.beginPath();
+            modalSignatureCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+        
+        // 모달 서명 그리기
+        function drawModal(e) {
+            if (!modalIsDrawing) return;
+            const rect = modalSignatureCanvas.getBoundingClientRect();
+            modalSignatureCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            modalSignatureCtx.strokeStyle = '#000';
+            modalSignatureCtx.lineWidth = 2;
+            modalSignatureCtx.lineCap = 'round';
+            modalSignatureCtx.lineJoin = 'round';
+            modalSignatureCtx.stroke();
+        }
+        
+        // 모달 서명 종료
+        function stopModalDrawing() {
+            modalIsDrawing = false;
+        }
+        
+        // 모달 서명 지우기
+        window.clearModalSignature = function() {
+            // 배경을 흰색으로 다시 채움
+            modalSignatureCtx.fillStyle = 'white';
+            modalSignatureCtx.fillRect(0, 0, modalSignatureCanvas.width, modalSignatureCanvas.height);
+        }
+        
+        // 서명 모달 저장
+        window.saveModalSignature = function() {
+            // 서명 데이터를 JPEG로 압축 (품질 0.6)
+            const imageData = modalSignatureCanvas.toDataURL('image/jpeg', 0.6);
+            
+            console.log('서명 데이터 크기:', Math.round(imageData.length / 1024), 'KB');
+            
+            if (currentSignatureType === 'company') {
+                companySignatureData = imageData;
+                const canvas = document.getElementById('companySignatureCanvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = imageData;
+            }
+            
+            closeSignatureModal();
+        }
+        
+        // 서명 모달 닫기
+        window.closeSignatureModal = function() {
+            document.getElementById('signatureModal').classList.add('hidden');
+            currentSignatureType = null;
+        }
+        
+        // 작은 캔버스 서명 지우기
+        window.clearSignature = function(type) {
+            if (type === 'company') {
+                const canvas = document.getElementById('companySignatureCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                companySignatureData = null;
+            }
+        }
+
+        // ==================== 카메라/신분증 관련 함수 ====================
+        
+        // 카메라 시작
+        window.startCompanyIdCamera = async function() {
+            try {
+                const modal = document.getElementById('cameraModal');
+                const video = document.getElementById('cameraVideo');
+                
+                modal.classList.remove('hidden');
+                
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    } 
+                });
+                
+                video.srcObject = cameraStream;
+            } catch (error) {
+                console.error('카메라 시작 실패:', error);
+                alert('카메라를 시작할 수 없습니다. 카메라 권한을 확인해주세요.');
+                closeCameraModal();
+            }
+        }
+        
+        // 신분증 촬영
+        window.captureIdPhoto = async function() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            
+            // 해상도를 제한 (최대 1920x1080)
+            const maxWidth = 1920;
+            const maxHeight = 1080;
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+            
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, width, height);
+            
+            // JPEG 압축 (품질 0.7)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            
+            // 추가 리사이징 (필요시)
+            companyIdPhotoData = await resizeImage(dataUrl, 1200, 1200, 0.7);
+            
+            // 미리보기 표시
+            document.getElementById('companyIdImage').src = companyIdPhotoData;
+            document.getElementById('companyIdPreview').classList.remove('hidden');
+            
+            closeCameraModal();
+            
+            console.log('촬영 이미지 크기:', Math.round(companyIdPhotoData.length / 1024), 'KB');
+            alert('신분증이 촬영되었습니다.');
+        }
+        
+        // 카메라 모달 닫기
+        window.closeCameraModal = function() {
+            const modal = document.getElementById('cameraModal');
+            const video = document.getElementById('cameraVideo');
+            
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            video.srcObject = null;
+            modal.classList.add('hidden');
+        }
+        
+        // 이미지 리사이징 및 압축 함수
+        window.resizeImage = function(dataUrl, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // 비율 유지하면서 리사이징
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width = width * ratio;
+                        height = height * ratio;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // JPEG로 변환하고 품질 조정
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = dataUrl;
+            });
+        }
+        
+        // 파일 업로드로 신분증 등록
+        async function handleCompanyIdUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('이미지 파일만 업로드 가능합니다.');
+                return;
+            }
+            
+            // 파일 크기 체크 (10MB 이상이면 경고)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('⚠️ 파일 크기가 너무 큽니다 (10MB 초과).\n자동으로 압축됩니다.');
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    // 이미지 리사이징 및 압축
+                    const resizedImage = await resizeImage(e.target.result, 1200, 1200, 0.7);
+                    companyIdPhotoData = resizedImage;
+                    document.getElementById('companyIdImage').src = resizedImage;
+                    document.getElementById('companyIdPreview').classList.remove('hidden');
+                    
+                    console.log('원본 크기:', Math.round(e.target.result.length / 1024), 'KB');
+                    console.log('압축 후:', Math.round(resizedImage.length / 1024), 'KB');
+                } catch (error) {
+                    console.error('이미지 처리 실패:', error);
+                    alert('이미지 처리에 실패했습니다.');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 신분증 삭제
+        window.clearCompanyId = function() {
+            companyIdPhotoData = null;
+            document.getElementById('companyIdImage').src = '';
+            document.getElementById('companyIdPreview').classList.add('hidden');
+            document.getElementById('companyIdUpload').value = '';
+        }
+
+        // 업체 목록 불러오기
+        window.loadCompanies = async function() {
+            console.log('📋 업체 목록 로드 시작...');
+            
+            if (!checkAuth()) {
+                console.log('❌ 인증 실패 - loadCompanies 중단');
+                return;
+            }
+
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                console.log('🔑 세션 ID:', sessionId ? '존재' : '없음');
+                
+                const response = await axios.get('/api/companies', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+
+                console.log('✅ API 응답 성공:', response.data);
+                console.log('📊 업체 수:', response.data.length);
+
+                companies = response.data;
+                allCompanies = response.data;
+                displayCompanies(companies);
+            } catch (error) {
+                console.error('❌ 업체 목록 로드 실패:', error);
+                console.error('에러 상세:', error.response?.data || error.message);
+                alert('업체 목록을 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 업체 목록 표시 (테이블 형태)
+        window.displayCompanies = function(data) {
+            console.log('🖼️ 업체 목록 표시 시작...');
+            console.log('데이터:', data);
+            
+            const list = document.getElementById('companyList');
+            const emptyState = document.getElementById('emptyState');
+            const loadingState = document.getElementById('loadingState');
+
+            console.log('DOM 요소 확인:', {
+                list: !!list,
+                emptyState: !!emptyState,
+                loadingState: !!loadingState
+            });
+
+            loadingState.classList.add('hidden');
+
+            if (!data || data.length === 0) {
+                console.log('⚠️ 데이터 없음 - 빈 상태 표시');
+                list.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            console.log('✅ 데이터 있음 - 테이블 렌더링');
+            emptyState.classList.add('hidden');
+
+            list.innerHTML = `
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-pink-600 text-white">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold">업체명</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold">사업자번호</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold">대표자</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold">전화번호</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold">주소</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold">등록일</th>
+                                    <th class="px-4 py-3 text-center text-sm font-semibold" colspan="${isSuperAdmin ? '2' : '1'}">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                ${data.map(company => `
+                                    <tr class="hover:bg-pink-50 transition-colors cursor-pointer" onclick="showCompanyDetail(${company.id})">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                                            <i class="fas fa-building text-pink-500 mr-2"></i>${company.name}
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-gray-700">${company.business_number}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-700">${company.representative}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-700">${company.phone}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="${company.address || '-'}">
+                                            ${company.address || '-'}
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">${formatDate(company.created_at)}</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <button 
+                                                onclick="event.stopPropagation(); showCompanyDetail(${company.id})"
+                                                class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm font-medium transition">
+                                                <i class="fas fa-info-circle mr-1"></i>상세
+                                            </button>
+                                        </td>
+                                        ${isSuperAdmin ? `
+                                            <td class="px-4 py-3 text-center">
+                                                <button 
+                                                    onclick="event.stopPropagation(); deleteCompany(${company.id}, '${company.name.replace(/'/g, "\\'")}')"
+                                                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition">
+                                                    <i class="fas fa-trash mr-1"></i>삭제
+                                                </button>
+                                            </td>
+                                        ` : ''}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 업체 검색
+        window.filterCompanies = function() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            if (!searchTerm) {
+                displayCompanies(allCompanies);
+                return;
+            }
+
+            const filtered = allCompanies.filter(company => {
+                const name = (company.name || '').toLowerCase();
+                const businessNumber = (company.business_number || '').toLowerCase();
+                const representative = (company.representative || '').toLowerCase();
+                const phone = (company.phone || '').toLowerCase();
+                const address = (company.address || '').toLowerCase();
+
+                return name.includes(searchTerm) || 
+                       businessNumber.includes(searchTerm) || 
+                       representative.includes(searchTerm) ||
+                       phone.includes(searchTerm) ||
+                       address.includes(searchTerm);
+            });
+
+            displayCompanies(filtered);
+        }
+
+        // 업체 상세 정보 표시
+        window.showCompanyDetail = function(id) {
+            const company = allCompanies.find(c => c.id === id);
+            if (!company) return;
+
+            const modal = document.getElementById('detailModal');
+            const detail = document.getElementById('companyDetail');
+
+            detail.innerHTML = `
+                <div class="space-y-3">
+                    <!-- 기본 정보 -->
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <p class="text-gray-500 mb-1">업체명</p>
+                            <p class="font-semibold text-gray-800">${company.name}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-1">사업자번호</p>
+                            <p class="font-semibold text-gray-800">${company.business_number}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-1">대표자</p>
+                            <p class="font-semibold text-gray-800">${company.representative}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-1">대표자 주민등록번호</p>
+                            <p class="font-semibold text-gray-800">${company.representative_resident_number ? maskResidentNumber(company.representative_resident_number) : '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-1">전화번호</p>
+                            <p class="font-semibold text-gray-800">${company.phone}</p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-gray-500 mb-1">주소</p>
+                            <p class="font-semibold text-gray-800">${company.address || '-'}</p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-gray-500 mb-1">상세주소</p>
+                            <p class="font-semibold text-gray-800">${company.detail_address || '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-1">등록일</p>
+                            <p class="font-semibold text-gray-800">${formatDate(company.created_at)}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-1">수정일</p>
+                            <p class="font-semibold text-gray-800">${formatDate(company.updated_at)}</p>
+                        </div>
+                    </div>
+
+                    <!-- 대표자 서명 -->
+                    ${company.signature_data ? `
+                        <div class="border-t pt-3">
+                            <p class="text-xs font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-signature text-pink-600 mr-1"></i>대표자 서명
+                            </p>
+                            <div class="bg-gray-50 border border-gray-300 rounded p-2 flex items-center justify-center" style="max-height: 150px;">
+                                <img 
+                                    src="${company.signature_data}" 
+                                    alt="대표자 서명" 
+                                    class="max-h-[120px] max-w-full object-contain"
+                                >
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 대표자 신분증 -->
+                    ${company.id_card_photo ? `
+                        <div class="border-t pt-3">
+                            <p class="text-xs font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-id-card text-blue-600 mr-1"></i>대표자 신분증
+                            </p>
+                            <div class="bg-gray-50 border border-gray-300 rounded p-2 flex items-center justify-center" style="max-height: 300px;">
+                                <img 
+                                    src="${company.id_card_photo}" 
+                                    alt="대표자 신분증" 
+                                    class="max-h-[280px] max-w-full object-contain rounded cursor-pointer hover:shadow-lg transition"
+                                    onclick="window.open('${company.id_card_photo}', '_blank')"
+                                    title="클릭하여 크게 보기"
+                                >
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+                    </div>
+
+                    <!-- 대표자 서명 -->
+                    ${company.signature_data ? `
+                        <div class="border-t pt-4">
+                            <p class="text-sm font-semibold text-gray-700 mb-3">
+                                <i class="fas fa-signature text-pink-600 mr-2"></i>대표자 서명
+                            </p>
+                            <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                                <img 
+                                    src="${company.signature_data}" 
+                                    alt="대표자 서명" 
+                                    class="max-w-md mx-auto"
+                                >
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 대표자 신분증 -->
+                    ${company.id_card_photo ? `
+                        <div class="border-t pt-4">
+                            <p class="text-sm font-semibold text-gray-700 mb-3">
+                                <i class="fas fa-id-card text-blue-600 mr-2"></i>대표자 신분증
+                            </p>
+                            <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                                <img 
+                                    src="${company.id_card_photo}" 
+                                    alt="대표자 신분증" 
+                                    class="max-w-lg mx-auto rounded shadow-md cursor-pointer hover:shadow-lg transition"
+                                    onclick="window.open('${company.id_card_photo}', '_blank')"
+                                    title="클릭하여 크게 보기"
+                                >
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        // 업체 삭제 (슈퍼관리자 전용)
+        window.deleteCompany = async function(id, name) {
+            // 슈퍼관리자 권한 확인
+            if (!isSuperAdmin) {
+                alert('❌ 삭제 권한이 없습니다.\n슈퍼관리자만 데이터를 삭제할 수 있습니다.');
+                return;
+            }
+            
+            // 삭제 확인
+            const confirmed = confirm(`⚠️ 정말로 "${name}" 업체를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`);
+            if (!confirmed) return;
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.delete(`/api/companies/${id}`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                if (response.status === 200) {
+                    alert(`✅ "${name}" 업체가 삭제되었습니다.`);
+                    await loadCompanies(); // 목록 새로고침
+                }
+            } catch (error) {
+                console.error('업체 삭제 실패:', error);
+                if (error.response && error.response.status === 403) {
+                    alert('❌ 삭제 권한이 없습니다.\n슈퍼관리자만 데이터를 삭제할 수 있습니다.');
+                } else {
+                    alert('❌ 업체 삭제에 실패했습니다.\n' + (error.response?.data?.error || error.message));
+                }
+            }
+        }
+
+        // 업체 상세정보 인쇄
+        window.printCompanyDetail = function() {
+            window.print();
+        }
+
+        // 모달 닫기
+        window.closeModal = function() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        // 날짜 포맷
+        window.formatDate = function(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).replace(/\. /g, '.').replace(/\.$/, '');
+        }
+
+        // 주민등록번호 마스킹 (뒷자리 일부 가리기)
+        window.maskResidentNumber = function(residentNumber) {
+            if (!residentNumber || residentNumber.length < 14) return residentNumber;
+            // 예: 900101-1234567 → 900101-1******
+            return residentNumber.substring(0, 8) + '******';
+        }
+
+        // 업체 폼 제출
+        document.getElementById('companyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('업체 폼 제출 시작');
+            
+            const sessionId = localStorage.getItem('sessionId');
+            console.log('세션ID:', sessionId);
+            
+            if (!sessionId) {
+                alert('⚠️ 로그인이 필요합니다.');
+                window.location.href = '/login';
+                return;
+            }
+
+            const companyData = {
+                name: document.getElementById('companyName').value.trim(),
+                business_number: document.getElementById('companyBusinessNumber').value.trim(),
+                representative: document.getElementById('companyRepresentative').value.trim(),
+                representative_resident_number: document.getElementById('companyResidentNumber').value.trim(),
+                phone: document.getElementById('companyPhone').value.trim(),
+                address: document.getElementById('companyAddress').value.trim(),
+                detail_address: document.getElementById('companyDetailAddress').value.trim() || ''
+            };
+
+            console.log('업체 데이터:', companyData);
+
+            // 유효성 검사
+            if (!companyData.name) {
+                alert('업체명을 입력하세요.');
+                return;
+            }
+            if (!companyData.business_number) {
+                alert('사업자번호를 입력하세요.');
+                return;
+            }
+            if (!companyData.representative) {
+                alert('대표자를 입력하세요.');
+                return;
+            }
+            if (!companyData.phone) {
+                alert('전화번호를 입력하세요.');
+                return;
+            }
+            if (!companyData.representative_resident_number) {
+                alert('대표자 주민등록번호를 입력하세요.');
+                return;
+            }
+            if (companyData.representative_resident_number.length !== 14) {
+                alert('주민등록번호는 13자리 숫자와 하이픈(-)을 포함하여 14자리여야 합니다.\n예: 900101-1234567');
+                return;
+            }
+            if (!document.getElementById('companyPostcode').value) {
+                alert('우편번호를 검색하세요.');
+                return;
+            }
+            if (!companySignatureData) {
+                alert('대표자 서명을 입력하세요.');
+                return;
+            }
+            if (!companyIdPhotoData) {
+                alert('대표자 신분증을 촬영하거나 업로드하세요.');
+                return;
+            }
+
+            console.log('유효성 검사 통과');
+            
+            // 서명과 신분증 데이터 추가
+            companyData.signature_data = companySignatureData;
+            companyData.id_card_photo = companyIdPhotoData;
+
+            try {
+                console.log('API 요청 시작');
+                const response = await fetch('/api/companies', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
+                    body: JSON.stringify(companyData)
+                });
+
+                console.log('응답 상태:', response.status);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('API 에러:', error);
+                    throw new Error(error.error || '저장 실패');
+                }
+
+                const result = await response.json();
+                console.log('저장 성공:', result);
+                alert('✅ 업체 정보가 저장되었습니다.\\n\\n업체명: ' + companyData.name + '\\n대표자: ' + companyData.representative);
+                
+                // 폼 초기화
+                clearCompanyForm();
+                
+                // 업체 목록 새로고침
+                await loadCompanies();
+                
+                // 목록으로 스크롤
+                setTimeout(() => {
+                    document.getElementById('companyList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ 저장 실패: ' + error.message);
+            }
+        });
+
+        // 페이지 로드 시 업체 목록 불러오기
+        console.log('🚀 페이지 로드 완료');
+        console.log('📍 Daum Postcode API 로드 상태:', typeof daum !== 'undefined' ? '✅ 로드됨' : '❌ 로드 안됨');
+        console.log('🔧 함수 정의 확인:', {
+            searchCompanyAddress: typeof searchCompanyAddress === 'function' ? '✅' : '❌',
+            openSignatureModal: typeof openSignatureModal === 'function' ? '✅' : '❌',
+            clearCompanyForm: typeof clearCompanyForm === 'function' ? '✅' : '❌'
+        });
+        console.log('localStorage 확인:', {
+            sessionId: !!localStorage.getItem('sessionId'),
+            user: !!localStorage.getItem('user')
+        });
+        
+        // 우편번호 검색 버튼 이벤트 리스너 연결
+        const postcodeBtn = document.getElementById('postcodeSearchBtn');
+        const postcodeInput = document.getElementById('companyPostcode');
+        const addressInput = document.getElementById('companyAddress');
+        
+        if (postcodeBtn) {
+            postcodeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔍 우편번호 검색 버튼 클릭 (이벤트 리스너)');
+                searchCompanyAddress();
+            });
+            console.log('✅ 우편번호 검색 버튼 이벤트 리스너 연결됨');
+        }
+        
+        if (postcodeInput) {
+            postcodeInput.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔍 우편번호 입력 필드 클릭 (이벤트 리스너)');
+                searchCompanyAddress();
+            });
+            console.log('✅ 우편번호 입력 필드 이벤트 리스너 연결됨');
+        }
+        
+        if (addressInput) {
+            addressInput.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔍 주소 입력 필드 클릭 (이벤트 리스너)');
+                searchCompanyAddress();
+            });
+            console.log('✅ 주소 입력 필드 이벤트 리스너 연결됨');
+        }
+        
+        if (checkAuth()) {
+            console.log('✅ 인증 성공 - 업체 목록 로드 시작');
+            loadCompanies();
+        } else {
+            console.log('❌ 인증 실패 - 로그인 필요');
+        }
+        
+        }); // DOMContentLoaded 끝
+    </script>
+</body>
+</html>

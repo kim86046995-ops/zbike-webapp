@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-BIKE 전자계약서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- 헤더 -->
+    <header class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <a href="/" class="text-xl font-bold flex items-center hover:bg-indigo-700 px-3 py-2 rounded-lg transition-colors cursor-pointer inline-flex">
+                <i class="fas fa-arrow-left mr-2"></i>
+                계약자 정보 등록
+            </a>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-user-plus mr-2 text-indigo-600"></i>계약자 정보 등록
+                </h2>
+                
+                <form id="customerForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 이름 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-user mr-1 text-indigo-500"></i>이름 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="customerName" 
+                                required
+                                placeholder="홍길동" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </div>
+
+                        <!-- 주민등록번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-id-card mr-1 text-indigo-500"></i>주민등록번호 <span class="text-red-500">*</span>
+                                <span class="text-xs text-gray-500 font-normal ml-2">(숫자 13자리, 하이픈 자동 입력)</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="customerResidentNumber" 
+                                required
+                                placeholder="예: 900101-1234567" 
+                                maxlength="14"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </div>
+
+                        <!-- 전화번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-phone mr-1 text-indigo-500"></i>전화번호 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                id="customerPhone" 
+                                required
+                                placeholder="010-1234-5678" 
+                                maxlength="13"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </div>
+
+                        <!-- 우편번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-map-marker-alt mr-1 text-indigo-500"></i>우편번호 <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    id="customerPostcode" 
+                                    required
+                                    readonly
+                                    placeholder="12345" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
+                                    onclick="searchAddress()"
+                                >
+                                <button 
+                                    type="button" 
+                                    onclick="searchAddress()" 
+                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+                                    <i class="fas fa-search mr-1"></i>검색
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 주소 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-home mr-1 text-indigo-500"></i>주소 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="customerAddress" 
+                            required
+                            readonly
+                            placeholder="우편번호 검색 버튼을 클릭하세요" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer mb-2"
+                            onclick="searchAddress()"
+                        >
+                        <input 
+                            type="text" 
+                            id="customerDetailAddress" 
+                            placeholder="상세주소 (동/호수 등)" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                    </div>
+
+                    <!-- 버튼 -->
+                    <div class="flex justify-end gap-3">
+                        <button 
+                            type="button" 
+                            onclick="window.location.href='/'" 
+                            class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-times mr-2"></i>취소
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="clearForm()" 
+                            class="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-redo mr-2"></i>초기화
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-save mr-2"></i>등록하기
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // 로그인 없이 사용 가능 (고객용 페이지)
+        
+        // 우편번호 검색
+        function searchAddress() {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    document.getElementById('customerPostcode').value = data.zonecode;
+                    document.getElementById('customerAddress').value = data.address;
+                    document.getElementById('customerDetailAddress').focus();
+                }
+            }).open();
+        }
+
+        // 폼 초기화
+        function clearForm() {
+            document.getElementById('customerForm').reset();
+            document.getElementById('customerName').focus();
+        }
+
+        // 주민등록번호 자동 하이픈 (입력 및 붙여넣기 모두 처리)
+        function formatResidentNumber(value) {
+            // 숫자만 추출
+            let numbers = value.replace(/[^0-9]/g, '');
+            // 13자리로 제한
+            numbers = numbers.substring(0, 13);
+            // 6자리 이후에 하이픈 추가
+            if (numbers.length > 6) {
+                return numbers.substring(0, 6) + '-' + numbers.substring(6);
+            }
+            return numbers;
+        }
+
+        document.getElementById('customerResidentNumber').addEventListener('input', function(e) {
+            e.target.value = formatResidentNumber(e.target.value);
+        });
+
+        document.getElementById('customerResidentNumber').addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            e.target.value = formatResidentNumber(pastedText);
+        });
+
+        // 전화번호 자동 하이픈 (입력 및 붙여넣기 모두 처리)
+        function formatPhoneNumber(value) {
+            // 숫자만 추출
+            let numbers = value.replace(/[^0-9]/g, '');
+            // 11자리로 제한
+            numbers = numbers.substring(0, 11);
+            // 3-4-4 형식으로 하이픈 추가
+            if (numbers.length > 3 && numbers.length <= 7) {
+                return numbers.substring(0, 3) + '-' + numbers.substring(3);
+            } else if (numbers.length > 7) {
+                return numbers.substring(0, 3) + '-' + numbers.substring(3, 7) + '-' + numbers.substring(7);
+            }
+            return numbers;
+        }
+
+        document.getElementById('customerPhone').addEventListener('input', function(e) {
+            e.target.value = formatPhoneNumber(e.target.value);
+        });
+
+        document.getElementById('customerPhone').addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            e.target.value = formatPhoneNumber(pastedText);
+        });
+
+        // 폼 제출
+        document.getElementById('customerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const customerData = {
+                name: document.getElementById('customerName').value.trim(),
+                resident_number: document.getElementById('customerResidentNumber').value.trim(),
+                phone: document.getElementById('customerPhone').value.trim(),
+                postcode: document.getElementById('customerPostcode').value.trim(),
+                address: document.getElementById('customerAddress').value.trim(),
+                detail_address: document.getElementById('customerDetailAddress').value.trim() || '',
+                license_type: '보통'
+            };
+
+            // 유효성 검사
+            if (!customerData.name) {
+                alert('이름을 입력하세요.');
+                return;
+            }
+            if (!customerData.resident_number || customerData.resident_number.length !== 14) {
+                alert('주민등록번호를 정확히 입력하세요. (123456-1234567)');
+                return;
+            }
+            if (!customerData.phone) {
+                alert('전화번호를 입력하세요.');
+                return;
+            }
+            if (!customerData.postcode) {
+                alert('우편번호를 검색하세요.');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/customers', customerData);
+                
+                // 성공 메시지 표시
+                alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n고객 포털 메인 화면으로 이동합니다.');
+                
+                // 고객 포털 메인 화면으로 이동
+                window.location.href = '/static/customer-portal.html';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ 저장 실패: ' + (error.response?.data?.error || error.message));
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            // 로그인 없이 사용 가능 (고객용 페이지)
+            document.getElementById('customerName').focus();
+        });
+    </script>
+</body>
+</html>
