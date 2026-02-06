@@ -8,6 +8,13 @@ import { serveStatic } from '@hono/node-server/serve-static'
 
 const app = new Hono()
 
+// ============================================
+// 루트 경로 - 로그인으로 리다이렉트
+// ============================================
+app.get('/', (c) => {
+  return c.redirect('/login')
+})
+
 // 캐시 무효화 미들웨어 (모든 HTML 페이지)
 app.use('*', async (c, next) => {
   await next()
@@ -5486,20 +5493,5 @@ app.get('/', (c) => {
     </html>
   `)
 })
-
-// ============================================
-// 페이지 라우트
-// ============================================
-
-// 루트 경로 - 로그인 페이지로 리다이렉트
-app.get('/', (c) => {
-  return c.redirect('/login')
-})
-
-// 로그인 페이지
-app.get('/login', serveStatic({ path: './public/static/login.html' }))
-
-// 대시보드 페이지
-app.get('/dashboard', serveStatic({ path: './public/static/dashboard.html' }))
 
 export default app
