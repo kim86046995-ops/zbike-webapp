@@ -9,27 +9,33 @@ import { serveStatic } from '@hono/node-server/serve-static';
 const app = new Hono();
 
 // ============================================
+// 전역 CORS 설정 (모든 브라우저 호환)
+// ============================================
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Session-ID'],
+  exposeHeaders: ['Content-Length', 'X-Session-ID'],
+  credentials: false,
+  maxAge: 600
+}));
+
+// ============================================
 // 루트 경로 - 로그인으로 리다이렉트
 // ============================================
 app.get('/', c => {
   return c.redirect('/login');
 });
 
-// 캐시 무효화 미들웨어 (모든 HTML 페이지)
+// 캐시 무효화 미들웨어 (모든 응답)
 app.use('*', async (c, next) => {
   await next();
 
-  // HTML 응답에 대해서만 캐시 무효화 헤더 추가
-  const contentType = c.res.headers.get('Content-Type');
-  if (contentType?.includes('text/html')) {
-    c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    c.res.headers.set('Pragma', 'no-cache');
-    c.res.headers.set('Expires', '0');
-  }
+  // 모든 응답에 캐시 무효화 헤더 추가 (HTML, JS, CSS 포함)
+  c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  c.res.headers.set('Pragma', 'no-cache');
+  c.res.headers.set('Expires', '0');
 });
-
-// CORS 설정
-app.use('/api/*', cors());
 
 // 정적 HTML 파일 직접 서빙
 app.get('/static/:filename', serveStatic({
@@ -3932,6 +3938,9 @@ app.get('/login', c => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>로그인 - 오토바이 리스/렌트 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
