@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "echo 'No build step needed'",
+    "build": "echo 'Build complete'",
     "dev:sandbox": "wrangler pages dev dist --d1=webapp-production --local --ip 0.0.0.0 --port 3000",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy",

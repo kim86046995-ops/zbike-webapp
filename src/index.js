@@ -33,12 +33,12 @@ app.use('/api/*', cors());
 
 // 정적 HTML 파일 직접 서빙
 app.get('/static/:filename', serveStatic({
-  root: './'
+  root: './public'
 }));
 
 // 나머지 정적 파일
 app.use('/static/*', serveStatic({
-  root: './'
+  root: './public'
 }));
 
 // ============================================
