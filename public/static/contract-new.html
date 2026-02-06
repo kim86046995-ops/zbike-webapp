@@ -654,37 +654,48 @@
                 </div>
 
                 <!-- 8. 신분증 촬영 -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 border-2 border-blue-300">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-800">
                         <i class="fas fa-id-card mr-2 text-blue-600"></i>
-                        8. 신분증 촬영 (선택사항)
+                        8. 신분증 촬영 📸
                     </h2>
-                    <p class="text-sm text-gray-600 mb-4">
-                        관리자가 직접 고객의 신분증을 촬영하거나 업로드할 수 있습니다. (선택사항)
+                    <p class="text-base text-gray-700 mb-4 font-medium bg-yellow-100 p-3 rounded-lg border-l-4 border-yellow-500">
+                        <i class="fas fa-info-circle mr-2 text-yellow-600"></i>
+                        아래 <strong class="text-blue-700">"📷 카메라로 촬영"</strong> 버튼을 눌러 신분증을 촬영하세요!
                     </p>
                     
-                    <!-- 촬영/업로드 버튼 -->
-                    <div class="flex gap-3 mb-4">
-                        <button type="button" onclick="startAdminIdCamera()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
+                    <!-- 촬영/업로드 버튼 - 크게 개선 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <button type="button" onclick="startAdminIdCamera()" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-5 rounded-xl hover:from-blue-700 hover:to-blue-800 transition transform hover:scale-105 active:scale-95 shadow-lg font-bold text-lg">
+                            <i class="fas fa-camera mr-2 text-2xl"></i>
+                            <span class="block text-2xl">📷 카메라로 촬영</span>
+                            <span class="block text-sm font-normal mt-1 opacity-90">신분증을 바로 촬영하세요</span>
                         </button>
-                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
-                            <i class="fas fa-upload mr-2"></i>파일 선택
+                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-5 rounded-xl hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-lg font-bold text-lg">
+                            <i class="fas fa-upload mr-2 text-2xl"></i>
+                            <span class="block text-2xl">📁 파일 선택</span>
+                            <span class="block text-sm font-normal mt-1 opacity-90">갤러리에서 선택하세요</span>
                         </button>
-                        <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
+                        <input type="file" id="adminIdUpload" accept="image/*" capture="environment" style="display: none;" onchange="handleAdminIdUpload(event)">
                     </div>
                     
-                    <!-- 미리보기 영역 -->
-                    <div id="adminIdPreview" class="hidden">
-                        <div class="relative border-2 border-gray-300 rounded-lg p-2 bg-gray-50">
-                            <img id="adminIdImage" src="" alt="신분증" class="w-full h-auto rounded">
-                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
-                                <i class="fas fa-trash mr-1"></i>삭제
+                    <!-- 미리보기 영역 - 개선 -->
+                    <div id="adminIdPreview" class="hidden mt-4">
+                        <div class="relative border-4 border-green-400 rounded-xl p-3 bg-white shadow-xl">
+                            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                                <i class="fas fa-check-circle mr-1"></i>촬영 완료!
+                            </div>
+                            <img id="adminIdImage" src="" alt="신분증" class="w-full h-auto rounded-lg mt-2">
+                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-5 right-5 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-bold shadow-lg transform hover:scale-110">
+                                <i class="fas fa-trash mr-1"></i>다시 촬영
                             </button>
                         </div>
-                        <p class="text-sm text-green-600 mt-2">
-                            <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다.
-                        </p>
+                        <div class="bg-green-100 border-2 border-green-400 rounded-lg p-4 mt-3">
+                            <p class="text-base text-green-800 font-bold text-center">
+                                <i class="fas fa-check-circle mr-2 text-2xl"></i>
+                                ✅ 신분증이 성공적으로 등록되었습니다!
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -704,29 +715,47 @@
             </form>
         </main>
 
-        <!-- 관리자 신분증 카메라 모달 -->
-        <div id="adminIdCameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
-                <div class="bg-blue-600 text-white p-4 flex items-center justify-between rounded-t-lg">
-                    <h3 class="text-xl font-bold">
+        <!-- 관리자 신분증 카메라 모달 - 개선 -->
+        <div id="adminIdCameraModal" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 flex items-center justify-between rounded-t-2xl">
+                    <h3 class="text-2xl font-bold">
                         <i class="fas fa-camera mr-2"></i>
-                        신분증 촬영
+                        📷 신분증 촬영하기
                     </h3>
-                    <button type="button" onclick="stopAdminIdCamera()" class="text-white hover:text-gray-200">
-                        <i class="fas fa-times text-2xl"></i>
+                    <button type="button" onclick="stopAdminIdCamera()" class="text-white hover:text-gray-200 transition">
+                        <i class="fas fa-times text-3xl"></i>
                     </button>
                 </div>
                 
                 <div class="p-6">
-                    <video id="adminIdVideo" autoplay playsinline class="w-full rounded-lg border-2 border-gray-300"></video>
+                    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3 mb-4">
+                        <p class="text-center text-blue-800 font-bold text-lg">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            신분증을 카메라에 맞춰주세요
+                        </p>
+                        <p class="text-center text-blue-600 text-sm mt-1">
+                            신분증 전체가 화면에 나오도록 조정해주세요
+                        </p>
+                    </div>
+                    
+                    <div class="relative border-4 border-blue-400 rounded-xl overflow-hidden bg-black">
+                        <video id="adminIdVideo" autoplay playsinline class="w-full rounded-lg"></video>
+                        <!-- 가이드 오버레이 -->
+                        <div class="absolute inset-0 pointer-events-none">
+                            <div class="absolute inset-4 border-4 border-dashed border-white rounded-lg"></div>
+                        </div>
+                    </div>
                     <canvas id="adminIdCanvas" class="hidden"></canvas>
                     
-                    <div class="flex gap-3 mt-4">
-                        <button type="button" onclick="captureAdminId()" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                            <i class="fas fa-camera mr-2"></i>촬영
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <button type="button" onclick="captureAdminId()" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition transform hover:scale-105 active:scale-95 font-bold text-lg shadow-lg">
+                            <i class="fas fa-camera text-2xl mr-2"></i>
+                            <span class="block text-xl">📸 촬영하기</span>
                         </button>
-                        <button type="button" onclick="stopAdminIdCamera()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
-                            <i class="fas fa-times mr-2"></i>취소
+                        <button type="button" onclick="stopAdminIdCamera()" class="bg-gray-500 text-white px-6 py-4 rounded-xl hover:bg-gray-600 transition transform hover:scale-105 active:scale-95 font-bold text-lg shadow-lg">
+                            <i class="fas fa-times text-2xl mr-2"></i>
+                            <span class="block text-xl">❌ 취소</span>
                         </button>
                     </div>
                 </div>
@@ -1901,22 +1930,27 @@
             }
         }
 
-        // 관리자 신분증 촬영
+        // 관리자 신분증 촬영 - 개선
         function captureAdminId() {
             const video = document.getElementById('adminIdVideo');
             const canvas = document.getElementById('adminIdCanvas');
             
+            // 원본 비디오 크기로 캡처 (고화질)
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
             const context = canvas.getContext('2d');
-            // 이미지 크기 축소 (640x480 → 320x240)
-            canvas.width = 320;
-            canvas.height = 240;
-            context.drawImage(video, 0, 0, 320, 240);
+            // 고화질로 캡처 (1280x720)
+            canvas.width = Math.min(1280, video.videoWidth);
+            canvas.height = Math.min(720, video.videoHeight);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // JPEG 품질을 60%로 설정 (화질과 크기 균형)
-            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+            // JPEG 품질을 85%로 설정 (더 높은 화질)
+            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.85);
+            
+            // 촬영 완료 효과음 (선택사항)
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYHGGS57OahUBELTKXh8LJnHgU2jdXzzHcsB');
+            audio.play().catch(() => {}); // 에러 무시
             
             // 카메라 중지
             stopAdminIdCamera();
@@ -1924,6 +1958,12 @@
             // 미리보기 표시
             document.getElementById('adminIdImage').src = adminIdPhotoData;
             document.getElementById('adminIdPreview').classList.remove('hidden');
+            
+            // 성공 알림
+            alert('✅ 신분증이 성공적으로 촬영되었습니다!\n\n계약서 저장 시 자동으로 등록됩니다.');
+            
+            // 미리보기로 스크롤
+            document.getElementById('adminIdPreview').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         // 관리자 신분증 카메라 중지
@@ -1935,38 +1975,73 @@
             document.getElementById('adminIdCameraModal').classList.add('hidden');
         }
 
-        // 관리자 신분증 파일 업로드
+        // 관리자 신분증 파일 업로드 - 개선
         function handleAdminIdUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
             
+            // 파일 타입 확인
+            if (!file.type.match('image.*')) {
+                alert('❌ 이미지 파일만 업로드할 수 있습니다.');
+                return;
+            }
+            
+            // 파일 크기 확인 (10MB 제한)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('❌ 파일 크기는 10MB 이하여야 합니다.');
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = function(e) {
-                // 업로드된 이미지 크기 축소
+                // 업로드된 이미지 크기 조정 (고화질 유지)
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 320;
-                    canvas.height = 240;
+                    
+                    // 고화질 유지 (최대 1280x720)
+                    let width = img.width;
+                    let height = img.height;
+                    const maxWidth = 1280;
+                    const maxHeight = 720;
+                    
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width = width * ratio;
+                        height = height * ratio;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, 320, 240);
-                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // JPEG 품질 85%
+                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.85);
                     document.getElementById('adminIdImage').src = adminIdPhotoData;
                     document.getElementById('adminIdPreview').classList.remove('hidden');
+                    
+                    // 성공 알림
+                    alert('✅ 신분증 이미지가 성공적으로 등록되었습니다!\n\n계약서 저장 시 자동으로 등록됩니다.');
+                    
+                    // 미리보기로 스크롤
+                    document.getElementById('adminIdPreview').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 };
                 img.src = e.target.result;
-                document.getElementById('adminIdImage').src = adminIdPhotoData;
-                document.getElementById('adminIdPreview').classList.remove('hidden');
             };
             reader.readAsDataURL(file);
         }
 
-        // 관리자 신분증 사진 삭제
+        // 관리자 신분증 사진 삭제 - 개선
         function removeAdminIdPhoto() {
-            adminIdPhotoData = null;
-            document.getElementById('adminIdImage').src = '';
-            document.getElementById('adminIdPreview').classList.add('hidden');
-            document.getElementById('adminIdUpload').value = '';
+            if (confirm('신분증 사진을 삭제하시겠습니까?\n\n다시 촬영하거나 업로드할 수 있습니다.')) {
+                adminIdPhotoData = null;
+                document.getElementById('adminIdImage').src = '';
+                document.getElementById('adminIdPreview').classList.add('hidden');
+                document.getElementById('adminIdUpload').value = '';
+                
+                alert('✅ 신분증 사진이 삭제되었습니다.');
+            }
         }
 
         // 공유 링크 생성 및 전송
