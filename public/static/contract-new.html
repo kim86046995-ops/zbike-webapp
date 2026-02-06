@@ -715,50 +715,86 @@
             </form>
         </main>
 
-        <!-- 관리자 신분증 카메라 모달 - 개선 -->
-        <div id="adminIdCameraModal" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 flex items-center justify-between rounded-t-2xl">
-                    <h3 class="text-2xl font-bold">
-                        <i class="fas fa-camera mr-2"></i>
-                        📷 신분증 촬영하기
-                    </h3>
-                    <button type="button" onclick="stopAdminIdCamera()" class="text-white hover:text-gray-200 transition">
+        <!-- 관리자 신분증 카메라 모달 - 모바일 세로 모드 최적화 -->
+        <div id="adminIdCameraModal" class="hidden fixed inset-0 bg-black z-50">
+            <!-- 헤더 -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 flex items-center justify-between">
+                <h3 class="text-xl md:text-2xl font-bold">
+                    <i class="fas fa-camera mr-2"></i>
+                    📷 신분증 촬영
+                </h3>
+                <button type="button" onclick="stopAdminIdCamera()" class="text-white hover:text-gray-200 transition p-2">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- 안내 메시지 -->
+            <div class="bg-yellow-400 text-yellow-900 px-4 py-3 text-center font-bold">
+                <i class="fas fa-info-circle mr-2"></i>
+                신분증을 가로로 놓고 틀 안에 꽉 채워주세요
+            </div>
+            
+            <!-- 카메라 영역 -->
+            <div class="relative w-full h-[calc(100vh-180px)] bg-black flex items-center justify-center">
+                <video id="adminIdVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+                
+                <!-- 신분증 가이드 틀 (가로 8.5cm x 세로 5.4cm 비율) -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <!-- 어두운 오버레이 (4면) -->
+                    <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+                    
+                    <!-- 신분증 틀 영역 (투명) -->
+                    <div class="relative z-10" style="width: 85%; max-width: 500px; aspect-ratio: 85/54;">
+                        <!-- 투명 영역 (신분증 크기) -->
+                        <div class="absolute inset-0 bg-transparent border-4 border-white rounded-lg shadow-2xl"></div>
+                        
+                        <!-- 모서리 가이드 라인 -->
+                        <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400"></div>
+                        <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400"></div>
+                        <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400"></div>
+                        <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400"></div>
+                        
+                        <!-- 중앙 십자선 -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <div class="w-12 h-0.5 bg-green-400"></div>
+                            <div class="w-0.5 h-12 bg-green-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+                        </div>
+                        
+                        <!-- 안내 텍스트 -->
+                        <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap">
+                            신분증을 이 틀 안에 맞춰주세요
+                        </div>
+                    </div>
+                    
+                    <!-- 투명 영역 마스크 (신분증 틀만 보이게) -->
+                    <svg class="absolute inset-0 w-full h-full z-5" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <mask id="idCardMask">
+                                <rect width="100%" height="100%" fill="white"/>
+                                <rect id="idCardRect" x="50%" y="50%" width="85%" height="auto" rx="8" fill="black" style="max-width: 500px; aspect-ratio: 85/54; transform: translate(-50%, -50%);"/>
+                            </mask>
+                        </defs>
+                        <rect width="100%" height="100%" fill="black" opacity="0.6" mask="url(#idCardMask)"/>
+                    </svg>
+                </div>
+                
+                <canvas id="adminIdCanvas" class="hidden"></canvas>
+            </div>
+            
+            <!-- 버튼 영역 (세로 모드 최적화) -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
+                <div class="flex gap-4">
+                    <button type="button" onclick="captureAdminId()" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-5 rounded-2xl font-bold text-lg shadow-2xl transform active:scale-95 transition">
+                        <i class="fas fa-camera text-3xl block mb-1"></i>
+                        📸 촬영
+                    </button>
+                    <button type="button" onclick="stopAdminIdCamera()" class="w-20 bg-red-500 text-white py-5 rounded-2xl font-bold shadow-2xl transform active:scale-95 transition">
                         <i class="fas fa-times text-3xl"></i>
                     </button>
                 </div>
-                
-                <div class="p-6">
-                    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3 mb-4">
-                        <p class="text-center text-blue-800 font-bold text-lg">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            신분증을 카메라에 맞춰주세요
-                        </p>
-                        <p class="text-center text-blue-600 text-sm mt-1">
-                            신분증 전체가 화면에 나오도록 조정해주세요
-                        </p>
-                    </div>
-                    
-                    <div class="relative border-4 border-blue-400 rounded-xl overflow-hidden bg-black">
-                        <video id="adminIdVideo" autoplay playsinline class="w-full rounded-lg"></video>
-                        <!-- 가이드 오버레이 -->
-                        <div class="absolute inset-0 pointer-events-none">
-                            <div class="absolute inset-4 border-4 border-dashed border-white rounded-lg"></div>
-                        </div>
-                    </div>
-                    <canvas id="adminIdCanvas" class="hidden"></canvas>
-                    
-                    <div class="grid grid-cols-2 gap-4 mt-6">
-                        <button type="button" onclick="captureAdminId()" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition transform hover:scale-105 active:scale-95 font-bold text-lg shadow-lg">
-                            <i class="fas fa-camera text-2xl mr-2"></i>
-                            <span class="block text-xl">📸 촬영하기</span>
-                        </button>
-                        <button type="button" onclick="stopAdminIdCamera()" class="bg-gray-500 text-white px-6 py-4 rounded-xl hover:bg-gray-600 transition transform hover:scale-105 active:scale-95 font-bold text-lg shadow-lg">
-                            <i class="fas fa-times text-2xl mr-2"></i>
-                            <span class="block text-xl">❌ 취소</span>
-                        </button>
-                    </div>
-                </div>
+                <p class="text-white text-center text-sm mt-3 opacity-75">
+                    신분증을 가로로 놓고 틀 안에 꽉 채워주세요
+                </p>
             </div>
         </div>
 
@@ -1881,22 +1917,29 @@
         let adminIdStream = null;
         let adminIdPhotoData = null;
 
-        // 관리자 신분증 카메라 시작
+        // 관리자 신분증 카메라 시작 - 모바일 최적화
         async function startAdminIdCamera() {
             try {
-                // 먼저 기본 제약 조건으로 시도
+                // 모바일 감지
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                // 카메라 설정
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: 'environment' },  // 후면 카메라 우선
+                        width: { ideal: isMobile ? 1920 : 1920 },
+                        height: { ideal: isMobile ? 1080 : 1080 },
+                        aspectRatio: { ideal: isMobile ? 16/9 : 16/9 }
+                    }
+                };
+                
                 try {
-                    adminIdStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: { ideal: 'environment' },
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        } 
-                    });
+                    adminIdStream = await navigator.mediaDevices.getUserMedia(constraints);
                 } catch (e) {
                     console.log('고급 설정 실패, 기본 설정으로 시도:', e);
+                    // 기본 설정으로 재시도
                     adminIdStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: true 
+                        video: { facingMode: 'environment' }
                     });
                 }
                 
@@ -1911,46 +1954,90 @@
                     };
                 });
                 
+                // 모달 표시
                 document.getElementById('adminIdCameraModal').classList.remove('hidden');
+                
+                // 화면 회전 잠금 시도 (모바일)
+                try {
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('portrait');
+                    }
+                } catch (e) {
+                    console.log('화면 회전 잠금 실패:', e);
+                }
+                
             } catch (error) {
                 console.error('카메라 접근 오류:', error);
                 let errorMsg = '카메라에 접근할 수 없습니다.';
                 
                 if (error.name === 'NotAllowedError') {
-                    errorMsg = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
+                    errorMsg = '📷 카메라 권한이 거부되었습니다.\n\n브라우저 설정에서 카메라 권한을 허용해주세요.\n\n설정 > 사이트 설정 > 카메라';
                 } else if (error.name === 'NotFoundError') {
-                    errorMsg = '카메라를 찾을 수 없습니다.';
+                    errorMsg = '📷 카메라를 찾을 수 없습니다.\n\n기기에 카메라가 연결되어 있는지 확인해주세요.';
                 } else if (error.name === 'NotReadableError') {
-                    errorMsg = '카메라가 다른 앱에서 사용 중입니다.';
+                    errorMsg = '📷 카메라가 다른 앱에서 사용 중입니다.\n\n다른 앱을 종료하고 다시 시도해주세요.';
                 } else if (error.name === 'NotSupportedError') {
-                    errorMsg = 'HTTPS 연결이 필요합니다.';
+                    errorMsg = '🔒 HTTPS 연결이 필요합니다.\n\n안전한 연결을 통해 접속해주세요.';
                 }
                 
                 alert(errorMsg);
             }
         }
 
-        // 관리자 신분증 촬영 - 개선
+        // 관리자 신분증 촬영 - 신분증 틀 영역만 정확하게 자르기
         function captureAdminId() {
             const video = document.getElementById('adminIdVideo');
             const canvas = document.getElementById('adminIdCanvas');
             
-            // 원본 비디오 크기로 캡처 (고화질)
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            // 비디오의 실제 크기
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            
+            // 신분증 비율 (85mm x 54mm = 1.574:1)
+            const idCardRatio = 85 / 54;
+            
+            // 화면에서 신분증 틀이 차지하는 비율 (85% 너비)
+            const frameWidthRatio = 0.85;
+            
+            // 캡처할 영역 계산 (신분증 틀 영역)
+            let cropWidth = videoWidth * frameWidthRatio;
+            let cropHeight = cropWidth / idCardRatio;
+            
+            // 높이가 비디오를 벗어나면 높이 기준으로 재계산
+            if (cropHeight > videoHeight) {
+                cropHeight = videoHeight * 0.85;
+                cropWidth = cropHeight * idCardRatio;
+            }
+            
+            // 중앙에서 자르기 시작점 계산
+            const cropX = (videoWidth - cropWidth) / 2;
+            const cropY = (videoHeight - cropHeight) / 2;
+            
+            // 캔버스 크기를 신분증 비율로 설정 (고화질: 1700x1080)
+            const targetWidth = 1700;
+            const targetHeight = 1080;
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
             
             const context = canvas.getContext('2d');
-            // 고화질로 캡처 (1280x720)
-            canvas.width = Math.min(1280, video.videoWidth);
-            canvas.height = Math.min(720, video.videoHeight);
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // JPEG 품질을 85%로 설정 (더 높은 화질)
-            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.85);
+            // 신분증 틀 영역만 잘라서 캔버스에 그리기
+            context.drawImage(
+                video,
+                cropX, cropY, cropWidth, cropHeight,  // 원본에서 자를 영역
+                0, 0, targetWidth, targetHeight        // 캔버스에 그릴 영역
+            );
             
-            // 촬영 완료 효과음 (선택사항)
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYHGGS57OahUBELTKXh8LJnHgU2jdXzzHcsB');
-            audio.play().catch(() => {}); // 에러 무시
+            // JPEG 품질을 90%로 설정 (최고 화질)
+            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.90);
+            
+            // 촬영 완료 효과음
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYHGGS57OahUBELTKXh8LJnHgU2jdXzzHcsB');
+                audio.play().catch(() => {}); // 에러 무시
+            } catch (e) {
+                console.log('효과음 재생 실패:', e);
+            }
             
             // 카메라 중지
             stopAdminIdCamera();
@@ -1960,18 +2047,28 @@
             document.getElementById('adminIdPreview').classList.remove('hidden');
             
             // 성공 알림
-            alert('✅ 신분증이 성공적으로 촬영되었습니다!\n\n계약서 저장 시 자동으로 등록됩니다.');
+            alert('✅ 신분증이 성공적으로 촬영되었습니다!\n\n신분증 틀 영역만 정확하게 캡처되었습니다.\n계약서 저장 시 자동으로 등록됩니다.');
             
             // 미리보기로 스크롤
             document.getElementById('adminIdPreview').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // 관리자 신분증 카메라 중지
+        // 관리자 신분증 카메라 중지 - 개선
         function stopAdminIdCamera() {
             if (adminIdStream) {
                 adminIdStream.getTracks().forEach(track => track.stop());
                 adminIdStream = null;
             }
+            
+            // 화면 회전 잠금 해제 (모바일)
+            try {
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            } catch (e) {
+                console.log('화면 회전 잠금 해제 실패:', e);
+            }
+            
             document.getElementById('adminIdCameraModal').classList.add('hidden');
         }
 
