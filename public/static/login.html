@@ -151,14 +151,20 @@
             console.log('📝 로그인 시도 중...');
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            
+            // 디버깅: 입력값 확인
+            console.log('👤 아이디:', username, '(길이:', username.length + ')');
+            console.log('🔑 비밀번호 길이:', password.length);
+            console.log('🔑 비밀번호 실제값:', password); // 임시 디버깅용
+            
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
 
             try {
-                const response = await axios.post('/api/auth/login?_t=' + Date.now(), {
-                    username,
-                    password
-                });
+                const requestData = { username, password };
+                console.log('📤 요청 데이터:', requestData);
+                
+                const response = await axios.post('/api/auth/login?_t=' + Date.now(), requestData);
 
                 console.log('✅ 로그인 성공:', response.data);
                 if (response.data.success) {
@@ -181,6 +187,14 @@
                 console.error('❌ 로그인 실패:', error);
                 console.error('❌ 에러 상태:', error.response?.status);
                 console.error('❌ 에러 데이터:', error.response?.data);
+                console.error('❌ 요청 URL:', error.config?.url);
+                console.error('❌ 요청 데이터:', error.config?.data);
+                console.error('❌ 전체 에러 객체:', JSON.stringify({
+                    message: error.message,
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    url: error.config?.url
+                }, null, 2));
                 
                 errorDiv.classList.remove('hidden');
                 errorDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
