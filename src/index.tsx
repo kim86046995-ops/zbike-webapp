@@ -174,7 +174,7 @@ app.post('/api/auth/login', async (c) => {
       username: 'sangchun11',
       password: 'a2636991@#',
       name: '상춘',
-      role: 'admin'
+      role: 'superadmin'  // ← 슈퍼관리자
     }
   ]
   
