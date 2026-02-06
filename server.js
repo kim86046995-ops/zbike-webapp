@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
-import app from './src/index.tsx'
+import app from './src/index.js'
 
 const port = process.env.PORT || 3000
 
