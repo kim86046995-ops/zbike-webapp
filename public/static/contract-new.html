@@ -679,14 +679,17 @@
                         <input type="file" id="adminIdUpload" accept="image/*" capture="environment" style="display: none;" onchange="handleAdminIdUpload(event)">
                     </div>
                     
-                    <!-- 미리보기 영역 - 개선 -->
+                    <!-- 미리보기 영역 - 신분증 비율 유지 (85:54) -->
                     <div id="adminIdPreview" class="hidden mt-4">
                         <div class="relative border-4 border-green-400 rounded-xl p-3 bg-white shadow-xl">
-                            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-bold z-10">
                                 <i class="fas fa-check-circle mr-1"></i>촬영 완료!
                             </div>
-                            <img id="adminIdImage" src="" alt="신분증" class="w-full h-auto rounded-lg mt-2">
-                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-5 right-5 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-bold shadow-lg transform hover:scale-110">
+                            <!-- 신분증 비율 컨테이너 (85:54 = 1.574:1) -->
+                            <div class="relative w-full" style="aspect-ratio: 1.574;">
+                                <img id="adminIdImage" src="" alt="신분증" class="absolute inset-0 w-full h-full object-contain rounded-lg mt-2">
+                            </div>
+                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-5 right-5 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-bold shadow-lg transform hover:scale-110 z-10">
                                 <i class="fas fa-trash mr-1"></i>다시 촬영
                             </button>
                         </div>
@@ -694,6 +697,9 @@
                             <p class="text-base text-green-800 font-bold text-center">
                                 <i class="fas fa-check-circle mr-2 text-2xl"></i>
                                 ✅ 신분증이 성공적으로 등록되었습니다!
+                            </p>
+                            <p class="text-sm text-green-700 text-center mt-2">
+                                신분증 원본 비율(85:54)로 정확하게 표시됩니다
                             </p>
                         </div>
                     </div>
