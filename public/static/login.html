@@ -113,9 +113,6 @@
             <i class="fas fa-file-contract mr-2"></i>고객 계약 등록
         </a>
     </div>
-
-    <!-- Axios 라이브러리 -->
-    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     
     <script>
         // 버전 체크 및 캐시 강제 무효화
@@ -172,25 +169,25 @@
             loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리중...';
             
             try {
-                const response = await axios({
+                const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    url: '/api/auth/login',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    data: {
+                    body: JSON.stringify({
                         username: username,
                         password: password
-                    },
-                    timeout: 10000
+                    })
                 });
                 
-                console.log('✅ 로그인 성공:', response.data);
+                const data = await response.json();
                 
-                if (response.data.success) {
+                console.log('✅ 로그인 응답:', data);
+                
+                if (response.ok && data.success) {
                     // 세션 저장
-                    localStorage.setItem('sessionId', response.data.sessionId);
-                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    localStorage.setItem('sessionId', data.sessionId);
+                    localStorage.setItem('user', JSON.stringify(data.user));
                     
                     // 성공 메시지
                     errorDiv.className = 'mb-4 p-3 rounded-lg bg-green-50 border border-green-200';
@@ -201,6 +198,8 @@
                     setTimeout(() => {
                         window.location.href = '/dashboard';
                     }, 800);
+                } else {
+                    throw new Error(data.error || '로그인 실패');
                 }
                 
             } catch (error) {
@@ -212,13 +211,7 @@
                 
                 // 에러 메시지
                 errorDiv.className = 'mb-4 p-3 rounded-lg bg-red-50 border border-red-200';
-                
-                if (error.response && error.response.status === 401) {
-                    errorContent.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
-                } else {
-                    errorContent.textContent = '로그인에 실패했습니다. 다시 시도해주세요';
-                }
-                
+                errorContent.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
                 errorDiv.classList.remove('hidden');
             }
         });
