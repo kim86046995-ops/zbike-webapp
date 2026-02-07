@@ -170,6 +170,12 @@ app.post('/api/auth/login', async c => {
     password: 'a2636991@#',
     name: '상춘',
     role: 'superadmin' // ← 슈퍼관리자
+  }, {
+    id: 3,
+    username: 'sangchun11',
+    password: 'test1234',
+    name: '상춘(테스트)',
+    role: 'superadmin' // ← 테스트용 간단한 비밀번호
   }];
 
   // 하드코딩된 계정 확인
