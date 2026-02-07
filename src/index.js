@@ -4258,22 +4258,49 @@ app.get('/dashboard', c => {
                 <h2 class="text-xl font-bold mb-4 text-gray-800">
                     <i class="fas fa-bolt mr-2 text-yellow-500"></i>빠른 액세스
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <a href="/static/motorcycle-register" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <!-- Row 1 -->
+                    <a href="/static/motorcycle-register.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-plus-circle text-3xl text-blue-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">오토바이 등록</p>
+                    </a>
+                    <a href="/static/customer-register.html" class="bg-cyan-50 hover:bg-cyan-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-user-plus text-3xl text-cyan-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">고객 등록</p>
+                    </a>
+                    <a href="/static/companies-new.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-building text-3xl text-indigo-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업체 등록</p>
                     </a>
                     <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-file-signature text-3xl text-green-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">개인계약서 작성</p>
                     </a>
+                    <a href="/static/business-contract-new.html" class="bg-teal-50 hover:bg-teal-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-handshake text-3xl text-teal-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업체계약서 작성</p>
+                    </a>
+                    
+                    <!-- Row 2 -->
+                    <a href="/static/loan-new.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-file-invoice-dollar text-3xl text-yellow-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">차용증 작성</p>
+                    </a>
                     <a href="/static/motorcycles.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-list text-3xl text-purple-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">오토바이 목록</p>
                     </a>
+                    <a href="/static/customers.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-users text-3xl text-blue-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">고객 목록</p>
+                    </a>
                     <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-folder-open text-3xl text-orange-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">계약서 목록</p>
+                    </a>
+                    <a href="/static/loans.html" class="bg-red-50 hover:bg-red-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-receipt text-3xl text-red-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">차용증 목록</p>
                     </a>
                 </div>
             </div>

@@ -6,24 +6,26 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>로그인 - Z-BIKE</title>
+    <title>로그인 - Z-BIKE 전자계약서</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 min-h-screen flex items-center justify-center p-4">
     <!-- 로그인 카드 -->
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <!-- 로고 -->
         <div class="text-center mb-6">
-            <img src="/static/zbike-logo.png" alt="Z-BIKE" class="mx-auto mb-4" style="max-width: 200px; height: auto;">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Z-BIKE</h1>
-            <p class="text-gray-600 text-lg">전자계약서</p>
-            <p class="text-gray-500 text-sm">오토바이 리스/렌트 관리 시스템</p>
+            <img src="/static/zbike-logo.png" alt="Z-BIKE" class="mx-auto mb-4" style="max-width: 180px; height: auto;">
+            <h1 class="text-2xl font-bold text-gray-800 mb-1">Z-BIKE 전자계약서</h1>
+            <p class="text-gray-600 text-sm">오토바이 리스/렌트 관리 시스템</p>
         </div>
 
         <!-- 에러 메시지 -->
-        <div id="errorMessage" class="hidden mb-4 p-4 rounded-lg">
-            <span id="errorText"></span>
+        <div id="errorMessage" class="hidden mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+            <span id="errorText" class="text-red-700 text-sm flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span id="errorContent"></span>
+            </span>
         </div>
 
         <!-- 로그인 폼 -->
@@ -38,7 +40,7 @@
                     required 
                     autocomplete="off"
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="아이디 입력"
+                    placeholder="sangchun11"
                 >
             </div>
 
@@ -46,40 +48,90 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">
                     <i class="fas fa-lock mr-2"></i>비밀번호
                 </label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    required 
-                    autocomplete="off"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="비밀번호 입력"
-                >
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        required 
+                        autocomplete="off"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                        placeholder="a2636991@#"
+                    >
+                    <button 
+                        type="button" 
+                        id="togglePassword"
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                        <i class="fas fa-eye" id="toggleIcon"></i>
+                    </button>
+                </div>
             </div>
 
             <button 
                 type="submit" 
                 id="loginButton"
-                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition"
+                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition shadow-md"
             >
-                <i class="fas fa-sign-in-alt mr-2"></i>로그인
+                <i class="fas fa-sign-in-alt mr-2"></i>관리자 로그인
             </button>
         </form>
 
-        <!-- 테스트 계정 안내 -->
-        <div class="mt-6 p-4 bg-gray-50 rounded-lg text-sm">
-            <p class="font-bold text-gray-700 mb-2">테스트 계정:</p>
-            <p class="text-gray-600">아이디: admin</p>
-            <p class="text-gray-600">비밀번호: admin123</p>
+        <!-- 아이디/비밀번호 찾기 -->
+        <div class="mt-4 text-center">
+            <a href="#" class="text-sm text-blue-600 hover:text-blue-800">
+                <i class="fas fa-question-circle mr-1"></i>아이디 또는 비밀번호를 잊으셨나요?
+            </a>
         </div>
+
+        <!-- 관리자 회원가입 -->
+        <div class="mt-4">
+            <p class="text-center text-sm text-gray-600 mb-2">관리자 계정이 필요하신가요?</p>
+            <a 
+                href="/static/register.html"
+                class="block w-full bg-green-600 text-white py-3 rounded-lg font-bold text-center hover:bg-green-700 transition shadow-md"
+            >
+                <i class="fas fa-user-plus mr-2"></i>관리자 회원가입
+            </a>
+        </div>
+
+        <!-- 구분선 -->
+        <div class="relative my-6">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-4 bg-white text-gray-500">계약서를 작성하러 오셨나요?</span>
+            </div>
+        </div>
+
+        <!-- 고객 계약 등록 -->
+        <a 
+            href="/static/customer-portal.html"
+            class="block w-full bg-purple-600 text-white py-3 rounded-lg font-bold text-center hover:bg-purple-700 transition shadow-md"
+        >
+            <i class="fas fa-file-contract mr-2"></i>고객 계약 등록
+        </a>
     </div>
 
     <!-- Axios 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     
     <script>
-        // 캐시 버스터
-        const VERSION = Date.now();
-        console.log('🔄 로그인 페이지 로드 - 버전:', VERSION);
+        // 비밀번호 표시/숨김
+        document.getElementById('togglePassword').addEventListener('click', () => {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        });
 
         // 폼 제출 처리
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -88,19 +140,16 @@
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('errorMessage');
-            const errorText = document.getElementById('errorText');
+            const errorContent = document.getElementById('errorContent');
             const loginButton = document.getElementById('loginButton');
             
-            console.log('📝 로그인 시도');
-            console.log('👤 아이디:', username);
-            console.log('🔑 비밀번호 길이:', password.length);
+            console.log('📝 로그인 시도:', username);
             
             // 버튼 비활성화
             loginButton.disabled = true;
             loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리중...';
             
             try {
-                // API 요청
                 const response = await axios({
                     method: 'POST',
                     url: '/api/auth/login',
@@ -114,7 +163,7 @@
                     timeout: 10000
                 });
                 
-                console.log('✅ 응답:', response.data);
+                console.log('✅ 로그인 성공:', response.data);
                 
                 if (response.data.success) {
                     // 세션 저장
@@ -122,43 +171,30 @@
                     localStorage.setItem('user', JSON.stringify(response.data.user));
                     
                     // 성공 메시지
-                    errorDiv.className = 'mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-700';
-                    errorText.textContent = '✅ 로그인 성공! 이동 중...';
+                    errorDiv.className = 'mb-4 p-3 rounded-lg bg-green-50 border border-green-200';
+                    errorContent.innerHTML = '로그인 성공! 대시보드로 이동 중...';
                     errorDiv.classList.remove('hidden');
                     
                     // 대시보드로 이동
                     setTimeout(() => {
                         window.location.href = '/dashboard';
-                    }, 1000);
-                } else {
-                    throw new Error('로그인 실패');
+                    }, 800);
                 }
                 
             } catch (error) {
-                console.error('❌ 에러:', error);
+                console.error('❌ 로그인 에러:', error);
                 
                 // 버튼 복구
                 loginButton.disabled = false;
-                loginButton.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>로그인';
+                loginButton.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>관리자 로그인';
                 
                 // 에러 메시지
-                errorDiv.className = 'mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700';
+                errorDiv.className = 'mb-4 p-3 rounded-lg bg-red-50 border border-red-200';
                 
-                if (error.response) {
-                    console.error('❌ 상태:', error.response.status);
-                    console.error('❌ 데이터:', error.response.data);
-                    
-                    if (error.response.status === 401) {
-                        errorText.textContent = '❌ 아이디 또는 비밀번호가 잘못되었습니다.';
-                    } else {
-                        errorText.textContent = '❌ 로그인 실패: ' + (error.response.data.error || '서버 오류');
-                    }
-                } else if (error.request) {
-                    console.error('❌ 요청 실패:', error.request);
-                    errorText.textContent = '❌ 서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+                if (error.response && error.response.status === 401) {
+                    errorContent.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
                 } else {
-                    console.error('❌ 에러:', error.message);
-                    errorText.textContent = '❌ 오류가 발생했습니다: ' + error.message;
+                    errorContent.textContent = '로그인에 실패했습니다. 다시 시도해주세요';
                 }
                 
                 errorDiv.classList.remove('hidden');
