@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta name="cache-buster" content="v20260207-09f14db">
     <title>로그인 - Z-BIKE 전자계약서</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -117,6 +118,27 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     
     <script>
+        // 버전 체크 및 캐시 강제 무효화
+        const CURRENT_VERSION = '20260207-09f14db';
+        const storedVersion = localStorage.getItem('login_version');
+        
+        if (storedVersion !== CURRENT_VERSION) {
+            console.log('🔄 새 버전 감지! 캐시 무효화 중...');
+            localStorage.setItem('login_version', CURRENT_VERSION);
+            
+            // Service Worker 제거 시도
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    registrations.forEach(registration => {
+                        registration.unregister();
+                        console.log('✅ Service Worker 제거됨');
+                    });
+                });
+            }
+        }
+        
+        console.log('✅ 로그인 페이지 버전:', CURRENT_VERSION);
+        
         // 비밀번호 표시/숨김
         document.getElementById('togglePassword').addEventListener('click', () => {
             const passwordInput = document.getElementById('password');
