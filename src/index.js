@@ -4247,14 +4247,14 @@ app.get('/dashboard', c => {
                     </div>
                 </div>
 
-                <!-- 월 예상 수익 -->
+                <!-- 차용 대금 -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">월 예상 수익</p>
-                            <p id="monthlyRevenue" class="text-2xl font-bold text-gray-800">0원</p>
+                            <p class="text-gray-600 text-sm">차용 대금</p>
+                            <p id="totalLoanAmount" class="text-2xl font-bold text-gray-800">0원</p>
                         </div>
-                        <div class="text-3xl text-purple-600"><i class="fas fa-won-sign"></i></div>
+                        <div class="text-3xl text-orange-600"><i class="fas fa-file-invoice-dollar"></i></div>
                     </div>
                 </div>
             </div>
@@ -4382,8 +4382,8 @@ app.get('/dashboard', c => {
                     // 계약 및 고객 통계
                     document.getElementById('activeContracts').textContent = data.contracts.active;
                     document.getElementById('totalCustomers').textContent = data.customers;
-                    document.getElementById('monthlyRevenue').textContent = 
-                        (data.contracts.monthly_revenue || 0).toLocaleString() + '원';
+                    document.getElementById('totalLoanAmount').textContent = 
+                        (data.contracts.total_loan_amount || 0).toLocaleString() + '원';
                 } catch (error) {
                     console.error('통계 로드 실패:', error);
                     if (error.response?.status === 401) {
