@@ -4910,7 +4910,7 @@ app.get('/dashboard', (c) => {
                 
                 if (!sessionId) {
                     console.log('❌ 세션 없음 - 로그인 페이지로 이동');
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                     return;
                 }
                 
