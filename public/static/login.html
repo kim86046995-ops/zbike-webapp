@@ -2,34 +2,30 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, private">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>로그인 - Z-BIKE 전자계약서</title>
+    <title>로그인 - Z-BIKE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Eruda 모바일 디버거 (개발용) -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
 </head>
 <body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 pt-2">
+    <!-- 로그인 카드 -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <!-- 로고 -->
-        <div class="text-center mb-2">
-            <div class="flex items-center justify-center mx-auto mb-0">
-                <img src="/static/zbike-logo.png" 
-                     alt="Z-BIKE" 
-                     class="h-64 w-auto"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-                <h1 class="text-6xl font-bold text-blue-600" style="display:none;">Z-BIKE</h1>
-            </div>
-            <h1 class="text-4xl font-bold text-gray-800 mb-3 -mt-12">Z-BIKE 전자계약서</h1>
-            <p class="text-lg text-gray-600">오토바이 리스/렌트 관리 시스템</p>
+        <div class="text-center mb-6">
+            <h1 class="text-5xl font-bold text-blue-600 mb-2">Z-BIKE</h1>
+            <p class="text-gray-600 text-lg">전자계약서 시스템</p>
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div id="errorMessage" class="hidden mb-4 p-4 rounded-lg">
+            <span id="errorText"></span>
         </div>
 
         <!-- 로그인 폼 -->
-        <form id="loginForm" class="space-y-6">
+        <form id="loginForm" class="space-y-4">
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">
                     <i class="fas fa-user mr-2"></i>아이디
@@ -38,9 +34,9 @@
                     type="text" 
                     id="username" 
                     required 
-                    autocomplete="username"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="아이디를 입력하세요"
+                    autocomplete="off"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="아이디 입력"
                 >
             </div>
 
@@ -48,186 +44,132 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">
                     <i class="fas fa-lock mr-2"></i>비밀번호
                 </label>
-                <div class="relative">
-                    <input 
-                        type="password" 
-                        id="password" 
-                        required 
-                        autocomplete="current-password"
-                        class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="비밀번호를 입력하세요"
-                    >
-                    <button 
-                        type="button" 
-                        onclick="togglePassword()"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    >
-                        <i id="passwordIcon" class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                <i class="fas fa-exclamation-circle mr-2"></i>
-                <span id="errorText"></span>
+                <input 
+                    type="password" 
+                    id="password" 
+                    required 
+                    autocomplete="off"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="비밀번호 입력"
+                >
             </div>
 
             <button 
                 type="submit" 
-                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition transform hover:scale-105 active:scale-95"
+                id="loginButton"
+                class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition"
             >
-                <i class="fas fa-sign-in-alt mr-2"></i>관리자 로그인
+                <i class="fas fa-sign-in-alt mr-2"></i>로그인
             </button>
         </form>
 
-        <!-- 아이디/비밀번호 찾기 & 회원가입 -->
-        <div class="mt-4 text-center space-y-2">
-            <a href="/find-account" class="block text-sm text-blue-600 hover:text-blue-800 font-semibold">
-                <i class="fas fa-question-circle mr-1"></i>아이디 또는 비밀번호를 잊으셨나요?
-            </a>
-            <div class="pt-2 border-t border-gray-200">
-                <p class="text-sm text-gray-600 mb-2">관리자 계정이 필요하신가요?</p>
-                <a href="/register" class="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition font-semibold text-sm">
-                    <i class="fas fa-user-plus mr-2"></i>관리자 회원가입
-                </a>
-            </div>
-            
-            <!-- 고객 계약 등록 -->
-            <div class="pt-2 border-t border-gray-200">
-                <p class="text-sm text-gray-600 mb-2">계약서를 작성하러 오셨나요?</p>
-                <a href="/static/customer-portal.html" class="inline-block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition font-semibold text-sm">
-                    <i class="fas fa-file-contract mr-2"></i>고객 계약 등록
-                </a>
-            </div>
+        <!-- 테스트 계정 안내 -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg text-sm">
+            <p class="font-bold text-gray-700 mb-2">테스트 계정:</p>
+            <p class="text-gray-600">아이디: admin</p>
+            <p class="text-gray-600">비밀번호: admin123</p>
         </div>
     </div>
 
+    <!-- Axios 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    
     <script>
-        const _version = Date.now();
-        console.log('🔄 로그인 페이지 로드됨 - 버전:', _version);
-        
-        // 아이디 찾기에서 전달된 아이디 자동 입력
-        const tempUsername = localStorage.getItem('tempUsername');
-        if (tempUsername) {
-            document.getElementById('username').value = tempUsername;
-            localStorage.removeItem('tempUsername');
-            document.getElementById('password').focus();
-        }
-        
-        // 이미 로그인된 경우 리디렉션
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ DOM 로드 완료');
-            const sessionId = localStorage.getItem('sessionId');
-            if (sessionId) {
-                console.log('🔍 세션 확인 중:', sessionId.substring(0, 10) + '...');
-                axios.get('/api/auth/check?_t=' + Date.now(), {
-                    headers: { 'X-Session-ID': sessionId }
-                }).then(response => {
-                    console.log('✅ 세션 확인 응답:', response.data);
-                    if (response.data.authenticated) {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const redirect = urlParams.get('redirect') || '/dashboard';
-                        console.log('➡️ 리다이렉트:', redirect);
-                        window.location.href = redirect;
-                    } else {
-                        console.log('❌ 세션 만료, 로그인 필요');
-                        localStorage.removeItem('sessionId');
-                        localStorage.removeItem('user');
-                    }
-                }).catch((error) => {
-                    console.error('❌ 세션 확인 실패:', error);
-                    localStorage.removeItem('sessionId');
-                    localStorage.removeItem('user');
-                });
-            } else {
-                console.log('ℹ️ 세션 없음, 로그인 대기 중');
-            }
-        });
+        // 캐시 버스터
+        const VERSION = Date.now();
+        console.log('🔄 로그인 페이지 로드 - 버전:', VERSION);
 
+        // 폼 제출 처리
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            console.log('📝 로그인 시도 중...');
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            // 디버깅: 입력값 확인
-            console.log('👤 아이디:', username, '(길이:', username.length + ')');
-            console.log('🔑 비밀번호 길이:', password.length);
-            console.log('🔑 비밀번호 실제값:', password); // 임시 디버깅용
-            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
-
+            const loginButton = document.getElementById('loginButton');
+            
+            console.log('📝 로그인 시도');
+            console.log('👤 아이디:', username);
+            console.log('🔑 비밀번호 길이:', password.length);
+            
+            // 버튼 비활성화
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리중...';
+            
             try {
-                const requestData = { username, password };
-                console.log('📤 요청 데이터:', requestData);
+                // API 요청
+                const response = await axios({
+                    method: 'POST',
+                    url: '/api/auth/login',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        username: username,
+                        password: password
+                    },
+                    timeout: 10000
+                });
                 
-                const response = await axios.post('/api/auth/login?_t=' + Date.now(), requestData);
-
-                console.log('✅ 로그인 성공:', response.data);
+                console.log('✅ 응답:', response.data);
+                
                 if (response.data.success) {
+                    // 세션 저장
                     localStorage.setItem('sessionId', response.data.sessionId);
                     localStorage.setItem('user', JSON.stringify(response.data.user));
-                    console.log('💾 세션 저장됨:', response.data.sessionId);
-
-                    errorDiv.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700');
-                    errorDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
-                    errorText.textContent = '로그인 성공! 이동 중...';
-
+                    
+                    // 성공 메시지
+                    errorDiv.className = 'mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-700';
+                    errorText.textContent = '✅ 로그인 성공! 이동 중...';
+                    errorDiv.classList.remove('hidden');
+                    
+                    // 대시보드로 이동
                     setTimeout(() => {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const redirect = urlParams.get('redirect') || '/dashboard';
-                        console.log('➡️ 대시보드로 이동:', redirect);
-                        window.location.href = redirect;
-                    }, 800);
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    throw new Error('로그인 실패');
                 }
+                
             } catch (error) {
-                console.error('❌ 로그인 실패:', error);
-                console.error('❌ 에러 상태:', error.response?.status);
-                console.error('❌ 에러 데이터:', error.response?.data);
-                console.error('❌ 요청 URL:', error.config?.url);
-                console.error('❌ 요청 데이터:', error.config?.data);
-                console.error('❌ 전체 에러 객체:', JSON.stringify({
-                    message: error.message,
-                    status: error.response?.status,
-                    data: error.response?.data,
-                    url: error.config?.url
-                }, null, 2));
+                console.error('❌ 에러:', error);
+                
+                // 버튼 복구
+                loginButton.disabled = false;
+                loginButton.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>로그인';
+                
+                // 에러 메시지
+                errorDiv.className = 'mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700';
+                
+                if (error.response) {
+                    console.error('❌ 상태:', error.response.status);
+                    console.error('❌ 데이터:', error.response.data);
+                    
+                    if (error.response.status === 401) {
+                        errorText.textContent = '❌ 아이디 또는 비밀번호가 잘못되었습니다.';
+                    } else {
+                        errorText.textContent = '❌ 로그인 실패: ' + (error.response.data.error || '서버 오류');
+                    }
+                } else if (error.request) {
+                    console.error('❌ 요청 실패:', error.request);
+                    errorText.textContent = '❌ 서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+                } else {
+                    console.error('❌ 에러:', error.message);
+                    errorText.textContent = '❌ 오류가 발생했습니다: ' + error.message;
+                }
                 
                 errorDiv.classList.remove('hidden');
-                errorDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
-                errorDiv.classList.remove('bg-green-50', 'border-green-200', 'text-green-700');
-                
-                if (error.response?.status === 401) {
-                    errorText.textContent = '아이디 또는 비밀번호가 잘못되었습니다';
-                } else {
-                    errorText.textContent = '로그인에 실패했습니다. 다시 시도해주세요 (에러: ' + (error.response?.status || 'unknown') + ')';
-                }
             }
         });
 
+        // Enter 키 처리
         document.getElementById('username').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 document.getElementById('password').focus();
             }
         });
-
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const passwordIcon = document.getElementById('passwordIcon');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                passwordIcon.classList.remove('fa-eye');
-                passwordIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                passwordIcon.classList.remove('fa-eye-slash');
-                passwordIcon.classList.add('fa-eye');
-            }
-        }
     </script>
 </body>
 </html>
