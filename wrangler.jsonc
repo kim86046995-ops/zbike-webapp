@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "webapp-production",
-      "database_id": "local-db"
+      "database_id": "eed661bb-b71a-4113-bf9e-37d047d8c760"
     }
   ],
   // SMS 환경변수 타입 정의 (TypeScript 타입 생성용)
