@@ -5053,24 +5053,26 @@ app.get('/dashboard', (c) => {
             }
 
             // 폼 제출 처리
-            document.getElementById('customerForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const sessionId = localStorage.getItem('sessionId');
-                if (!sessionId) {
-                    alert('⚠️ 로그인이 필요합니다.');
-                    window.location.href = '/login';
-                    return;
-                }
+            const customerForm = document.getElementById('customerForm');
+            if (customerForm) {
+                customerForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const sessionId = localStorage.getItem('sessionId');
+                    if (!sessionId) {
+                        alert('⚠️ 로그인이 필요합니다.');
+                        window.location.href = '/static/login.html';
+                        return;
+                    }
 
-                const customerData = {
-                    name: document.getElementById('customerName').value.trim(),
-                    resident_number: document.getElementById('customerResidentNumber').value.trim(),
-                    phone: document.getElementById('customerPhone').value.trim(),
-                    postcode: document.getElementById('customerPostcode').value.trim(),
-                    address: document.getElementById('customerAddress').value.trim(),
-                    detail_address: document.getElementById('customerDetailAddress').value.trim() || '',
-                    license_type: '보통' // 기본값
+                    const customerData = {
+                        name: document.getElementById('customerName').value.trim(),
+                        resident_number: document.getElementById('customerResidentNumber').value.trim(),
+                        phone: document.getElementById('customerPhone').value.trim(),
+                        postcode: document.getElementById('customerPostcode').value.trim(),
+                        address: document.getElementById('customerAddress').value.trim(),
+                        detail_address: document.getElementById('customerDetailAddress').value.trim() || '',
+                        license_type: '보통' // 기본값
                 };
 
                 // 유효성 검사
@@ -5119,6 +5121,7 @@ app.get('/dashboard', (c) => {
                     alert('❌ 저장 실패: ' + error.message);
                 }
             });
+            }
         </script>
         <!-- Daum 우편번호 API -->
         <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
