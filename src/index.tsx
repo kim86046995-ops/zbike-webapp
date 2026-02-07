@@ -4601,15 +4601,11 @@ app.get('/dashboard', (c) => {
                         <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
                         운영현황
                     </h1>
-                    <div class="flex items-center space-x-6">
-                        <nav class="flex space-x-4">
-                            <a href="/dashboard" class="text-blue-600 font-medium">운영현황</a>
-                            <a href="/static/motorcycles.html" class="text-gray-600 hover:text-blue-600">오토바이 관리</a>
-                            <a href="/static/contracts.html" class="text-gray-600 hover:text-blue-600">계약서 관리</a>
-                            <a href="/static/loans.html" class="text-gray-600 hover:text-blue-600">차용증 관리</a>
-                            <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600">설정</a>
-                        </nav>
-                        <div class="flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-center space-x-4">
+                        <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600 font-medium">
+                            <i class="fas fa-cog mr-1"></i>설정
+                        </a>
+                        <div class="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
                             <i class="fas fa-user-shield text-blue-600"></i>
                             <span id="userRoleBadge" class="text-sm font-bold text-blue-700"></span>
                         </div>
@@ -4673,14 +4669,14 @@ app.get('/dashboard', (c) => {
 
             <!-- 추가 통계 -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- 활성 계약 수 -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
+                <!-- 오토바이 관리 -->
+                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition" onclick="window.location.href='/static/motorcycles.html'">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">활성 계약</p>
-                            <p id="activeContracts" class="text-2xl font-bold text-gray-800">0</p>
+                            <p class="text-gray-600 text-sm">오토바이 관리</p>
+                            <p class="text-lg font-bold text-blue-600">바로가기</p>
                         </div>
-                        <div class="text-3xl text-blue-600"><i class="fas fa-file-contract"></i></div>
+                        <div class="text-3xl text-blue-600"><i class="fas fa-motorcycle"></i></div>
                     </div>
                 </div>
 
@@ -4739,10 +4735,6 @@ app.get('/dashboard', (c) => {
                     <a href="/static/loan-new.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-file-invoice-dollar text-3xl text-yellow-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">차용증 작성</p>
-                    </a>
-                    <a href="/static/motorcycles.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-list text-3xl text-purple-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">오토바이 목록</p>
                     </a>
                     <a href="/static/customers.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-users text-3xl text-blue-600 mb-2"></i>
