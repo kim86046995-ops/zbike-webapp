@@ -4610,6 +4610,9 @@ app.get('/dashboard', (c) => {
                             <i class="fas fa-user-shield text-blue-600"></i>
                             <span id="userRoleBadge" class="text-sm font-bold text-blue-700"></span>
                         </div>
+                        <button onclick="logout()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                        </button>
                     </div>
                 </div>
             </div>
@@ -4866,6 +4869,23 @@ app.get('/dashboard', (c) => {
             
             // 5분마다 자동 새로고침
             setInterval(loadStats, 300000);
+
+            // ========================================
+            // 로그아웃 기능
+            // ========================================
+            function logout() {
+                if (confirm('로그아웃하시겠습니까?')) {
+                    // 세션 ID 삭제
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                    
+                    // 로그인 페이지로 이동
+                    window.location.href = '/static/login.html';
+                }
+            }
+            
+            // 전역 함수로 등록
+            window.logout = logout;
 
             // ========================================
             // 계약자 정보 관리 함수
