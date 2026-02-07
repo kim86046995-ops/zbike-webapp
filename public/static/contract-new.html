@@ -1033,6 +1033,7 @@
             response => response,
             error => {
                 if (error.response?.status === 401) {
+                    alert('⚠️ 세션이 만료되었습니다. 다시 로그인해주세요.');
                     localStorage.removeItem('sessionId');
                     localStorage.removeItem('user');
                     window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
@@ -1040,6 +1041,21 @@
                 return Promise.reject(error);
             }
         );
+
+        // 세션 자동 갱신 (5분마다 인증 체크로 세션 유지)
+        setInterval(async () => {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (sessionId) {
+                    await axios.get('/api/auth/check', {
+                        headers: { 'X-Session-ID': sessionId }
+                    });
+                    console.log('✅ 세션 자동 갱신 성공');
+                }
+            } catch (error) {
+                console.error('❌ 세션 자동 갱신 실패:', error);
+            }
+        }, 5 * 60 * 1000); // 5분마다
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (await checkAuth()) {
