@@ -137,7 +137,31 @@ async function authMiddleware(c: any, next: any) {
     return c.json({ error: '인증이 필요합니다' }, 401)
   }
   
-  // 세션 저장소에서 확인 (DB 없이도 작동)
+  // D1 데이터베이스에서 세션 확인 (우선순위)
+  try {
+    const { DB } = c.env
+    if (DB) {
+      const session = await DB.prepare(`
+        SELECT * FROM sessions 
+        WHERE id = ? AND expires_at > datetime('now')
+      `).bind(sessionId).first()
+      
+      if (session) {
+        c.set('user', {
+          id: (session as any).user_id,
+          username: (session as any).username,
+          name: (session as any).name,
+          role: (session as any).role
+        })
+        await next()
+        return
+      }
+    }
+  } catch (error) {
+    console.log('DB session check failed, fallback to memory:', error)
+  }
+  
+  // 메모리 세션 저장소에서 확인 (백업)
   const session = sessionStore.get(sessionId)
   
   if (!session || session.expiresAt < Date.now()) {
@@ -201,10 +225,34 @@ app.post('/api/auth/login', async (c) => {
   )
   
   if (hardcodedUser) {
-    // 세션 ID 생성 (데이터베이스 없이)
+    // 세션 ID 생성
     const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36)
     
-    // 세션 저장소에 저장 (24시간 유효)
+    // D1 데이터베이스에 세션 저장 (24시간 유효)
+    try {
+      const { DB } = c.env
+      if (DB) {
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        
+        await DB.prepare(`
+          INSERT INTO sessions (id, user_id, username, name, role, expires_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(
+          sessionId,
+          hardcodedUser.id,
+          hardcodedUser.username,
+          hardcodedUser.name,
+          hardcodedUser.role,
+          expiresAt
+        ).run()
+        
+        console.log('✅ 세션 저장 완료 (D1):', sessionId)
+      }
+    } catch (error) {
+      console.error('❌ 세션 저장 실패:', error)
+    }
+    
+    // 메모리 세션도 백업으로 저장
     sessionStore.set(sessionId, {
       user: hardcodedUser,
       expiresAt: Date.now() + 24 * 60 * 60 * 1000
