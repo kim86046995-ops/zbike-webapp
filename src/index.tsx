@@ -2504,50 +2504,56 @@ app.get('/api/company-settings', authMiddleware, async (c) => {
 // 회사 설정 수정 (인증 필요)
 app.put('/api/company-settings', authMiddleware, async (c) => {
   const { DB } = c.env
-  const data = await c.req.json()
   
-  // 기존 데이터 확인
-  const existing = await DB.prepare('SELECT * FROM company_settings ORDER BY id DESC LIMIT 1').first()
-  
-  if (existing) {
-    // 업데이트
-    await DB.prepare(`
-      UPDATE company_settings 
-      SET company_name = ?, business_number = ?, representative_name = ?,
-          phone = ?, manager_phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).bind(
-      data.company_name,
-      data.business_number,
-      data.representative_name,
-      data.phone || '',
-      data.manager_phone || '',
-      data.address || '',
-      data.bank_name || '',
-      data.account_number || '',
-      data.account_holder || '',
-      (existing as any).id
-    ).run()
-  } else {
-    // 신규 삽입
-    await DB.prepare(`
-      INSERT INTO company_settings (company_name, business_number, representative_name, phone, manager_phone, address, bank_name, account_number, account_holder)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      data.company_name,
-      data.business_number,
-      data.representative_name,
-      data.phone || '',
-      data.manager_phone || '',
-      data.address || '',
-      data.bank_name || '',
-      data.account_number || '',
-      data.account_holder || ''
-    ).run()
+  try {
+    const data = await c.req.json()
+    
+    // 기존 데이터 확인
+    const existing = await DB.prepare('SELECT * FROM company_settings ORDER BY id DESC LIMIT 1').first()
+    
+    if (existing) {
+      // 업데이트
+      await DB.prepare(`
+        UPDATE company_settings 
+        SET company_name = ?, business_number = ?, representative_name = ?,
+            phone = ?, manager_phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        data.company_name,
+        data.business_number,
+        data.representative_name,
+        data.phone || '',
+        data.manager_phone || '',
+        data.address || '',
+        data.bank_name || '',
+        data.account_number || '',
+        data.account_holder || '',
+        (existing as any).id
+      ).run()
+    } else {
+      // 신규 삽입
+      await DB.prepare(`
+        INSERT INTO company_settings (company_name, business_number, representative_name, phone, manager_phone, address, bank_name, account_number, account_holder)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        data.company_name,
+        data.business_number,
+        data.representative_name,
+        data.phone || '',
+        data.manager_phone || '',
+        data.address || '',
+        data.bank_name || '',
+        data.account_number || '',
+        data.account_holder || ''
+      ).run()
+    }
+    
+    return c.json({ message: '사업자 정보가 저장되었습니다' })
+  } catch (error) {
+    console.error('회사 설정 저장 오류:', error)
+    return c.json({ error: '저장 중 오류가 발생했습니다: ' + error.message }, 500)
   }
-  
-  return c.json({ message: '사업자 정보가 저장되었습니다' })
 })
 
 // ============================================
