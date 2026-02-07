@@ -1419,7 +1419,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       FROM contracts
     `).first()
     
-    // 활성 개인계약 수 및 총 대여금
+    // 활성 계약 수 (진행중 상태만 카운트: 개인계약 + 업체계약)
     const contractStats = await DB.prepare(`
       SELECT 
         COUNT(*) as active_contracts,
@@ -1429,12 +1429,16 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       WHERE status = 'active'
     `).first()
     
-    // 활성 업체계약 수
+    // 활성 업체계약 수 (진행중 상태만)
     const businessContractStats = await DB.prepare(`
       SELECT COUNT(*) as active_business_contracts
       FROM business_contracts
       WHERE status = 'active'
     `).first()
+    
+    // 전체 활성 계약 수 = 개인계약 + 업체계약
+    const totalActiveContracts = ((contractStats as any)?.active_contracts || 0) + 
+                                  ((businessContractStats as any)?.active_business_contracts || 0)
     
     // 활성 차용증 수 및 총대여금
     const loanStats = await DB.prepare(`
@@ -1462,7 +1466,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       },
       customers: (customerCount as any)?.count || 0,
       contracts: {
-        active: (contractStats as any)?.active_contracts || 0,
+        active: totalActiveContracts,  // 개인계약 + 업체계약
         monthly_revenue: (contractStats as any)?.total_monthly_revenue || 0,
         total_deposits: (contractStats as any)?.total_deposits || 0,
         active_business: (businessContractStats as any)?.active_business_contracts || 0,
