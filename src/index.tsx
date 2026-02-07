@@ -4995,15 +4995,18 @@ app.get('/dashboard', (c) => {
                 return numbers;
             }
 
-            document.getElementById('customerResidentNumber').addEventListener('input', function(e) {
-                e.target.value = formatResidentNumber(e.target.value);
-            });
+            const residentNumberInput = document.getElementById('customerResidentNumber');
+            if (residentNumberInput) {
+                residentNumberInput.addEventListener('input', function(e) {
+                    e.target.value = formatResidentNumber(e.target.value);
+                });
 
-            document.getElementById('customerResidentNumber').addEventListener('paste', function(e) {
-                e.preventDefault();
-                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                e.target.value = formatResidentNumber(pastedText);
-            });
+                residentNumberInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    e.target.value = formatResidentNumber(pastedText);
+                });
+            }
 
             // 전화번호 자동 하이픈 추가 (입력 및 붙여넣기 모두 처리)
             function formatPhoneNumber(value) {
@@ -5017,15 +5020,18 @@ app.get('/dashboard', (c) => {
                 return numbers;
             }
 
-            document.getElementById('customerPhone').addEventListener('input', function(e) {
-                e.target.value = formatPhoneNumber(e.target.value);
-            });
+            const phoneInput = document.getElementById('customerPhone');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function(e) {
+                    e.target.value = formatPhoneNumber(e.target.value);
+                });
 
-            document.getElementById('customerPhone').addEventListener('paste', function(e) {
-                e.preventDefault();
-                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                e.target.value = formatPhoneNumber(pastedText);
-            });
+                phoneInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    e.target.value = formatPhoneNumber(pastedText);
+                });
+            }
 
             // 폼 초기화
             function clearCustomerForm() {
