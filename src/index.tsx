@@ -132,13 +132,20 @@ async function validateSession(DB: D1Database, sessionId: string | undefined) {
 
 async function authMiddleware(c: any, next: any) {
   const sessionId = c.req.header('X-Session-ID') || c.req.query('session')
-  const session = await validateSession(c.env.DB, sessionId)
   
-  if (!session) {
+  if (!sessionId) {
     return c.json({ error: '인증이 필요합니다' }, 401)
   }
   
-  c.set('user', session)
+  // 세션 저장소에서 확인 (DB 없이도 작동)
+  const session = sessionStore.get(sessionId)
+  
+  if (!session || session.expiresAt < Date.now()) {
+    sessionStore.delete(sessionId)
+    return c.json({ error: '세션이 만료되었습니다' }, 401)
+  }
+  
+  c.set('user', session.user)
   await next()
 }
 
@@ -1357,6 +1364,29 @@ app.delete('/api/companies/:id', superAdminMiddleware, async (c) => {
 // 대시보드 통계 (인증 필요 - 민감한 사업 정보)
 app.get('/api/dashboard/stats', authMiddleware, async (c) => {
   const { DB } = c.env
+  
+  // DB가 없으면 빈 통계 반환 (개발 환경용)
+  if (!DB) {
+    return c.json({
+      motorcycles: {
+        total: 0,
+        available: 0,
+        rented: 0,
+        maintenance: 0,
+        scrapped: 0
+      },
+      customers: 0,
+      contracts: {
+        active: 0,
+        monthly_revenue: 0,
+        total_deposits: 0,
+        active_business: 0,
+        active_temp: 0,
+        active_loans: 0,
+        total_loan_amount: 0
+      }
+    })
+  }
   
   try {
     // 오토바이 총 대수 및 상태별 집계
