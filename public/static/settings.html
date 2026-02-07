@@ -202,7 +202,7 @@
                 document.getElementById('businessNumber').value = data.business_number || '';
                 document.getElementById('representativeName').value = data.representative_name || '';
                 document.getElementById('phone').value = data.phone || '';
-                document.getElementById('managerPhone').value = data.manager_phone || '';
+                // managerPhone field removed - not in database
                 document.getElementById('address').value = data.address || '';
                 document.getElementById('bankName').value = data.bank_name || '';
                 document.getElementById('accountNumber').value = data.account_number || '';
@@ -231,7 +231,7 @@
                 business_number: document.getElementById('businessNumber').value,
                 representative_name: document.getElementById('representativeName').value,
                 phone: document.getElementById('phone').value,
-                manager_phone: document.getElementById('managerPhone').value,
+                // managerPhone field removed - not in database
                 address: document.getElementById('address').value,
                 bank_name: document.getElementById('bankName').value,
                 account_number: document.getElementById('accountNumber').value,
@@ -274,6 +274,9 @@
                 if (error.response?.status === 403) {
                     console.log('일반 관리자: 관리자 목록 숨김');
                     document.getElementById('adminManagementSection').style.display = 'none';
+                } else if (error.response?.status === 401) {
+                    console.log('세션 만료: 로그인 필요');
+                    // Do nothing - user can still use settings page
                 } else {
                     console.error('Error loading admins:', error);
                 }
