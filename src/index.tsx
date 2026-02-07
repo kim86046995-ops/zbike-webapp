@@ -831,6 +831,43 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       contract_end_date: data.contract_end_date !== undefined ? data.contract_end_date : (existing.contract_end_date || '')
     }
     
+    // 변경 이력 저장 (중요 필드만)
+    const user = c.get('user')
+    const userId = user?.id || null
+    const importantFields = [
+      { key: 'insurance_company', name: '보험사' },
+      { key: 'insurance_start_date', name: '보험시작일' },
+      { key: 'insurance_end_date', name: '보험종료일' },
+      { key: 'driving_range', name: '운전범위' },
+      { key: 'inspection_start_date', name: '검사시작일' },
+      { key: 'inspection_end_date', name: '검사종료일' },
+      { key: 'status', name: '상태' },
+      { key: 'mileage', name: '키로수' },
+      { key: 'insurance_fee', name: '보험료' },
+      { key: 'daily_rental_fee', name: '일대여료' }
+    ]
+    
+    for (const field of importantFields) {
+      const oldValue = String(existing[field.key] || '')
+      const newValue = String(mergedData[field.key] || '')
+      
+      if (oldValue !== newValue) {
+        await DB.prepare(`
+          INSERT INTO motorcycle_history 
+          (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          id,
+          'update',
+          field.name,
+          oldValue,
+          newValue,
+          userId,
+          `${field.name} 변경: ${oldValue} → ${newValue}`
+        ).run()
+      }
+    }
+    
     await DB.prepare(`
       UPDATE motorcycles SET
         plate_number = ?, vehicle_name = ?, chassis_number = ?, mileage = ?,
@@ -874,6 +911,35 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
   } catch (error) {
     console.error('오토바이 수정 오류:', error)
     return c.json({ error: '수정 중 오류가 발생했습니다: ' + error.message }, 500)
+  }
+})
+
+// 오토바이 변경 이력 조회 (인증 필요)
+app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+  
+  try {
+    const { results } = await DB.prepare(`
+      SELECT 
+        h.id,
+        h.change_type,
+        h.field_name,
+        h.old_value,
+        h.new_value,
+        h.change_date,
+        h.notes,
+        u.name as changed_by_name
+      FROM motorcycle_history h
+      LEFT JOIN users u ON h.changed_by = u.id
+      WHERE h.motorcycle_id = ?
+      ORDER BY h.change_date DESC
+    `).bind(id).all()
+    
+    return c.json({ history: results })
+  } catch (error) {
+    console.error('오토바이 이력 조회 오류:', error)
+    return c.json({ error: '이력 조회에 실패했습니다', details: error.message }, 500)
   }
 })
 

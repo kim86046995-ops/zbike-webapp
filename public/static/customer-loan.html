@@ -845,8 +845,8 @@
             try {
                 // 고객용 공개 API 호출 (인증 불필요)
                 const response = await axios.post('/api/loan-contracts/public', loanData);
-                alert(`차용증이 생성되었습니다!\n차용증번호: ${response.data.loan_number}\n\n담당자가 확인 후 연락드리겠습니다.`);
-                window.location.href = '/static/customer-portal.html';
+                alert(`차용증이 생성되었습니다!\n차용증번호: ${response.data.loan_number}\n\n차용증 목록으로 이동합니다.`);
+                window.location.href = '/static/loans.html';
             } catch (error) {
                 console.error('Error creating loan contract:', error);
                 alert('차용증 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
