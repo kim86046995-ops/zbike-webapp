@@ -1042,7 +1042,7 @@
             }
         );
 
-        // 세션 자동 갱신 (5분마다 인증 체크로 세션 유지)
+        // 세션 자동 갱신 (30초마다 인증 체크로 세션 유지)
         setInterval(async () => {
             try {
                 const sessionId = localStorage.getItem('sessionId');
@@ -1055,7 +1055,7 @@
             } catch (error) {
                 console.error('❌ 세션 자동 갱신 실패:', error);
             }
-        }, 5 * 60 * 1000); // 5분마다
+        }, 30 * 1000); // 30초마다
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (await checkAuth()) {

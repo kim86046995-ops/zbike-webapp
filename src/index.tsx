@@ -147,6 +147,14 @@ async function authMiddleware(c: any, next: any) {
       `).bind(sessionId).first()
       
       if (session) {
+        // 세션 만료 시간 자동 연장 (24시간 추가)
+        const newExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        await DB.prepare(`
+          UPDATE sessions 
+          SET expires_at = ? 
+          WHERE id = ?
+        `).bind(newExpiresAt, sessionId).run()
+        
         c.set('user', {
           id: (session as any).user_id,
           username: (session as any).username,
@@ -168,6 +176,10 @@ async function authMiddleware(c: any, next: any) {
     sessionStore.delete(sessionId)
     return c.json({ error: '세션이 만료되었습니다' }, 401)
   }
+  
+  // 메모리 세션도 자동 연장
+  session.expiresAt = Date.now() + 24 * 60 * 60 * 1000
+  sessionStore.set(sessionId, session)
   
   c.set('user', session.user)
   await next()
