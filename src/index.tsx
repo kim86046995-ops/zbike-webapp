@@ -1372,8 +1372,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
         total: 0,
         available: 0,
         rented: 0,
-        maintenance: 0,
-        scrapped: 0
+        maintenance: 0
       },
       customers: 0,
       contracts: {
@@ -1390,17 +1389,10 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
   
   try {
     // 오토바이 총 대수 및 상태별 집계
-    // 휴차중 (available): 기본정보만 있고 계약정보 없는 것 포함
     const motorcycleStats = await DB.prepare(`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE 
-          WHEN status = 'available' 
-            OR (status != 'maintenance' AND status != 'scrapped' 
-                AND (monthly_fee IS NULL OR contract_start_date IS NULL))
-          THEN 1 ELSE 0 
-        END) as available,
-        SUM(CASE WHEN status = 'rented' THEN 1 ELSE 0 END) as rented,
+        SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
         SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
         SUM(CASE WHEN status = 'scrapped' THEN 1 ELSE 0 END) as scrapped
       FROM motorcycles
@@ -1412,7 +1404,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       FROM contracts
     `).first()
     
-    // 활성 계약 수 (진행중 상태만 카운트: 개인계약 + 업체계약)
+    // 활성 계약 수 (진행중 상태만 카운트: 개인계약)
     const contractStats = await DB.prepare(`
       SELECT 
         COUNT(*) as active_contracts,
@@ -1453,9 +1445,8 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       motorcycles: {
         total: motorcycleStats.total || 0,
         available: motorcycleStats.available || 0,
-        rented: motorcycleStats.rented || 0,
-        maintenance: motorcycleStats.maintenance || 0,
-        scrapped: motorcycleStats.scrapped || 0
+        rented: totalActiveContracts,  // 사용중 = 진행중 계약서 개수
+        maintenance: (motorcycleStats.maintenance || 0) + (motorcycleStats.scrapped || 0)  // 수리중/폐지 합계
       },
       customers: (customerCount as any)?.count || 0,
       contracts: {
@@ -4807,20 +4798,16 @@ app.get('/dashboard', (c) => {
                     
                     // 오토바이 통계
                     const total = data.motorcycles.total;
-                    const rented = data.motorcycles.rented;
-                    const maintenance = data.motorcycles.maintenance;
-                    const scrapped = data.motorcycles.scrapped;
-                    
-                    // 휴차중 = 총 바이크 - 사용중 - 수리중 - 폐지
-                    const available = total - rented - maintenance - scrapped;
+                    const rented = data.motorcycles.rented;  // 진행중 계약서 개수
+                    const available = data.motorcycles.available;  // 휴차중
+                    const maintenance = data.motorcycles.maintenance;  // 수리중/폐지 합계
                     
                     document.getElementById('totalCount').textContent = total;
                     document.getElementById('rentedCount').textContent = rented;
                     document.getElementById('availableCount').textContent = available;
-                    document.getElementById('maintenanceCount').textContent = maintenance + scrapped;
+                    document.getElementById('maintenanceCount').textContent = maintenance;
                     
-                    // 계약 및 고객 통계
-                    document.getElementById('activeContracts').textContent = data.contracts.active;
+                    // 고객 및 차용증 통계
                     document.getElementById('totalCustomers').textContent = data.customers;
                     document.getElementById('totalLoanAmount').textContent = 
                         (data.contracts.total_loan_amount || 0).toLocaleString() + '원';
