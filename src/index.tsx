@@ -4595,18 +4595,26 @@ app.get('/dashboard', (c) => {
     <body class="bg-gray-100">
         <!-- 헤더 -->
         <div class="bg-white shadow-md">
-            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800">
-                    <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
-                    운영현황
-                </h1>
-                <nav class="flex space-x-4">
-                    <a href="/dashboard" class="text-blue-600 font-medium">운영현황</a>
-                    <a href="/static/motorcycles.html" class="text-gray-600 hover:text-blue-600">오토바이 관리</a>
-                    <a href="/static/contracts.html" class="text-gray-600 hover:text-blue-600">계약서 관리</a>
-                    <a href="/static/loans.html" class="text-gray-600 hover:text-blue-600">차용증 관리</a>
-                    <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600">설정</a>
-                </nav>
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                        운영현황
+                    </h1>
+                    <div class="flex items-center space-x-6">
+                        <nav class="flex space-x-4">
+                            <a href="/dashboard" class="text-blue-600 font-medium">운영현황</a>
+                            <a href="/static/motorcycles.html" class="text-gray-600 hover:text-blue-600">오토바이 관리</a>
+                            <a href="/static/contracts.html" class="text-gray-600 hover:text-blue-600">계약서 관리</a>
+                            <a href="/static/loans.html" class="text-gray-600 hover:text-blue-600">차용증 관리</a>
+                            <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600">설정</a>
+                        </nav>
+                        <div class="flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-lg border border-blue-200">
+                            <i class="fas fa-user-shield text-blue-600"></i>
+                            <span id="userRoleBadge" class="text-sm font-bold text-blue-700"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -4840,10 +4848,27 @@ app.get('/dashboard', (c) => {
             // 페이지 로드 시 인증 확인 및 통계 로드
             (async function() {
                 const sessionId = localStorage.getItem('sessionId');
+                const userStr = localStorage.getItem('user');
+                
                 if (!sessionId) {
                     console.log('❌ 세션 없음 - 로그인 페이지로 이동');
                     window.location.href = '/login';
                     return;
+                }
+                
+                // 사용자 역할 표시
+                if (userStr) {
+                    try {
+                        const user = JSON.parse(userStr);
+                        const roleBadge = document.getElementById('userRoleBadge');
+                        if (roleBadge) {
+                            const roleText = user.role === 'superadmin' ? '슈퍼관리자' : '관리자';
+                            const userName = user.name || user.username;
+                            roleBadge.textContent = \`\${userName} (\${roleText})\`;
+                        }
+                    } catch (e) {
+                        console.error('사용자 정보 파싱 오류:', e);
+                    }
                 }
                 
                 console.log('✅ 세션 확인:', sessionId);
