@@ -2516,7 +2516,7 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
       await DB.prepare(`
         UPDATE company_settings 
         SET company_name = ?, business_number = ?, representative_name = ?,
-            phone = ?, manager_phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
+            phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(
@@ -2524,7 +2524,6 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
         data.business_number,
         data.representative_name,
         data.phone || '',
-        data.manager_phone || '',
         data.address || '',
         data.bank_name || '',
         data.account_number || '',
@@ -2534,14 +2533,13 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
     } else {
       // 신규 삽입
       await DB.prepare(`
-        INSERT INTO company_settings (company_name, business_number, representative_name, phone, manager_phone, address, bank_name, account_number, account_holder)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO company_settings (company_name, business_number, representative_name, phone, address, bank_name, account_number, account_holder)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         data.company_name,
         data.business_number,
         data.representative_name,
         data.phone || '',
-        data.manager_phone || '',
         data.address || '',
         data.bank_name || '',
         data.account_number || '',
