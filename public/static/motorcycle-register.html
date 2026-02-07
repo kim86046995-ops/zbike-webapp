@@ -83,6 +83,10 @@
                         <input type="number" id="vehiclePrice" required class="w-full px-3 py-2 border rounded-lg">
                     </div>
                     <div>
+                        <label class="block text-sm font-bold mb-2">일대여료 (원)</label>
+                        <input type="number" id="dailyRentalFee" value="0" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
                         <label class="block text-sm font-bold mb-2">검사 시작일</label>
                         <input type="date" id="inspectionStartDate" class="w-full px-3 py-2 border rounded-lg">
                     </div>
@@ -157,6 +161,7 @@
                 owner_name: document.getElementById('ownerName').value,
                 insurance_fee: parseInt(document.getElementById('insuranceFee').value),
                 vehicle_price: parseInt(document.getElementById('vehiclePrice').value),
+                daily_rental_fee: parseInt(document.getElementById('dailyRentalFee').value) || 0,
                 inspection_start_date: document.getElementById('inspectionStartDate').value || null,
                 inspection_end_date: document.getElementById('inspectionEndDate').value || null,
                 usage_notes: document.getElementById('usageNotes').value || '',
