@@ -470,7 +470,7 @@
         function checkAuth() {
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 return;
             }
 
@@ -479,7 +479,7 @@
             }).catch(err => {
                 console.error('인증 실패:', err);
                 localStorage.removeItem('sessionId');
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
             });
         }
 

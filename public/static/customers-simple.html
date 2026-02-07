@@ -102,7 +102,7 @@
             const sid = localStorage.getItem('sessionId');
             if (!sid) {
                 alert('로그인이 필요합니다.');
-                window.location.href = '/login';
+                window.location.href = '/static/login.html';
                 return false;
             }
             return true;

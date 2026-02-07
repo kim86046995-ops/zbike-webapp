@@ -181,7 +181,7 @@
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) {
                 alert('로그인이 필요합니다.');
-                window.location.href = '/login';
+                window.location.href = '/static/login.html';
                 return false;
             }
             return true;
@@ -215,7 +215,7 @@
                 if (error.response?.status === 401) {
                     alert('인증에 실패했습니다. 다시 로그인해주세요.');
                     localStorage.clear();
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                 }
             }
         });
@@ -249,7 +249,7 @@
                 if (error.response?.status === 401) {
                     alert('❌ 인증에 실패했습니다. 다시 로그인해주세요.');
                     localStorage.clear();
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                 } else {
                     alert('❌ 설정 저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
                 }

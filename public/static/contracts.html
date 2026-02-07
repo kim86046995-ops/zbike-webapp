@@ -380,7 +380,7 @@
         // 인증 체크
         async function checkAuth() {
             if (!sessionId) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 return false;
             }
 
@@ -392,7 +392,7 @@
             } catch (error) {
                 localStorage.removeItem('sessionId');
                 localStorage.removeItem('user');
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 return false;
             }
         }
@@ -411,7 +411,7 @@
                 if (error.response?.status === 401) {
                     localStorage.removeItem('sessionId');
                     localStorage.removeItem('user');
-                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                    window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 }
                 return Promise.reject(error);
             }

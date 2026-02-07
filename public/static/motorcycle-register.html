@@ -120,7 +120,7 @@
         // 로그인 체크
         if (!sessionId) {
             alert('⚠️ 로그인이 필요합니다.');
-            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+            window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
         }
         
         // Axios 인터셉터 설정 - 모든 요청에 세션 ID 추가
@@ -139,7 +139,7 @@
                     localStorage.removeItem('sessionId');
                     localStorage.removeItem('user');
                     alert('⚠️ 세션이 만료되었습니다. 다시 로그인해주세요.');
-                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                    window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 }
                 return Promise.reject(error);
             }

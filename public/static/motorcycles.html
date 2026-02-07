@@ -526,7 +526,7 @@
         // 인증 체크
         async function checkAuth() {
             if (!sessionId) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 return false;
             }
 
@@ -539,7 +539,7 @@
             } catch (error) {
                 localStorage.removeItem('sessionId');
                 localStorage.removeItem('user');
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 return false;
             }
         }
@@ -559,7 +559,7 @@
                 if (error.response?.status === 401) {
                     localStorage.removeItem('sessionId');
                     localStorage.removeItem('user');
-                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                    window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                 }
                 return Promise.reject(error);
             }
@@ -1583,7 +1583,7 @@
                 const sessionId = localStorage.getItem('sessionId');
                 if (!sessionId) {
                     alert('⚠️ 로그인이 필요합니다.');
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                     return;
                 }
 
@@ -1630,7 +1630,7 @@
                 const sessionId = localStorage.getItem('sessionId');
                 if (!sessionId) {
                     alert('⚠️ 로그인이 필요합니다.');
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                     return;
                 }
 
@@ -1677,7 +1677,7 @@
                 const sessionId = localStorage.getItem('sessionId');
                 if (!sessionId) {
                     alert('⚠️ 로그인이 필요합니다.');
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                     return;
                 }
                 
@@ -1786,7 +1786,7 @@
                 const sessionId = localStorage.getItem('sessionId');
                 if (!sessionId) {
                     alert('⚠️ 로그인이 필요합니다.');
-                    window.location.href = '/login';
+                    window.location.href = '/static/login.html';
                     return;
                 }
 
