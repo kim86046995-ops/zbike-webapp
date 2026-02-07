@@ -763,20 +763,33 @@ app.post('/api/motorcycles', authMiddleware, async c => {
   const {
     DB
   } = c.env;
-  const data = await c.req.json();
-  const result = await DB.prepare(`
-    INSERT INTO motorcycles (
-      plate_number, vehicle_name, chassis_number, mileage, model_year,
-      insurance_company, insurance_start_date, insurance_end_date,
-      inspection_start_date, inspection_end_date,
-      driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, usage_notes, status,
-      certificate_photo
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(data.plate_number, data.vehicle_name, data.chassis_number, data.mileage, data.model_year, data.insurance_company, data.insurance_start_date, data.insurance_end_date, data.inspection_start_date || null, data.inspection_end_date || null, data.driving_range, data.owner_name, data.insurance_fee, data.vehicle_price, data.daily_rental_fee || 0, data.usage_notes || '', data.status || 'available', data.certificate_photo || null).run();
-  return c.json({
-    id: result.meta.last_row_id,
-    ...data
-  }, 201);
+  if (!DB) {
+    return c.json({
+      error: 'Database not available'
+    }, 500);
+  }
+  try {
+    const data = await c.req.json();
+    const result = await DB.prepare(`
+      INSERT INTO motorcycles (
+        plate_number, vehicle_name, chassis_number, mileage, model_year,
+        insurance_company, insurance_start_date, insurance_end_date,
+        inspection_start_date, inspection_end_date,
+        driving_range, owner_name, insurance_fee, vehicle_price, daily_rental_fee, usage_notes, status,
+        certificate_photo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(data.plate_number, data.vehicle_name, data.chassis_number, data.mileage, data.model_year, data.insurance_company, data.insurance_start_date, data.insurance_end_date, data.inspection_start_date || null, data.inspection_end_date || null, data.driving_range, data.owner_name, data.insurance_fee, data.vehicle_price, data.daily_rental_fee || 0, data.usage_notes || '', data.status || 'available', data.certificate_photo || null).run();
+    return c.json({
+      id: result.meta.last_row_id,
+      ...data
+    }, 201);
+  } catch (error) {
+    console.error('오토바이 등록 오류:', error);
+    return c.json({
+      error: '오토바이 등록 실패',
+      details: error.message
+    }, 500);
+  }
 });
 
 // 오토바이 수정 (인증 필요)
