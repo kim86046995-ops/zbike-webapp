@@ -1134,7 +1134,10 @@
         async function loadMotorcycles() {
             try {
                 // 모든 오토바이를 가져옴 (페지된 것만 제외)
-                const response = await axios.get('/api/motorcycles');
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await axios.get('/api/motorcycles', {
+                    headers: { 'X-Session-ID': sessionId }
+                });
                 
                 // 페지된 오토바이(scrapped) 제외
                 motorcycles = response.data.filter(m => m.status !== 'scrapped');

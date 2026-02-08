@@ -2,11 +2,11 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from '@hono/node-server/serve-static'
 
-// type Bindings = {
-//   DB: D1Database;
-// }
+type Bindings = {
+  DB: D1Database;
+}
 
-const app = new Hono()
+const app = new Hono<{ Bindings: Bindings }>()
 
 // ============================================
 // 전역 CORS 설정 (모든 브라우저 호환)
@@ -241,6 +241,9 @@ app.post('/api/auth/login', async (c) => {
     const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36)
     
     // D1 데이터베이스에 세션 저장 (30일 유효)
+    let dbSaveSuccess = false
+    let dbError = null
+    
     try {
       const { DB } = c.env
       console.log('🔍 DB 객체 존재:', !!DB)
@@ -262,12 +265,20 @@ app.post('/api/auth/login', async (c) => {
         ).run()
         
         console.log('✅ 세션 저장 완료 (D1):', { sessionId, success: result.success })
+        
+        if (!result.success) {
+          throw new Error('D1 세션 저장 실패: result.success = false')
+        }
+        
+        dbSaveSuccess = true
       } else {
         console.error('❌ DB 객체가 없습니다! D1 바인딩 확인 필요')
+        dbError = 'DB 객체가 없습니다'
       }
     } catch (error) {
       console.error('❌ 세션 저장 실패:', error)
       console.error('❌ 에러 상세:', JSON.stringify(error, null, 2))
+      dbError = (error as Error).message
     }
     
     // 메모리 세션도 백업으로 저장 (30일)
@@ -284,6 +295,10 @@ app.post('/api/auth/login', async (c) => {
         username: hardcodedUser.username,
         name: hardcodedUser.name,
         role: hardcodedUser.role
+      },
+      debug: {
+        db_save_success: dbSaveSuccess,
+        db_error: dbError
       }
     })
   }
@@ -327,6 +342,38 @@ app.post('/api/auth/logout', async (c) => {
   }
   
   return c.json({ success: true })
+})
+
+// 디버그 API - DB 연결 확인
+app.get('/api/debug/db-test', async (c) => {
+  try {
+    const { DB } = c.env
+    
+    if (!DB) {
+      return c.json({ 
+        error: 'DB is undefined',
+        env_keys: Object.keys(c.env),
+        message: 'D1 바인딩이 없습니다'
+      })
+    }
+    
+    // 세션 테이블 확인
+    const sessions = await DB.prepare('SELECT COUNT(*) as count FROM sessions').first()
+    
+    return c.json({
+      success: true,
+      db_exists: true,
+      sessions_count: (sessions as any)?.count || 0,
+      env_keys: Object.keys(c.env),
+      message: 'DB 연결 성공'
+    })
+  } catch (error: any) {
+    return c.json({
+      error: error.message,
+      stack: error.stack,
+      env_keys: Object.keys(c.env)
+    })
+  }
 })
 
 // 세션 확인
