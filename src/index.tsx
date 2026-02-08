@@ -147,8 +147,8 @@ async function authMiddleware(c: any, next: any) {
       `).bind(sessionId).first()
       
       if (session) {
-        // 세션 만료 시간 자동 연장 (24시간 추가)
-        const newExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        // 세션 만료 시간 자동 연장 (30일 추가)
+        const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         await DB.prepare(`
           UPDATE sessions 
           SET expires_at = ? 
@@ -331,7 +331,40 @@ app.get('/api/auth/check', async (c) => {
     return c.json({ authenticated: false })
   }
   
-  // 세션 저장소에서 확인
+  // D1 데이터베이스에서 세션 확인 (우선순위)
+  try {
+    const { DB } = c.env
+    if (DB) {
+      const session = await DB.prepare(`
+        SELECT * FROM sessions 
+        WHERE id = ? AND expires_at > datetime('now')
+      `).bind(sessionId).first()
+      
+      if (session) {
+        // 세션 만료 시간 자동 연장 (30일)
+        const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        await DB.prepare(`
+          UPDATE sessions 
+          SET expires_at = ? 
+          WHERE id = ?
+        `).bind(newExpiresAt, sessionId).run()
+        
+        return c.json({
+          authenticated: true,
+          user: {
+            id: (session as any).user_id,
+            username: (session as any).username,
+            name: (session as any).name,
+            role: (session as any).role
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.log('DB session check failed, fallback to memory:', error)
+  }
+  
+  // 메모리 세션 저장소에서 확인 (백업)
   const session = sessionStore.get(sessionId)
   
   if (!session) {
@@ -343,6 +376,10 @@ app.get('/api/auth/check', async (c) => {
     sessionStore.delete(sessionId)
     return c.json({ authenticated: false })
   }
+  
+  // 메모리 세션도 자동 연장 (30일)
+  session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
+  sessionStore.set(sessionId, session)
   
   return c.json({
     authenticated: true,
