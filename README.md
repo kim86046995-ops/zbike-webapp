@@ -519,3 +519,4 @@ MIT License
 - 업체 계약서 작성 시 오토바이 선택하면 차량정보 자동 표시 (차량번호, 차대번호, 차량이름, 보험사, 보험기간, 운전범위)
 # Force rebuild Sat Feb  7 13:37:07 UTC 2026
 # Deploy Sat Feb  7 22:59:47 UTC 2026
+Last updated: Sun Feb  8 00:46:30 UTC 2026
