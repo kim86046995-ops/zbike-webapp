@@ -240,13 +240,16 @@ app.post('/api/auth/login', async (c) => {
     // 세션 ID 생성
     const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36)
     
-    // D1 데이터베이스에 세션 저장 (24시간 유효)
+    // D1 데이터베이스에 세션 저장 (30일 유효)
     try {
       const { DB } = c.env
+      console.log('🔍 DB 객체 존재:', !!DB)
+      
       if (DB) {
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30일
+        console.log('🔍 세션 저장 시도:', { sessionId, username: hardcodedUser.username, expiresAt })
         
-        await DB.prepare(`
+        const result = await DB.prepare(`
           INSERT INTO sessions (id, user_id, username, name, role, expires_at)
           VALUES (?, ?, ?, ?, ?, ?)
         `).bind(
@@ -258,10 +261,13 @@ app.post('/api/auth/login', async (c) => {
           expiresAt
         ).run()
         
-        console.log('✅ 세션 저장 완료 (D1):', sessionId)
+        console.log('✅ 세션 저장 완료 (D1):', { sessionId, success: result.success })
+      } else {
+        console.error('❌ DB 객체가 없습니다! D1 바인딩 확인 필요')
       }
     } catch (error) {
       console.error('❌ 세션 저장 실패:', error)
+      console.error('❌ 에러 상세:', JSON.stringify(error, null, 2))
     }
     
     // 메모리 세션도 백업으로 저장 (30일)
