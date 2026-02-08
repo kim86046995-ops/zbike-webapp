@@ -1055,7 +1055,7 @@
             } catch (error) {
                 console.error('❌ 세션 자동 갱신 실패:', error);
             }
-        }, 30 * 1000); // 30초마다
+        }, 10 * 60 * 1000); // 10분마다 세션 자동 갱신
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (await checkAuth()) {

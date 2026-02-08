@@ -105,7 +105,7 @@ async function recordContractHistory(
 
 async function createSession(DB: D1Database, userId: number) {
   const sessionId = generateSessionId()
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24시간
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30일
   
   await DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
     .bind(sessionId, userId, expiresAt).run()
@@ -177,8 +177,8 @@ async function authMiddleware(c: any, next: any) {
     return c.json({ error: '세션이 만료되었습니다' }, 401)
   }
   
-  // 메모리 세션도 자동 연장
-  session.expiresAt = Date.now() + 24 * 60 * 60 * 1000
+  // 메모리 세션도 자동 연장 (30일)
+  session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
   sessionStore.set(sessionId, session)
   
   c.set('user', session.user)
@@ -244,7 +244,7 @@ app.post('/api/auth/login', async (c) => {
     try {
       const { DB } = c.env
       if (DB) {
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30일
         
         await DB.prepare(`
           INSERT INTO sessions (id, user_id, username, name, role, expires_at)
@@ -264,10 +264,10 @@ app.post('/api/auth/login', async (c) => {
       console.error('❌ 세션 저장 실패:', error)
     }
     
-    // 메모리 세션도 백업으로 저장
+    // 메모리 세션도 백업으로 저장 (30일)
     sessionStore.set(sessionId, {
       user: hardcodedUser,
-      expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000
     })
     
     return c.json({
@@ -4997,8 +4997,23 @@ app.get('/dashboard', (c) => {
                 await loadStats();
             })();
             
-            // 5분마다 자동 새로고침
-            setInterval(loadStats, 300000);
+            // 10분마다 세션 자동 갱신
+            setInterval(async () => {
+                const sessionId = localStorage.getItem('sessionId');
+                if (sessionId) {
+                    try {
+                        await axios.get('/api/auth/check', {
+                            headers: { 'X-Session-ID': sessionId }
+                        });
+                        console.log('✅ 세션 자동 갱신 성공');
+                    } catch (error) {
+                        console.error('❌ 세션 자동 갱신 실패:', error);
+                    }
+                }
+            }, 10 * 60 * 1000);
+            
+            // 5분마다 통계 자동 새로고침
+            setInterval(loadStats, 5 * 60 * 1000);
 
             // ========================================
             // 로그아웃 기능
