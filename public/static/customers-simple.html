@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=yes">
-    <title>계약자 목록</title>
+    <title>고객 목록</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -41,7 +41,7 @@
             <div class="flex justify-between items-center">
                 <a href="/" class="flex items-center touch-target">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    <span class="text-xl font-bold">계약자 목록</span>
+                    <span class="text-xl font-bold">고객 목록</span>
                 </a>
                 <button onclick="printList()" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 touch-target">
                     <i class="fas fa-print mr-2"></i><span class="hidden md:inline">인쇄</span>
@@ -83,7 +83,7 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto smooth-scroll" onclick="event.stopPropagation()">
             <div class="p-4 md:p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">계약자 상세정보</h2>
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">고객 상세정보</h2>
                     <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 touch-target">
                         <i class="fas fa-times text-2xl"></i>
                     </button>
@@ -283,14 +283,14 @@
         }
 
         async function deleteCustomer(id, name) {
-            if (!confirm(name + ' 계약자를 삭제하시겠습니까?\n\n⚠️ 관련된 모든 계약서도 함께 삭제됩니다.')) return;
+            if (!confirm(name + ' 고객을 삭제하시겠습니까?\n\n⚠️ 관련된 모든 계약서도 함께 삭제됩니다.')) return;
             
             try {
                 const sid = localStorage.getItem('sessionId');
                 await axios.delete('/api/customers/' + id, {
                     headers: { 'X-Session-ID': sid }
                 });
-                alert('✅ 계약자가 삭제되었습니다.');
+                alert('✅ 고객이 삭제되었습니다.');
                 loadData();
             } catch (err) {
                 alert('❌ 삭제 실패: ' + (err.response?.data?.error || err.message));
@@ -302,10 +302,10 @@
             const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin' || user.id === 1;
             
             const pw = window.open('', '', 'width=800,height=600');
-            let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>계약자 목록</title>';
+            let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>고객 목록</title>';
             html += '<style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}';
             html += 'th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f3f4f6}</style></head>';
-            html += '<body><h1 style="text-align:center">계약자 목록</h1>';
+            html += '<body><h1 style="text-align:center">고객 목록</h1>';
             html += '<p style="text-align:right">출력일시: ' + new Date().toLocaleString('ko-KR') + '<br>';
             html += '출력자: ' + (user.name || '-') + '<br>총 인원: ' + filteredCustomers.length + '명</p>';
             html += '<table><thead><tr><th>번호</th><th>이름</th><th>전화번호</th><th>주민등록번호</th><th>주소</th><th>등록일</th></tr></thead><tbody>';
