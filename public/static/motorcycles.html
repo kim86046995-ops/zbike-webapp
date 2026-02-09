@@ -711,9 +711,17 @@
         }
 
         function renderMotorcycles(filteredMotorcycles = motorcycles) {
+            console.log('🎨 renderMotorcycles 호출:', filteredMotorcycles.length, '대');
             const listEl = document.getElementById('motorcycleList');
+            console.log('📍 motorcycleList 요소:', listEl ? '찾음' : '없음');
+            
+            if (!listEl) {
+                console.error('❌ motorcycleList 요소를 찾을 수 없습니다!');
+                return;
+            }
             
             if (filteredMotorcycles.length === 0) {
+                console.log('📭 오토바이가 없습니다');
                 listEl.innerHTML = `
                     <div class="col-span-full text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
@@ -723,10 +731,12 @@
                         </button>
                     </div>
                 `;
+                console.log('✅ 빈 상태 메시지 렌더링 완료');
                 return;
             }
 
-            listEl.innerHTML = filteredMotorcycles.map(m => {
+            console.log('🔄 카드 HTML 생성 시작...');
+            const html = filteredMotorcycles.map(m => {
                 const statusConfig = {
                     'available': { bg: 'bg-green-100', text: 'text-green-800', icon: 'fa-check-circle', label: '휴차중', border: 'status-available' },
                     'rented': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'fa-motorcycle', label: '사용중', border: 'status-rented' },
@@ -904,11 +914,17 @@
                 `;
             }).join('');
             
+            console.log('🔧 HTML 문자열 생성 완료, DOM에 적용 중...');
+            listEl.innerHTML = html;
+            console.log('✅ 카드 렌더링 완료, DOM 업데이트됨');
+            
             // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드
+            console.log('📋 계약/검사 정보 로딩 시작...');
             motorcycles.forEach(m => {
                 loadContractInfo(m.id);
                 loadInspectionInfo(m);
             });
+            console.log('✅ 모든 정보 로딩 요청 완료');
         }
         
         // 검사 기간 정보 로드 함수
