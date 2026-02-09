@@ -1097,11 +1097,29 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
   // DB 체크
   if (!DB) {
     console.error('❌ DB가 바인딩되지 않았습니다')
+    console.error('Environment variables:', Object.keys(c.env))
     return c.json({ history: [] })
   }
   
   try {
     console.log(`🔍 오토바이 이력 조회 시작: motorcycle_id=${id}`)
+    console.log(`DB 타입: ${typeof DB}`)
+    
+    // 테이블 존재 확인
+    try {
+      const tableCheck = await DB.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='motorcycle_history'
+      `).first()
+      
+      if (!tableCheck) {
+        console.warn('⚠️ motorcycle_history 테이블이 존재하지 않습니다')
+        return c.json({ history: [] })
+      }
+    } catch (tableError) {
+      console.error('❌ 테이블 확인 실패:', tableError.message)
+      return c.json({ history: [] })
+    }
     
     const { results } = await DB.prepare(`
       SELECT 
@@ -1123,8 +1141,11 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
     return c.json({ history: results })
   } catch (error) {
     console.error('❌ 오토바이 이력 조회 오류:', error)
-    console.error('Error details:', error.message, error.stack)
-    return c.json({ error: '이력 조회에 실패했습니다', details: error.message }, 500)
+    console.error('Error message:', error.message)
+    console.error('Error stack:', error.stack)
+    console.error('Error name:', error.name)
+    // 에러 발생 시 빈 배열 반환 (500 대신 200)
+    return c.json({ history: [], error_debug: error.message })
   }
 })
 
