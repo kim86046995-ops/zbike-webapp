@@ -148,12 +148,9 @@
                         </div>
                     </div>
 
-                    <!-- 촬영/업로드 버튼 -->
-                    <div id="captureButtons" class="flex gap-2">
-                        <button type="button" onclick="startCamera()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold">
-                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                        </button>
-                        <label class="flex-1">
+                    <!-- 업로드 버튼 -->
+                    <div id="captureButtons">
+                        <label class="block w-full">
                             <input type="file" id="fileUpload" accept="image/*" class="hidden" onchange="uploadFile(event)">
                             <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
                                 <i class="fas fa-upload mr-2"></i>파일 업로드
