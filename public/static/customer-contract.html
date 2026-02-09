@@ -2216,10 +2216,10 @@
                 const response = await axios.post('/api/contracts', contractData);
                 
                 if (response.data.success) {
-                    alert(`✅ 계약서가 성공적으로 저장되었습니다!\n\n계약번호: ${response.data.contract_number}\n고객: ${selectedCustomer.name}\n오토바이: ${selectedMotorcycle.plate_number}\n\n감사합니다.`);
+                    alert(`✅ 계약서가 성공적으로 저장되었습니다!\n\n계약번호: ${response.data.contract_number}\n고객: ${selectedCustomer.name}\n오토바이: ${selectedMotorcycle.plate_number}\n\n💡 계속해서 추가 계약서를 작성할 수 있습니다.`);
                     
-                    // 계약서 목록으로 이동
-                    window.location.href = '/static/contracts.html';
+                    // 폼 초기화
+                    resetContractForm();
                 } else {
                     throw new Error(response.data.error || '저장 실패');
                 }
@@ -2228,6 +2228,56 @@
                 alert('계약서 저장에 실패했습니다.\n\n' + (error.response?.data?.error || error.message));
             }
         });
+
+        // 폼 초기화 함수
+        function resetContractForm() {
+            // 계약 유형 초기화
+            const contractTypes = document.getElementsByName('contract_type');
+            contractTypes.forEach(radio => radio.checked = false);
+            
+            // 선택된 고객 초기화
+            selectedCustomer = null;
+            const selectedCustomerInfo = document.getElementById('selectedCustomerInfo');
+            if (selectedCustomerInfo) selectedCustomerInfo.classList.add('hidden');
+            
+            // 선택된 오토바이 초기화
+            selectedMotorcycle = null;
+            const selectedMotorcycleInfo = document.getElementById('selectedMotorcycleInfo');
+            if (selectedMotorcycleInfo) selectedMotorcycleInfo.classList.add('hidden');
+            
+            // 날짜 초기화
+            const startDate = document.getElementById('startDate');
+            if (startDate) startDate.value = '';
+            const endDate = document.getElementById('endDate');
+            if (endDate) endDate.value = '';
+            
+            // 금액 초기화
+            const monthlyFee = document.getElementById('monthlyFee');
+            if (monthlyFee) monthlyFee.value = '';
+            const deposit = document.getElementById('deposit');
+            if (deposit) deposit.value = '';
+            
+            // 보험 나이 제한 초기화
+            const insuranceAgeLimit = document.getElementById('insuranceAgeLimit');
+            if (insuranceAgeLimit) insuranceAgeLimit.value = '전연령';
+            
+            // 특약사항 초기화
+            const specialTerms = document.getElementById('specialTerms');
+            if (specialTerms) specialTerms.value = '';
+            
+            // 서명 초기화
+            if (borrowerCtx && borrowerCanvas) {
+                borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+                borrowerCtx.fillStyle = '#FFFFFF';
+                borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            }
+            
+            // 약관 동의 해제
+            const agreeTerms = document.getElementById('agreeTerms');
+            if (agreeTerms) agreeTerms.checked = false;
+            
+            console.log('✅ 계약서 폼 초기화 완료');
+        }
 
         // 모달 닫기
         function hideSendModal() {
