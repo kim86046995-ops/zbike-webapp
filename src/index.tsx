@@ -4,6 +4,7 @@ import { serveStatic } from '@hono/node-server/serve-static'
 
 type Bindings = {
   DB: D1Database;
+  db: D1Database;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -139,7 +140,7 @@ async function authMiddleware(c: any, next: any) {
   
   // D1 데이터베이스에서 세션 확인 (우선순위)
   try {
-    const { DB } = c.env
+    const DB = c.env.DB || c.env.db
     if (DB) {
       const session = await DB.prepare(`
         SELECT * FROM sessions 
@@ -188,7 +189,8 @@ async function authMiddleware(c: any, next: any) {
 // 슈퍼관리자 전용 미들웨어
 async function superAdminMiddleware(c: any, next: any) {
   const sessionId = c.req.header('X-Session-ID') || c.req.query('session')
-  const session = await validateSession(c.env.DB, sessionId)
+  const DB = c.env.DB || c.env.db
+  const session = await validateSession(DB, sessionId)
   
   if (!session) {
     return c.json({ error: '인증이 필요합니다' }, 401)
@@ -245,8 +247,10 @@ app.post('/api/auth/login', async (c) => {
     let dbError = null
     
     try {
-      const { DB } = c.env
+      // Cloudflare Pages 바인딩 이름이 'db' (소문자)이므로 둘 다 확인
+      const DB = c.env.DB || c.env.db
       console.log('🔍 DB 객체 존재:', !!DB)
+      console.log('🔍 c.env.DB:', !!c.env.DB, 'c.env.db:', !!c.env.db)
       
       if (DB) {
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30일
@@ -305,7 +309,7 @@ app.post('/api/auth/login', async (c) => {
   
   // 데이터베이스가 있으면 데이터베이스에서도 확인
   try {
-    const { DB } = c.env
+    const DB = c.env.DB || c.env.db
     if (DB) {
       const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?')
         .bind(username, password).first()
@@ -347,12 +351,14 @@ app.post('/api/auth/logout', async (c) => {
 // 디버그 API - DB 연결 확인
 app.get('/api/debug/db-test', async (c) => {
   try {
-    const { DB } = c.env
+    const DB = c.env.DB || c.env.db
     
     if (!DB) {
       return c.json({ 
         error: 'DB is undefined',
         env_keys: Object.keys(c.env),
+        has_DB: !!c.env.DB,
+        has_db: !!c.env.db,
         message: 'D1 바인딩이 없습니다'
       })
     }
@@ -386,7 +392,7 @@ app.get('/api/auth/check', async (c) => {
   
   // D1 데이터베이스에서 세션 확인 (우선순위)
   try {
-    const { DB } = c.env
+    const DB = c.env.DB || c.env.db
     if (DB) {
       const session = await DB.prepare(`
         SELECT * FROM sessions 
@@ -447,7 +453,7 @@ app.get('/api/auth/check', async (c) => {
 
 // 사용자 목록 조회 (관리자 전용)
 app.get('/api/admin/users', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
@@ -479,7 +485,7 @@ app.get('/api/admin/users', async (c) => {
 
 // 관리자 상태 변경 (슈퍼관리자 전용)
 app.post('/api/admin/users/:id/status', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
@@ -516,7 +522,7 @@ app.post('/api/admin/users/:id/status', async (c) => {
 
 // 관리자 상태 변경 PATCH (username 기반, 슈퍼관리자 전용)
 app.patch('/api/admin/users/:username/status', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
@@ -571,7 +577,7 @@ app.patch('/api/admin/users/:username/status', async (c) => {
 // 아이디 찾기 (이름과 전화번호로)
 app.post('/api/auth/find-username', async (c) => {
   try {
-    const { DB } = c.env
+    const DB = c.env.DB || c.env.db
     const { name, phone } = await c.req.json()
     
     console.log('🔍 아이디 찾기 요청:', { name, phone })
@@ -599,7 +605,7 @@ app.post('/api/auth/find-username', async (c) => {
 // 비밀번호 재설정 토큰 생성 (아이디, 이름, 전화번호로 확인)
 app.post('/api/auth/request-reset', async (c) => {
   try {
-    const { DB } = c.env
+    const DB = c.env.DB || c.env.db
     const { username, name, phone } = await c.req.json()
     
     console.log('🔐 비밀번호 재설정 요청:', { username, name, phone })
@@ -733,7 +739,7 @@ app.post('/api/auth/request-reset', async (c) => {
 
 // 비밀번호 재설정
 app.post('/api/auth/reset-password', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const { token, new_password } = await c.req.json()
   
   // 토큰 확인
@@ -767,7 +773,7 @@ app.post('/api/auth/reset-password', async (c) => {
 // 오토바이 목록 조회
 // 오토바이 목록 조회 (인증 필요 - 민감한 정보 포함)
 app.get('/api/motorcycles', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const status = c.req.query('status')
   
   let query = `
@@ -797,7 +803,7 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
 
 // 공개 API: 고객 계약서 작성용 오토바이 목록 (인증 불필요)
 app.get('/api/public/motorcycles', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   try {
     // 계약서 작성에 필요한 모든 정보 포함
@@ -828,7 +834,7 @@ app.get('/api/public/motorcycles', async (c) => {
 
 // 공개 API: 고객 계약서 작성용 고객 목록 (인증 불필요)
 app.get('/api/public/customers', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   try {
     const result = await DB.prepare(`
@@ -853,7 +859,7 @@ app.get('/api/public/customers', async (c) => {
 
 // 고객 포털용 - 번호판으로 오토바이 검색 (민감한 정보 제외)
 app.get('/api/public/motorcycles/search', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const plateNumber = c.req.query('plate_number')
   
   if (!plateNumber) {
@@ -881,7 +887,7 @@ app.get('/api/public/motorcycles/search', async (c) => {
 // 오토바이 상세 조회
 // 오토바이 상세 조회 (인증 필요)
 app.get('/api/motorcycles/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
@@ -895,7 +901,7 @@ app.get('/api/motorcycles/:id', authMiddleware, async (c) => {
 
 // 오토바이 등록 (인증 필요)
 app.post('/api/motorcycles', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   if (!DB) {
     return c.json({ error: 'Database not available' }, 500)
@@ -942,7 +948,7 @@ app.post('/api/motorcycles', authMiddleware, async (c) => {
 
 // 오토바이 수정 (인증 필요)
 app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const data = await c.req.json()
   
@@ -1066,7 +1072,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
 
 // 오토바이 변경 이력 조회 (인증 필요)
 app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   try {
@@ -1095,7 +1101,7 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
 
 // 오토바이 삭제 (인증 필요)
 app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   try {
@@ -1120,7 +1126,7 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
 
 // 오토바이 상태 변경 (해지/폐지)
 app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { status, usage_notes } = await c.req.json()
   
@@ -1171,7 +1177,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
 
 // 오토바이 폐지 (정보 초기화, 이력 보존)
 app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { usage_notes } = await c.req.json()
   
@@ -1231,7 +1237,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
 // 오토바이별 계약 이력 조회
 // 오토바이별 계약 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
 app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare(`
@@ -1255,7 +1261,7 @@ app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
 // 고객 목록 조회
 // 고객 목록 조회 (인증 필요 - 민감한 개인정보)
 app.get('/api/customers', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   // 계약자와 활성 계약 타입을 함께 조회
   const result = await DB.prepare(`
@@ -1272,7 +1278,7 @@ app.get('/api/customers', authMiddleware, async (c) => {
 
 // 주민번호로 계약자 조회 (공개 API - 차용증 작성용)
 app.get('/api/customers/search', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const residentNumber = c.req.query('resident_number')
   
   if (!residentNumber) {
@@ -1287,7 +1293,7 @@ app.get('/api/customers/search', async (c) => {
 // 고객 상세 조회
 // 고객 상세 조회 (인증 필요)
 app.get('/api/customers/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare('SELECT * FROM customers WHERE id = ?').bind(id).first()
@@ -1301,7 +1307,7 @@ app.get('/api/customers/:id', authMiddleware, async (c) => {
 
 // 고객 등록 (로그인 불필요 - 고객용 공개 API)
 app.post('/api/customers', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   const result = await DB.prepare(`
@@ -1323,7 +1329,7 @@ app.post('/api/customers', async (c) => {
 // 고객 수정
 // 고객 정보 수정 (인증 필요)
 app.put('/api/customers/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const data = await c.req.json()
   
@@ -1348,7 +1354,7 @@ app.put('/api/customers/:id', authMiddleware, async (c) => {
 
 // 계약자 삭제
 app.delete('/api/customers/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   // 슈퍼관리자 권한 체크
@@ -1473,7 +1479,7 @@ END`)
 
 // 업체 목록 조회
 app.get('/api/companies', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   const result = await DB.prepare(`
     SELECT * FROM companies ORDER BY created_at DESC
@@ -1484,7 +1490,7 @@ app.get('/api/companies', authMiddleware, async (c) => {
 
 // 업체 상세 조회
 app.get('/api/companies/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const company = await DB.prepare('SELECT * FROM companies WHERE id = ?').bind(id).first()
@@ -1498,7 +1504,7 @@ app.get('/api/companies/:id', authMiddleware, async (c) => {
 
 // 업체 생성
 app.post('/api/companies', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   const result = await DB.prepare(`
@@ -1523,7 +1529,7 @@ app.post('/api/companies', authMiddleware, async (c) => {
 
 // 업체 수정
 app.put('/api/companies/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const data = await c.req.json()
   
@@ -1552,7 +1558,7 @@ app.put('/api/companies/:id', authMiddleware, async (c) => {
 
 // 업체 삭제 (슈퍼관리자 전용) - 관련 데이터 완전 삭제
 app.delete('/api/companies/:id', superAdminMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   // 1. 업체 정보 조회 (삭제 전에 company_name과 business_number 가져오기)
@@ -1589,7 +1595,7 @@ app.delete('/api/companies/:id', superAdminMiddleware, async (c) => {
 // 대시보드 통계 조회
 // 대시보드 통계 (인증 필요 - 민감한 사업 정보)
 app.get('/api/dashboard/stats', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   // DB가 없으면 빈 통계 반환 (개발 환경용)
   if (!DB) {
@@ -1693,7 +1699,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
 
 // 계약서 목록 조회
 app.get('/api/contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const residentNumber = c.req.query('resident_number')
   
   let query = `
@@ -1727,7 +1733,7 @@ app.get('/api/contracts', async (c) => {
 
 // 오토바이별 계약 이력 조회
 app.get('/api/motorcycles/:id/contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const motorcycleId = c.req.param('id')
   
   const result = await DB.prepare(`
@@ -1747,7 +1753,7 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
 // 계약서 상세 조회
 // 계약서 상세 조회 (인증 필요 - 민감한 계약 정보)
 app.get('/api/contracts/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare(`
@@ -1775,7 +1781,7 @@ app.get('/api/contracts/:id', authMiddleware, async (c) => {
 // 계약서 완료 처리
 // 계약 완료 처리 (인증 필요)
 app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   // 계약서 조회
@@ -1811,7 +1817,7 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
 // 계약서 생성 (인증 필요)
 // 계약서 생성 (공개 API - 고객 포털용)
 app.post('/api/contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   // 고객 정보가 전달된 경우 업데이트 (우편번호/상세주소 보존)
@@ -2028,7 +2034,7 @@ app.post('/api/contracts', async (c) => {
 // 관리자 계약서 저장 (인증 필요, 고객에게 전송하지 않음)
 // 공개 API: 고객 계약서 작성 저장 (인증 불필요)
 app.post('/api/public/contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   console.log('📝 [Public] Received contract data from customer')
@@ -2145,7 +2151,7 @@ app.post('/api/public/contracts', async (c) => {
 })
 
 app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   // 디버그: 받은 데이터 로그
@@ -2340,7 +2346,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
 
 // 계약서 상태 변경 (인증 필요)
 app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { status } = await c.req.json()
   
@@ -2446,7 +2452,7 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
 // ==========================================
 // 계약 보험 정보 수정 (인증 필요)
 app.put('/api/contracts/:id/insurance', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const data = await c.req.json()
   
@@ -2499,7 +2505,7 @@ app.put('/api/contracts/:id/insurance', authMiddleware, async (c) => {
 
 // 계약서 삭제 (소프트 삭제) (인증 필요)
 app.delete('/api/contracts/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   try {
@@ -2523,7 +2529,7 @@ app.delete('/api/contracts/:id', authMiddleware, async (c) => {
 // 계약 이력 조회 (특정 계약의 모든 이력)
 // 계약 이력 조회 (인증 필요)
 app.get('/api/contracts/:id/history', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   try {
@@ -2551,7 +2557,7 @@ app.get('/api/contracts/:id/history', authMiddleware, async (c) => {
 // 오토바이 계약 이력 조회 (특정 오토바이의 모든 계약 이력)
 // 오토바이 사용 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
 app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   try {
@@ -2576,7 +2582,7 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
 // 오토바이 사용 이력 조회 (번호판 또는 차대번호로 검색)
 // 오토바이 이력 검색 (인증 필요 - 민감한 고객 정보 포함)
 app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const searchTerm = c.req.query('q') || ''
   
   if (!searchTerm) {
@@ -2635,7 +2641,7 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
 // 사업자 정보 조회
 // 회사 설정 조회 (인증 필요)
 app.get('/api/company-settings', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   const result = await DB.prepare('SELECT * FROM company_settings ORDER BY id DESC LIMIT 1').first()
   
@@ -2653,7 +2659,7 @@ app.get('/api/company-settings', authMiddleware, async (c) => {
 // 사업자 정보 수정
 // 회사 설정 수정 (인증 필요)
 app.put('/api/company-settings', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   try {
     const data = await c.req.json()
@@ -2711,7 +2717,7 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
 // 업체 계약서 생성
 // 업체 계약 생성 (인증 필요)
 app.post('/api/business-contracts', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   // 오토바이 정보 조회 (driving_range를 가져오기 위함)
@@ -2818,7 +2824,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
 
 // 업체 계약서 목록 조회
 app.get('/api/business-contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const residentNumber = c.req.query('resident_number')
   
   let query = `
@@ -2851,7 +2857,7 @@ app.get('/api/business-contracts', async (c) => {
 // 업체 계약서 상세 조회
 // 업체 계약서 상세 조회 (인증 필요)
 app.get('/api/business-contracts/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare(`
@@ -2875,7 +2881,7 @@ app.get('/api/business-contracts/:id', authMiddleware, async (c) => {
 // 업체 계약서 완료 처리
 // 업체 계약 완료 처리 (인증 필요)
 app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   // 계약서 조회
@@ -2911,7 +2917,7 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
 // 업체 계약서 삭제
 // 업체 계약 삭제 (인증 필요)
 app.delete('/api/business-contracts/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   // 계약서 조회
@@ -2945,7 +2951,7 @@ app.delete('/api/business-contracts/:id', authMiddleware, async (c) => {
 // 차용증 목록 조회
 // 차용증 목록 조회 (인증 필요)
 app.get('/api/loan-contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const residentNumber = c.req.query('resident_number')
   
   let query = `SELECT * FROM loan_contracts WHERE 1=1`
@@ -2973,7 +2979,7 @@ app.get('/api/loan-contracts', async (c) => {
 
 // 관리자 로그인
 app.post('/api/admin/login', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const { username, password } = await c.req.json()
   
   // DB에서 사용자 조회
@@ -3005,7 +3011,7 @@ app.post('/api/admin/login', async (c) => {
 
 // 관리자 회원가입
 app.post('/api/auth/register', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const { username, password, name, email, phone } = await c.req.json()
   
   // 유효성 검사
@@ -3047,7 +3053,7 @@ app.post('/api/auth/register', async (c) => {
 
 // 모든 관리자 목록 조회 (슈퍼관리자 전용)
 app.get('/api/admins', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
@@ -3077,7 +3083,7 @@ app.get('/api/admins', async (c) => {
 
 // 관리자 상태 변경 (정지/활성) - 슈퍼관리자 전용
 app.put('/api/admins/:id/status', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const sessionId = c.req.header('X-Session-ID')
   const adminId = c.req.param('id')
   const { status } = await c.req.json()
@@ -3126,7 +3132,7 @@ app.put('/api/admins/:id/status', async (c) => {
 // 계약서 공유 링크 생성
 // 계약 공유 링크 생성 (인증 필요)
 app.post('/api/contract-share/create', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   // 고유 토큰 생성 (UUID 대신 간단한 랜덤 문자열)
@@ -3163,7 +3169,7 @@ app.post('/api/contract-share/create', authMiddleware, async (c) => {
 
 // 계약서 공유 정보 조회
 app.get('/api/contract-share/:token', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const token = c.req.param('token')
   
   const result = await DB.prepare(`
@@ -3191,7 +3197,7 @@ app.get('/api/contract-share/:token', async (c) => {
 
 // 계약서 서명 제출
 app.post('/api/contract-share/:token/sign', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const token = c.req.param('token')
   const { signature_data, id_card_photo } = await c.req.json()
   
@@ -3397,7 +3403,7 @@ app.post('/api/contract-share/:token/sign', async (c) => {
 // 계약서 공유 목록 조회 (관리자용)
 // 계약 공유 목록 조회 (인증 필요)
 app.get('/api/contract-shares', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   
   const result = await DB.prepare(`
     SELECT * FROM contract_shares ORDER BY created_at DESC
@@ -3489,7 +3495,7 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
 // 차용증 상세 조회
 // 차용증 상세 조회 (인증 필요)
 app.get('/api/loan-contracts/:id', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first()
@@ -3504,7 +3510,7 @@ app.get('/api/loan-contracts/:id', authMiddleware, async (c) => {
 // 차용증 생성
 // 차용증 생성 (인증 필요)
 app.post('/api/loan-contracts', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   try {
@@ -3623,7 +3629,7 @@ app.post('/api/loan-contracts', authMiddleware, async (c) => {
 
 // 고객용 공개 API - 차용증 생성 (로그인 불필요)
 app.post('/api/loan-contracts/public', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
   // 차용증 번호 생성 (LOAN-YYYYMMDD-XXXX 형식)
@@ -3672,7 +3678,7 @@ app.post('/api/loan-contracts/public', async (c) => {
 
 // 차용증 상태 변경
 app.patch('/api/loan-contracts/:id/status', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { status } = await c.req.json()
   
@@ -3685,7 +3691,7 @@ app.patch('/api/loan-contracts/:id/status', async (c) => {
 // 일차감 기록 추가
 // 차용증 차감 기록 추가 (인증 필요)
 app.post('/api/loan-contracts/:id/deduction', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { work_amount, deduction_amount, notes } = await c.req.json()
   
@@ -3725,7 +3731,7 @@ app.post('/api/loan-contracts/:id/deduction', authMiddleware, async (c) => {
 // 차감 기록 조회
 // 차용증 차감 내역 조회 (인증 필요)
 app.get('/api/loan-contracts/:id/deductions', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
   const result = await DB.prepare(`
@@ -4092,7 +4098,7 @@ app.post('/api/import/knox-fetch', authMiddleware, async (c) => {
 
 // 웹 페이지 분석 API (기존 - 백업용)
 app.post('/api/import/analyze', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const { url } = await c.req.json()
 
   if (!url) {
@@ -4142,7 +4148,7 @@ app.post('/api/import/analyze', authMiddleware, async (c) => {
 
 // 오토바이 일괄 등록 API
 app.post('/api/import/motorcycles', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const { motorcycles } = await c.req.json()
 
   if (!motorcycles || !Array.isArray(motorcycles)) {
@@ -4183,7 +4189,7 @@ app.post('/api/import/motorcycles', authMiddleware, async (c) => {
 
 // 계약서 일괄 등록 API
 app.post('/api/import/contracts', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const { contracts } = await c.req.json()
 
   if (!contracts || !Array.isArray(contracts)) {
@@ -4318,7 +4324,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
 // 임시렌트 계약서 생성 API
 // 임시렌트 계약 조회 (주민등록번호로 필터링 가능)
 app.get('/api/temp-rent-contracts', async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const residentNumber = c.req.query('resident_number')
   
   let query = `
@@ -4351,7 +4357,7 @@ app.get('/api/temp-rent-contracts', async (c) => {
 })
 
 app.post('/api/temp-rent-contracts', authMiddleware, async (c) => {
-  const { DB } = c.env
+  const DB = c.env.DB || c.env.db
   const data = await c.req.json()
 
   try {
