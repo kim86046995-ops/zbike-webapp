@@ -1193,11 +1193,20 @@
                 console.log('✅ 업체 계약서 생성 완료:', response.data);
                 console.log('계약번호:', response.data.contract_number);
                 
-                alert(`✅ 업체 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}`);
+                // 1. 계약서 목록을 새 창으로 열기
+                window.open('/static/contracts.html?refresh=true', 'contractsWindow');
                 
-                // 계약서 목록으로 자동 이동
-                console.log('📄 계약서 목록으로 이동...');
-                window.location.href = '/static/contracts.html';
+                // 2. 성공 메시지 표시
+                alert(
+                    `✅ 업체 계약서가 저장되었습니다!\n\n` +
+                    `계약번호: ${response.data.contract_number}\n` +
+                    `업체명: ${contractData.company_name}\n\n` +
+                    `💡 계약서 목록이 새 창에서 열렸습니다.\n` +
+                    `계속해서 추가 계약서를 작성할 수 있습니다.`
+                );
+                
+                // 3. 폼 초기화 (연속 등록을 위해)
+                resetBusinessContractForm();
             } catch (error) {
                 console.error('');
                 console.error('='.repeat(60));
@@ -1316,6 +1325,109 @@
             
             // JPEG 포맷으로 저장 (더 작은 크기, 품질 0.5)
             return tempCanvas.toDataURL('image/jpeg', 0.5);
+        }
+
+        // 폼 초기화 함수 (연속 등록을 위해)
+        function resetBusinessContractForm() {
+            console.log('🔄 사업자 계약서 폼 초기화 시작');
+            
+            // 1. 계약 유형 초기화
+            const businessRadios = document.querySelectorAll('input[name="business_contract_type"]');
+            businessRadios.forEach(radio => radio.checked = false);
+            
+            // 2. 오토바이 선택 초기화
+            selectedMotorcycleId = null;
+            const selectMotorcycleBtn = document.getElementById('selectMotorcycleBtn');
+            if (selectMotorcycleBtn) {
+                selectMotorcycleBtn.innerHTML = '<i class="fas fa-motorcycle mr-2"></i>오토바이 선택하기';
+            }
+            
+            // 선택된 오토바이 정보 숨기기
+            const selectedMotorcycleInfo = document.getElementById('selectedMotorcycleInfo');
+            if (selectedMotorcycleInfo) {
+                selectedMotorcycleInfo.classList.add('hidden');
+            }
+            
+            // 3. 업체 정보 초기화
+            const companyName = document.getElementById('companyName');
+            if (companyName) companyName.value = '';
+            
+            const businessNumber = document.getElementById('businessNumber');
+            if (businessNumber) businessNumber.value = '';
+            
+            const representative = document.getElementById('representative');
+            if (representative) representative.value = '';
+            
+            const businessPhone = document.getElementById('businessPhone');
+            if (businessPhone) businessPhone.value = '';
+            
+            // 4. 주소 정보 초기화
+            const businessPostcode = document.getElementById('businessPostcode');
+            if (businessPostcode) businessPostcode.value = '';
+            
+            const businessAddress = document.getElementById('businessAddress');
+            if (businessAddress) businessAddress.value = '';
+            
+            const businessDetailAddress = document.getElementById('businessDetailAddress');
+            if (businessDetailAddress) businessDetailAddress.value = '';
+            
+            const representativePostcode = document.getElementById('representativePostcode');
+            if (representativePostcode) representativePostcode.value = '';
+            
+            const representativeAddress = document.getElementById('representativeAddress');
+            if (representativeAddress) representativeAddress.value = '';
+            
+            const representativeDetailAddress = document.getElementById('representativeDetailAddress');
+            if (representativeDetailAddress) representativeDetailAddress.value = '';
+            
+            // 5. 계약 기간 초기화
+            const contractStartDate = document.getElementById('contractStartDate');
+            if (contractStartDate) contractStartDate.value = '';
+            
+            const contractEndDate = document.getElementById('contractEndDate');
+            if (contractEndDate) contractEndDate.value = '';
+            
+            // 6. 보험 기간 초기화
+            const insuranceStartDate = document.getElementById('insuranceStartDate');
+            if (insuranceStartDate) insuranceStartDate.value = '';
+            
+            const insuranceEndDate = document.getElementById('insuranceEndDate');
+            if (insuranceEndDate) insuranceEndDate.value = '';
+            
+            // 7. 금액 정보 초기화
+            const dailyAmount = document.getElementById('dailyAmount');
+            if (dailyAmount) dailyAmount.value = '';
+            
+            const deposit = document.getElementById('deposit');
+            if (deposit) deposit.value = '';
+            
+            const specialTerms = document.getElementById('specialTerms');
+            if (specialTerms) specialTerms.value = '';
+            
+            // 8. 서명 캔버스 초기화
+            clearBusinessSignature();
+            
+            // 9. 신분증 사진 초기화
+            businessIdPhotoData = null;
+            const businessIdPhotoPreview = document.getElementById('businessIdPhotoPreview');
+            if (businessIdPhotoPreview) {
+                businessIdPhotoPreview.classList.add('hidden');
+            }
+            const businessIdPhoto = document.getElementById('businessIdPhoto');
+            if (businessIdPhoto) {
+                businessIdPhoto.src = '';
+            }
+            
+            // 10. 약관 동의 체크 해제
+            const agreeTerms = document.getElementById('agreeTerms');
+            if (agreeTerms) agreeTerms.checked = false;
+            
+            // 11. 첫 번째 입력란에 포커스
+            if (companyName) {
+                companyName.focus();
+            }
+            
+            console.log('✅ 사업자 계약서 폼 초기화 완료');
         }
 
     </script>
