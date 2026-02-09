@@ -4829,6 +4829,10 @@ app.get('/dashboard', (c) => {
                         운영현황
                     </h1>
                     <div class="flex items-center space-x-4">
+                        <!-- 슈퍼관리자 전용: 관리자 관리 버튼 -->
+                        <a href="/static/admin-management.html" id="adminManagementBtn" class="hidden text-gray-600 hover:text-blue-600 font-medium">
+                            <i class="fas fa-users-cog mr-1"></i>관리자 관리
+                        </a>
                         <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600 font-medium">
                             <i class="fas fa-cog mr-1"></i>설정
                         </a>
@@ -5083,6 +5087,14 @@ app.get('/dashboard', (c) => {
                             const roleText = user.role === 'superadmin' ? '슈퍼관리자' : '관리자';
                             const userName = user.name || user.username;
                             roleBadge.textContent = \`\${userName} (\${roleText})\`;
+                        }
+                        
+                        // 슈퍼관리자일 때만 "관리자 관리" 버튼 표시
+                        if (user.role === 'superadmin') {
+                            const adminManagementBtn = document.getElementById('adminManagementBtn');
+                            if (adminManagementBtn) {
+                                adminManagementBtn.classList.remove('hidden');
+                            }
                         }
                     } catch (e) {
                         console.error('사용자 정보 파싱 오류:', e);
