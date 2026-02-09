@@ -263,9 +263,6 @@
                         <button type="button" onclick="document.getElementById('documentUpload').click()" class="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg font-semibold">
                             <i class="fas fa-file-upload mr-2"></i>문서 업로드
                         </button>
-                        <button type="button" onclick="startDocumentCamera()" class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg font-semibold">
-                            <i class="fas fa-camera mr-2"></i>문서 촬영
-                        </button>
                     </div>
                     <div id="documentProcessing" class="hidden mt-3 text-center">
                         <div class="inline-flex items-center bg-white px-4 py-2 rounded-lg shadow">
@@ -412,15 +409,12 @@
                                 <input type="number" id="insuranceFee" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white">
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-bold mb-2">차량 사용필증 촬영</label>
+                                <label class="block text-sm font-bold mb-2">차량 사용필증</label>
                                 <div class="space-y-2">
                                     <div class="flex gap-2">
-                                        <button type="button" onclick="startCertificateCamera()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                                        </button>
                                         <input type="file" id="certificateUpload" accept="image/*" onchange="handleCertificateUpload(event)" class="hidden">
                                         <button type="button" onclick="document.getElementById('certificateUpload').click()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                                            <i class="fas fa-upload mr-2"></i>파일 선택
+                                            <i class="fas fa-upload mr-2"></i>파일 업로드
                                         </button>
                                     </div>
                                     <div id="certificatePreview" class="hidden">
@@ -434,40 +428,6 @@
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-bold mb-2">사용페지</label>
                                 <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white" placeholder="오토바이 사용 관련 특이사항을 입력하세요"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 카메라 모달 (사용필증) -->
-                    <div id="cameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-                        <div class="bg-white rounded-lg p-4 max-w-2xl w-full">
-                            <h3 class="text-lg font-bold mb-4">사용필증 촬영</h3>
-                            <video id="certificateVideo" class="w-full rounded-lg mb-4" autoplay playsinline></video>
-                            <canvas id="certificateCanvas" class="hidden"></canvas>
-                            <div class="flex gap-2">
-                                <button type="button" onclick="captureCertificate()" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
-                                    <i class="fas fa-camera mr-2"></i>촬영
-                                </button>
-                                <button type="button" onclick="stopCertificateCamera()" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700">
-                                    취소
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 문서 카메라 모달 -->
-                    <div id="documentCameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-                        <div class="bg-white rounded-lg p-4 max-w-2xl w-full">
-                            <h3 class="text-lg font-bold mb-4">문서 촬영</h3>
-                            <video id="documentVideo" class="w-full rounded-lg mb-4" autoplay playsinline></video>
-                            <canvas id="documentCanvas" class="hidden"></canvas>
-                            <div class="flex gap-2">
-                                <button type="button" onclick="captureDocument()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
-                                    <i class="fas fa-camera mr-2"></i>촬영
-                                </button>
-                                <button type="button" onclick="stopDocumentCamera()" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700">
-                                    취소
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1378,12 +1338,8 @@
             document.getElementById('motorcycleModal').classList.remove('hidden');
         }
         
-        // 사용필증 촬영 관련 변수
+        // 사용필증 관련 변수
         let certificatePhotoData = '';
-        let certificateStream = null;
-        
-        // 문서 자동 입력 관련 변수
-        let documentStream = null;
         
         // 문서 업로드 처리
         async function handleDocumentUpload(event) {
@@ -1398,79 +1354,6 @@
         }
         
         // 문서 카메라 시작
-        async function startDocumentCamera() {
-            const video = document.getElementById('documentVideo');
-            
-            try {
-                // 먼저 기본 제약 조건으로 시도
-                let stream = null;
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: { ideal: 'environment' },
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        } 
-                    });
-                } catch (e) {
-                    // 실패하면 더 간단한 제약으로 재시도
-                    console.log('고급 설정 실패, 기본 설정으로 시도:', e);
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: true 
-                    });
-                }
-                
-                documentStream = stream;
-                video.srcObject = stream;
-                document.getElementById('documentCameraModal').classList.remove('hidden');
-                
-                // 비디오가 로드될 때까지 대기
-                await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        resolve();
-                    };
-                });
-            } catch (err) {
-                console.error('카메라 접근 오류:', err);
-                let errorMsg = '카메라에 접근할 수 없습니다.';
-                
-                if (err.name === 'NotAllowedError') {
-                    errorMsg = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
-                } else if (err.name === 'NotFoundError') {
-                    errorMsg = '카메라를 찾을 수 없습니다.';
-                } else if (err.name === 'NotReadableError') {
-                    errorMsg = '카메라가 다른 앱에서 사용 중입니다.';
-                }
-                
-                alert(errorMsg);
-            }
-        }
-        
-        // 문서 촬영
-        function captureDocument() {
-            const video = document.getElementById('documentVideo');
-            const canvas = document.getElementById('documentCanvas');
-            const context = canvas.getContext('2d');
-            
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0);
-            
-            const imageData = canvas.toDataURL('image/jpeg', 0.95);
-            stopDocumentCamera();
-            processDocumentImage(imageData);
-        }
-        
-        // 문서 카메라 종료
-        function stopDocumentCamera() {
-            if (documentStream) {
-                documentStream.getTracks().forEach(track => track.stop());
-                documentStream = null;
-            }
-            document.getElementById('documentCameraModal').classList.add('hidden');
-        }
-        
         // 문서 이미지 처리 및 자동 입력
         async function processDocumentImage(imageData) {
             const processingDiv = document.getElementById('documentProcessing');
@@ -1525,81 +1408,6 @@
             });
         }
         
-        async function startCertificateCamera() {
-            const video = document.getElementById('certificateVideo');
-            
-            try {
-                // 먼저 기본 제약 조건으로 시도
-                let stream = null;
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: { ideal: 'environment' },
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        } 
-                    });
-                } catch (e) {
-                    // 실패하면 더 간단한 제약으로 재시도
-                    console.log('고급 설정 실패, 기본 설정으로 시도:', e);
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: true 
-                    });
-                }
-                
-                certificateStream = stream;
-                video.srcObject = stream;
-                document.getElementById('cameraModal').classList.remove('hidden');
-                
-                // 비디오가 로드될 때까지 대기
-                await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        resolve();
-                    };
-                });
-            } catch (err) {
-                console.error('Camera error:', err);
-                let errorMsg = '카메라를 시작할 수 없습니다.';
-                
-                if (err.name === 'NotAllowedError') {
-                    errorMsg = '카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.';
-                } else if (err.name === 'NotFoundError') {
-                    errorMsg = '카메라를 찾을 수 없습니다.';
-                } else if (err.name === 'NotReadableError') {
-                    errorMsg = '카메라가 다른 앱에서 사용 중입니다.';
-                } else if (err.name === 'NotSupportedError') {
-                    errorMsg = 'HTTPS 연결이 필요합니다. 또는 이 브라우저는 카메라를 지원하지 않습니다.';
-                }
-                
-                alert(errorMsg);
-            }
-        }
-        
-        function captureCertificate() {
-            const video = document.getElementById('certificateVideo');
-            const canvas = document.getElementById('certificateCanvas');
-            const context = canvas.getContext('2d');
-            
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            certificatePhotoData = canvas.toDataURL('image/jpeg', 0.8);
-            
-            document.getElementById('certificateImage').src = certificatePhotoData;
-            document.getElementById('certificatePreview').classList.remove('hidden');
-            
-            stopCertificateCamera();
-        }
-        
-        function stopCertificateCamera() {
-            if (certificateStream) {
-                certificateStream.getTracks().forEach(track => track.stop());
-                certificateStream = null;
-            }
-            document.getElementById('cameraModal').classList.add('hidden');
-        }
         
         function handleCertificateUpload(event) {
             const file = event.target.files[0];
