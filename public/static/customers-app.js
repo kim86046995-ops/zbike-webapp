@@ -105,7 +105,6 @@ async function showDetail(id) {
         html += '<div><strong>주민등록번호:</strong> ' + rn + '</div>';
         html += '<div><strong>전화번호:</strong> ' + (c.phone || '-') + '</div>';
         html += '<div><strong>우편번호:</strong> ' + (c.postcode || '-') + '</div>';
-        html += '<div><strong>면허종류:</strong> ' + (c.license_type || '-') + '</div>';
         html += '<div><strong>주소:</strong> ' + (c.address || '-') + '</div>';
         html += '<div><strong>상세주소:</strong> ' + (c.detail_address || '-') + '</div>';
         html += '<div><strong>등록일:</strong> ' + (c.created_at || '-') + '</div>';
