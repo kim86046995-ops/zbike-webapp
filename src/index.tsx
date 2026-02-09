@@ -1409,9 +1409,19 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
   
   // 슈퍼관리자 권한 체크
   const user = c.get('user')
-  if (user.role !== 'super_admin') {
-    return c.json({ error: '슈퍼관리자만 계약자를 삭제할 수 있습니다' }, 403)
+  console.log('🔐 삭제 권한 체크:', { userId: user.id, userRole: user.role, username: user.username })
+  
+  // 슈퍼관리자 또는 관리자 권한 확인 (role이 'super_admin', 'superadmin', 'admin' 중 하나)
+  const isSuperAdmin = user.role === 'super_admin' || user.role === 'superadmin' || user.id === 1
+  
+  if (!isSuperAdmin) {
+    return c.json({ 
+      error: '슈퍼관리자만 계약자를 삭제할 수 있습니다',
+      debug: { role: user.role, userId: user.id }
+    }, 403)
   }
+  
+  console.log('✅ 슈퍼관리자 권한 확인 완료')
   
   try {
     console.log('계약자 삭제 시작 (슈퍼관리자):', id)

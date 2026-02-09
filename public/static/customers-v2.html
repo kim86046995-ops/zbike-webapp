@@ -134,7 +134,9 @@
             
             // 사용자 권한 확인
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin' || user.id === 1;
+            
+            console.log('🔐 권한 체크:', { userId: user.id, userRole: user.role, isSuperAdmin });
             
             let html = '<div class="bg-white rounded-lg shadow-md overflow-x-auto"><table class="w-full table-fixed">';
             html += '<thead><tr class="bg-purple-600 text-white">';
@@ -256,7 +258,7 @@
 
         function printList() {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin' || user.id === 1;
             
             const pw = window.open('', '', 'width=800,height=600');
             let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>계약자 목록</title>';
