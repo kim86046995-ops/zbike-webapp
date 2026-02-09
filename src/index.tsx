@@ -213,7 +213,11 @@ const sessionStore = new Map()
 
 // 로그인
 app.post('/api/auth/login', async (c) => {
-  const { username, password } = await c.req.json()
+  const body = await c.req.json()
+  const username = (body.username || '').trim()
+  const password = (body.password || '').trim()
+  
+  console.log('🔑 로그인 시도:', { username, passwordLength: password.length })
   
   // 임시: 하드코딩된 관리자 계정들 (데이터베이스 없이도 작동)
   const HARDCODED_USERS = [
@@ -233,9 +237,9 @@ app.post('/api/auth/login', async (c) => {
     }
   ]
   
-  // 하드코딩된 계정 확인
+  // 하드코딩된 계정 확인 (아이디는 대소문자 구분 없음)
   const hardcodedUser = HARDCODED_USERS.find(
-    user => user.username === username && user.password === password
+    user => user.username.toLowerCase() === username.toLowerCase() && user.password === password
   )
   
   if (hardcodedUser) {
@@ -307,11 +311,11 @@ app.post('/api/auth/login', async (c) => {
     })
   }
   
-  // 데이터베이스가 있으면 데이터베이스에서도 확인
+  // 데이터베이스가 있으면 데이터베이스에서도 확인 (아이디는 대소문자 구분 없음)
   try {
     const DB = c.env.DB || c.env.db
     if (DB) {
-      const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?')
+      const user = await DB.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?) AND password = ?')
         .bind(username, password).first()
       
       if (user) {
