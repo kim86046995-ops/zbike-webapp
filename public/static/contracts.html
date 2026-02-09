@@ -304,7 +304,7 @@
                         <option value="">전체</option>
                         <option value="active">진행중</option>
                         <option value="completed">완료</option>
-                        <option value="cancelled">취소</option>
+                        <option value="cancelled">계약종료</option>
                     </select>
                 </div>
                 <div class="flex-1">
@@ -592,7 +592,7 @@
                 const statusTexts = {
                     'active': '진행중',
                     'completed': '완료',
-                    'cancelled': '취소'
+                    'cancelled': '계약종료'
                 };
 
                 // 완료 버튼 표시 여부 (진행중 계약서만)
@@ -820,7 +820,7 @@
             }
             
             const typeTexts = { 'lease': '리스', 'individual': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
-            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
+            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '계약종료' };
             
             const html = `
                 <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
@@ -1464,7 +1464,7 @@
         // 업체 계약서 상세 렌더링
         function renderBusinessContractDetail() {
             const c = currentContract;
-            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
+            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '계약종료' };
             
             // business_type 필드 사용 (리스/렌트 구분)
             const contractTypeText = c.business_type === 'lease' ? '리스' : '렌트';
@@ -1740,7 +1740,7 @@
         // 임시렌트 계약서 상세보기 렌더링
         function renderTempRentDetail() {
             const c = currentContract;
-            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소' };
+            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '계약종료' };
             
             const html = `
                 <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
