@@ -1637,10 +1637,10 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       FROM motorcycles
     `).first()
     
-    // 사용자(고객) 수
+    // 사용자(고객) 수 - customers 테이블의 전체 고객 수
     const customerCount = await DB.prepare(`
-      SELECT COUNT(DISTINCT customer_id) as count 
-      FROM contracts
+      SELECT COUNT(*) as count 
+      FROM customers
     `).first()
     
     // 활성 계약 수 (진행중 상태만 카운트: 개인계약)
