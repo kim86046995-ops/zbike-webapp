@@ -680,13 +680,10 @@
                         관리자가 직접 고객의 신분증을 촬영하거나 업로드할 수 있습니다. (선택사항)
                     </p>
                     
-                    <!-- 촬영/업로드 버튼 -->
-                    <div class="flex gap-3 mb-4">
-                        <button type="button" onclick="startAdminIdCamera()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                            <i class="fas fa-camera mr-2"></i>카메라로 촬영
-                        </button>
-                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
-                            <i class="fas fa-upload mr-2"></i>파일 선택
+                    <!-- 업로드 버튼 -->
+                    <div class="mb-4">
+                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                            <i class="fas fa-upload mr-2"></i>파일 업로드
                         </button>
                         <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
                     </div>

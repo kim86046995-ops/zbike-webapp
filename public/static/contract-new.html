@@ -661,22 +661,17 @@
                     </h2>
                     <p class="text-base text-gray-700 mb-4 font-medium bg-yellow-100 p-3 rounded-lg border-l-4 border-yellow-500">
                         <i class="fas fa-info-circle mr-2 text-yellow-600"></i>
-                        아래 <strong class="text-blue-700">"📷 카메라로 촬영"</strong> 버튼을 눌러 신분증을 촬영하세요!
+                        아래 <strong class="text-blue-700">"📁 파일 업로드"</strong> 버튼을 눌러 신분증을 업로드하세요!
                     </p>
                     
-                    <!-- 촬영/업로드 버튼 - 크게 개선 -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <button type="button" onclick="startAdminIdCamera()" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-5 rounded-xl hover:from-blue-700 hover:to-blue-800 transition transform hover:scale-105 active:scale-95 shadow-lg font-bold text-lg">
-                            <i class="fas fa-camera mr-2 text-2xl"></i>
-                            <span class="block text-2xl">📷 카메라로 촬영</span>
-                            <span class="block text-sm font-normal mt-1 opacity-90">신분증을 바로 촬영하세요</span>
-                        </button>
-                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-5 rounded-xl hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-lg font-bold text-lg">
+                    <!-- 업로드 버튼 -->
+                    <div class="mb-4">
+                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-5 rounded-xl hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-lg font-bold text-lg">
                             <i class="fas fa-upload mr-2 text-2xl"></i>
-                            <span class="block text-2xl">📁 파일 선택</span>
+                            <span class="block text-2xl">📁 파일 업로드</span>
                             <span class="block text-sm font-normal mt-1 opacity-90">갤러리에서 선택하세요</span>
                         </button>
-                        <input type="file" id="adminIdUpload" accept="image/*" capture="environment" style="display: none;" onchange="handleAdminIdUpload(event)">
+                        <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
                     </div>
                     
                     <!-- 미리보기 영역 - 신분증 비율 유지 (85:54) -->
