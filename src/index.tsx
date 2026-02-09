@@ -1452,13 +1452,13 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
       DB.prepare('DROP TRIGGER IF EXISTS prevent_history_delete')
     ]
     
-    // 4. contract_history의 contract_id를 NULL로 업데이트 (외래 키 참조 해제)
+    // 4. contract_history 삭제 (해당 계약서 관련 이력 삭제)
     if (contractIds.length > 0) {
       const contractIdsStr = contractIds.join(',')
       batchQueries.push(
-        DB.prepare(`UPDATE contract_history SET contract_id = NULL WHERE contract_id IN (${contractIdsStr})`)
+        DB.prepare(`DELETE FROM contract_history WHERE contract_id IN (${contractIdsStr})`)
       )
-      console.log('📝 계약 이력의 참조를 해제합니다 (contract_id를 NULL로 설정)')
+      console.log('📝 계약 이력을 삭제합니다')
     }
     
     // 5. 차용 계약서 삭제 (주민번호로 연결)
@@ -1501,28 +1501,26 @@ END`)
     
     const results = await DB.batch(batchQueries)
     
-    const historyUpdateIndex = contractIds.length > 0 ? 3 : -1
-    const loanDeleteIndex = historyUpdateIndex + 1
+    const historyDeleteIndex = contractIds.length > 0 ? 3 : -1
+    const loanDeleteIndex = historyDeleteIndex !== -1 ? historyDeleteIndex + 1 : 3
     const contractsDeleteIndex = loanDeleteIndex + 1
     const customerDeleteIndex = contractsDeleteIndex + 1
     
     console.log('✅ Batch 삭제 완료')
     console.log('📊 삭제 결과:', {
-      history_updated: historyUpdateIndex > 0 ? (results[historyUpdateIndex]?.meta?.changes || 0) : 0,
+      history_deleted: historyDeleteIndex > 0 ? (results[historyDeleteIndex]?.meta?.changes || 0) : 0,
       loan_contracts: results[loanDeleteIndex]?.meta?.changes || 0,
       contracts: results[contractsDeleteIndex]?.meta?.changes || 0,
       customer: results[customerDeleteIndex]?.meta?.changes || 0
     })
     
     return c.json({ 
-      message: '삭제되었습니다. 계약 이력은 보존됩니다.',
+      message: '계약자가 삭제되었습니다.',
       deleted: {
         contracts: results[contractsDeleteIndex]?.meta?.changes || 0,
         loan_contracts: results[loanDeleteIndex]?.meta?.changes || 0,
+        contract_history: historyDeleteIndex > 0 ? (results[historyDeleteIndex]?.meta?.changes || 0) : 0,
         customer: results[customerDeleteIndex]?.meta?.changes || 0
-      },
-      preserved: {
-        contract_history: `이력 보호 정책에 따라 보존됨 (${historyUpdateIndex > 0 ? results[historyUpdateIndex]?.meta?.changes || 0 : 0}건의 이력 참조 해제)`
       }
     })
   } catch (error) {
