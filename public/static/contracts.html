@@ -302,7 +302,7 @@
                     <label class="block text-sm font-bold mb-2">상태</label>
                     <select id="statusFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
                         <option value="">전체</option>
-                        <option value="active">진행중</option>
+                        <option value="active">계약중</option>
                         <option value="completed">완료</option>
                         <option value="cancelled">계약종료</option>
                     </select>
@@ -590,7 +590,7 @@
                     'cancelled': 'bg-gray-100 text-gray-800'
                 };
                 const statusTexts = {
-                    'active': '진행중',
+                    'active': '계약중',
                     'completed': '완료',
                     'cancelled': '계약종료'
                 };
@@ -820,7 +820,7 @@
             }
             
             const typeTexts = { 'lease': '리스', 'individual': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
-            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '계약종료' };
+            const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
             
             const html = `
                 <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
@@ -1092,7 +1092,7 @@
             }
             
             if (currentContract.status !== 'active') {
-                alert('⚠️ 진행중인 계약만 해지할 수 있습니다.');
+                alert('⚠️ 계약중인 계약만 해지할 수 있습니다.');
                 return;
             }
             
@@ -1102,7 +1102,7 @@
                 `👤 계약자: ${currentContract.customer_name} (${currentContract.customer_phone})\n` +
                 `🏍️ 오토바이: ${currentContract.vehicle_name} (${currentContract.plate_number})\n\n` +
                 `⚠️ 해지 시:\n` +
-                `- 계약 상태: 진행중 → 취소\n` +
+                `- 계약 상태: 계약중 → 계약종료\n` +
                 `- 오토바이 상태: 휴차중으로 변경\n` +
                 `- 계약 정보 초기화 (월차감, 보증금, 계약기간, 소유자명)\n` +
                 `- 기본 정보 유지 (번호판, 차대번호, 차량명, 키로수 등)\n` +
@@ -1464,7 +1464,7 @@
         // 업체 계약서 상세 렌더링
         function renderBusinessContractDetail() {
             const c = currentContract;
-            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '계약종료' };
+            const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
             
             // business_type 필드 사용 (리스/렌트 구분)
             const contractTypeText = c.business_type === 'lease' ? '리스' : '렌트';
@@ -1740,7 +1740,7 @@
         // 임시렌트 계약서 상세보기 렌더링
         function renderTempRentDetail() {
             const c = currentContract;
-            const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '계약종료' };
+            const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
             
             const html = `
                 <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
