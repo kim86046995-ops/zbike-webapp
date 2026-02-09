@@ -71,9 +71,18 @@
 
                     <div>
                         <label class="block text-sm font-bold mb-2 text-gray-700">
-                            <i class="fas fa-mobile-alt mr-1 text-blue-500"></i>관리자번호
+                            <i class="fas fa-mobile-alt mr-1 text-blue-500"></i>관리자번호 1
                         </label>
                         <input type="tel" id="managerPhone" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="010-1234-5678">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">
+                            <i class="fas fa-mobile-alt mr-1 text-blue-500"></i>관리자번호 2
+                        </label>
+                        <input type="tel" id="managerPhone2" 
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                placeholder="010-1234-5678">
                     </div>
@@ -202,7 +211,8 @@
                 document.getElementById('businessNumber').value = data.business_number || '';
                 document.getElementById('representativeName').value = data.representative_name || '';
                 document.getElementById('phone').value = data.phone || '';
-                // managerPhone field removed - not in database
+                document.getElementById('managerPhone').value = data.manager_phone || '';
+                document.getElementById('managerPhone2').value = data.manager_phone2 || '';
                 document.getElementById('address').value = data.address || '';
                 document.getElementById('bankName').value = data.bank_name || '';
                 document.getElementById('accountNumber').value = data.account_number || '';
@@ -231,7 +241,8 @@
                 business_number: document.getElementById('businessNumber').value,
                 representative_name: document.getElementById('representativeName').value,
                 phone: document.getElementById('phone').value,
-                // managerPhone field removed - not in database
+                manager_phone: document.getElementById('managerPhone').value,
+                manager_phone2: document.getElementById('managerPhone2').value,
                 address: document.getElementById('address').value,
                 bank_name: document.getElementById('bankName').value,
                 account_number: document.getElementById('accountNumber').value,

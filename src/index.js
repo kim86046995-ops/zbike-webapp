@@ -2222,16 +2222,16 @@ app.put('/api/company-settings', authMiddleware, async c => {
     await DB.prepare(`
       UPDATE company_settings 
       SET company_name = ?, business_number = ?, representative_name = ?,
-          phone = ?, manager_phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
+          phone = ?, manager_phone = ?, manager_phone2 = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).bind(data.company_name, data.business_number, data.representative_name, data.phone || '', data.manager_phone || '', data.address || '', data.bank_name || '', data.account_number || '', data.account_holder || '', existing.id).run();
+    `).bind(data.company_name, data.business_number, data.representative_name, data.phone || '', data.manager_phone || '', data.manager_phone2 || '', data.address || '', data.bank_name || '', data.account_number || '', data.account_holder || '', existing.id).run();
   } else {
     // 신규 삽입
     await DB.prepare(`
-      INSERT INTO company_settings (company_name, business_number, representative_name, phone, manager_phone, address, bank_name, account_number, account_holder)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(data.company_name, data.business_number, data.representative_name, data.phone || '', data.manager_phone || '', data.address || '', data.bank_name || '', data.account_number || '', data.account_holder || '').run();
+      INSERT INTO company_settings (company_name, business_number, representative_name, phone, manager_phone, manager_phone2, address, bank_name, account_number, account_holder)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(data.company_name, data.business_number, data.representative_name, data.phone || '', data.manager_phone || '', data.manager_phone2 || '', data.address || '', data.bank_name || '', data.account_number || '', data.account_holder || '').run();
   }
   return c.json({
     message: '사업자 정보가 저장되었습니다'
