@@ -232,6 +232,11 @@
         </div>
     </div>
 
+    <!-- 이력 상세보기 모달 -->
+    <div id="historyDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+        <div id="historyDetailContent" class="max-w-2xl w-full"></div>
+    </div>
+
     <!-- 등록/수정 모달 -->
     <div id="motorcycleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
         <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full my-8 max-h-[95vh] overflow-y-auto">
@@ -1178,32 +1183,52 @@
                     
                     // 상세 이력이 있으면 추가
                     if (detailedHistory && detailedHistory.length > 0) {
+                        // 전역 변수에 저장 (상세보기용)
+                        currentHistoryData = detailedHistory;
+                        
                         historyHtml += `
                             <div class="border-t pt-4">
                                 <h4 class="font-bold text-gray-700 mb-3">📝 상세 이력 (총 ${detailedHistory.length}건)</h4>
                                 <div class="space-y-1.5 max-h-96 overflow-y-auto">
-                                    ${detailedHistory.map(h => `
-                                        <div class="bg-white p-2 rounded border border-gray-200 text-xs hover:bg-gray-50 transition-colors">
-                                            <div class="flex justify-between items-center gap-2">
-                                                <div class="flex items-center gap-2 flex-1 min-w-0">
-                                                    <span class="font-bold ${actionTypeColors[h.action_type]} flex-shrink-0">
-                                                        <i class="fas fa-circle" style="font-size: 6px;"></i>
-                                                        ${actionTypeTexts[h.action_type] || h.action_type}
-                                                    </span>
-                                                    <span class="text-gray-700 font-medium truncate">${h.contract_number}</span>
-                                                    ${h.old_status && h.new_status && h.old_status !== h.new_status ? 
-                                                        `<span class="text-gray-500 flex-shrink-0">${statusTexts[h.old_status] || h.old_status}→${statusTexts[h.new_status] || h.new_status}</span>` 
-                                                        : ''}
+                                    ${detailedHistory.map((h, index) => `
+                                        <div class="bg-white p-3 rounded border border-gray-200 text-sm hover:bg-gray-50 transition-colors">
+                                            <div class="flex justify-between items-start gap-2">
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <span class="font-bold text-purple-600">
+                                                            <i class="fas fa-edit"></i>
+                                                            ${h.field_name || '변경'}
+                                                        </span>
+                                                        <span class="text-gray-500 text-xs">
+                                                            ${new Date(h.change_date).toLocaleDateString('ko-KR')} ${new Date(h.change_date).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-gray-700 pl-5">
+                                                        <span class="text-red-600 line-through">${h.old_value || '-'}</span>
+                                                        <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
+                                                        <span class="text-green-600 font-medium">${h.new_value || '-'}</span>
+                                                    </div>
+                                                    ${h.changed_by_name ? `
+                                                        <div class="text-xs text-gray-500 mt-1 pl-5">
+                                                            변경자: ${h.changed_by_name}
+                                                        </div>
+                                                    ` : ''}
+                                                    ${h.notes ? `
+                                                        <div class="text-xs text-gray-600 mt-1 pl-5 bg-gray-50 p-2 rounded">
+                                                            <i class="fas fa-comment-alt mr-1"></i>
+                                                            ${h.notes}
+                                                        </div>
+                                                    ` : ''}
                                                 </div>
-                                                <span class="text-gray-400 flex-shrink-0">
-                                                    ${new Date(h.created_at).toLocaleDateString('ko-KR')} ${new Date(h.created_at).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
-                                                </span>
+                                                <button 
+                                                    onclick="showHistoryDetail(${index})"
+                                                    class="flex-shrink-0 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                                    title="상세보기"
+                                                >
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    상세
+                                                </button>
                                             </div>
-                                            ${h.action_reason ? `
-                                                <div class="mt-1 text-gray-500 truncate pl-4">
-                                                    ${h.action_reason}
-                                                </div>
-                                            ` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
@@ -1230,6 +1255,119 @@
 
         function hideHistoryModal() {
             document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        // 이력 상세보기 전역 변수
+        let currentHistoryData = [];
+
+        function showHistoryDetail(index) {
+            const history = currentHistoryData[index];
+            if (!history) return;
+            
+            const detailHtml = `
+                <div class="bg-white p-6 rounded-lg shadow-lg max-w-2xl">
+                    <div class="border-b pb-4 mb-4">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">
+                            <i class="fas fa-file-alt text-purple-600 mr-2"></i>
+                            이력 상세 정보
+                        </h3>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- 변경 필드 -->
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">변경 항목</p>
+                            <p class="text-lg font-bold text-purple-700">${history.field_name || '-'}</p>
+                        </div>
+                        
+                        <!-- 변경 내용 -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600 mb-2">
+                                    <i class="fas fa-times-circle text-red-500 mr-1"></i>
+                                    변경 전
+                                </p>
+                                <p class="text-base font-medium text-red-700 whitespace-pre-wrap break-all">
+                                    ${history.old_value || '-'}
+                                </p>
+                            </div>
+                            
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600 mb-2">
+                                    <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                                    변경 후
+                                </p>
+                                <p class="text-base font-medium text-green-700 whitespace-pre-wrap break-all">
+                                    ${history.new_value || '-'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- 변경 정보 -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 p-3 rounded">
+                                <p class="text-xs text-gray-600 mb-1">변경 일시</p>
+                                <p class="text-sm font-medium text-gray-800">
+                                    ${new Date(history.change_date).toLocaleString('ko-KR', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: false
+                                    })}
+                                </p>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-3 rounded">
+                                <p class="text-xs text-gray-600 mb-1">변경자</p>
+                                <p class="text-sm font-medium text-gray-800">
+                                    ${history.changed_by_name || '-'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- 변경 유형 -->
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-xs text-gray-600 mb-1">변경 유형</p>
+                            <p class="text-sm font-medium text-gray-800">
+                                ${history.change_type || '-'}
+                            </p>
+                        </div>
+                        
+                        <!-- 메모 -->
+                        ${history.notes ? `
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p class="text-xs text-gray-600 mb-2">
+                                    <i class="fas fa-comment-alt text-blue-500 mr-1"></i>
+                                    메모
+                                </p>
+                                <p class="text-sm text-gray-800 whitespace-pre-wrap">
+                                    ${history.notes}
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button 
+                            onclick="hideHistoryDetailModal()"
+                            class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            <i class="fas fa-times mr-2"></i>
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('historyDetailContent').innerHTML = detailHtml;
+            document.getElementById('historyDetailModal').classList.remove('hidden');
+        }
+
+        function hideHistoryDetailModal() {
+            document.getElementById('historyDetailModal').classList.add('hidden');
         }
 
         function showAddModal() {
