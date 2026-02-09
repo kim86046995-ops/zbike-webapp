@@ -25,6 +25,14 @@
             opacity: 1;
             visibility: visible;
         }
+        
+        /* 모바일 서명란 크기 확대 */
+        @media (max-width: 768px) {
+            #businessSignatureCanvas {
+                height: 600px !important;
+                min-height: 600px;
+            }
+        }
     </style>
     <script>
         // 즉시 실행: 로그인 체크

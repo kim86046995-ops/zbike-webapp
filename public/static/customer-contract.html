@@ -65,6 +65,15 @@
             max-height: none;
             overflow-y: visible;
         }
+        
+        /* 모바일 서명란 크기 확대 */
+        @media (max-width: 768px) {
+            #adminSignatureCanvas,
+            #tempSignatureCanvas {
+                height: 600px !important;
+                min-height: 600px;
+            }
+        }
     </style>
     
     

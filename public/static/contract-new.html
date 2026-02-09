@@ -55,6 +55,17 @@
             max-height: none;
             overflow-y: visible;
         }
+        
+        /* 모바일 서명란 크기 확대 */
+        @media (max-width: 768px) {
+            #adminSignatureCanvas,
+            #tempSignatureCanvas,
+            #businessSignatureCanvas,
+            #borrowerSignatureCanvas {
+                height: 600px !important;
+                min-height: 600px;
+            }
+        }
     </style>
     
     
@@ -2494,12 +2505,18 @@
             
             adminSignatureCtx = adminSignatureCanvas.getContext('2d');
             
+            // 모바일일 경우 캔버스 높이를 600px로 설정
+            if (window.innerWidth <= 768) {
+                adminSignatureCanvas.height = 600;
+                console.log('📱 모바일 모드: 서명란 높이 600px로 확대');
+            }
+            
             // 캔버스 배경을 흰색으로 채우기 (중요!)
             adminSignatureCtx.fillStyle = '#FFFFFF';
             adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
             
             adminSignatureCtx.strokeStyle = '#000';
-            adminSignatureCtx.lineWidth = 2;
+            adminSignatureCtx.lineWidth = 3; // 모바일에서 더 굵게
             adminSignatureCtx.lineCap = 'round';
             
             // 마우스 이벤트
