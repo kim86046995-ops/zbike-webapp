@@ -531,7 +531,9 @@
         );
 
         window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 페이지 로드 시작');
             if (await checkAuth()) {
+                console.log('✅ 인증 확인 완료');
                 // URL 파라미터로 전달된 상태 필터 확인
                 const urlParams = new URLSearchParams(window.location.search);
                 const statusParam = urlParams.get('status');
@@ -548,35 +550,60 @@
                     }
                 }
                 
-                loadMotorcycles();
+                console.log('📋 오토바이 목록 로딩 시작...');
+                await loadMotorcycles();
+                console.log('✅ 오토바이 목록 로딩 완료');
+            } else {
+                console.log('❌ 인증 실패');
             }
         });
 
         async function loadMotorcycles() {
+            console.log('📡 API 호출 시작: /api/motorcycles');
             try {
                 const response = await axios.get('/api/motorcycles');
                 motorcycles = response.data;
+                console.log('✅ 오토바이 데이터 수신:', motorcycles.length, '대');
                 
                 // 즉시 렌더링 (빠른 표시)
+                console.log('🎨 카드 렌더링 시작...');
                 filterAndSortMotorcycles();
+                console.log('✅ 카드 렌더링 완료');
                 
                 // 백그라운드에서 계약자 정보 병렬 로드
+                console.log('📋 계약자 정보 로딩 시작 (백그라운드)...');
                 const contractPromises = motorcycles.map(async (m) => {
                     try {
                         const contractResponse = await axios.get(`/api/motorcycles/${m.id}/contracts`);
                         const activeContract = contractResponse.data.find(c => c.status === 'active');
                         motorcycleContracts[m.id] = activeContract ? activeContract.customer_name : '';
                     } catch (err) {
+                        console.warn(`⚠️ 오토바이 ${m.id} 계약 정보 로드 실패:`, err.message);
                         motorcycleContracts[m.id] = '';
                     }
                 });
                 
                 // 모든 계약 정보 로드 완료 후 다시 렌더링
                 await Promise.all(contractPromises);
+                console.log('✅ 계약자 정보 로딩 완료');
                 filterAndSortMotorcycles();
+                console.log('✅ 최종 렌더링 완료');
             } catch (error) {
-                console.error('Error loading motorcycles:', error);
-                alert('오토바이 목록을 불러오는데 실패했습니다');
+                console.error('❌ 오토바이 목록 로딩 실패:', error);
+                console.error('❌ 에러 상세:', error.response?.data);
+                
+                // 사용자에게 에러 표시
+                const listEl = document.getElementById('motorcycleList');
+                listEl.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-5xl mb-3"></i>
+                        <p class="text-lg font-bold">오토바이 목록을 불러오는데 실패했습니다</p>
+                        <p class="text-sm mt-2">${error.message}</p>
+                        <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-redo mr-2"></i>다시 시도
+                        </button>
+                    </div>
+                `;
             }
         }
 
