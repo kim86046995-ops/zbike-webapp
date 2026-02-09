@@ -2687,28 +2687,59 @@
             // 2. 오토바이 선택 초기화
             selectedMotorcycleId = null;
             selectedMotorcycle = null;
-            document.getElementById('selectMotorcycleBtn').textContent = '오토바이 선택하기';
-            document.getElementById('motorcycleInfo').classList.add('hidden');
+            const selectMotorcycleBtn = document.getElementById('selectMotorcycleBtn');
+            if (selectMotorcycleBtn) {
+                selectMotorcycleBtn.textContent = '오토바이 선택하기';
+            }
+            const motorcycleInfo = document.getElementById('motorcycleInfo');
+            if (motorcycleInfo) {
+                motorcycleInfo.classList.add('hidden');
+            }
             
             // 3. 계약자 정보 초기화
-            document.getElementById('customerName').value = '';
-            document.getElementById('phone').value = '';
-            document.getElementById('residentNumber').value = '';
-            document.getElementById('address').value = '';
-            document.getElementById('detailAddress').value = '';
+            const customerName = document.getElementById('customerName');
+            if (customerName) customerName.value = '';
+            
+            const phone = document.getElementById('phone');
+            if (phone) phone.value = '';
+            
+            const residentNumber = document.getElementById('residentNumber');
+            if (residentNumber) residentNumber.value = '';
+            
+            const address = document.getElementById('address');
+            if (address) address.value = '';
+            
+            const detailAddress = document.getElementById('detailAddress');
+            if (detailAddress) detailAddress.value = '';
             
             // 4. 계약 조건 초기화
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            document.getElementById('dailyFee').value = '';
-            document.getElementById('deposit').value = '';
-            document.getElementById('specialTerms').value = '';
+            const startDate = document.getElementById('startDate');
+            if (startDate) startDate.value = '';
+            
+            const endDate = document.getElementById('endDate');
+            if (endDate) endDate.value = '';
+            
+            const dailyFee = document.getElementById('dailyFee');
+            if (dailyFee) dailyFee.value = '';
+            
+            const deposit = document.getElementById('deposit');
+            if (deposit) deposit.value = '';
+            
+            const specialTerms = document.getElementById('specialTerms');
+            if (specialTerms) specialTerms.value = '';
             
             // 5. 보험 정보 초기화
-            document.getElementById('insuranceCompany').value = '';
-            document.getElementById('drivingRange').value = '';
-            document.getElementById('insuranceStartDate').value = '';
-            document.getElementById('insuranceEndDate').value = '';
+            const insuranceCompany = document.getElementById('insuranceCompany');
+            if (insuranceCompany) insuranceCompany.value = '';
+            
+            const drivingRange = document.getElementById('drivingRange');
+            if (drivingRange) drivingRange.value = '';
+            
+            const insuranceStartDate = document.getElementById('insuranceStartDate');
+            if (insuranceStartDate) insuranceStartDate.value = '';
+            
+            const insuranceEndDate = document.getElementById('insuranceEndDate');
+            if (insuranceEndDate) insuranceEndDate.value = '';
             
             // 6. 서명 초기화
             if (adminSignatureCtx) {
@@ -2723,10 +2754,13 @@
             }
             
             // 8. 약관 동의 초기화
-            document.getElementById('agreeTerms').checked = false;
+            const agreeTerms = document.getElementById('agreeTerms');
+            if (agreeTerms) agreeTerms.checked = false;
             
             // 9. 첫 번째 입력 필드에 포커스
-            document.getElementById('customerName').focus();
+            if (customerName) {
+                customerName.focus();
+            }
             
             console.log('✅ 계약서 폼 초기화 완료');
         }
