@@ -78,17 +78,17 @@
             if (!checkAuth()) return;
             try {
                 const sid = localStorage.getItem('sessionId');
-                console.log('🔑 세션 ID:', sid);
+                console.log('[세션 ID]', sid);
                 
                 const res = await axios.get('/api/customers', {
                     headers: { 'X-Session-ID': sid }
                 });
                 
-                console.log('✅ 고객 데이터 로드 성공:', res.data);
+                console.log('[로드 성공]', res.data);
                 allCustomers = res.data;
                 applyFilters();
             } catch (err) {
-                console.error('❌ 데이터 로드 실패:', err);
+                console.error('[로드 실패]', err);
                 console.error('에러 상세:', err.response?.data);
                 console.error('에러 상태:', err.response?.status);
                 
@@ -223,10 +223,10 @@
             if (!confirm(name + ' 계약자를 삭제하시겠습니까?\n\n관련된 모든 계약서도 함께 삭제됩니다.')) return;
             
             try {
-                console.log('🗑️ 계약자 삭제 시작:', { id, name });
+                console.log('[삭제 시작]', { id, name });
                 
                 const sid = localStorage.getItem('sessionId');
-                console.log('🔑 세션 ID:', sid ? '있음' : '없음');
+                console.log('[세션 ID]', sid ? '있음' : '없음');
                 
                 if (!sid) {
                     alert('로그인이 필요합니다. 다시 로그인해주세요.');
@@ -234,22 +234,22 @@
                     return;
                 }
                 
-                console.log('📋 삭제 API 호출: /api/customers/' + id);
+                console.log('[API 호출] /api/customers/' + id);
                 const response = await axios.delete('/api/customers/' + id, {
                     headers: { 'X-Session-ID': sid }
                 });
                 
-                console.log('✅ 삭제 API 응답:', response.data);
+                console.log('[삭제 성공]', response.data);
                 alert('계약자가 삭제되었습니다.');
                 
-                console.log('🔄 데이터 새로고침 시작');
+                console.log('[새로고침 시작]');
                 await loadData();
-                console.log('✅ 데이터 새로고침 완료');
+                console.log('[새로고침 완료]');
                 
             } catch (err) {
-                console.error('❌ 계약자 삭제 실패:', err);
-                console.error('❌ 에러 응답:', err.response?.data);
-                console.error('❌ 에러 상태:', err.response?.status);
+                console.error('[삭제 실패]', err);
+                console.error('에러 응답:', err.response?.data);
+                console.error('에러 상태:', err.response?.status);
                 alert('삭제 실패: ' + (err.response?.data?.error || err.message));
             }
         }
