@@ -2575,29 +2575,6 @@ app.get('/api/contracts/:id/history', authMiddleware, async (c) => {
 
 // 오토바이 계약 이력 조회 (특정 오토바이의 모든 계약 이력)
 // 오토바이 사용 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
-app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const id = c.req.param('id')
-  
-  try {
-    const history = await DB.prepare(`
-      SELECT 
-        ch.*,
-        cu.name as customer_name,
-        cu.phone as customer_phone
-      FROM contract_history ch
-      LEFT JOIN customers cu ON ch.customer_id = cu.id
-      WHERE ch.motorcycle_id = ?
-      ORDER BY ch.created_at DESC
-    `).bind(id).all()
-    
-    return c.json(history.results)
-  } catch (error) {
-    console.error('오토바이 이력 조회 오류:', error)
-    return c.json({ error: '오토바이 이력 조회에 실패했습니다', details: error.message }, 500)
-  }
-})
-
 // 오토바이 사용 이력 조회 (번호판 또는 차대번호로 검색)
 // 오토바이 이력 검색 (인증 필요 - 민감한 고객 정보 포함)
 app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
