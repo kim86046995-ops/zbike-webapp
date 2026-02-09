@@ -654,19 +654,24 @@
         }
 
         async function showDetail(contractType, id) {
+            console.log('🔍 상세보기 클릭:', { contractType, id });
             try {
                 let response;
                 if (contractType === 'business') {
                     // 업체 계약서
+                    console.log('📋 업체 계약서 로딩...');
                     response = await axios.get(`/api/business-contracts/${id}`);
                 } else {
                     // 개인 계약서
+                    console.log('📋 개인 계약서 로딩...');
                     response = await axios.get(`/api/contracts/${id}`);
                 }
                 
+                console.log('✅ 계약서 데이터 로드 완료:', response.data);
                 currentContract = response.data;
                 renderDetail();
                 document.getElementById('detailModal').classList.remove('hidden');
+                console.log('✅ 모달 표시 완료');
                 
                 // 진행중인 계약일 때만 해지 버튼 표시
                 const cancelBtn = document.getElementById('cancelContractBtn');
@@ -682,8 +687,9 @@
                     startInsuranceAutoUpdate();
                 }
             } catch (error) {
-                console.error('Error loading contract detail:', error);
-                alert('계약서 상세 정보를 불러오는데 실패했습니다');
+                console.error('❌ 계약서 로딩 실패:', error);
+                console.error('❌ 에러 상세:', error.response?.data);
+                alert('계약서 상세 정보를 불러오는데 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
 
