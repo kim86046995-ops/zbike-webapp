@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약자 목록 - Z-BIKE 전자계약서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-users mr-2"></i>계약자 목록
+                </h1>
+                <div class="flex gap-2">
+                    <button onclick="window.history.back()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        <i class="fas fa-arrow-left mr-2"></i>뒤로
+                    </button>
+                    <button onclick="printList()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        <i class="fas fa-print mr-2"></i>인쇄
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4 flex gap-4">
+                <input type="text" id="searchInput" placeholder="이름, 전화번호, 주소 검색..." 
+                    class="flex-1 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="contractTypeFilter" class="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체 계약</option>
+                    <option value="lease">개인 계약</option>
+                    <option value="rent">대여 계약</option>
+                    <option value="business">사업자 계약</option>
+                </select>
+            </div>
+
+            <div id="loading" class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+                <p class="mt-4 text-gray-600">데이터 로딩 중...</p>
+            </div>
+
+            <div id="content" class="hidden">
+                <div id="customerList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">계약자 상세 정보</h2>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let allCustomers = [];
+        let filteredCustomers = [];
+        let isSuperAdmin = false;
+
+        function checkAuth() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/static/login.html';
+                return false;
+            }
+            return true;
+        }
+
+        async function loadData() {
+            if (!checkAuth()) return;
+
+            const sid = localStorage.getItem('sessionId');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            isSuperAdmin = user.role === 'super_admin' || user.role === 'superadmin';
+
+            console.log('[세션 ID]', sid);
+
+            try {
+                const res = await axios.get('/api/customers', {
+                    headers: { 'X-Session-ID': sid }
+                });
+                
+                console.log('[로드 성공]', res.data);
+                allCustomers = res.data;
+                applyFilters();
+            } catch (err) {
+                console.log('[로드 실패]', err.message);
+                alert('데이터 로드 실패: ' + err.message);
+            }
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const contractType = document.getElementById('contractTypeFilter').value;
+
+            filteredCustomers = allCustomers.filter(c => {
+                const matchSearch = !search || 
+                    (c.name && c.name.toLowerCase().includes(search)) ||
+                    (c.phone && c.phone.includes(search)) ||
+                    (c.address && c.address.toLowerCase().includes(search));
+
+                const matchType = !contractType || 
+                    (contractType === 'lease' && c.active_contract_type === 'individual') ||
+                    (contractType === 'rent' && c.active_contract_type === 'rent') ||
+                    (contractType === 'business' && c.active_contract_type === 'business');
+
+                return matchSearch && matchType;
+            });
+
+            showData();
+        }
+
+        function showData() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+
+            let html = '<table class="w-full"><thead><tr class="bg-gray-100">';
+            html += '<th class="px-4 py-2">번호</th><th class="px-4 py-2">이름</th><th class="px-4 py-2">전화번호</th>';
+            html += '<th class="px-4 py-2">주민등록번호</th><th class="px-4 py-2">우편번호</th><th class="px-4 py-2">주소</th>';
+            html += '<th class="px-4 py-2">등록일</th><th class="px-4 py-2">관리</th></tr></thead><tbody>';
+
+            filteredCustomers.forEach((c, i) => {
+                const rn = isSuperAdmin ? (c.resident_number || '-') : (c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-');
+                const fullAddr = (c.address || '') + ' ' + (c.detail_address || '');
+                
+                html += '<tr onclick="showDetail(' + c.id + ')" class="hover:bg-gray-50 cursor-pointer border-b">';
+                html += '<td class="px-4 py-2 text-center">' + (i+1) + '</td>';
+                html += '<td class="px-4 py-2">' + (c.name || '-') + '</td>';
+                html += '<td class="px-4 py-2">' + (c.phone || '-') + '</td>';
+                html += '<td class="px-4 py-2">' + rn + '</td>';
+                html += '<td class="px-4 py-2 text-center">' + (c.postcode || '-') + '</td>';
+                html += '<td class="px-4 py-2">' + (fullAddr || '-') + '</td>';
+                html += '<td class="px-4 py-2 text-center">' + (c.created_at ? c.created_at.substring(0, 10) : '-') + '</td>';
+                html += '<td class="px-4 py-2 text-center">';
+                if (isSuperAdmin) {
+                    html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-500 hover:text-red-700">';
+                    html += '<i class="fas fa-trash"></i></button>';
+                }
+                html += '</td></tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('customerList').innerHTML = html;
+        }
+
+        async function showDetail(id) {
+            const sid = localStorage.getItem('sessionId');
+            console.log('[세션 ID]', sid ? '있음' : '없음');
+
+            try {
+                const res = await axios.get('/api/customers/' + id, {
+                    headers: { 'X-Session-ID': sid }
+                });
+
+                const c = res.data;
+                const rn = isSuperAdmin ? (c.resident_number || '-') : (c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-');
+
+                let html = '<div class="space-y-4">';
+                html += '<div><strong>이름:</strong> ' + (c.name || '-') + '</div>';
+                html += '<div><strong>주민등록번호:</strong> ' + rn + '</div>';
+                html += '<div><strong>전화번호:</strong> ' + (c.phone || '-') + '</div>';
+                html += '<div><strong>우편번호:</strong> ' + (c.postcode || '-') + '</div>';
+                html += '<div><strong>면허종류:</strong> ' + (c.license_type || '-') + '</div>';
+                html += '<div><strong>주소:</strong> ' + (c.address || '-') + '</div>';
+                html += '<div><strong>상세주소:</strong> ' + (c.detail_address || '-') + '</div>';
+                html += '<div><strong>등록일:</strong> ' + (c.created_at || '-') + '</div>';
+                html += '</div>';
+
+                document.getElementById('detailContent').innerHTML = html;
+                document.getElementById('detailModal').classList.remove('hidden');
+            } catch (err) {
+                alert('상세 정보 조회 실패: ' + err.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        async function deleteCustomer(id, name) {
+            if (!confirm(name + ' 계약자를 삭제하시겠습니까?')) return;
+
+            const sid = localStorage.getItem('sessionId');
+            console.log('[삭제 시작]', { id, name });
+
+            if (!sid) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/static/login.html';
+                return;
+            }
+
+            try {
+                console.log('[API 호출]', '/api/customers/' + id);
+                const res = await axios.delete('/api/customers/' + id, {
+                    headers: { 'X-Session-ID': sid }
+                });
+
+                console.log('[삭제 API 응답]', res.data);
+                alert('삭제되었습니다.');
+                console.log('[데이터 새로고침 시작]');
+                await loadData();
+                console.log('[데이터 새로고침 완료]');
+            } catch (err) {
+                console.log('[계약자 삭제 실패]');
+                console.log('[에러 응답]', err.response?.data);
+                console.log('[에러 상태]', err.response?.status);
+                alert('삭제 실패: ' + (err.response?.data?.error || err.message));
+            }
+        }
+
+        function printList() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isAdmin = user.role === 'superadmin' || user.role === 'super_admin';
+
+            const pw = window.open('', '', 'width=800,height=600');
+            let html = '<html><head><title>계약자 목록</title><style>';
+            html += 'body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}';
+            html += 'th,td{border:1px solid black;padding:8px;text-align:left}th{background:#f0f0f0}';
+            html += '</style></head><body>';
+            html += '<h2>계약자 목록</h2>';
+            html += '<p>출력일시: ' + new Date().toLocaleString() + '</p>';
+            html += '<p>출력자: ' + (user.name || user.username || '-') + '</p>';
+            html += '<p>총 ' + filteredCustomers.length + '명</p>';
+            html += '<table><thead><tr><th>번호</th><th>이름</th><th>전화번호</th><th>주민등록번호</th><th>주소</th><th>등록일</th></tr></thead><tbody>';
+
+            filteredCustomers.forEach((c, i) => {
+                const rn = isAdmin ? (c.resident_number || '-') : (c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-');
+                html += '<tr><td>' + (i+1) + '</td><td>' + c.name + '</td><td>' + (c.phone||'-') + '</td>';
+                html += '<td>' + rn + '</td><td>' + (c.address||'-') + '</td><td>' + (c.created_at?c.created_at.substring(0,10):'-') + '</td></tr>';
+            });
+            
+            html += '</tbody></table><script>window.onload=function(){window.print()}</script></body></html>';
+            pw.document.write(html);
+            pw.document.close();
+        }
+
+        window.addEventListener('DOMContentLoaded', loadData);
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('contractTypeFilter').addEventListener('change', applyFilters);
+    </script>
+</body>
+</html>
