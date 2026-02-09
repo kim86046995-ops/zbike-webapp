@@ -1119,7 +1119,7 @@
                                             <div class="flex justify-between items-start mb-3">
                                                 <div>
                                                     <p class="font-bold text-gray-800">${contract.contract_number || '번호없음'}</p>
-                                                    <p class="text-sm text-gray-600">${contract.customer_name} (${contract.customer_phone})</p>
+                                                    <p class="text-sm"><span class="font-bold text-gray-900">${contract.customer_name}</span> <span class="text-gray-600">(${contract.customer_phone})</span></p>
                                                 </div>
                                                 <div class="flex gap-2">
                                                     <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[contract.status]}">
@@ -1169,8 +1169,8 @@
                                                         <span class="text-green-600 font-medium">${h.new_value || '-'}</span>
                                                     </div>
                                                     ${h.changed_by_name ? `
-                                                        <div class="text-xs text-gray-500 mt-1 pl-5">
-                                                            변경자: ${h.changed_by_name}
+                                                        <div class="text-xs mt-1 pl-5">
+                                                            <span class="text-gray-500">변경자:</span> <span class="font-bold text-gray-900">${h.changed_by_name}</span>
                                                         </div>
                                                     ` : ''}
                                                     ${h.notes ? `
