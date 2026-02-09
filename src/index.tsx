@@ -219,17 +219,17 @@ app.post('/api/auth/login', async (c) => {
   const HARDCODED_USERS = [
     {
       id: 1,
+      username: 'sangchun11',
+      password: 'a2636991',
+      name: '상춘',
+      role: 'superadmin'  // ← 슈퍼관리자 (users 테이블의 id=1과 일치)
+    },
+    {
+      id: 2,
       username: 'admin',
       password: 'admin123',
       name: '관리자',
       role: 'admin'
-    },
-    {
-      id: 2,
-      username: 'sangchun11',
-      password: 'a2636991',
-      name: '상춘',
-      role: 'superadmin'  // ← 슈퍼관리자
     }
   ]
   
