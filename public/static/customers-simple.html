@@ -246,6 +246,15 @@
 
         async function showDetail(id) {
             try {
+                // 즉시 모달 표시 (로딩 상태)
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-spinner fa-spin text-4xl text-purple-600"></i>
+                        <p class="text-gray-600 mt-4 text-lg">고객 정보를 불러오는 중...</p>
+                    </div>
+                `;
+                document.getElementById('modal').classList.remove('hidden');
+                
                 const sid = localStorage.getItem('sessionId');
                 const res = await axios.get('/api/customers/' + id, {
                     headers: { 'X-Session-ID': sid }
@@ -270,9 +279,9 @@
                 html += '</div>';
                 
                 document.getElementById('modalContent').innerHTML = html;
-                document.getElementById('modal').classList.remove('hidden');
             } catch (err) {
                 alert('상세정보 로드 실패: ' + err.message);
+                closeModal();
             }
         }
 
