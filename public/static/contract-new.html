@@ -1629,13 +1629,22 @@
             
             // 주소 정보 자동 입력 (우편번호, 기본주소, 상세주소)
             const postcodeInput = document.getElementById('postcode');
-            if (postcodeInput) postcodeInput.value = customer.postcode || '';
+            if (postcodeInput) {
+                postcodeInput.value = customer.postcode || '';
+                console.log('📮 우편번호 입력:', customer.postcode);
+            }
             
             const addressInput = document.getElementById('address');
-            if (addressInput) addressInput.value = customer.address || '';
+            if (addressInput) {
+                addressInput.value = customer.address || '';
+                console.log('🏠 기본주소 입력:', customer.address);
+            }
             
             const detailAddressInput = document.getElementById('detailAddress');
-            if (detailAddressInput) detailAddressInput.value = customer.detail_address || '';
+            if (detailAddressInput) {
+                detailAddressInput.value = customer.detail_address || '';
+                console.log('🏘️ 상세주소 입력:', customer.detail_address);
+            }
             
             // 임시렌트 폼에 고객 정보 자동 입력
             const tempCustomerNameInput = document.getElementById('tempCustomerName');
@@ -1647,7 +1656,16 @@
             const tempResidentNumberInput = document.getElementById('tempResidentNumber');
             if (tempResidentNumberInput) tempResidentNumberInput.value = customer.resident_number || '';
             
-            console.log('✅ 고객 정보 자동 입력 완료:', customer.name);
+            // 고객 전체 데이터 로그 (디버깅용)
+            console.log('✅ 고객 정보 자동 입력 완료:', {
+                이름: customer.name,
+                전화번호: customer.phone,
+                주민번호: customer.resident_number ? '***있음***' : '없음',
+                우편번호: customer.postcode || '⚠️ 없음',
+                기본주소: customer.address || '⚠️ 없음',
+                상세주소: customer.detail_address || '⚠️ 없음',
+                전체데이터: customer
+            });
             
             // 모달 닫기
             hideCustomerModal();
