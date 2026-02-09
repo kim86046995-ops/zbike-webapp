@@ -156,6 +156,11 @@
         function showDesktopTable() {
             document.getElementById('desktopContent').classList.remove('hidden');
             
+            // 사용자 권한 확인
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin' || user.id === 1;
+            console.log('🔐 권한 체크 (Desktop):', { userId: user.id, userRole: user.role, isSuperAdmin });
+            
             let html = '<div class="bg-white rounded-lg shadow-md overflow-x-auto smooth-scroll"><table class="w-full table-fixed">';
             html += '<thead><tr class="bg-purple-600 text-white">';
             html += '<th class="p-3 w-16">번호</th>';
@@ -183,8 +188,11 @@
                 html += '<td class="p-3 text-center">';
                 html += '<button onclick="event.stopPropagation(); showDetail(' + c.id + ')" class="text-purple-600 hover:text-purple-800 mr-2 touch-target" title="상세보기">';
                 html += '<i class="fas fa-eye"></i></button>';
-                html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-600 hover:text-red-800 touch-target" title="삭제">';
-                html += '<i class="fas fa-trash"></i></button>';
+                // 슈퍼관리자만 삭제 버튼 표시
+                if (isSuperAdmin) {
+                    html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-600 hover:text-red-800 touch-target" title="삭제">';
+                    html += '<i class="fas fa-trash"></i></button>';
+                }
                 html += '</td></tr>';
             });
 
@@ -194,6 +202,11 @@
 
         function showMobileCards() {
             document.getElementById('mobileContent').classList.remove('hidden');
+            
+            // 사용자 권한 확인
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin' || user.id === 1;
+            console.log('🔐 권한 체크 (Mobile):', { userId: user.id, userRole: user.role, isSuperAdmin });
             
             let html = '<div class="space-y-3">';
             
@@ -219,8 +232,11 @@
                 html += '<div class="flex flex-col gap-2">';
                 html += '<button onclick="event.stopPropagation(); showDetail(' + c.id + ')" class="text-purple-600 hover:text-purple-800 p-2 touch-target">';
                 html += '<i class="fas fa-eye text-xl"></i></button>';
-                html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-600 hover:text-red-800 p-2 touch-target">';
-                html += '<i class="fas fa-trash text-xl"></i></button>';
+                // 슈퍼관리자만 삭제 버튼 표시
+                if (isSuperAdmin) {
+                    html += '<button onclick="event.stopPropagation(); deleteCustomer(' + c.id + ', \'' + c.name + '\')" class="text-red-600 hover:text-red-800 p-2 touch-target">';
+                    html += '<i class="fas fa-trash text-xl"></i></button>';
+                }
                 html += '</div></div></div>';
             });
             
@@ -283,7 +299,7 @@
 
         function printList() {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isSuperAdmin = user.role === 'super_admin';
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin' || user.id === 1;
             
             const pw = window.open('', '', 'width=800,height=600');
             let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>계약자 목록</title>';
