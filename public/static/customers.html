@@ -113,6 +113,10 @@
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
             
+            // 사용자 권한 확인
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
+            
             let html = '<div class="bg-white rounded-lg shadow-md overflow-x-auto"><table class="w-full table-fixed">';
             html += '<thead><tr class="bg-purple-600 text-white">';
             html += '<th class="p-3 w-16">번호</th>';
@@ -233,7 +237,7 @@
 
         function printList() {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isSuperAdmin = user.role === 'super_admin';
+            const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
             
             const pw = window.open('', '', 'width=800,height=600');
             let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>계약자 목록</title>';

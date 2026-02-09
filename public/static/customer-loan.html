@@ -845,13 +845,86 @@
             try {
                 // 고객용 공개 API 호출 (인증 불필요)
                 const response = await axios.post('/api/loan-contracts/public', loanData);
-                alert(`차용증이 생성되었습니다!\n차용증번호: ${response.data.loan_number}\n\n차용증 목록으로 이동합니다.`);
-                window.location.href = '/static/loans.html';
+                alert(`✅ 차용증이 생성되었습니다!\n\n차용증번호: ${response.data.loan_number}\n\n💡 계속해서 추가 차용증을 작성할 수 있습니다.`);
+                
+                // 폼 초기화
+                resetLoanForm();
             } catch (error) {
                 console.error('Error creating loan contract:', error);
                 alert('차용증 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         });
+
+        // 폼 초기화 함수
+        function resetLoanForm() {
+            // 차용인 정보 초기화
+            const borrowerName = document.getElementById('borrowerName');
+            if (borrowerName) borrowerName.value = '';
+            
+            const borrowerResidentNumber = document.getElementById('borrowerResidentNumber');
+            if (borrowerResidentNumber) borrowerResidentNumber.value = '';
+            
+            const borrowerPhone = document.getElementById('borrowerPhone');
+            if (borrowerPhone) borrowerPhone.value = '';
+            
+            const borrowerAddress = document.getElementById('borrowerAddress');
+            if (borrowerAddress) borrowerAddress.value = '';
+            
+            const postcode = document.getElementById('postcode');
+            if (postcode) postcode.value = '';
+            
+            const address = document.getElementById('address');
+            if (address) address.value = '';
+            
+            const detailAddress = document.getElementById('detailAddress');
+            if (detailAddress) detailAddress.value = '';
+            
+            // 차용 정보 초기화
+            const loanAmount = document.getElementById('loanAmount');
+            if (loanAmount) loanAmount.value = '';
+            
+            const dailyDeduction = document.getElementById('dailyDeduction');
+            if (dailyDeduction) dailyDeduction.value = '';
+            
+            const loanDate = document.getElementById('loanDate');
+            if (loanDate) loanDate.value = '';
+            
+            const loanPeriod = document.getElementById('loanPeriod');
+            if (loanPeriod) loanPeriod.value = '';
+            
+            const repaymentDate = document.getElementById('repaymentDate');
+            if (repaymentDate) repaymentDate.value = '';
+            
+            const interestRate = document.getElementById('interestRate');
+            if (interestRate) interestRate.value = '';
+            
+            const accountNumber = document.getElementById('accountNumber');
+            if (accountNumber) accountNumber.value = '';
+            
+            const specialTerms = document.getElementById('specialTerms');
+            if (specialTerms) specialTerms.value = '';
+            
+            // 서명 초기화
+            if (borrowerCtx && borrowerCanvas) {
+                borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+                borrowerCtx.fillStyle = '#FFFFFF';
+                borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            }
+            
+            // 신분증 사진 초기화
+            loanIdCardPhotoData = null;
+            const loanIdCardPreview = document.getElementById('loanIdCardPreview');
+            if (loanIdCardPreview) loanIdCardPreview.classList.add('hidden');
+            
+            // 약관 동의 해제
+            const agreeTerms = document.getElementById('agreeTerms');
+            if (agreeTerms) agreeTerms.checked = false;
+            
+            // 첫 번째 입력란으로 포커스
+            if (borrowerName) borrowerName.focus();
+            
+            console.log('✅ 차용증 폼 초기화 완료');
+        }
     </script>
 </body>
 </html>

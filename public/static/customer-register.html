@@ -251,14 +251,25 @@
                 const response = await axios.post('/api/customers', customerData);
                 
                 // 세션이 있으면 관리자 - 고객목록으로 이동
-                // 세션이 없으면 고객 - 고객포털로 이동
+                // 세션이 없으면 고객 - 폼 초기화 후 계약자 목록으로 이동
                 const sessionId = localStorage.getItem('sessionId');
                 if (sessionId) {
-                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n고객 목록으로 이동합니다.');
+                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n계약자 목록으로 이동합니다.');
                     window.location.href = '/static/customers.html';
                 } else {
-                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n고객 포털 메인 화면으로 이동합니다.');
-                    window.location.href = '/static/customer-portal.html';
+                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n💡 계속해서 추가 등록이 가능합니다.');
+                    
+                    // 폼 초기화
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerResidentNumber').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    document.getElementById('customerLicenseType').value = '';
+                    document.getElementById('postcode').value = '';
+                    document.getElementById('address').value = '';
+                    document.getElementById('detailAddress').value = '';
+                    
+                    // 첫 번째 입력란으로 포커스
+                    document.getElementById('customerName').focus();
                 }
             } catch (error) {
                 console.error('Error:', error);
