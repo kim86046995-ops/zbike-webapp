@@ -114,6 +114,15 @@
                 page-break-before: avoid !important;
                 page-break-after: avoid !important;
             }
+            
+            /* PDF/인쇄시 주민번호 전체 표시 */
+            .resident-number-display {
+                display: none !important;
+            }
+            
+            .resident-number-full {
+                display: inline !important;
+            }
         }
         
         /* PDF 생성을 위한 추가 스타일 */
@@ -190,6 +199,47 @@
     <script>
         let allLoans = [];
         let filteredLoans = [];
+        let currentUser = null;
+
+        // 슈퍼관리자 체크 함수
+        function isSuperAdmin() {
+            if (!currentUser) {
+                try {
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        currentUser = JSON.parse(userStr);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse user:', e);
+                    return false;
+                }
+            }
+            return currentUser && (currentUser.role === 'superadmin' || currentUser.role === 'super_admin' || currentUser.id === 1);
+        }
+
+        // 주민번호 마스킹 함수 (화면 표시용)
+        function maskResidentNumber(residentNumber) {
+            if (!residentNumber) return '-';
+            
+            // 슈퍼관리자는 전체 보기
+            if (isSuperAdmin()) {
+                return residentNumber;
+            }
+            
+            // 일반 관리자는 뒷자리 마스킹
+            if (residentNumber.length === 13) {
+                return residentNumber.substring(0, 6) + '-*******';
+            } else if (residentNumber.includes('-')) {
+                const parts = residentNumber.split('-');
+                return parts[0] + '-*******';
+            }
+            return residentNumber.substring(0, 6) + '*******';
+        }
+
+        // PDF/인쇄용 주민번호 (전체 표시)
+        function getFullResidentNumber(residentNumber) {
+            return residentNumber || '-';
+        }
 
         function checkAuth() {
             const sid = localStorage.getItem('sessionId');
@@ -474,7 +524,7 @@
                         <h3 class="font-bold text-lg mb-4">차용인 정보</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <p><strong>성명:</strong> ${loan.borrower_name || '-'}</p>
-                            <p><strong>주민등록번호:</strong> ${loan.borrower_resident_number || '-'}</p>
+                            <p><strong>주민등록번호:</strong> <span class="resident-number-display">${maskResidentNumber(loan.borrower_resident_number)}</span><span class="resident-number-full" style="display:none;">${getFullResidentNumber(loan.borrower_resident_number)}</span></p>
                             <p><strong>연락처:</strong> ${loan.borrower_phone || '-'}</p>
                             <p class="col-span-1 md:col-span-2"><strong>주소:</strong> ${loan.borrower_address || '-'}</p>
                         </div>

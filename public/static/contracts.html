@@ -226,6 +226,15 @@
             .text-indigo-900 {
                 color: #312e81 !important;
             }
+            
+            /* PDF/인쇄시 주민번호 전체 표시 */
+            .resident-number-display {
+                display: none !important;
+            }
+            
+            .resident-number-full {
+                display: inline !important;
+            }
         }
         
         /* 모달 스크롤 */
@@ -376,6 +385,47 @@
         let currentContract = null;
         let companySettings = null;
         let sessionId = localStorage.getItem('sessionId');
+        let currentUser = null; // 현재 사용자 정보
+
+        // 슈퍼관리자 체크 함수
+        function isSuperAdmin() {
+            if (!currentUser) {
+                try {
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        currentUser = JSON.parse(userStr);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse user:', e);
+                    return false;
+                }
+            }
+            return currentUser && (currentUser.role === 'superadmin' || currentUser.role === 'super_admin' || currentUser.id === 1);
+        }
+
+        // 주민번호 마스킹 함수 (화면 표시용)
+        function maskResidentNumber(residentNumber) {
+            if (!residentNumber) return '-';
+            
+            // 슈퍼관리자는 전체 보기
+            if (isSuperAdmin()) {
+                return residentNumber;
+            }
+            
+            // 일반 관리자는 뒷자리 마스킹
+            if (residentNumber.length === 13) {
+                return residentNumber.substring(0, 6) + '-*******';
+            } else if (residentNumber.includes('-')) {
+                const parts = residentNumber.split('-');
+                return parts[0] + '-*******';
+            }
+            return residentNumber.substring(0, 6) + '*******';
+        }
+
+        // PDF/인쇄용 주민번호 (전체 표시)
+        function getFullResidentNumber(residentNumber) {
+            return residentNumber || '-';
+        }
 
         // 인증 체크
         async function checkAuth() {
@@ -853,7 +903,7 @@
                         <h3 class="font-bold text-lg mb-4">임차인 정보</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>성명:</strong> ${c.customer_name}</p>
-                            <p><strong>주민등록번호:</strong> ${c.resident_number}</p>
+                            <p><strong>주민등록번호:</strong> <span class="resident-number-display">${maskResidentNumber(c.resident_number)}</span><span class="resident-number-full" style="display:none;">${getFullResidentNumber(c.resident_number)}</span></p>
                             <p><strong>연락처:</strong> ${c.customer_phone}</p>
                             <p class="col-span-2"><strong>주소:</strong> ${c.customer_address}</p>
                         </div>
@@ -1503,7 +1553,7 @@
                             <p><strong>대표자:</strong> ${c.representative}</p>
                             <p><strong>업체 연락처:</strong> ${c.business_phone}</p>
                             <p class="col-span-2"><strong>사업장 주소:</strong> ${c.business_address}</p>
-                            <p class="col-span-2 mt-3 border-t pt-3"><strong>대표자 주민등록번호:</strong> ${c.representative_resident_number || '-'}</p>
+                            <p class="col-span-2 mt-3 border-t pt-3"><strong>대표자 주민등록번호:</strong> <span class="resident-number-display">${maskResidentNumber(c.representative_resident_number || '')}</span><span class="resident-number-full" style="display:none;">${getFullResidentNumber(c.representative_resident_number || '')}</span></p>
                             <p><strong>대표자 연락처:</strong> ${c.representative_phone || '-'}</p>
                             <p class="col-span-2"><strong>대표자 주소:</strong> ${c.representative_address || '-'}</p>
                         </div>
@@ -1774,7 +1824,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>성명:</strong> ${c.customer_name || '미입력'}</p>
                             <p><strong>연락처:</strong> ${c.customer_phone || '-'}</p>
-                            <p class="col-span-2"><strong>주민등록번호:</strong> ${c.resident_number || '-'}</p>
+                            <p class="col-span-2"><strong>주민등록번호:</strong> <span class="resident-number-display">${maskResidentNumber(c.resident_number || '')}</span><span class="resident-number-full" style="display:none;">${getFullResidentNumber(c.resident_number || '')}</span></p>
                         </div>
                     </div>
 
