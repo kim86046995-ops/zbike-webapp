@@ -1094,7 +1094,15 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
+  // DB 체크
+  if (!DB) {
+    console.error('❌ DB가 바인딩되지 않았습니다')
+    return c.json({ history: [] })
+  }
+  
   try {
+    console.log(`🔍 오토바이 이력 조회 시작: motorcycle_id=${id}`)
+    
     const { results } = await DB.prepare(`
       SELECT 
         h.id,
@@ -1111,9 +1119,11 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
       ORDER BY h.change_date DESC
     `).bind(id).all()
     
+    console.log(`✅ 이력 조회 성공: ${results.length}건`)
     return c.json({ history: results })
   } catch (error) {
-    console.error('오토바이 이력 조회 오류:', error)
+    console.error('❌ 오토바이 이력 조회 오류:', error)
+    console.error('Error details:', error.message, error.stack)
     return c.json({ error: '이력 조회에 실패했습니다', details: error.message }, 500)
   }
 })
