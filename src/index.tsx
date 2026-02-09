@@ -994,20 +994,32 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       contract_end_date: data.contract_end_date !== undefined ? data.contract_end_date : (existing.contract_end_date || '')
     }
     
-    // 변경 이력 저장 (중요 필드만)
+    // 변경 이력 저장 (모든 중요 필드 - 이력보호 절대원칙)
     const user = c.get('user')
     const userId = user?.id || null
     const importantFields = [
+      { key: 'plate_number', name: '번호판' },
+      { key: 'vehicle_name', name: '차명' },
+      { key: 'chassis_number', name: '차대번호' },
+      { key: 'model_year', name: '연식' },
+      { key: 'mileage', name: '키로수' },
+      { key: 'owner_name', name: '소유자명' },
       { key: 'insurance_company', name: '보험사' },
       { key: 'insurance_start_date', name: '보험시작일' },
       { key: 'insurance_end_date', name: '보험종료일' },
-      { key: 'driving_range', name: '운전범위' },
+      { key: 'insurance_fee', name: '보험료' },
       { key: 'inspection_start_date', name: '검사시작일' },
       { key: 'inspection_end_date', name: '검사종료일' },
+      { key: 'driving_range', name: '운전범위' },
+      { key: 'vehicle_price', name: '차량가격' },
+      { key: 'daily_rental_fee', name: '일대여료' },
+      { key: 'monthly_fee', name: '월렌트료' },
+      { key: 'deposit', name: '보증금' },
+      { key: 'contract_type_text', name: '계약종류' },
+      { key: 'contract_start_date', name: '계약시작일' },
+      { key: 'contract_end_date', name: '계약종료일' },
       { key: 'status', name: '상태' },
-      { key: 'mileage', name: '키로수' },
-      { key: 'insurance_fee', name: '보험료' },
-      { key: 'daily_rental_fee', name: '일대여료' }
+      { key: 'usage_notes', name: '사용메모' }
     ]
     
     for (const field of importantFields) {

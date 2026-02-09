@@ -1089,7 +1089,7 @@
                 
                 // 상세 이력 조회
                 const detailedHistoryResponse = await axios.get(`/api/motorcycles/${motorcycleId}/history`);
-                const detailedHistory = detailedHistoryResponse.data;
+                const detailedHistory = detailedHistoryResponse.data.history || [];
                 
                 // 오토바이 정보 표시
                 document.getElementById('motorcycleInfo').innerHTML = `
