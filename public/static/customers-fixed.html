@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약자 목록 - Z-BIKE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-users mr-2"></i>계약자 목록
+                </h1>
+                <div class="flex gap-2">
+                    <button onclick="window.history.back()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        <i class="fas fa-arrow-left mr-2"></i>뒤로
+                    </button>
+                    <button onclick="printList()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        <i class="fas fa-print mr-2"></i>인쇄
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4 flex gap-4">
+                <input type="text" id="searchInput" placeholder="이름, 전화번호, 주소 검색..." 
+                    class="flex-1 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="contractTypeFilter" class="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체 계약</option>
+                    <option value="lease">개인 계약</option>
+                    <option value="rent">대여 계약</option>
+                    <option value="business">사업자 계약</option>
+                </select>
+            </div>
+
+            <div id="loading" class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+                <p class="mt-4 text-gray-600">데이터 로딩 중...</p>
+            </div>
+
+            <div id="content" class="hidden">
+                <div id="customerList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">계약자 상세 정보</h2>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <script src="/static/customers-app.js"></script>
+</body>
+</html>
