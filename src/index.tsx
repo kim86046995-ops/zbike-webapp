@@ -457,7 +457,8 @@ app.get('/api/admin/users', async (c) => {
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
-  if (!session || (session as any).role !== 'super_admin') {
+  const role = (session as any)?.role
+  if (!session || (role !== 'super_admin' && role !== 'superadmin')) {
     return c.json({ error: '권한이 없습니다' }, 403)
   }
   
@@ -489,7 +490,8 @@ app.post('/api/admin/users/:id/status', async (c) => {
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
-  if (!session || (session as any).role !== 'super_admin') {
+  const role = (session as any)?.role
+  if (!session || (role !== 'super_admin' && role !== 'superadmin')) {
     return c.json({ error: '권한이 없습니다' }, 403)
   }
   
@@ -526,7 +528,8 @@ app.patch('/api/admin/users/:username/status', async (c) => {
   const sessionId = c.req.header('X-Session-ID')
   
   const session = await validateSession(DB, sessionId)
-  if (!session || (session as any).role !== 'super_admin') {
+  const role = (session as any)?.role
+  if (!session || (role !== 'super_admin' && role !== 'superadmin')) {
     return c.json({ error: '권한이 없습니다' }, 403)
   }
   
