@@ -311,7 +311,8 @@
             html += '<table><thead><tr><th>번호</th><th>이름</th><th>전화번호</th><th>주민등록번호</th><th>주소</th><th>등록일</th></tr></thead><tbody>';
             
             filteredCustomers.forEach((c, i) => {
-                const rn = isSuperAdmin ? (c.resident_number || '-') : (c.resident_number ? c.resident_number.replace(/(\d{6})-(\d{7})/, '$1-*******') : '-');
+                // 인쇄시에는 모든 관리자(슈퍼+일반)에게 전체 주민번호 표시
+                const rn = c.resident_number || '-';
                 html += '<tr><td>' + (i+1) + '</td><td>' + c.name + '</td><td>' + (c.phone||'-') + '</td>';
                 html += '<td>' + rn + '</td><td>' + (c.address||'-') + '</td><td>' + (c.created_at?c.created_at.substring(0,10):'-') + '</td></tr>';
             });
