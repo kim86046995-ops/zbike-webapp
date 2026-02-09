@@ -78,13 +78,32 @@
             if (!checkAuth()) return;
             try {
                 const sid = localStorage.getItem('sessionId');
+                console.log('🔑 세션 ID:', sid);
+                
                 const res = await axios.get('/api/customers', {
                     headers: { 'X-Session-ID': sid }
                 });
+                
+                console.log('✅ 고객 데이터 로드 성공:', res.data);
                 allCustomers = res.data;
                 applyFilters();
             } catch (err) {
-                alert('데이터 로드 실패: ' + err.message);
+                console.error('❌ 데이터 로드 실패:', err);
+                console.error('에러 상세:', err.response?.data);
+                console.error('에러 상태:', err.response?.status);
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('content').innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-4xl mb-4"></i>
+                        <h3 class="text-xl font-bold text-red-800 mb-2">데이터 로드 실패</h3>
+                        <p class="text-red-600 mb-4">${err.response?.data?.error || err.message}</p>
+                        <button onclick="location.reload()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">
+                            <i class="fas fa-redo mr-2"></i>다시 시도
+                        </button>
+                    </div>
+                `;
+                document.getElementById('content').classList.remove('hidden');
             }
         }
 
