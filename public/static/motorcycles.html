@@ -557,8 +557,11 @@
                 const response = await axios.get('/api/motorcycles');
                 motorcycles = response.data;
                 
-                // 각 오토바이의 계약자 정보를 미리 로드
-                for (const m of motorcycles) {
+                // 즉시 렌더링 (빠른 표시)
+                filterAndSortMotorcycles();
+                
+                // 백그라운드에서 계약자 정보 병렬 로드
+                const contractPromises = motorcycles.map(async (m) => {
                     try {
                         const contractResponse = await axios.get(`/api/motorcycles/${m.id}/contracts`);
                         const activeContract = contractResponse.data.find(c => c.status === 'active');
@@ -566,8 +569,10 @@
                     } catch (err) {
                         motorcycleContracts[m.id] = '';
                     }
-                }
+                });
                 
+                // 모든 계약 정보 로드 완료 후 다시 렌더링
+                await Promise.all(contractPromises);
                 filterAndSortMotorcycles();
             } catch (error) {
                 console.error('Error loading motorcycles:', error);
