@@ -258,6 +258,11 @@
                 // 허가번호 일치 - 회원가입 폼 표시
                 document.getElementById('authCodeModal').style.display = 'none';
                 document.getElementById('registerFormContainer').style.display = 'block';
+                
+                // 아이디 입력창으로 자동 포커스
+                setTimeout(() => {
+                    document.getElementById('username').focus();
+                }, 100);
             } else {
                 // 허가번호 불일치
                 errorDiv.classList.remove('hidden');
