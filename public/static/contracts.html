@@ -640,7 +640,11 @@
                             </div>
                             <div>
                                 <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.contract_start_date || c.start_date} ~ ${c.contract_end_date || c.end_date}</p>
-                                <p class="mb-1"><i class="fas fa-won-sign w-4 text-purple-600"></i> ${Number(c.daily_amount || c.monthly_fee || 0).toLocaleString()}원</p>
+                                <p class="mb-1">
+                                    <i class="fas fa-won-sign w-4 text-purple-600"></i> 
+                                    ${c.business_contract_type === 'lease' ? '리스대여료' : c.business_contract_type === 'rent' ? '렌트대여료' : '대여료'}: 
+                                    ${Number(c.daily_amount || c.monthly_fee || 0).toLocaleString()}원
+                                </p>
                                 <p><i class="fas fa-clock w-4 text-purple-600"></i> ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
                             </div>
                         </div>
@@ -868,7 +872,7 @@
                         <h3 class="font-bold text-lg mb-4">계약 조건</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>계약 타입:</strong> ${c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스' : c.contract_type === 'rent' ? '렌트' : '업체리스/렌트'}</p>
-                            <p><strong>일차감금액:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
+                            <p><strong>${c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스대여료' : '렌트대여료'}:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
                             <p><strong>계약 시작일:</strong> ${c.start_date}</p>
                             <p><strong>계약 종료일:</strong> ${c.end_date}</p>
                             <p class="col-span-2"><strong>보증금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
@@ -1518,7 +1522,7 @@
                         <h3 class="font-bold text-lg mb-4">계약 조건</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>계약 종류:</strong> ${contractTypeText}</p>
-                            <p><strong>일금액:</strong> ${Number(c.daily_amount || 0).toLocaleString()}원</p>
+                            <p><strong>${contractTypeText}대여료:</strong> ${Number(c.daily_amount || 0).toLocaleString()}원</p>
                             <p><strong>계약 시작일:</strong> ${c.contract_start_date}</p>
                             <p><strong>계약 종료일:</strong> ${c.contract_end_date}</p>
                             <p class="col-span-2"><strong>보증금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
