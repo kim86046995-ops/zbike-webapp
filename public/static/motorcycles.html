@@ -1044,19 +1044,33 @@
 
         async function showHistory(motorcycleId) {
             try {
+                // 즉시 모달 표시 (로딩 상태)
+                document.getElementById('motorcycleInfo').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                        <p class="text-sm text-gray-600 mt-2">로딩 중...</p>
+                    </div>
+                `;
+                document.getElementById('contractHistory').innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-3xl text-blue-600"></i>
+                        <p class="text-gray-600 mt-3">이력을 불러오는 중...</p>
+                    </div>
+                `;
+                document.getElementById('historyModal').classList.remove('hidden');
+                
                 const sessionId = localStorage.getItem('sessionId');
                 const headers = sessionId ? { 'X-Session-ID': sessionId } : {};
                 
-                // 오토바이 정보 조회
-                const motorcycleResponse = await axios.get(`/api/motorcycles/${motorcycleId}`, { headers });
+                // 병렬로 모든 데이터 조회 (속도 향상)
+                const [motorcycleResponse, historyResponse, detailedHistoryResponse] = await Promise.all([
+                    axios.get(`/api/motorcycles/${motorcycleId}`, { headers }),
+                    axios.get(`/api/motorcycles/${motorcycleId}/contracts`, { headers }),
+                    axios.get(`/api/motorcycles/${motorcycleId}/history`, { headers })
+                ]);
+                
                 const motorcycle = motorcycleResponse.data;
-                
-                // 계약 이력 조회
-                const historyResponse = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`, { headers });
                 const contracts = historyResponse.data;
-                
-                // 상세 이력 조회
-                const detailedHistoryResponse = await axios.get(`/api/motorcycles/${motorcycleId}/history`, { headers });
                 const detailedHistory = detailedHistoryResponse.data.history || [];
                 
                 // 오토바이 정보 표시
@@ -1430,11 +1444,22 @@
 
         async function editMotorcycle(id) {
             try {
-                const response = await axios.get(`/api/motorcycles/${id}`);
-                const m = response.data;
-
+                // 즉시 모달 표시 (빈 폼)
                 document.getElementById('modalTitle').textContent = '오토바이 수정';
-                document.getElementById('motorcycleId').value = m.id;
+                document.getElementById('motorcycleId').value = id;
+                document.getElementById('motorcycleModal').classList.remove('hidden');
+                
+                // 폼 초기화 (로딩 표시)
+                document.getElementById('plateNumber').value = '로딩중...';
+                document.getElementById('vehicleName').value = '로딩중...';
+                
+                // 병렬로 데이터 로드
+                const [motorcycleResponse, contractResponse] = await Promise.all([
+                    axios.get(`/api/motorcycles/${id}`),
+                    axios.get(`/api/motorcycles/${id}/contracts`).catch(() => ({ data: [] }))
+                ]);
+                
+                const m = motorcycleResponse.data;
                 
                 // 기본 정보
                 document.getElementById('plateNumber').value = m.plate_number;
@@ -1449,12 +1474,9 @@
                 document.getElementById('vehiclePrice').value = m.vehicle_price;
                 document.getElementById('insuranceFee').value = m.insurance_fee;
                 document.getElementById('usageNotes').value = m.usage_notes || '';
-                // status는 항상 available로 설정 (UI에서 삭제됨)
                 
-                // 계약 정보 로드 (개인 계약 + 업체 계약 통합)
+                // 계약 정보 로드
                 try {
-                    // 개인 계약 조회
-                    const contractResponse = await axios.get(`/api/motorcycles/${id}/contracts`);
                     const activeContract = contractResponse.data.find(c => c.status === 'active');
                     
                     if (activeContract) {
@@ -1524,11 +1546,12 @@
                 } else {
                     clearCertificate();
                 }
-
-                document.getElementById('motorcycleModal').classList.remove('hidden');
             } catch (error) {
                 console.error('Error loading motorcycle:', error);
                 alert('오토바이 정보를 불러오는데 실패했습니다');
+                hideModal();
+            }
+        }
             }
         }
 

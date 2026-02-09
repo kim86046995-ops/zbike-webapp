@@ -468,15 +468,24 @@
 
         async function showDetail(id) {
             try {
+                // 즉시 모달 표시 (로딩 상태)
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-spinner fa-spin text-4xl text-orange-600"></i>
+                        <p class="text-gray-600 mt-4 text-lg">차용증을 불러오는 중...</p>
+                    </div>
+                `;
+                document.getElementById('modal').classList.remove('hidden');
+                
                 const sid = localStorage.getItem('sessionId');
                 const res = await axios.get(`/api/loan-contracts/${id}`, {
                     headers: { 'X-Session-ID': sid }
                 });
                 currentLoan = res.data;
                 renderLoanDetail();
-                document.getElementById('modal').classList.remove('hidden');
             } catch (err) {
                 alert('상세 정보 로드 실패: ' + err.message);
+                closeModal();
             }
         }
 
