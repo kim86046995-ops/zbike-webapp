@@ -5150,13 +5150,13 @@ app.get('/dashboard', (c) => {
                         const user = JSON.parse(userStr);
                         const roleBadge = document.getElementById('userRoleBadge');
                         if (roleBadge) {
-                            const roleText = user.role === 'superadmin' ? '슈퍼관리자' : '관리자';
+                            const roleText = (user.role === 'super_admin' || user.role === 'superadmin') ? '슈퍼관리자' : '관리자';
                             const userName = user.name || user.username;
                             roleBadge.textContent = \`\${userName} (\${roleText})\`;
                         }
                         
                         // 슈퍼관리자일 때만 "관리자 관리" 버튼 표시
-                        if (user.role === 'superadmin') {
+                        if (user.role === 'super_admin' || user.role === 'superadmin') {
                             const adminManagementBtn = document.getElementById('adminManagementBtn');
                             if (adminManagementBtn) {
                                 adminManagementBtn.classList.remove('hidden');
