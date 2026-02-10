@@ -329,8 +329,8 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-bold mb-2">대여료 (원)</label>
-                                <input type="number" id="monthlyFee" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="대여료 입력">
+                                <label class="block text-sm font-bold mb-2">일대여료 (원)</label>
+                                <input type="number" id="monthlyFee" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="일대여료 입력">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold mb-2">계약종류</label>
@@ -2030,6 +2030,7 @@
                             </div>
                             <div>
                                 <p class="mb-1"><strong>계약기간:</strong> ${h.start_date} ~ ${h.end_date}</p>
+                                <p class="mb-1"><strong>일대여료:</strong> ${Number(h.monthly_fee).toLocaleString()}원</p>
                                 <p><strong>보증금:</strong> ${Number(h.deposit || 0).toLocaleString()}원</p>
                             </div>
                         </div>
