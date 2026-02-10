@@ -1237,7 +1237,8 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
   try {
     const DB = c.env.DB || c.env.db
     const id = c.req.param('id')
-    const { usage_notes } = await c.req.json()
+    const body = await c.req.json().catch(() => ({}))
+    const usage_notes = body.usage_notes || '폐지됨'
     
     console.log(`🗑️ Scrapping motorcycle #${id}`)
     
@@ -1245,14 +1246,15 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     const motorcycle = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first() as any
     
     if (!motorcycle) {
+      console.error(`❌ Motorcycle #${id} not found`)
       return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
     }
     
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     
     // 2. 오토바이 정보 초기화 (차대번호, 연식, 차량명만 보존)
-    // daily_rental_fee 컬럼이 없을 수도 있으므로 제외
-    await DB.prepare(`
+    // 필수 컬럼만 업데이트하여 DB 호환성 확보
+    const result = await DB.prepare(`
       UPDATE motorcycles 
       SET 
         plate_number = '',
@@ -1264,20 +1266,14 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         owner_name = '',
         insurance_fee = 0,
         vehicle_price = 0,
-        monthly_fee = NULL,
-        contract_type_text = NULL,
-        deposit = NULL,
-        contract_start_date = NULL,
-        contract_end_date = NULL,
         status = 'scrapped',
         usage_notes = ?,
-        inspection_start_date = NULL,
-        inspection_end_date = NULL,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(usage_notes, id).run()
     
-    console.log(`✅ Motorcycle #${id} scrapped. Only vehicle_name, chassis_number, model_year preserved. All other data cleared.`)
+    console.log(`✅ Motorcycle #${id} scrapped successfully`)
+    console.log(`📊 Update result:`, result)
     console.log(`📝 Scrap reason: ${usage_notes}`)
     
     // 3. 계약 이력은 그대로 유지 (아무 작업도 하지 않음)
@@ -1292,9 +1288,11 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     })
   } catch (error: any) {
     console.error('❌ Scrap motorcycle error:', error)
+    console.error('❌ Error stack:', error.stack)
     return c.json({ 
       error: '폐지 처리 중 오류가 발생했습니다',
-      details: error.message 
+      details: error.message,
+      stack: error.stack
     }, 500)
   }
 })
