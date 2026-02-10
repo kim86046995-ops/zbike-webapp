@@ -1237,8 +1237,6 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
   try {
     const DB = c.env.DB || c.env.db
     const id = c.req.param('id')
-    const body = await c.req.json().catch(() => ({}))
-    const usage_notes = body.usage_notes || '폐지됨'
     
     console.log(`🗑️ Scrapping motorcycle #${id}`)
     
@@ -1252,56 +1250,26 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     
-    // 2. 오토바이 정보 초기화 - 필수 컬럼만 업데이트
-    // plate_number를 빈 문자열로 설정하면 UNIQUE 제약 위반 가능
-    // 따라서 status만 변경하고 나머지는 수동으로 초기화
-    try {
-      await DB.prepare(`
-        UPDATE motorcycles 
-        SET 
-          plate_number = '',
-          mileage = 0,
-          insurance_company = '',
-          insurance_start_date = '',
-          insurance_end_date = '',
-          driving_range = '',
-          owner_name = '',
-          insurance_fee = 0,
-          vehicle_price = 0,
-          status = 'scrapped'
-        WHERE id = ?
-      `).bind(id).run()
-      
-      console.log(`✅ Motorcycle #${id} scrapped successfully`)
-      
-      // usage_notes 컬럼이 있으면 업데이트
-      try {
-        await DB.prepare(`UPDATE motorcycles SET usage_notes = ? WHERE id = ?`).bind(usage_notes, id).run()
-        console.log(`📝 Scrap reason saved: ${usage_notes}`)
-      } catch (noteErr) {
-        console.warn(`⚠️ Failed to save usage_notes (column may not exist):`, noteErr)
-      }
-      
-    } catch (updateErr: any) {
-      console.error(`❌ Update error:`, updateErr)
-      throw updateErr
-    }
+    // 2. 가장 단순한 방법: status만 변경
+    await DB.prepare(`UPDATE motorcycles SET status = 'scrapped' WHERE id = ?`).bind(id).run()
+    
+    console.log(`✅ Motorcycle #${id} status changed to scrapped`)
     
     return c.json({ 
       message: '폐지 처리되었습니다. 계약 이력은 보존되었습니다.',
-      preserved: {
+      motorcycle: {
+        id: motorcycle.id,
         vehicle_name: motorcycle.vehicle_name,
         chassis_number: motorcycle.chassis_number,
-        model_year: motorcycle.model_year
+        model_year: motorcycle.model_year,
+        status: 'scrapped'
       }
     })
   } catch (error: any) {
     console.error('❌ Scrap motorcycle error:', error)
-    console.error('❌ Error stack:', error.stack)
     return c.json({ 
       error: '폐지 처리 중 오류가 발생했습니다',
-      details: error.message,
-      stack: error.stack
+      details: error.message
     }, 500)
   }
 })
