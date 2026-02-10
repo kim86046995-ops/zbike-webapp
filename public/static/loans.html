@@ -520,11 +520,12 @@
                     <!-- 사업자 정보 -->
                     <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
                         <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">채권자 (사업자) 정보</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="font-size: 1.1rem;">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> <span id="modal-company-name">로딩중...</span></p>
                             <p><strong>사업자번호:</strong> <span id="modal-business-number">로딩중...</span></p>
                             <p><strong>대표자:</strong> <span id="modal-representative-name">로딩중...</span></p>
-                            <p><strong>관리자 전화번호:</strong> <span id="modal-manager-phone">로딩중...</span></p>
+                            <p><strong>관리자1 전화번호:</strong> <span id="modal-manager-phone">로딩중...</span></p>
+                            <p class="col-span-1 md:col-span-2"><strong>관리자2 전화번호:</strong> <span id="modal-manager-phone2">로딩중...</span></p>
                         </div>
                     </div>
 
@@ -712,12 +713,14 @@
                 document.getElementById('modal-company-name').textContent = company.company_name || '정보 없음';
                 document.getElementById('modal-business-number').textContent = company.business_number || '정보 없음';
                 document.getElementById('modal-representative-name').textContent = company.representative_name || '정보 없음';
-                document.getElementById('modal-manager-phone').textContent = company.manager_phone || company.phone || '정보 없음';
+                document.getElementById('modal-manager-phone').textContent = company.phone || '정보 없음';
+                document.getElementById('modal-manager-phone2').textContent = company.manager_phone2 || '정보 없음';
             } catch (err) {
                 document.getElementById('modal-company-name').textContent = '정보 없음';
                 document.getElementById('modal-business-number').textContent = '정보 없음';
                 document.getElementById('modal-representative-name').textContent = '정보 없음';
                 document.getElementById('modal-manager-phone').textContent = '정보 없음';
+                document.getElementById('modal-manager-phone2').textContent = '정보 없음';
             }
         }
 
