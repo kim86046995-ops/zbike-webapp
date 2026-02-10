@@ -201,8 +201,15 @@ app.post('/api/auth/login', async c => {
       DB
     } = c.env;
     if (DB) {
-      const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(username, password).first();
-      if (user) {
+      // 비밀번호를 SHA-256으로 해시 (Web Crypto API 사용)
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashedPassword = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const user = await DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(username, hashedPassword).first();
+      if (user && user.status === 'active') {
         const sessionId = await createSession(DB, user.id);
         return c.json({
           success: true,
@@ -217,7 +224,7 @@ app.post('/api/auth/login', async c => {
       }
     }
   } catch (error) {
-    console.log('DB not available, using hardcoded admin account');
+    console.log('DB not available, using hardcoded admin account', error);
   }
   return c.json({
     error: '아이디 또는 비밀번호가 잘못되었습니다'
