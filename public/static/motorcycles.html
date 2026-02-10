@@ -1868,37 +1868,20 @@
 
         // 사용 폐지 (오토바이 정보 초기화, 이력은 보존)
         async function scrapMotorcycle(id) {
-            // 1단계: 폐지 확인
-            if (!confirm('⚠️ 오토바이를 폐지하시겠습니까?\n\n폐지하면:\n✓ 계약 이력은 모두 보존됩니다\n✓ 차대번호, 연식, 차량명만 남습니다\n✓ 기타 정보는 초기화됩니다\n\n이 작업은 되돌릴 수 없습니다.')) {
-                return;
-            }
-            
-            // 2단계: 폐지 사유 입력
-            const usageNotes = prompt('폐지 사유를 입력해주세요:\n(예: 차량 노후, 사고, 부품 손상 등)');
-            
-            if (usageNotes === null) {
-                return; // 취소
-            }
-            
-            if (!usageNotes.trim()) {
-                alert('⚠️ 폐지 사유를 입력해주세요.');
-                return;
-            }
-            
-            // 3단계: 최종 확인
-            if (!confirm(`정말로 폐지 처리하시겠습니까?\n\n폐지 사유: ${usageNotes}\n\n⚠️ 이 작업은 되돌릴 수 없습니다!`)) {
+            // 확인 메시지
+            if (!confirm('⚠️ 오토바이를 폐지하시겠습니까?\n\n폐지하면:\n✓ 계약 이력은 모두 보존됩니다\n✓ 차대번호, 연식, 차량명만 남습니다\n✓ 기타 정보는 초기화됩니다\n\n⚠️ 이 작업은 되돌릴 수 없습니다!')) {
                 return;
             }
 
             try {
                 await axios.post(`/api/motorcycles/${id}/scrap`, { 
-                    usage_notes: usageNotes
+                    usage_notes: '폐지됨'
                 });
                 alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 차량 정보: 초기화 완료');
                 loadMotorcycles();
             } catch (error) {
                 console.error('Error scrapping motorcycle:', error);
-                alert('❌ 폐지 처리에 실패했습니다');
+                alert('❌ 폐지 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
 
