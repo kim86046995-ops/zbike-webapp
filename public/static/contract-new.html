@@ -2833,11 +2833,19 @@
                 // 캔버스 크기 설정 (모바일 최적화)
                 const container = modalCanvas.parentElement;
                 const isMobile = window.innerWidth <= 768;
-                const maxWidth = isMobile ? window.innerWidth - 40 : Math.min(window.innerWidth - 80, 900);
-                const maxHeight = isMobile ? window.innerHeight - 200 : Math.min(window.innerHeight - 280, 500);
                 
-                modalCanvas.width = maxWidth;
-                modalCanvas.height = maxHeight;
+                // 모바일: 정사각형으로 화면의 2/3 크기로 설정
+                if (isMobile) {
+                    const size = Math.min(window.innerWidth, window.innerHeight) * 0.66; // 2/3 크기
+                    modalCanvas.width = size;
+                    modalCanvas.height = size;
+                } else {
+                    // 데스크탑: 기존 로직 유지
+                    const maxWidth = Math.min(window.innerWidth - 80, 900);
+                    const maxHeight = Math.min(window.innerHeight - 280, 500);
+                    modalCanvas.width = maxWidth;
+                    modalCanvas.height = maxHeight;
+                }
                 
                 console.log('📏 캔버스 크기:', modalCanvas.width, 'x', modalCanvas.height, '모바일:', isMobile);
                 
