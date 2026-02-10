@@ -11,8 +11,8 @@
     <div class="container mx-auto px-4 py-6 max-w-5xl">
         <!-- 헤더 -->
         <div class="mb-6">
-            <a href="/" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm mb-2 inline-flex items-center transition-colors cursor-pointer">
-                <i class="fas fa-arrow-left mr-1"></i><span>메인으로</span>
+            <a href="/dashboard" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm mb-2 inline-flex items-center transition-colors cursor-pointer">
+                <i class="fas fa-arrow-left mr-1"></i><span>운영현황</span>
             </a>
             <h1 class="text-2xl font-bold text-gray-800 mt-4">
                 <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
@@ -100,7 +100,7 @@
                     <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
                         <i class="fas fa-save mr-2"></i>등록하기
                     </button>
-                    <button type="button" onclick="window.location.href='/'" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
+                    <button type="button" onclick="window.location.href='/dashboard'" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
                         취소
                     </button>
                 </div>
@@ -116,7 +116,6 @@
         // 로그인 체크 - 세션 없으면 바로 로그인 페이지로 이동
         if (!sessionId) {
             window.location.href = '/static/login.html';
-            throw new Error('No session'); // 스크립트 실행 중단
         }
         
         // Axios 인터셉터 설정 - 모든 요청에 세션 ID 추가
