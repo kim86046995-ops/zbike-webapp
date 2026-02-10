@@ -5078,30 +5078,54 @@ app.get('/dashboard', (c) => {
             // 통계 로드
             async function loadStats() {
                 try {
+                    // 캐시된 통계가 있으면 즉시 표시
+                    const cachedStats = sessionStorage.getItem('dashboardStats');
+                    const cacheTime = sessionStorage.getItem('dashboardStatsTime');
+                    const now = Date.now();
+                    
+                    // 캐시가 있고 30초 이내면 캐시 사용
+                    if (cachedStats && cacheTime && (now - parseInt(cacheTime)) < 30000) {
+                        console.log('✅ 캐시된 통계 사용');
+                        const data = JSON.parse(cachedStats);
+                        updateStatsDisplay(data);
+                    }
+                    
+                    // 백그라운드에서 새로운 통계 로드
                     const response = await axios.get('/api/dashboard/stats');
                     const data = response.data;
                     
-                    // 오토바이 통계
-                    const total = data.motorcycles.total;
-                    const rented = data.motorcycles.rented;  // 진행중 계약서 개수
-                    const available = data.motorcycles.available;  // 휴차중
-                    const maintenance = data.motorcycles.maintenance;  // 수리중/폐지 합계
+                    // 캐시에 저장
+                    sessionStorage.setItem('dashboardStats', JSON.stringify(data));
+                    sessionStorage.setItem('dashboardStatsTime', now.toString());
                     
-                    document.getElementById('totalCount').textContent = total;
-                    document.getElementById('rentedCount').textContent = rented;
-                    document.getElementById('availableCount').textContent = available;
-                    document.getElementById('maintenanceCount').textContent = maintenance;
-                    
-                    // 고객 및 차용증 통계
-                    document.getElementById('totalCustomers').textContent = data.customers;
-                    document.getElementById('totalLoanAmount').textContent = 
-                        (data.contracts.total_loan_amount || 0).toLocaleString() + '원';
+                    // 화면 업데이트
+                    updateStatsDisplay(data);
+                    console.log('✅ 최신 통계 로드 완료');
                 } catch (error) {
                     console.error('통계 로드 실패:', error);
                     if (error.response?.status === 401) {
                         alert('⚠️ 로그인이 필요합니다.');
                     }
                 }
+            }
+            
+            // 통계 표시 업데이트
+            function updateStatsDisplay(data) {
+                // 오토바이 통계
+                const total = data.motorcycles.total;
+                const rented = data.motorcycles.rented;  // 진행중 계약서 개수
+                const available = data.motorcycles.available;  // 휴차중
+                const maintenance = data.motorcycles.maintenance;  // 수리중/폐지 합계
+                
+                document.getElementById('totalCount').textContent = total;
+                document.getElementById('rentedCount').textContent = rented;
+                document.getElementById('availableCount').textContent = available;
+                document.getElementById('maintenanceCount').textContent = maintenance;
+                
+                // 고객 및 차용증 통계
+                document.getElementById('totalCustomers').textContent = data.customers;
+                document.getElementById('totalLoanAmount').textContent = 
+                    (data.contracts.total_loan_amount || 0).toLocaleString() + '원';
             }
             
             // 상태별 필터링 (오토바이 관리 페이지로 이동)
@@ -5162,8 +5186,16 @@ app.get('/dashboard', (c) => {
                 }
             }, 10 * 60 * 1000);
             
-            // 5분마다 통계 자동 새로고침
-            setInterval(loadStats, 5 * 60 * 1000);
+            // 30초마다 통계 자동 새로고침 (더 자주 업데이트)
+            setInterval(loadStats, 30 * 1000);
+            
+            // 페이지가 다시 보일 때 통계 새로고침 (다른 페이지에서 돌아올 때)
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    console.log('📊 페이지 다시 보임 - 통계 새로고침');
+                    loadStats();
+                }
+            });
 
             // ========================================
             // 로그아웃 기능
