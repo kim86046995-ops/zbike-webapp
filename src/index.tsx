@@ -1251,6 +1251,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     
     // 2. 오토바이 정보 초기화 (차대번호, 연식, 차량명만 보존)
+    // daily_rental_fee 컬럼이 없을 수도 있으므로 제외
     await DB.prepare(`
       UPDATE motorcycles 
       SET 
@@ -1263,7 +1264,6 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         owner_name = '',
         insurance_fee = 0,
         vehicle_price = 0,
-        daily_rental_fee = 0,
         monthly_fee = NULL,
         contract_type_text = NULL,
         deposit = NULL,
