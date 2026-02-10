@@ -168,8 +168,14 @@ app.post('/api/auth/login', async c => {
     id: 2,
     username: 'sangchun11',
     password: 'a2636991',
-    name: '상춘',
-    role: 'superadmin' // ← 슈퍼관리자
+    name: '관리자',
+    role: 'super_admin' // ← 슈퍼관리자
+  }, {
+    id: 3,
+    username: 'wjsqheo',
+    password: 'a2636991',
+    name: '김광현',
+    role: 'admin' // ← 일반 관리자
   }];
 
   // 하드코딩된 계정 확인
