@@ -113,10 +113,10 @@
         // 세션 체크 및 인증
         const sessionId = localStorage.getItem('sessionId');
         
-        // 로그인 체크
+        // 로그인 체크 - 세션 없으면 바로 로그인 페이지로 이동
         if (!sessionId) {
-            alert('⚠️ 로그인이 필요합니다.');
-            window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+            window.location.href = '/static/login.html';
+            throw new Error('No session'); // 스크립트 실행 중단
         }
         
         // Axios 인터셉터 설정 - 모든 요청에 세션 ID 추가

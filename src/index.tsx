@@ -26,7 +26,7 @@ app.use('*', cors({
 // ============================================
 // 루트 경로: 대시보드로 리다이렉트
 app.get('/', (c) => {
-  return c.redirect('/dashboard')
+  return c.redirect('/static/motorcycle-register')
 })
 
 // 캐시 무효화 미들웨어 (모든 응답)
