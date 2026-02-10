@@ -2805,22 +2805,41 @@
         let modalType = null; // 'admin' 또는 'temp'
         
         function openSignatureModal(type) {
+            console.log('🖊️ 서명 모달 열기:', type);
             modalType = type;
             const modal = document.getElementById('signatureModal');
+            
+            if (!modal) {
+                console.error('❌ 서명 모달을 찾을 수 없습니다');
+                alert('서명 모달을 열 수 없습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+            
             modal.classList.remove('hidden');
+            console.log('✅ 모달 표시됨');
             
             // 모달 캔버스 초기화
             setTimeout(() => {
                 modalCanvas = document.getElementById('modalSignatureCanvas');
-                modalCtx = modalCanvas.getContext('2d');
                 
-                // 캔버스 크기 설정 (화면 크기에 맞춤)
+                if (!modalCanvas) {
+                    console.error('❌ 모달 캔버스를 찾을 수 없습니다');
+                    return;
+                }
+                
+                modalCtx = modalCanvas.getContext('2d');
+                console.log('📐 캔버스 컨텍스트 생성됨');
+                
+                // 캔버스 크기 설정 (모바일 최적화)
                 const container = modalCanvas.parentElement;
-                const maxWidth = Math.min(window.innerWidth - 80, 900);
-                const maxHeight = Math.min(window.innerHeight - 280, 500);
+                const isMobile = window.innerWidth <= 768;
+                const maxWidth = isMobile ? window.innerWidth - 40 : Math.min(window.innerWidth - 80, 900);
+                const maxHeight = isMobile ? window.innerHeight - 200 : Math.min(window.innerHeight - 280, 500);
                 
                 modalCanvas.width = maxWidth;
                 modalCanvas.height = maxHeight;
+                
+                console.log('📏 캔버스 크기:', modalCanvas.width, 'x', modalCanvas.height, '모바일:', isMobile);
                 
                 // 배경을 흰색으로
                 modalCtx.fillStyle = '#FFFFFF';
@@ -2837,10 +2856,11 @@
                 if (sourceCanvas) {
                     // 기존 서명을 확대된 캔버스에 그리기
                     modalCtx.drawImage(sourceCanvas, 0, 0, modalCanvas.width, modalCanvas.height);
+                    console.log('✅ 기존 서명 복사됨');
                 }
                 
                 modalCtx.strokeStyle = '#000';
-                modalCtx.lineWidth = 3;
+                modalCtx.lineWidth = isMobile ? 4 : 3; // 모바일에서 더 굵게
                 modalCtx.lineCap = 'round';
                 modalCtx.lineJoin = 'round';
                 
@@ -2850,10 +2870,12 @@
                 modalCanvas.addEventListener('mouseup', stopModalDrawing);
                 modalCanvas.addEventListener('mouseout', stopModalDrawing);
                 
-                // 터치 이벤트
-                modalCanvas.addEventListener('touchstart', handleModalTouchStart);
-                modalCanvas.addEventListener('touchmove', handleModalTouchMove);
-                modalCanvas.addEventListener('touchend', stopModalDrawing);
+                // 터치 이벤트 (passive: false로 설정하여 preventDefault 가능하도록)
+                modalCanvas.addEventListener('touchstart', handleModalTouchStart, { passive: false });
+                modalCanvas.addEventListener('touchmove', handleModalTouchMove, { passive: false });
+                modalCanvas.addEventListener('touchend', stopModalDrawing, { passive: false });
+                
+                console.log('✅ 이벤트 리스너 등록 완료');
             }, 100);
         }
         
@@ -2927,20 +2949,41 @@
         }
         
         function handleModalTouchStart(e) {
+            console.log('👆 터치 시작');
             e.preventDefault();
+            
+            if (!modalCanvas || !modalCtx) {
+                console.error('❌ 캔버스 또는 컨텍스트 없음');
+                return;
+            }
+            
             const touch = e.touches[0];
             const rect = modalCanvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            console.log('📍 터치 좌표:', x, y);
+            
             modalDrawing = true;
             modalCtx.beginPath();
-            modalCtx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            modalCtx.moveTo(x, y);
         }
         
         function handleModalTouchMove(e) {
             e.preventDefault();
             if (!modalDrawing) return;
+            
+            if (!modalCanvas || !modalCtx) {
+                console.error('❌ 캔버스 또는 컨텍스트 없음');
+                return;
+            }
+            
             const touch = e.touches[0];
             const rect = modalCanvas.getBoundingClientRect();
-            modalCtx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            modalCtx.lineTo(x, y);
             modalCtx.stroke();
         }
     </script>
