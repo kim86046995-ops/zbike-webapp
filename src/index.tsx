@@ -1237,6 +1237,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
   try {
     const DB = c.env.DB || c.env.db
     const id = c.req.param('id')
+    const sessionUser = c.get('user')
     
     console.log(`🗑️ Scrapping motorcycle #${id}`)
     
@@ -1249,8 +1250,29 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     }
     
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
+    console.log(`📋 Previous plate_number: ${motorcycle.plate_number}`)
     
-    // 2. 가장 단순한 방법: status만 변경
+    // 2. 폐지 전 번호판 이력 저장 (motorcycle_history 테이블이 있는 경우)
+    try {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history (
+          motorcycle_id, 
+          change_type, 
+          field_name, 
+          old_value, 
+          new_value, 
+          changed_by, 
+          change_date,
+          notes
+        ) VALUES (?, 'scrapped', 'plate_number', ?, '', ?, datetime('now'), '폐지 전 번호판 정보')
+      `).bind(id, motorcycle.plate_number, sessionUser?.id || null).run()
+      
+      console.log(`✅ 폐지 이력 저장 완료: ${motorcycle.plate_number} → (폐지)`)
+    } catch (historyErr) {
+      console.warn(`⚠️ Failed to save history (table may not exist):`, historyErr)
+    }
+    
+    // 3. 가장 단순한 방법: status만 변경
     await DB.prepare(`UPDATE motorcycles SET status = 'scrapped' WHERE id = ?`).bind(id).run()
     
     console.log(`✅ Motorcycle #${id} status changed to scrapped`)
@@ -1262,6 +1284,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         vehicle_name: motorcycle.vehicle_name,
         chassis_number: motorcycle.chassis_number,
         model_year: motorcycle.model_year,
+        previous_plate_number: motorcycle.plate_number,
         status: 'scrapped'
       }
     })

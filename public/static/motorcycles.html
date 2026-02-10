@@ -1119,12 +1119,24 @@
                 const detailedHistory = detailedHistoryResponse.data.history || [];
                 
                 // 오토바이 정보 표시
+                // 폐지된 경우 이력에서 폐지 전 번호판 찾기
+                let previousPlateNumber = '';
+                if (motorcycle.status === 'scrapped' && detailedHistory.length > 0) {
+                    const scrapHistory = detailedHistory.find(h => 
+                        h.change_type === 'scrapped' && h.field_name === 'plate_number'
+                    );
+                    if (scrapHistory && scrapHistory.old_value) {
+                        previousPlateNumber = scrapHistory.old_value;
+                    }
+                }
+                
                 document.getElementById('motorcycleInfo').innerHTML = `
                     <h3 class="text-lg font-bold mb-2">${motorcycle.vehicle_name}</h3>
                     <div class="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>번호판:</strong> ${motorcycle.plate_number}</p>
+                        <p><strong>번호판:</strong> ${motorcycle.plate_number || '(폐지됨)'}</p>
                         <p><strong>차대번호:</strong> ${motorcycle.chassis_number}</p>
                         <p><strong>연식:</strong> ${motorcycle.model_year}년</p>
+                        ${previousPlateNumber ? `<p class="col-span-2 text-orange-600"><strong>폐지 전 번호판:</strong> ${previousPlateNumber}</p>` : ''}
                     </div>
                 `;
                 
