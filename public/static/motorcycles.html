@@ -651,6 +651,12 @@
             // 정렬
             filtered.sort((a, b) => {
                 console.log(`🔢 정렬 기준: ${sortOrder}`);
+                
+                // 1순위: 사용페지(scrapped) 오토바이는 항상 맨 아래
+                if (a.status === 'scrapped' && b.status !== 'scrapped') return 1;
+                if (a.status !== 'scrapped' && b.status === 'scrapped') return -1;
+                
+                // 2순위: 선택된 정렬 기준 적용
                 switch(sortOrder) {
                     case 'created_desc':
                         return b.id - a.id; // ID가 클수록 최신
