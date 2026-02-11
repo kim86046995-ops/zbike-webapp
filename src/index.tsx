@@ -1921,7 +1921,9 @@ app.get('/api/contracts', async (c) => {
     SELECT 
       c.*,
       m.plate_number, m.vehicle_name,
-      cu.name as customer_name, cu.phone as customer_phone
+      cu.name as customer_name, cu.phone as customer_phone,
+      cu.postcode as customer_postcode, cu.address as customer_address,
+      cu.detail_address as customer_detail_address
     FROM contracts c
     JOIN motorcycles m ON c.motorcycle_id = m.id
     LEFT JOIN customers cu ON c.customer_id = cu.id
@@ -1955,7 +1957,8 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
     SELECT 
       c.*,
       cu.name as customer_name, cu.resident_number, cu.phone as customer_phone,
-      cu.address as customer_address, cu.license_type
+      cu.address as customer_address, cu.postcode as customer_postcode,
+      cu.detail_address as customer_detail_address, cu.license_type
     FROM contracts c
     JOIN customers cu ON c.customer_id = cu.id
     WHERE c.motorcycle_id = ?
@@ -1979,7 +1982,8 @@ app.get('/api/contracts/:id', authMiddleware, async (c) => {
       m.driving_range as motorcycle_driving_range,
       m.owner_name, m.insurance_fee, m.vehicle_price, m.daily_rental_fee,
       cu.name as customer_name, cu.resident_number, cu.phone as customer_phone,
-      cu.address as customer_address, cu.license_type
+      cu.address as customer_address, cu.postcode as customer_postcode, 
+      cu.detail_address as customer_detail_address, cu.license_type
     FROM contracts c
     JOIN motorcycles m ON c.motorcycle_id = m.id
     JOIN customers cu ON c.customer_id = cu.id
