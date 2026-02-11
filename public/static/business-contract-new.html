@@ -482,7 +482,7 @@
                         <i class="fas fa-signature mr-2 text-purple-600"></i>
                         6. 대표자 서명
                     </h2>
-                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요 (더블클릭 또는 "크게 서명하기" 버튼으로 확대 가능)</p>
                     <div class="signature-container">
                         <div class="border-2 border-gray-400 rounded overflow-hidden bg-white signature-canvas-wrapper">
                             <canvas id="businessSignatureCanvas" width="600" height="600" class="cursor-crosshair bg-white"></canvas>
@@ -1297,6 +1297,12 @@
             businessSignatureCtx.strokeStyle = '#000';
             businessSignatureCtx.lineWidth = 2;
             businessSignatureCtx.lineCap = 'round';
+            
+            // 더블클릭 이벤트 추가 (확대 모달)
+            businessSignatureCanvas.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                openBusinessSignatureModal();
+            });
             
             // 마우스 이벤트
             businessSignatureCanvas.addEventListener('mousedown', startBusinessDrawing);
