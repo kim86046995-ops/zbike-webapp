@@ -665,21 +665,40 @@
                         </div>
                     </div>
 
-                    <!-- 서명 이미지 -->
-                    ${loan.borrower_signature ? `
-                    <div class="border-2 border-gray-300 p-4 rounded-lg mb-4">
-                        <h3 class="font-bold text-lg mb-3">차용인 서명</h3>
-                        <img src="${loan.borrower_signature}" alt="차용인 서명" class="max-w-full h-auto border border-gray-200">
-                    </div>
-                    ` : ''}
+                    <!-- 서명 및 신분증 섹션 - 모바일 최적화 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4 text-center">차용인 정보</h3>
+                        <div class="space-y-6">
+                            <!-- 차용인 서명 - 모바일 최적화 (정사각형 10cm = 380px) -->
+                            ${loan.borrower_signature ? `
+                                <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                    <h4 class="font-bold mb-3 text-center text-lg">차용인 서명</h4>
+                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 380px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;">
+                                        <img src="${loan.borrower_signature}" alt="차용인 서명" style="width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
+                                    </div>
+                                    <p class="text-center mt-3 font-bold">서명인: ${loan.borrower_name}</p>
+                                    <p class="text-center text-sm text-gray-600">서명일: ${new Date(loan.created_at).toLocaleDateString('ko-KR')}</p>
+                                </div>
+                            ` : `
+                                <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50">
+                                    <h4 class="font-bold mb-3 text-center text-gray-500 text-lg">차용인 서명</h4>
+                                    <div class="flex items-center justify-center bg-white border rounded mx-auto" style="width: 100%; max-width: 380px; aspect-ratio: 1;">
+                                        <p class="text-gray-400">서명 없음</p>
+                                    </div>
+                                </div>
+                            `}
 
-                    <!-- 신분증 사진 -->
-                    ${loan.borrower_id_card_photo ? `
-                    <div class="border-2 border-gray-300 p-4 rounded-lg mb-4">
-                        <h3 class="font-bold text-lg mb-3">차용인 신분증</h3>
-                        <img src="${loan.borrower_id_card_photo}" alt="차용인 신분증" class="max-w-full h-auto border border-gray-200">
+                            <!-- 차용인 신분증 - 모바일 최적화 (신분증 비율 85:54, 최소 10cm = 380px) -->
+                            ${loan.borrower_id_card_photo ? `
+                                <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                    <h4 class="font-bold mb-3 text-center text-lg">차용인 신분증</h4>
+                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;">
+                                        <img src="${loan.borrower_id_card_photo}" alt="차용인 신분증" style="width: 100%; height: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
-                    ` : ''}
 
                     <!-- 버튼 -->
                     <div class="flex gap-2 justify-end no-print mt-6">
