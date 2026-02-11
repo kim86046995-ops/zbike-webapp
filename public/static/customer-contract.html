@@ -710,7 +710,7 @@
                         <i class="fas fa-signature mr-2 text-green-600"></i>
                         7. 계약자 서명
                     </h2>
-                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요 (더블클릭 또는 "크게 서명하기" 버튼으로 확대 가능)</p>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스를 클릭하면 확대 화면에서 서명할 수 있습니다</p>
                     <div class="signature-container">
                         <div class="border-2 border-gray-400 rounded overflow-hidden bg-white signature-canvas-wrapper">
                             <canvas id="adminSignatureCanvas" width="600" height="600" class="cursor-crosshair bg-white"></canvas>
@@ -2815,22 +2815,16 @@
             adminSignatureCtx.lineWidth = 2;
             adminSignatureCtx.lineCap = 'round';
             
-            // 더블클릭 이벤트 추가 (확대 모달)
-            adminSignatureCanvas.addEventListener('dblclick', function(e) {
+            // 클릭/터치 시 바로 확대 모달 열기
+            adminSignatureCanvas.addEventListener('click', function(e) {
                 e.preventDefault();
                 openSignatureModal();
             });
             
-            // 마우스 이벤트
-            adminSignatureCanvas.addEventListener('mousedown', startAdminDrawing);
-            adminSignatureCanvas.addEventListener('mousemove', drawAdmin);
-            adminSignatureCanvas.addEventListener('mouseup', stopAdminDrawing);
-            adminSignatureCanvas.addEventListener('mouseout', stopAdminDrawing);
-            
-            // 터치 이벤트
-            adminSignatureCanvas.addEventListener('touchstart', handleAdminTouchStart);
-            adminSignatureCanvas.addEventListener('touchmove', handleAdminTouchMove);
-            adminSignatureCanvas.addEventListener('touchend', stopAdminDrawing);
+            adminSignatureCanvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                openSignatureModal();
+            }, { passive: false });
         }
         
         function startAdminDrawing(e) {
