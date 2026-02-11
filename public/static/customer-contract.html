@@ -857,6 +857,61 @@
             </div>
         </div>
 
+        <!-- 중복 계약 경고 모달 -->
+        <div id="duplicateContractModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+                <!-- 모달 헤더 -->
+                <div class="bg-orange-500 text-white p-4">
+                    <h3 class="text-xl font-bold">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        기존 계약 발견
+                    </h3>
+                </div>
+                
+                <!-- 모달 본문 -->
+                <div class="p-6">
+                    <div class="mb-4">
+                        <p class="text-lg mb-4">
+                            <i class="fas fa-info-circle text-orange-500 mr-2"></i>
+                            이 오토바이는 <strong class="text-orange-600">현재 계약 진행중</strong>입니다.
+                        </p>
+                        
+                        <div id="existingContractInfo" class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded mb-4">
+                            <!-- 기존 계약 정보가 여기에 표시됩니다 -->
+                        </div>
+                        
+                        <p class="text-gray-700 mb-2">
+                            새로운 계약을 진행하시겠습니까?
+                        </p>
+                        <p class="text-sm text-red-600 font-bold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            기존 계약은 자동으로 해지되며, 이력으로 저장됩니다.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- 모달 푸터 -->
+                <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                    <button 
+                        type="button" 
+                        onclick="cancelDuplicateContract()" 
+                        class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium"
+                    >
+                        <i class="fas fa-times mr-2"></i>
+                        취소
+                    </button>
+                    <button 
+                        type="button" 
+                        onclick="confirmDuplicateContract()" 
+                        class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium"
+                    >
+                        <i class="fas fa-check mr-2"></i>
+                        진행하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 고객 선택 모달 -->
         <div id="customerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
@@ -1434,13 +1489,73 @@
             document.getElementById('motorcycleSearchInput').value = '';
         }
 
-        function selectMotorcycleFromModal(id) {
+        let pendingMotorcycleSelection = null; // 중복 계약 확인 대기 중인 오토바이
+
+        async function selectMotorcycleFromModal(id) {
             const motorcycle = motorcycles.find(m => m.id === id);
             if (!motorcycle) return;
             
-            selectedMotorcycleId = id;
+            // 기존 계약 확인 (공개 API 사용)
+            try {
+                const response = await axios.get(`/api/motorcycles/${id}/contracts`);
+                const activeContracts = response.data.filter(c => c.status === 'active');
+                
+                if (activeContracts.length > 0) {
+                    // 기존 계약이 있으면 경고 모달 표시
+                    pendingMotorcycleSelection = motorcycle;
+                    showDuplicateContractModal(activeContracts, motorcycle);
+                    return;
+                }
+            } catch (error) {
+                console.error('기존 계약 확인 실패:', error);
+                // 에러가 나도 계속 진행
+            }
+            
+            // 기존 계약이 없으면 바로 선택
+            applyMotorcycleSelection(motorcycle);
+        }
+
+        function showDuplicateContractModal(contracts, motorcycle) {
+            const modal = document.getElementById('duplicateContractModal');
+            const infoDiv = document.getElementById('existingContractInfo');
+            
+            let contractsHtml = '<div class="space-y-2">';
+            contracts.forEach(contract => {
+                const contractType = contract.contract_type === 'lease' ? '리스' : 
+                                   contract.contract_type === 'rent' ? '렌트' : 
+                                   contract.contract_type === 'temp_rent' ? '임시렌트' : '기타';
+                contractsHtml += `
+                    <div class="text-sm">
+                        <strong>계약번호:</strong> ${contract.contract_number || '-'}<br>
+                        <strong>계약종류:</strong> ${contractType}<br>
+                        <strong>고객:</strong> ${contract.customer_name || '-'} (${contract.customer_phone || '-'})<br>
+                        <strong>계약기간:</strong> ${contract.start_date || '-'} ~ ${contract.end_date || '-'}
+                    </div>
+                `;
+            });
+            contractsHtml += '</div>';
+            
+            infoDiv.innerHTML = contractsHtml;
+            modal.classList.remove('hidden');
+        }
+
+        function cancelDuplicateContract() {
+            document.getElementById('duplicateContractModal').classList.add('hidden');
+            pendingMotorcycleSelection = null;
+        }
+
+        function confirmDuplicateContract() {
+            if (pendingMotorcycleSelection) {
+                applyMotorcycleSelection(pendingMotorcycleSelection);
+            }
+            document.getElementById('duplicateContractModal').classList.add('hidden');
+            pendingMotorcycleSelection = null;
+        }
+
+        function applyMotorcycleSelection(motorcycle) {
+            selectedMotorcycleId = motorcycle.id;
             selectedMotorcycle = motorcycle; // 전체 오토바이 객체 저장
-            document.getElementById('selectedMotorcycleId').value = id;
+            document.getElementById('selectedMotorcycleId').value = motorcycle.id;
             
             // 선택 버튼 텍스트 업데이트
             document.getElementById('selectedMotorcycleText').textContent = '다른 오토바이 선택하기';
