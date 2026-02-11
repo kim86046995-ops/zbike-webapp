@@ -301,7 +301,11 @@
             }
 
             try {
+                console.log('📤 고객 등록 요청:', customerData);
                 const response = await axios.post('/api/customers', customerData);
+                console.log('✅ 서버 응답:', response);
+                console.log('✅ 응답 상태:', response.status);
+                console.log('✅ 응답 데이터:', response.data);
                 
                 // 세션이 있으면 관리자 - 고객목록으로 이동
                 // 세션이 없으면 고객 - 폼 초기화 후 계약자 목록으로 이동
@@ -312,14 +316,13 @@
                 } else {
                     alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n💡 계속해서 추가 등록이 가능합니다.');
                     
-                    // 폼 초기화
+                    // 폼 초기화 (올바른 ID 사용)
                     document.getElementById('customerName').value = '';
                     document.getElementById('customerResidentNumber').value = '';
                     document.getElementById('customerPhone').value = '';
-                    document.getElementById('customerLicenseType').value = '';
-                    document.getElementById('postcode').value = '';
-                    document.getElementById('address').value = '';
-                    document.getElementById('detailAddress').value = '';
+                    document.getElementById('customerPostcode').value = '';
+                    document.getElementById('customerAddress').value = '';
+                    document.getElementById('customerDetailAddress').value = '';
                     
                     // 중복 체크 메시지 제거
                     const messageEl = document.getElementById('phoneMessage');
@@ -329,7 +332,10 @@
                     document.getElementById('customerName').focus();
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ 고객 등록 실패:', error);
+                console.error('❌ 에러 응답:', error.response);
+                console.error('❌ 에러 상태:', error.response?.status);
+                console.error('❌ 에러 데이터:', error.response?.data);
                 
                 // 중복 에러인 경우 특별 처리
                 if (error.response?.status === 409 || error.response?.data?.error?.includes('중복') || error.response?.data?.error?.includes('이미')) {

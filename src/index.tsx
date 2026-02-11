@@ -1440,22 +1440,51 @@ app.get('/api/customers/:id', authMiddleware, async (c) => {
 // 고객 등록 (로그인 불필요 - 고객용 공개 API)
 app.post('/api/customers', async (c) => {
   const DB = c.env.DB || c.env.db
-  const data = await c.req.json()
   
-  const result = await DB.prepare(`
-    INSERT INTO customers (name, resident_number, phone, postcode, address, detail_address, license_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    data.name,
-    data.resident_number,
-    data.phone,
-    data.postcode || '',
-    data.address,
-    data.detail_address || '',
-    data.license_type
-  ).run()
-  
-  return c.json({ id: result.meta.last_row_id, ...data }, 201)
+  try {
+    const data = await c.req.json()
+    
+    console.log('📥 고객 등록 요청:', data)
+    
+    // 전화번호 중복 체크
+    if (data.phone) {
+      const existingCustomer = await DB.prepare(
+        'SELECT id, name, phone FROM customers WHERE phone = ?'
+      ).bind(data.phone).first()
+      
+      if (existingCustomer) {
+        console.log('⚠️ 중복된 전화번호:', data.phone, '기존 고객:', existingCustomer.name)
+        return c.json({ 
+          error: '이미 등록된 전화번호입니다.', 
+          existing: { name: existingCustomer.name, phone: existingCustomer.phone }
+        }, 409)
+      }
+    }
+    
+    const result = await DB.prepare(`
+      INSERT INTO customers (name, resident_number, phone, postcode, address, detail_address, license_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.name,
+      data.resident_number,
+      data.phone,
+      data.postcode || '',
+      data.address,
+      data.detail_address || '',
+      data.license_type
+    ).run()
+    
+    const customerId = result.meta.last_row_id
+    console.log('✅ 고객 등록 성공:', customerId, data.name)
+    
+    return c.json({ id: customerId, ...data }, 201)
+  } catch (error) {
+    console.error('❌ 고객 등록 실패:', error)
+    return c.json({ 
+      error: '고객 등록에 실패했습니다.', 
+      details: error.message 
+    }, 500)
+  }
 })
 
 // 고객 수정
