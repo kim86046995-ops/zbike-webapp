@@ -809,7 +809,17 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
   if (status) {
     query += ` WHERE m.status = '${status}'`
   }
-  query += ' ORDER BY m.created_at DESC'
+  
+  // 보험 만료일이 가까운 순서대로 정렬
+  // 1순위: 보험 종료일이 가까운 순 (NULL은 마지막)
+  // 2순위: 생성일 최신순
+  query += ` ORDER BY 
+    CASE 
+      WHEN m.insurance_end_date IS NULL THEN 1 
+      ELSE 0 
+    END,
+    m.insurance_end_date ASC,
+    m.created_at DESC`
   
   const result = await DB.prepare(query).all()
   return c.json(result.results)
@@ -868,7 +878,13 @@ app.get('/api/public/motorcycles', async (c) => {
         insurance_start_date,
         insurance_end_date
       FROM motorcycles
-      ORDER BY plate_number
+      ORDER BY 
+        CASE 
+          WHEN insurance_end_date IS NULL THEN 1 
+          ELSE 0 
+        END,
+        insurance_end_date ASC,
+        plate_number ASC
     `).all()
     
     // 페지되지 않은 것만 필터링
