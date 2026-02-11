@@ -56,15 +56,68 @@
             overflow-y: visible;
         }
         
-        /* 모바일 서명란 크기 확대 */
+        /* 모바일 서명란 크기 - 정사각형으로 (10cm ≈ 380px) */
         @media (max-width: 768px) {
-            #adminSignatureCanvas,
-            #tempSignatureCanvas,
-            #businessSignatureCanvas,
-            #borrowerSignatureCanvas {
-                height: 600px !important;
-                min-height: 600px;
+            .signature-container {
+                width: 100%;
+                max-width: 380px;
+                margin: 0 auto;
             }
+            
+            .signature-canvas-wrapper {
+                position: relative;
+                width: 100%;
+                padding-bottom: 100%; /* 1:1 비율 */
+                overflow: hidden;
+                border: 2px solid #3B82F6;
+                border-radius: 0.5rem;
+                background: white;
+            }
+            
+            .signature-canvas-wrapper canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+        }
+        
+        /* 서명 확대 모달 */
+        .signature-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .signature-modal.active {
+            display: flex;
+        }
+        
+        .signature-modal-content {
+            width: 95%;
+            max-width: 800px;
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .signature-modal canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            background: white;
         }
     </style>
     
@@ -653,10 +706,12 @@
                         7. 계약자 서명
                     </h2>
                     <p class="text-sm text-gray-700 mb-4 font-semibold">
-                        💡 <strong class="text-blue-600">서명란을 클릭하면 확대된 화면에서 서명할 수 있습니다</strong>
+                        💡 <strong class="text-blue-600">서명란을 터치하면 확대된 화면에서 서명할 수 있습니다</strong>
                     </p>
-                    <div class="border-2 border-blue-400 rounded overflow-hidden bg-white hover:border-green-500 transition-colors cursor-pointer" onclick="openSignatureModal('admin')">
-                        <canvas id="adminSignatureCanvas" width="600" height="250" class="w-full bg-white pointer-events-none"></canvas>
+                    <div class="signature-container">
+                        <div class="signature-canvas-wrapper" onclick="openAdminSignatureModal()">
+                            <canvas id="adminSignatureCanvas" width="600" height="600" class="bg-white"></canvas>
+                        </div>
                     </div>
                     <div class="mt-3 flex justify-between items-center">
                         <button type="button" onclick="clearAdminSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
@@ -712,7 +767,29 @@
                     </div>
                 </div>
 
-
+                <!-- 서명 확대 모달 -->
+                <div id="adminSignatureModal" class="signature-modal">
+                    <div class="signature-modal-content">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">
+                                <i class="fas fa-signature mr-2 text-blue-600"></i>
+                                서명하기
+                            </h3>
+                            <button type="button" onclick="closeAdminSignatureModal()" class="text-gray-600 hover:text-gray-800 text-2xl">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <canvas id="adminModalCanvas" width="800" height="800" class="mb-4"></canvas>
+                        <div class="flex gap-3">
+                            <button type="button" onclick="clearAdminModalSignature()" class="flex-1 bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition">
+                                <i class="fas fa-eraser mr-2"></i>지우기
+                            </button>
+                            <button type="button" onclick="applyAdminModalSignature()" class="flex-1 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
+                                <i class="fas fa-check mr-2"></i>적용하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
@@ -2504,30 +2581,21 @@
             
             adminSignatureCtx = adminSignatureCanvas.getContext('2d');
             
-            // 모바일일 경우 캔버스 높이를 600px로 설정
-            if (window.innerWidth <= 768) {
-                adminSignatureCanvas.height = 600;
-                console.log('📱 모바일 모드: 서명란 높이 600px로 확대');
-            }
-            
             // 캔버스 배경을 흰색으로 채우기 (중요!)
             adminSignatureCtx.fillStyle = '#FFFFFF';
             adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
             
             adminSignatureCtx.strokeStyle = '#000';
-            adminSignatureCtx.lineWidth = 3; // 모바일에서 더 굵게
+            adminSignatureCtx.lineWidth = 3;
             adminSignatureCtx.lineCap = 'round';
             
-            // 마우스 이벤트
-            adminSignatureCanvas.addEventListener('mousedown', startAdminDrawing);
-            adminSignatureCanvas.addEventListener('mousemove', drawAdmin);
-            adminSignatureCanvas.addEventListener('mouseup', stopAdminDrawing);
-            adminSignatureCanvas.addEventListener('mouseout', stopAdminDrawing);
+            // 터치 이벤트만 연결 (모달 열기용)
+            adminSignatureCanvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                openAdminSignatureModal();
+            });
             
-            // 터치 이벤트
-            adminSignatureCanvas.addEventListener('touchstart', handleAdminTouchStart);
-            adminSignatureCanvas.addEventListener('touchmove', handleAdminTouchMove);
-            adminSignatureCanvas.addEventListener('touchend', stopAdminDrawing);
+            console.log('✅ 관리자 서명 캔버스 초기화 완료');
         }
         
         function startAdminDrawing(e) {
@@ -2579,6 +2647,135 @@
                 // 캔버스를 지우고 다시 흰색 배경으로 채우기
                 adminSignatureCtx.clearRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
                 adminSignatureCtx.fillStyle = '#FFFFFF';
+                adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+            }
+        }
+        
+        // 관리자 서명 모달 관련 변수
+        let adminModalCanvas = null;
+        let adminModalCtx = null;
+        let adminModalIsDrawing = false;
+        
+        // 관리자 서명 모달 열기
+        function openAdminSignatureModal() {
+            const modal = document.getElementById('adminSignatureModal');
+            modal.classList.add('active');
+            
+            // 모달 캔버스 초기화
+            if (!adminModalCanvas) {
+                adminModalCanvas = document.getElementById('adminModalCanvas');
+                adminModalCtx = adminModalCanvas.getContext('2d');
+                
+                // 배경 흰색
+                adminModalCtx.fillStyle = '#FFFFFF';
+                adminModalCtx.fillRect(0, 0, adminModalCanvas.width, adminModalCanvas.height);
+                
+                adminModalCtx.strokeStyle = '#000';
+                adminModalCtx.lineWidth = 3;
+                adminModalCtx.lineCap = 'round';
+                
+                // 마우스 이벤트
+                adminModalCanvas.addEventListener('mousedown', startAdminModalDrawing);
+                adminModalCanvas.addEventListener('mousemove', drawAdminModal);
+                adminModalCanvas.addEventListener('mouseup', stopAdminModalDrawing);
+                adminModalCanvas.addEventListener('mouseout', stopAdminModalDrawing);
+                
+                // 터치 이벤트
+                adminModalCanvas.addEventListener('touchstart', handleAdminModalTouchStart);
+                adminModalCanvas.addEventListener('touchmove', handleAdminModalTouchMove);
+                adminModalCanvas.addEventListener('touchend', stopAdminModalDrawing);
+            }
+            
+            // 기존 서명 복사
+            if (adminSignatureCanvas) {
+                adminModalCtx.fillStyle = '#FFFFFF';
+                adminModalCtx.fillRect(0, 0, adminModalCanvas.width, adminModalCanvas.height);
+                adminModalCtx.drawImage(adminSignatureCanvas, 0, 0, adminModalCanvas.width, adminModalCanvas.height);
+            }
+        }
+        
+        // 관리자 서명 모달 닫기
+        function closeAdminSignatureModal() {
+            const modal = document.getElementById('adminSignatureModal');
+            modal.classList.remove('active');
+        }
+        
+        // 관리자 모달 서명 적용
+        function applyAdminModalSignature() {
+            if (adminSignatureCtx && adminModalCanvas) {
+                // 작은 캔버스에 모달 내용 복사
+                adminSignatureCtx.fillStyle = '#FFFFFF';
+                adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+                adminSignatureCtx.drawImage(adminModalCanvas, 0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+            }
+            closeAdminSignatureModal();
+        }
+        
+        // 관리자 모달 서명 지우기
+        function clearAdminModalSignature() {
+            if (adminModalCtx && adminModalCanvas) {
+                adminModalCtx.clearRect(0, 0, adminModalCanvas.width, adminModalCanvas.height);
+                adminModalCtx.fillStyle = '#FFFFFF';
+                adminModalCtx.fillRect(0, 0, adminModalCanvas.width, adminModalCanvas.height);
+            }
+        }
+        
+        // 관리자 모달 그리기 시작
+        function startAdminModalDrawing(e) {
+            adminModalIsDrawing = true;
+            const rect = adminModalCanvas.getBoundingClientRect();
+            const scaleX = adminModalCanvas.width / rect.width;
+            const scaleY = adminModalCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            adminModalCtx.beginPath();
+            adminModalCtx.moveTo(x, y);
+        }
+        
+        // 관리자 모달 그리기
+        function drawAdminModal(e) {
+            if (!adminModalIsDrawing) return;
+            const rect = adminModalCanvas.getBoundingClientRect();
+            const scaleX = adminModalCanvas.width / rect.width;
+            const scaleY = adminModalCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            adminModalCtx.lineTo(x, y);
+            adminModalCtx.stroke();
+        }
+        
+        // 관리자 모달 그리기 중지
+        function stopAdminModalDrawing() {
+            adminModalIsDrawing = false;
+        }
+        
+        // 관리자 모달 터치 시작
+        function handleAdminModalTouchStart(e) {
+            e.preventDefault();
+            adminModalIsDrawing = true;
+            const touch = e.touches[0];
+            const rect = adminModalCanvas.getBoundingClientRect();
+            const scaleX = adminModalCanvas.width / rect.width;
+            const scaleY = adminModalCanvas.height / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            adminModalCtx.beginPath();
+            adminModalCtx.moveTo(x, y);
+        }
+        
+        // 관리자 모달 터치 이동
+        function handleAdminModalTouchMove(e) {
+            e.preventDefault();
+            if (!adminModalIsDrawing) return;
+            const touch = e.touches[0];
+            const rect = adminModalCanvas.getBoundingClientRect();
+            const scaleX = adminModalCanvas.width / rect.width;
+            const scaleY = adminModalCanvas.height / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            adminModalCtx.lineTo(x, y);
+            adminModalCtx.stroke();
+        }
                 adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
             }
         }
