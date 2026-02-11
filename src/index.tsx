@@ -1590,10 +1590,46 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     }
     console.log('📋 삭제할 계약자:', customer.name, '/', customer.resident_number)
     
-    // 삭제할 contracts 조회
-    const contractsToDelete = await DB.prepare('SELECT id FROM contracts WHERE customer_id = ?').bind(id).all()
+    // ✅ 진행중 또는 완료된 계약이 있는지 확인
+    const activeContracts = await DB.prepare(
+      `SELECT id, contract_number, status 
+       FROM contracts 
+       WHERE customer_id = ? 
+       AND status IN ('active', 'completed')
+       AND deleted_at IS NULL`
+    ).bind(id).all()
+    
+    if (activeContracts.results.length > 0) {
+      const contractList = activeContracts.results.map((c: any) => 
+        `${c.contract_number} (${c.status === 'active' ? '진행중' : '완료'})`
+      ).join(', ')
+      
+      return c.json({ 
+        error: '진행중 또는 완료된 계약이 있어 삭제할 수 없습니다',
+        contracts: contractList,
+        count: activeContracts.results.length
+      }, 400)
+    }
+    
+    // 차용증 확인
+    const loanContracts = await DB.prepare(
+      'SELECT id, loan_number FROM loan_contracts WHERE borrower_resident_number = ?'
+    ).bind(customer.resident_number).all()
+    
+    if (loanContracts.results.length > 0) {
+      const loanList = loanContracts.results.map((l: any) => l.loan_number).join(', ')
+      
+      return c.json({ 
+        error: '차용증이 있어 삭제할 수 없습니다',
+        loans: loanList,
+        count: loanContracts.results.length
+      }, 400)
+    }
+    
+    // 삭제할 contracts 조회 (취소된 계약만)
+    const contractsToDelete = await DB.prepare('SELECT id FROM contracts WHERE customer_id = ? AND deleted_at IS NULL').bind(id).all()
     const contractIds = contractsToDelete.results.map((c: any) => c.id)
-    console.log('📝 삭제할 계약서 ID:', contractIds)
+    console.log('📝 삭제할 계약서 ID (취소된 계약):', contractIds)
     
     // D1 batch API를 사용하여 한 트랜잭션으로 실행
     console.log('🔄 Batch 삭제 시작...')
