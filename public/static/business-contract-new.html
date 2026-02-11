@@ -482,16 +482,21 @@
                         <i class="fas fa-signature mr-2 text-purple-600"></i>
                         6. 대표자 서명
                     </h2>
-                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요 (클릭하여 확대 가능)</p>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요</p>
                     <div class="signature-container">
-                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white signature-canvas-wrapper" onclick="openBusinessSignatureModal()" style="cursor: pointer;">
+                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white signature-canvas-wrapper">
                             <canvas id="businessSignatureCanvas" width="600" height="600" class="cursor-crosshair bg-white"></canvas>
                         </div>
                     </div>
                     <div class="mt-3 flex justify-between items-center">
-                        <button type="button" onclick="clearBusinessSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
-                            <i class="fas fa-eraser mr-1"></i>서명 지우기
-                        </button>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="clearBusinessSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
+                                <i class="fas fa-eraser mr-1"></i>서명 지우기
+                            </button>
+                            <button type="button" onclick="openBusinessSignatureModal()" class="text-sm text-blue-600 hover:text-blue-800 font-semibold">
+                                <i class="fas fa-search-plus mr-1"></i>크게 서명하기
+                            </button>
+                        </div>
                         <p class="text-xs text-gray-500">서명일: <span id="businessSignDate"></span></p>
                     </div>
                 </div>
