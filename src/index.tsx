@@ -2050,10 +2050,11 @@ app.post('/api/contracts', async (c) => {
         await DB.prepare(`
           UPDATE contracts 
           SET status = 'cancelled', 
-              end_date = ?, 
+              end_date = ?,
+              cancelled_at = ?,
               updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?
-        `).bind(today, contractData.id).run()
+        `).bind(today, today, contractData.id).run()
         
         // 기존 계약의 오토바이를 available로 변경
         await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
@@ -2100,9 +2101,9 @@ app.post('/api/contracts', async (c) => {
       // 기존 계약을 'cancelled' 상태로 변경하고 종료일을 오늘로 설정
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'cancelled', end_date = ?, updated_at = CURRENT_TIMESTAMP 
+        SET status = 'cancelled', end_date = ?, cancelled_at = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
-      `).bind(today, oldContract.id).run()
+      `).bind(today, today, oldContract.id).run()
       
       // 이력 기록: 새 계약에 의해 대체됨
       await recordContractHistory(
