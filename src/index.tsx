@@ -1360,30 +1360,60 @@ app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
 app.get('/api/customers/check-duplicate', async (c) => {
   const DB = c.env.DB || c.env.db
   const phone = c.req.query('phone')
+  const residentNumber = c.req.query('resident_number')
   
-  if (!phone) {
-    return c.json({ error: 'Phone number is required' }, 400)
+  if (!phone && !residentNumber) {
+    return c.json({ error: 'Phone number or resident number is required' }, 400)
   }
   
   try {
-    const customer = await DB.prepare(`
-      SELECT id, name, phone
-      FROM customers
-      WHERE phone = ?
-    `).bind(phone).first()
+    let customer = null
     
-    if (customer) {
-      return c.json({ 
-        exists: true, 
-        customer: {
-          id: customer.id,
-          name: customer.name,
-          phone: customer.phone
-        }
-      })
-    } else {
-      return c.json({ exists: false })
+    // 전화번호로 조회
+    if (phone) {
+      customer = await DB.prepare(`
+        SELECT id, name, phone, resident_number
+        FROM customers
+        WHERE phone = ?
+      `).bind(phone).first()
+      
+      if (customer) {
+        return c.json({ 
+          exists: true,
+          type: 'phone',
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            resident_number: customer.resident_number
+          }
+        })
+      }
     }
+    
+    // 주민번호로 조회
+    if (residentNumber) {
+      customer = await DB.prepare(`
+        SELECT id, name, phone, resident_number
+        FROM customers
+        WHERE resident_number = ?
+      `).bind(residentNumber).first()
+      
+      if (customer) {
+        return c.json({ 
+          exists: true,
+          type: 'resident_number',
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            resident_number: customer.resident_number
+          }
+        })
+      }
+    }
+    
+    return c.json({ exists: false })
   } catch (error) {
     console.error('Customer duplicate check error:', error)
     return c.json({ error: 'Failed to check duplicate', details: error.message }, 500)
