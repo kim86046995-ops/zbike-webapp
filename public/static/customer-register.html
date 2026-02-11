@@ -190,6 +190,61 @@
             e.target.value = formatResidentNumber(pastedText);
         });
 
+        // 주민번호 중복 체크
+        let residentNumberCheckTimeout;
+        document.getElementById('customerResidentNumber').addEventListener('input', async (e) => {
+            const residentNumber = e.target.value.trim();
+            const messageEl = document.getElementById('residentNumberMessage');
+            
+            // 입력이 비어있거나 형식이 맞지 않으면 메시지 숨김
+            if (!residentNumber || residentNumber.length < 14) {
+                if (messageEl) messageEl.remove();
+                return;
+            }
+            
+            // 이전 타이머 취소
+            clearTimeout(residentNumberCheckTimeout);
+            
+            // 500ms 후 중복 체크 실행 (타이핑 완료 대기)
+            residentNumberCheckTimeout = setTimeout(async () => {
+                try {
+                    const response = await axios.get(`/api/customers/check-duplicate?resident_number=${encodeURIComponent(residentNumber)}`);
+                    
+                    // 기존 메시지 제거
+                    const oldMessage = document.getElementById('residentNumberMessage');
+                    if (oldMessage) oldMessage.remove();
+                    
+                    if (response.data.exists) {
+                        // 중복 메시지 표시
+                        const message = document.createElement('div');
+                        message.id = 'residentNumberMessage';
+                        message.className = 'mt-2 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center';
+                        message.innerHTML = `
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span><strong>⚠️ 이미 등록된 고객입니다.</strong><br>
+                            이름: ${response.data.customer.name || '정보 없음'}<br>
+                            전화번호: ${response.data.customer.phone || '정보 없음'}</span>
+                        `;
+                        e.target.parentElement.appendChild(message);
+                        e.target.classList.add('border-red-500');
+                    } else {
+                        // 사용 가능 메시지 표시
+                        const message = document.createElement('div');
+                        message.id = 'residentNumberMessage';
+                        message.className = 'mt-2 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center';
+                        message.innerHTML = `
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span>✅ 등록 가능한 주민번호입니다.</span>
+                        `;
+                        e.target.parentElement.appendChild(message);
+                        e.target.classList.remove('border-red-500');
+                    }
+                } catch (error) {
+                    console.error('주민번호 중복 체크 실패:', error);
+                }
+            }, 500);
+        });
+
         // 전화번호 자동 하이픈 (입력 및 붙여넣기 모두 처리)
         function formatPhoneNumber(value) {
             // 숫자만 추출
@@ -298,6 +353,28 @@
             if (!customerData.postcode) {
                 alert('우편번호를 검색하세요.');
                 return;
+            }
+
+            // 최종 중복 체크 (주민번호)
+            try {
+                const residentCheck = await axios.get(`/api/customers/check-duplicate?resident_number=${encodeURIComponent(customerData.resident_number)}`);
+                if (residentCheck.data.exists) {
+                    alert(`⚠️ 이미 등록된 고객입니다.\n\n이름: ${residentCheck.data.customer.name}\n전화번호: ${residentCheck.data.customer.phone}\n\n등록을 진행할 수 없습니다.`);
+                    return;
+                }
+            } catch (error) {
+                console.error('주민번호 중복 체크 실패:', error);
+            }
+
+            // 최종 중복 체크 (전화번호)
+            try {
+                const phoneCheck = await axios.get(`/api/customers/check-duplicate?phone=${encodeURIComponent(customerData.phone)}`);
+                if (phoneCheck.data.exists) {
+                    alert(`⚠️ 이미 등록된 전화번호입니다.\n\n이름: ${phoneCheck.data.customer.name}\n주민번호: ${phoneCheck.data.customer.resident_number}\n\n등록을 진행할 수 없습니다.`);
+                    return;
+                }
+            } catch (error) {
+                console.error('전화번호 중복 체크 실패:', error);
             }
 
             try {
