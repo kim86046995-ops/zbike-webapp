@@ -755,13 +755,16 @@
                     <!-- 미리보기 영역 -->
                     <div id="adminIdPreview" class="hidden">
                         <div class="relative border-2 border-gray-300 rounded-lg p-2 bg-gray-50">
-                            <img id="adminIdImage" src="" alt="신분증" class="w-full h-auto rounded">
-                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
+                            <!-- 신분증 비율 유지 (85:54 = 1.574:1) -->
+                            <div class="relative w-full" style="aspect-ratio: 85/54;">
+                                <img id="adminIdImage" src="" alt="신분증" class="absolute inset-0 w-full h-full object-contain rounded">
+                            </div>
+                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold z-10">
                                 <i class="fas fa-trash mr-1"></i>삭제
                             </button>
                         </div>
                         <p class="text-sm text-green-600 mt-2">
-                            <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다.
+                            <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다 (원본 비율 유지)
                         </p>
                     </div>
                 </div>
@@ -3177,6 +3180,8 @@
                     isModalDrawing = true;
                     modalCtx.beginPath();
                     modalCtx.moveTo(x, y);
+                    modalCtx.lineTo(x, y); // 점 찍기
+                    modalCtx.stroke();
                 }, { passive: false });
                 
                 modalCanvas.addEventListener('touchmove', (e) => {
@@ -3190,6 +3195,8 @@
                     const y = (touch.clientY - rect.top) * scaleY;
                     modalCtx.lineTo(x, y);
                     modalCtx.stroke();
+                    modalCtx.beginPath();
+                    modalCtx.moveTo(x, y);
                 }, { passive: false });
                 
                 modalCanvas.addEventListener('touchend', (e) => {
