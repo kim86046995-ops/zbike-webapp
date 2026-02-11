@@ -486,8 +486,8 @@
                         💡 <strong class="text-blue-600">서명란을 터치하면 확대된 화면에서 서명할 수 있습니다</strong>
                     </p>
                     <div class="signature-container">
-                        <div class="border-2 border-blue-400 rounded overflow-hidden bg-white signature-canvas-wrapper hover:border-green-500 transition-colors cursor-pointer">
-                            <canvas id="businessSignatureCanvas" width="600" height="600" class="bg-white" style="touch-action: none;"></canvas>
+                        <div class="border-2 border-blue-400 rounded overflow-hidden bg-white signature-canvas-wrapper hover:border-green-500 transition-colors cursor-pointer" onclick="openBusinessSignatureModal()">
+                            <canvas id="businessSignatureCanvas" width="600" height="600" class="bg-white pointer-events-none" style="touch-action: none;"></canvas>
                         </div>
                     </div>
                     <div class="mt-3 flex justify-between items-center">
