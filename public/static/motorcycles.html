@@ -574,6 +574,7 @@
                 const response = await axios.get('/api/motorcycles');
                 motorcycles = response.data;
                 console.log('✅ 오토바이 데이터 수신:', motorcycles.length, '대');
+                console.log('📋 첫 3대 보험 만료일:', motorcycles.slice(0, 3).map(m => `${m.plate_number}: ${m.insurance_end_date}`));
                 
                 // 백엔드에서 이미 JOIN으로 가져온 customer_name 사용
                 motorcycles.forEach(m => {
@@ -583,6 +584,8 @@
                 
                 // 렌더링
                 console.log('🎨 카드 렌더링 시작...');
+                const sortOrder = document.getElementById('sortOrder').value;
+                console.log('🔍 현재 정렬 기준:', sortOrder);
                 filterAndSortMotorcycles();
                 console.log('✅ 카드 렌더링 완료');
             } catch (error) {
@@ -647,6 +650,7 @@
             
             // 정렬
             filtered.sort((a, b) => {
+                console.log(`🔢 정렬 기준: ${sortOrder}`);
                 switch(sortOrder) {
                     case 'created_desc':
                         return b.id - a.id; // ID가 클수록 최신
@@ -674,6 +678,8 @@
                         return b.id - a.id;
                 }
             });
+            
+            console.log('📋 정렬 후 첫 3대:', filtered.slice(0, 3).map(m => `${m.plate_number}: ${m.insurance_end_date}`));
             
             renderMotorcycles(filtered);
         }
