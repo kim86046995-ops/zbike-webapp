@@ -4507,7 +4507,7 @@ app.get('/api/temp-rent-contracts', async (c) => {
   return c.json(result.results)
 })
 
-app.post('/api/temp-rent-contracts', authMiddleware, async (c) => {
+app.post('/api/temp-rent-contracts', async (c) => {
   const DB = c.env.DB || c.env.db
   const data = await c.req.json()
 
