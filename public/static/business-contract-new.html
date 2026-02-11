@@ -1606,14 +1606,18 @@
         function startBusinessModalDrawing(e) {
             isBusinessModalDrawing = true;
             const rect = businessModalCanvas.getBoundingClientRect();
+            const scaleX = businessModalCanvas.width / rect.width;
+            const scaleY = businessModalCanvas.height / rect.height;
             businessModalCtx.beginPath();
-            businessModalCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            businessModalCtx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
         }
         
         function drawBusinessModal(e) {
             if (!isBusinessModalDrawing) return;
             const rect = businessModalCanvas.getBoundingClientRect();
-            businessModalCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            const scaleX = businessModalCanvas.width / rect.width;
+            const scaleY = businessModalCanvas.height / rect.height;
+            businessModalCtx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
             businessModalCtx.stroke();
         }
         

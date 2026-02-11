@@ -3196,12 +3196,12 @@
             }
             
             // 기존 서명을 모달 캔버스로 복사
-            if (adminCanvas) {
+            if (adminSignatureCanvas) {
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = adminCanvas.width;
-                tempCanvas.height = adminCanvas.height;
+                tempCanvas.width = adminSignatureCanvas.width;
+                tempCanvas.height = adminSignatureCanvas.height;
                 const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(adminCanvas, 0, 0);
+                tempCtx.drawImage(adminSignatureCanvas, 0, 0);
                 
                 modalCtx.fillStyle = '#FFFFFF';
                 modalCtx.fillRect(0, 0, modalCanvas.width, modalCanvas.height);
@@ -3220,14 +3220,18 @@
         function startModalDrawing(e) {
             isModalDrawing = true;
             const rect = modalCanvas.getBoundingClientRect();
+            const scaleX = modalCanvas.width / rect.width;
+            const scaleY = modalCanvas.height / rect.height;
             modalCtx.beginPath();
-            modalCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            modalCtx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
         }
         
         function drawModal(e) {
             if (!isModalDrawing) return;
             const rect = modalCanvas.getBoundingClientRect();
-            modalCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            const scaleX = modalCanvas.width / rect.width;
+            const scaleY = modalCanvas.height / rect.height;
+            modalCtx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
             modalCtx.stroke();
         }
         
@@ -3244,10 +3248,10 @@
         
         function applyModalSignature() {
             // 모달 캔버스 내용을 원본 캔버스에 복사
-            if (adminCanvas && modalCanvas) {
-                adminCtx.fillStyle = '#FFFFFF';
-                adminCtx.fillRect(0, 0, adminCanvas.width, adminCanvas.height);
-                adminCtx.drawImage(modalCanvas, 0, 0, adminCanvas.width, adminCanvas.height);
+            if (adminSignatureCanvas && modalCanvas) {
+                adminSignatureCtx.fillStyle = '#FFFFFF';
+                adminSignatureCtx.fillRect(0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
+                adminSignatureCtx.drawImage(modalCanvas, 0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
             }
             closeSignatureModal();
         }
