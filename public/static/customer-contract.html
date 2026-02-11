@@ -710,10 +710,12 @@
                         <i class="fas fa-signature mr-2 text-green-600"></i>
                         7. 계약자 서명
                     </h2>
-                    <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스를 클릭하면 확대 화면에서 서명할 수 있습니다</p>
+                    <p class="text-sm text-gray-700 mb-4 font-semibold">
+                        💡 <strong class="text-blue-600">서명란을 터치하면 확대된 화면에서 서명할 수 있습니다</strong>
+                    </p>
                     <div class="signature-container">
-                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white signature-canvas-wrapper">
-                            <canvas id="adminSignatureCanvas" width="600" height="600" class="cursor-crosshair bg-white"></canvas>
+                        <div class="border-2 border-blue-400 rounded overflow-hidden bg-white signature-canvas-wrapper hover:border-green-500 transition-colors cursor-pointer" onclick="openSignatureModal()">
+                            <canvas id="adminSignatureCanvas" width="600" height="600" class="bg-white pointer-events-none" style="touch-action: none;"></canvas>
                         </div>
                     </div>
                     <div class="mt-3 flex justify-between items-center">
@@ -2816,15 +2818,9 @@
             adminSignatureCtx.lineCap = 'round';
             
             // 클릭/터치 시 바로 확대 모달 열기
-            adminSignatureCanvas.addEventListener('click', function(e) {
-                e.preventDefault();
-                openSignatureModal();
-            });
-            
-            adminSignatureCanvas.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                openSignatureModal();
-            }, { passive: false });
+            // 터치/클릭 이벤트는 wrapper div의 onclick으로 처리
+            // pointer-events: none으로 인해 캔버스 직접 클릭은 무시되고
+            // wrapper의 onclick이 실행됨
         }
         
         function startAdminDrawing(e) {
@@ -3154,28 +3150,32 @@
                     e.preventDefault();
                     const touch = e.touches[0];
                     const rect = modalCanvas.getBoundingClientRect();
-                    const mouseEvent = new MouseEvent('mousedown', {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    modalCanvas.dispatchEvent(mouseEvent);
-                });
+                    const scaleX = modalCanvas.width / rect.width;
+                    const scaleY = modalCanvas.height / rect.height;
+                    const x = (touch.clientX - rect.left) * scaleX;
+                    const y = (touch.clientY - rect.top) * scaleY;
+                    isModalDrawing = true;
+                    modalCtx.beginPath();
+                    modalCtx.moveTo(x, y);
+                }, { passive: false });
                 
                 modalCanvas.addEventListener('touchmove', (e) => {
                     e.preventDefault();
+                    if (!isModalDrawing) return;
                     const touch = e.touches[0];
-                    const mouseEvent = new MouseEvent('mousemove', {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    modalCanvas.dispatchEvent(mouseEvent);
-                });
+                    const rect = modalCanvas.getBoundingClientRect();
+                    const scaleX = modalCanvas.width / rect.width;
+                    const scaleY = modalCanvas.height / rect.height;
+                    const x = (touch.clientX - rect.left) * scaleX;
+                    const y = (touch.clientY - rect.top) * scaleY;
+                    modalCtx.lineTo(x, y);
+                    modalCtx.stroke();
+                }, { passive: false });
                 
                 modalCanvas.addEventListener('touchend', (e) => {
                     e.preventDefault();
-                    const mouseEvent = new MouseEvent('mouseup', {});
-                    modalCanvas.dispatchEvent(mouseEvent);
-                });
+                    isModalDrawing = false;
+                }, { passive: false });
             }
             
             // 기존 서명을 모달 캔버스로 복사
