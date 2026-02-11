@@ -2536,9 +2536,10 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   
   if (status === 'completed' || status === 'cancelled') {
     endDate = today
-    await DB.prepare('UPDATE contracts SET status = ?, end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .bind(status, today, id).run()
-    console.log(`📅 Contract #${id} ${status} - end_date set to ${today}`)
+    const dateField = status === 'cancelled' ? 'cancelled_at' : 'completed_at'
+    await DB.prepare(`UPDATE contracts SET status = ?, end_date = ?, ${dateField} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(status, today, today, id).run()
+    console.log(`📅 Contract #${id} ${status} - end_date and ${dateField} set to ${today}`)
     
     // 이력 기록: 계약 해지/완료
     await recordContractHistory(
