@@ -1205,12 +1205,12 @@
                                                 <p><strong>계약기간:</strong> ${contract.start_date} ~ ${contract.end_date}</p>
                                                 <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
                                                 <p><strong>보증금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
-                                                <p><strong>작성일:</strong> ${new Date(contract.created_at).toLocaleDateString('ko-KR')}</p>
+                                                <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
                                                 ${contract.status === 'cancelled' && contract.cancelled_at ? `
-                                                    <p class="text-red-600"><strong>해지일:</strong> ${new Date(contract.cancelled_at).toLocaleDateString('ko-KR')}</p>
+                                                    <p class="text-red-600 font-bold"><strong>해지일:</strong> ${new Date(contract.cancelled_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ')}</p>
                                                 ` : ''}
                                                 ${contract.status === 'completed' && contract.completed_at ? `
-                                                    <p class="text-gray-600"><strong>완료일:</strong> ${new Date(contract.completed_at).toLocaleDateString('ko-KR')}</p>
+                                                    <p class="text-gray-600 font-bold"><strong>완료일:</strong> ${new Date(contract.completed_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ')}</p>
                                                 ` : ''}
                                             </div>
                                         </div>
