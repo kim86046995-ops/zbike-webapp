@@ -425,7 +425,7 @@
                 </div>
 
                 <!-- 일반 계약 폼 (리스/렌트) -->
-                <div id="normalContractForm" class="hidden space-y-6">
+                <div id="normalContractForm" class="space-y-6">
                 <!-- 3. 고객 정보 -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-bold mb-4">
@@ -1600,6 +1600,12 @@
         // 회사 설정 로드 (관리자 전화번호 가져오기)
         async function loadCompanySettings() {
             try {
+                // sessionId가 없으면 무시
+                if (!sessionId) {
+                    console.log('ℹ️ 비로그인 사용자 - 회사 설정 로드 건너뜀');
+                    return;
+                }
+                
                 const response = await axios.get('/api/company-settings', {
                     headers: { 'X-Session-ID': sessionId }
                 });
