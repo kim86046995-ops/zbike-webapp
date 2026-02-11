@@ -140,6 +140,59 @@
             }
         );
         
+        // 번호판 중복 체크
+        let duplicateCheckTimeout;
+        document.getElementById('plateNumber').addEventListener('input', async (e) => {
+            const plateNumber = e.target.value.trim();
+            const messageEl = document.getElementById('plateNumberMessage');
+            
+            // 입력이 비어있으면 메시지 숨김
+            if (!plateNumber) {
+                if (messageEl) messageEl.remove();
+                return;
+            }
+            
+            // 이전 타이머 취소
+            clearTimeout(duplicateCheckTimeout);
+            
+            // 500ms 후 중복 체크 실행 (타이핑 완료 대기)
+            duplicateCheckTimeout = setTimeout(async () => {
+                try {
+                    const response = await axios.get(`/api/motorcycles/check-duplicate?plate_number=${encodeURIComponent(plateNumber)}`);
+                    
+                    // 기존 메시지 제거
+                    const oldMessage = document.getElementById('plateNumberMessage');
+                    if (oldMessage) oldMessage.remove();
+                    
+                    if (response.data.exists) {
+                        // 중복 메시지 표시
+                        const message = document.createElement('div');
+                        message.id = 'plateNumberMessage';
+                        message.className = 'mt-2 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center';
+                        message.innerHTML = `
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span>⚠️ 이미 등록된 번호판입니다. (${response.data.motorcycle.vehicle_name || '이름 없음'})</span>
+                        `;
+                        e.target.parentElement.appendChild(message);
+                        e.target.classList.add('border-red-500');
+                    } else {
+                        // 사용 가능 메시지 표시
+                        const message = document.createElement('div');
+                        message.id = 'plateNumberMessage';
+                        message.className = 'mt-2 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center';
+                        message.innerHTML = `
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span>✅ 사용 가능한 번호판입니다.</span>
+                        `;
+                        e.target.parentElement.appendChild(message);
+                        e.target.classList.remove('border-red-500');
+                    }
+                } catch (error) {
+                    console.error('중복 체크 실패:', error);
+                }
+            }, 500);
+        });
+
         document.getElementById('motorcycleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -171,12 +224,22 @@
                 // 폼 초기화 (추가 등록을 위해)
                 document.getElementById('motorcycleForm').reset();
                 
+                // 중복 체크 메시지 제거
+                const messageEl = document.getElementById('plateNumberMessage');
+                if (messageEl) messageEl.remove();
+                
                 // 첫 번째 입력 필드에 포커스
                 document.getElementById('plateNumber').focus();
             } catch (error) {
                 console.error('등록 실패:', error);
                 console.error('에러 응답:', error.response?.data);
-                alert('❌ 저장에 실패했습니다.\n' + (error.response?.data?.error || error.message));
+                
+                // 중복 에러인 경우 특별 처리
+                if (error.response?.status === 409 || error.response?.data?.error?.includes('중복') || error.response?.data?.error?.includes('이미')) {
+                    alert('⚠️ 이미 등록된 번호판입니다.\n다른 번호판을 입력해주세요.');
+                } else {
+                    alert('❌ 저장에 실패했습니다.\n' + (error.response?.data?.error || error.message));
+                }
             }
         });
     </script>

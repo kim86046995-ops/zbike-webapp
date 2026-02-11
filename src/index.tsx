@@ -816,6 +816,41 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
 })
 
 // 공개 API: 고객 계약서 작성용 오토바이 목록 (인증 불필요)
+// 오토바이 번호판 중복 체크 (공개 API)
+app.get('/api/motorcycles/check-duplicate', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const plateNumber = c.req.query('plate_number')
+  
+  if (!plateNumber) {
+    return c.json({ error: 'Plate number is required' }, 400)
+  }
+  
+  try {
+    const motorcycle = await DB.prepare(`
+      SELECT id, plate_number, vehicle_name, status
+      FROM motorcycles
+      WHERE plate_number = ?
+    `).bind(plateNumber).first()
+    
+    if (motorcycle) {
+      return c.json({ 
+        exists: true, 
+        motorcycle: {
+          id: motorcycle.id,
+          plate_number: motorcycle.plate_number,
+          vehicle_name: motorcycle.vehicle_name,
+          status: motorcycle.status
+        }
+      })
+    } else {
+      return c.json({ exists: false })
+    }
+  } catch (error) {
+    console.error('Motorcycle duplicate check error:', error)
+    return c.json({ error: 'Failed to check duplicate', details: error.message }, 500)
+  }
+})
+
 app.get('/api/public/motorcycles', async (c) => {
   const DB = c.env.DB || c.env.db
   
@@ -1320,6 +1355,40 @@ app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
 // ============================================
 // 고객 API
 // ============================================
+
+// 고객 전화번호 중복 체크 (공개 API)
+app.get('/api/customers/check-duplicate', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const phone = c.req.query('phone')
+  
+  if (!phone) {
+    return c.json({ error: 'Phone number is required' }, 400)
+  }
+  
+  try {
+    const customer = await DB.prepare(`
+      SELECT id, name, phone
+      FROM customers
+      WHERE phone = ?
+    `).bind(phone).first()
+    
+    if (customer) {
+      return c.json({ 
+        exists: true, 
+        customer: {
+          id: customer.id,
+          name: customer.name,
+          phone: customer.phone
+        }
+      })
+    } else {
+      return c.json({ exists: false })
+    }
+  } catch (error) {
+    console.error('Customer duplicate check error:', error)
+    return c.json({ error: 'Failed to check duplicate', details: error.message }, 500)
+  }
+})
 
 // 고객 목록 조회
 // 고객 목록 조회 (인증 필요 - 민감한 개인정보)
