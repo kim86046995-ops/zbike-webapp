@@ -1563,6 +1563,8 @@
                     isBusinessModalDrawing = true;
                     businessModalCtx.beginPath();
                     businessModalCtx.moveTo(x, y);
+                    businessModalCtx.lineTo(x, y); // 점 찍기
+                    businessModalCtx.stroke();
                 }, { passive: false });
                 
                 businessModalCanvas.addEventListener('touchmove', (e) => {
@@ -1576,6 +1578,8 @@
                     const y = (touch.clientY - rect.top) * scaleY;
                     businessModalCtx.lineTo(x, y);
                     businessModalCtx.stroke();
+                    businessModalCtx.beginPath();
+                    businessModalCtx.moveTo(x, y);
                 }, { passive: false });
                 
                 businessModalCanvas.addEventListener('touchend', (e) => {

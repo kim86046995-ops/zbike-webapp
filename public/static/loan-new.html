@@ -745,6 +745,8 @@
                     borrowerModalIsDrawing = true;
                     borrowerModalCtx.beginPath();
                     borrowerModalCtx.moveTo(x, y);
+                    borrowerModalCtx.lineTo(x, y); // 점 찍기
+                    borrowerModalCtx.stroke();
                 }, { passive: false });
                 
                 borrowerModalCanvas.addEventListener('touchmove', (e) => {
@@ -758,6 +760,8 @@
                     const y = (touch.clientY - rect.top) * scaleY;
                     borrowerModalCtx.lineTo(x, y);
                     borrowerModalCtx.stroke();
+                    borrowerModalCtx.beginPath();
+                    borrowerModalCtx.moveTo(x, y);
                 }, { passive: false });
                 
                 borrowerModalCanvas.addEventListener('touchend', (e) => {
