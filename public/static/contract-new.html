@@ -734,13 +734,20 @@
                         아래 <strong class="text-blue-700">"📁 파일 업로드"</strong> 버튼을 눌러 신분증을 업로드하세요!
                     </p>
                     
-                    <!-- 업로드 버튼 -->
-                    <div class="mb-4">
-                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-md font-semibold text-base">
+                    <!-- 업로드 및 촬영 버튼 -->
+                    <div class="mb-4 grid grid-cols-2 gap-3">
+                        <!-- 파일 업로드 버튼 -->
+                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-md font-semibold text-base">
                             <i class="fas fa-upload mr-2"></i>
                             <span>📁 파일 업로드</span>
                         </button>
                         <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
+                        
+                        <!-- 카메라 촬영 버튼 -->
+                        <button type="button" onclick="startAdminIdCamera()" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition transform hover:scale-105 active:scale-95 shadow-md font-semibold text-base">
+                            <i class="fas fa-camera mr-2"></i>
+                            <span>📷 사진 촬영</span>
+                        </button>
                     </div>
                     
                     <!-- 미리보기 영역 - 신분증 비율 유지 (85:54) -->
@@ -2270,6 +2277,10 @@
             
             const context = canvas.getContext('2d');
             
+            // ✅ 고화질 렌더링 설정
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            
             // 신분증 틀 영역만 잘라서 캔버스에 그리기
             context.drawImage(
                 video,
@@ -2277,8 +2288,8 @@
                 0, 0, targetWidth, targetHeight        // 캔버스에 그릴 영역
             );
             
-            // JPEG 품질을 90%로 설정 (최고 화질)
-            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.90);
+            // ✅ JPEG 품질을 95%로 설정 (거의 무손실)
+            adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.95);
             
             // 촬영 완료 효과음
             try {
