@@ -2340,35 +2340,40 @@
             
             const reader = new FileReader();
             reader.onload = function(e) {
-                // 업로드된 이미지 크기 조정 (고화질 유지)
+                // ✅ 개선: 원본 비율 완벽 유지, 고화질 유지
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
                     
-                    // 고화질 유지 (최대 1280x720)
+                    // ✅ 원본 크기 유지 (리사이징 없음)
+                    // 단, 너무 크면 최대 2048px로 제한 (원본 비율 유지)
                     let width = img.width;
                     let height = img.height;
-                    const maxWidth = 1280;
-                    const maxHeight = 720;
+                    const maxSize = 2048;
                     
-                    if (width > maxWidth || height > maxHeight) {
-                        const ratio = Math.min(maxWidth / width, maxHeight / height);
-                        width = width * ratio;
-                        height = height * ratio;
+                    if (width > maxSize || height > maxSize) {
+                        const ratio = maxSize / Math.max(width, height);
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
                     }
                     
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
+                    
+                    // ✅ 고화질 렌더링 설정
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // JPEG 품질 85%
-                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.85);
+                    // ✅ JPEG 품질 95% (거의 무손실)
+                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.95);
                     document.getElementById('adminIdImage').src = adminIdPhotoData;
                     document.getElementById('adminIdPreview').classList.remove('hidden');
                     
                     // 성공 알림
-                    alert('✅ 신분증 이미지가 성공적으로 등록되었습니다!\n\n계약서 저장 시 자동으로 등록됩니다.');
+                    console.log(`✅ 신분증 업로드 성공: ${width}x${height}px, 품질 95%`);
+                    alert('✅ 신분증 이미지가 성공적으로 등록되었습니다!\n\n원본 비율이 완벽하게 유지됩니다.');
                     
                     // 미리보기로 스크롤
                     document.getElementById('adminIdPreview').scrollIntoView({ behavior: 'smooth', block: 'center' });
