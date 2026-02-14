@@ -2039,17 +2039,40 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
   const DB = c.env.DB || c.env.db
   const motorcycleId = c.req.param('id')
   
+  // 일반 계약과 업체 계약을 UNION으로 합쳐서 반환
   const result = await DB.prepare(`
     SELECT 
       c.*,
+      'personal' as contract_source,
       cu.name as customer_name, cu.resident_number, cu.phone as customer_phone,
       cu.address as customer_address, cu.postcode as customer_postcode,
-      cu.detail_address as customer_detail_address, cu.license_type
+      cu.detail_address as customer_detail_address, cu.license_type,
+      NULL as business_contract_type,
+      NULL as company_name
     FROM contracts c
     JOIN customers cu ON c.customer_id = cu.id
     WHERE c.motorcycle_id = ?
-    ORDER BY c.created_at DESC
-  `).bind(motorcycleId).all()
+    
+    UNION ALL
+    
+    SELECT 
+      bc.id, bc.contract_number, bc.contract_type, bc.motorcycle_id,
+      NULL as customer_id, bc.start_date, bc.end_date,
+      bc.monthly_fee, NULL as contract_type_text, bc.deposit,
+      NULL as special_terms, NULL as contract_pdf_url, NULL as id_card_image_url,
+      NULL as contract_end_image_url, bc.status, bc.created_at, bc.updated_at,
+      bc.completed_at, bc.cancelled_at,
+      'business' as contract_source,
+      comp.company_name as customer_name, comp.business_number as resident_number,
+      comp.contact_phone as customer_phone, comp.business_address as customer_address,
+      NULL as customer_postcode, NULL as customer_detail_address, NULL as license_type,
+      bc.business_contract_type, comp.company_name
+    FROM business_contracts bc
+    JOIN companies comp ON bc.company_id = comp.id
+    WHERE bc.motorcycle_id = ?
+    
+    ORDER BY created_at DESC
+  `).bind(motorcycleId, motorcycleId).all()
   
   return c.json(result.results)
 })

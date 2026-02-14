@@ -1023,13 +1023,24 @@
                     
                     if (statusBadge && statusIcon && statusLabel) {
                         if (activeContract) {
-                            // 계약자가 있으면 '사용중' (임시렌트면 추가 표시)
+                            // 계약자가 있으면 '사용중' (계약 타입별로 표시)
                             statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
                             statusIcon.className = 'fas fa-motorcycle mr-1';
                             
-                            // 임시렌트 여부 체크
+                            // 계약 타입별 표시
                             if (activeContract.contract_type === 'temp_rent') {
                                 statusLabel.textContent = '사용중 (임시렌트)';
+                            } else if (activeContract.contract_source === 'business') {
+                                // 업체 계약인 경우
+                                if (activeContract.business_contract_type === 'lease') {
+                                    statusLabel.textContent = '사용중 (업체리스)';
+                                } else {
+                                    statusLabel.textContent = '사용중 (업체렌트)';
+                                }
+                            } else if (activeContract.contract_type === 'lease') {
+                                statusLabel.textContent = '사용중 (리스)';
+                            } else if (activeContract.contract_type === 'rent') {
+                                statusLabel.textContent = '사용중 (렌트)';
                             } else {
                                 statusLabel.textContent = '사용중';
                             }
