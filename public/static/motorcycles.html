@@ -1023,29 +1023,37 @@
                     
                     if (statusBadge && statusIcon && statusLabel) {
                         if (activeContract) {
-                            // 계약자가 있으면 '사용중' (계약 타입별로 표시)
-                            statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
                             statusIcon.className = 'fas fa-motorcycle mr-1';
                             
-                            // 계약 타입별 표시
+                            // 계약 타입별 표시 및 색상 구분
                             if (activeContract.contract_type === 'temp_rent') {
+                                // 임시렌트 - 오렌지색
+                                statusBadge.className = 'info-badge bg-orange-100 text-orange-800 text-xs';
                                 statusLabel.textContent = '사용중 (임시렌트)';
                             } else if (activeContract.contract_source === 'business') {
-                                // 업체 계약인 경우
+                                // 업체 계약 - 리스는 파란색, 렌트는 노란색
                                 if (activeContract.business_contract_type === 'lease') {
+                                    statusBadge.className = 'info-badge bg-blue-100 text-blue-800 text-xs';
                                     statusLabel.textContent = '사용중 (업체리스)';
                                 } else {
+                                    statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
                                     statusLabel.textContent = '사용중 (업체렌트)';
                                 }
                             } else if (activeContract.contract_type === 'lease') {
+                                // 일반 리스 - 파란색
+                                statusBadge.className = 'info-badge bg-blue-100 text-blue-800 text-xs';
                                 statusLabel.textContent = '사용중 (리스)';
                             } else if (activeContract.contract_type === 'rent') {
+                                // 일반 렌트 - 노란색
+                                statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
                                 statusLabel.textContent = '사용중 (렌트)';
                             } else {
+                                // 기타 - 노란색
+                                statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
                                 statusLabel.textContent = '사용중';
                             }
                         } else {
-                            // 계약자가 없으면 '휴차중'
+                            // 계약자가 없으면 '휴차중' - 초록색
                             statusBadge.className = 'info-badge bg-green-100 text-green-800 text-xs';
                             statusIcon.className = 'fas fa-check-circle mr-1';
                             statusLabel.textContent = '휴차중';
