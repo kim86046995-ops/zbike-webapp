@@ -1140,6 +1140,56 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       id
     ).run()
     
+    // ✅ 보험정보가 변경된 경우, 진행중인 계약서의 보험정보도 자동 업데이트
+    const insuranceChanged = 
+      existing.insurance_company !== mergedData.insurance_company ||
+      existing.insurance_start_date !== mergedData.insurance_start_date ||
+      existing.insurance_end_date !== mergedData.insurance_end_date ||
+      existing.driving_range !== mergedData.driving_range
+    
+    if (insuranceChanged) {
+      // 진행중인 일반 계약서 업데이트
+      const activeContractsResult = await DB.prepare(`
+        UPDATE contracts 
+        SET 
+          insurance_company = ?,
+          insurance_start_date = ?,
+          insurance_end_date = ?,
+          insurance_age_limit = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(
+        mergedData.insurance_company,
+        mergedData.insurance_start_date,
+        mergedData.insurance_end_date,
+        mergedData.driving_range,
+        id
+      ).run()
+      
+      // 진행중인 업체 계약서 업데이트
+      const activeBusinessContractsResult = await DB.prepare(`
+        UPDATE business_contracts 
+        SET 
+          insurance_start_date = ?,
+          insurance_end_date = ?,
+          driving_range = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(
+        mergedData.insurance_start_date,
+        mergedData.insurance_end_date,
+        mergedData.driving_range,
+        id
+      ).run()
+      
+      const updatedContracts = activeContractsResult.meta.changes || 0
+      const updatedBusinessContracts = activeBusinessContractsResult.meta.changes || 0
+      
+      if (updatedContracts > 0 || updatedBusinessContracts > 0) {
+        console.log(`✅ 보험정보 변경으로 인한 계약서 자동 업데이트: 일반 ${updatedContracts}건, 업체 ${updatedBusinessContracts}건`)
+      }
+    }
+    
     return c.json({ success: true, id, ...mergedData })
   } catch (error) {
     console.error('오토바이 수정 오류:', error)
