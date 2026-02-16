@@ -1192,8 +1192,18 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
     
     return c.json({ success: true, id, ...mergedData })
   } catch (error) {
-    console.error('오토바이 수정 오류:', error)
-    return c.json({ error: '수정 중 오류가 발생했습니다: ' + error.message }, 500)
+    console.error('❌ 오토바이 수정 오류:', error)
+    console.error('❌ 오류 상세:', {
+      message: error.message,
+      stack: error.stack,
+      motorcycleId: id,
+      data: data
+    })
+    return c.json({ 
+      error: '수정 중 오류가 발생했습니다', 
+      details: error.message,
+      motorcycleId: id
+    }, 500)
   }
 })
 
