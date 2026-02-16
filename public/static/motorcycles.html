@@ -1799,7 +1799,11 @@
                     driving_range: document.getElementById('drivingRange').value
                 };
                 
-                await axios.put(`/api/motorcycles/${id}`, data);
+                await axios.put(`/api/motorcycles/${id}`, data, {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
                 console.log('✅ 보험 정보 업데이트 완료');
                 
                 // 4. 결과 메시지
