@@ -384,30 +384,25 @@
                 console.log('✅ 응답 상태:', response.status);
                 console.log('✅ 응답 데이터:', response.data);
                 
-                // 세션이 있으면 관리자 - 고객목록으로 이동
-                // 세션이 없으면 고객 - 폼 초기화 후 계약자 목록으로 이동
-                const sessionId = localStorage.getItem('sessionId');
-                if (sessionId) {
-                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n계약자 목록으로 이동합니다.');
-                    window.location.href = '/static/customers.html';
-                } else {
-                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n💡 계속해서 추가 등록이 가능합니다.');
-                    
-                    // 폼 초기화 (올바른 ID 사용)
-                    document.getElementById('customerName').value = '';
-                    document.getElementById('customerResidentNumber').value = '';
-                    document.getElementById('customerPhone').value = '';
-                    document.getElementById('customerPostcode').value = '';
-                    document.getElementById('customerAddress').value = '';
-                    document.getElementById('customerDetailAddress').value = '';
-                    
-                    // 중복 체크 메시지 제거
-                    const messageEl = document.getElementById('phoneMessage');
-                    if (messageEl) messageEl.remove();
-                    
-                    // 첫 번째 입력란으로 포커스
-                    document.getElementById('customerName').focus();
-                }
+                // 저장 성공 후 폼 초기화 (관리자/고객 모두 동일)
+                alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n💡 계속해서 추가 등록이 가능합니다.');
+                
+                // 폼 초기화 (올바른 ID 사용)
+                document.getElementById('customerName').value = '';
+                document.getElementById('customerResidentNumber').value = '';
+                document.getElementById('customerPhone').value = '';
+                document.getElementById('customerPostcode').value = '';
+                document.getElementById('customerAddress').value = '';
+                document.getElementById('customerDetailAddress').value = '';
+                
+                // 중복 체크 메시지 제거
+                const residentMessageEl = document.getElementById('residentMessage');
+                if (residentMessageEl) residentMessageEl.remove();
+                const phoneMessageEl = document.getElementById('phoneMessage');
+                if (phoneMessageEl) phoneMessageEl.remove();
+                
+                // 첫 번째 입력란으로 포커스
+                document.getElementById('customerName').focus();
             } catch (error) {
                 console.error('❌ 고객 등록 실패:', error);
                 console.error('❌ 에러 응답:', error.response);
