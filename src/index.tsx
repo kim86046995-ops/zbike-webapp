@@ -1684,24 +1684,25 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     // D1 batch API를 사용하여 한 트랜잭션으로 실행
     console.log('🔄 Batch 삭제 시작...')
     
-    const batchQueries: any[] = [
-      // 1. 외래 키 제약 조건 비활성화
-      DB.prepare('PRAGMA foreign_keys = OFF'),
-      
-      // 2. UPDATE 트리거 임시 삭제
-      DB.prepare('DROP TRIGGER IF EXISTS prevent_history_update'),
-      
-      // 3. DELETE 트리거 임시 삭제  
-      DB.prepare('DROP TRIGGER IF EXISTS prevent_history_delete')
-    ]
+    const batchQueries: any[] = []
     
-    // 4. contract_history 삭제 (해당 계약서 관련 이력 삭제)
+    // 1. 외래 키 제약 조건 비활성화
+    batchQueries.push(DB.prepare('PRAGMA foreign_keys = OFF'))
+    
+    // 2. UPDATE 트리거 임시 삭제
+    batchQueries.push(DB.prepare('DROP TRIGGER IF EXISTS prevent_history_update'))
+    
+    // 3. DELETE 트리거 임시 삭제  
+    batchQueries.push(DB.prepare('DROP TRIGGER IF EXISTS prevent_history_delete'))
+    
+    // 4. contract_history 삭제 (각 계약서 ID마다 개별 쿼리)
     if (contractIds.length > 0) {
-      const contractIdsStr = contractIds.join(',')
-      batchQueries.push(
-        DB.prepare(`DELETE FROM contract_history WHERE contract_id IN (${contractIdsStr})`)
-      )
-      console.log('📝 계약 이력을 삭제합니다')
+      console.log('📝 계약 이력을 삭제합니다:', contractIds)
+      for (const contractId of contractIds) {
+        batchQueries.push(
+          DB.prepare('DELETE FROM contract_history WHERE contract_id = ?').bind(contractId)
+        )
+      }
     }
     
     // 5. 차용 계약서 삭제 (주민번호로 연결)
@@ -1742,28 +1743,38 @@ END`)
       DB.prepare('PRAGMA foreign_keys = ON')
     )
     
+    console.log('📦 총 쿼리 수:', batchQueries.length)
     const results = await DB.batch(batchQueries)
-    
-    const historyDeleteIndex = contractIds.length > 0 ? 3 : -1
-    const loanDeleteIndex = historyDeleteIndex !== -1 ? historyDeleteIndex + 1 : 3
-    const contractsDeleteIndex = loanDeleteIndex + 1
-    const customerDeleteIndex = contractsDeleteIndex + 1
-    
     console.log('✅ Batch 삭제 완료')
+    
+    // 삭제된 레코드 수 계산
+    let historyDeleted = 0
+    if (contractIds.length > 0) {
+      // 트리거 삭제 3개 + contract_history 삭제 N개
+      for (let i = 3; i < 3 + contractIds.length; i++) {
+        historyDeleted += results[i]?.meta?.changes || 0
+      }
+    }
+    
+    const baseIndex = 3 + contractIds.length
+    const loanDeleteResult = results[baseIndex]?.meta?.changes || 0
+    const contractsDeleteResult = results[baseIndex + 1]?.meta?.changes || 0
+    const customerDeleteResult = results[baseIndex + 2]?.meta?.changes || 0
+    
     console.log('📊 삭제 결과:', {
-      history_deleted: historyDeleteIndex > 0 ? (results[historyDeleteIndex]?.meta?.changes || 0) : 0,
-      loan_contracts: results[loanDeleteIndex]?.meta?.changes || 0,
-      contracts: results[contractsDeleteIndex]?.meta?.changes || 0,
-      customer: results[customerDeleteIndex]?.meta?.changes || 0
+      history_deleted: historyDeleted,
+      loan_contracts: loanDeleteResult,
+      contracts: contractsDeleteResult,
+      customer: customerDeleteResult
     })
     
     return c.json({ 
       message: '계약자가 삭제되었습니다.',
       deleted: {
-        contracts: results[contractsDeleteIndex]?.meta?.changes || 0,
-        loan_contracts: results[loanDeleteIndex]?.meta?.changes || 0,
-        contract_history: historyDeleteIndex > 0 ? (results[historyDeleteIndex]?.meta?.changes || 0) : 0,
-        customer: results[customerDeleteIndex]?.meta?.changes || 0
+        contracts: contractsDeleteResult,
+        loan_contracts: loanDeleteResult,
+        contract_history: historyDeleted,
+        customer: customerDeleteResult
       }
     })
   } catch (error) {
