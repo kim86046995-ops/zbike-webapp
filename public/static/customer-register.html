@@ -384,25 +384,36 @@
                 console.log('✅ 응답 상태:', response.status);
                 console.log('✅ 응답 데이터:', response.data);
                 
-                // 저장 성공 후 폼 초기화 (관리자/고객 모두 동일)
-                alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n💡 계속해서 추가 등록이 가능합니다.');
+                // 로그인 여부에 따라 다른 동작
+                const sessionId = localStorage.getItem('sessionId');
                 
-                // 폼 초기화 (올바른 ID 사용)
-                document.getElementById('customerName').value = '';
-                document.getElementById('customerResidentNumber').value = '';
-                document.getElementById('customerPhone').value = '';
-                document.getElementById('customerPostcode').value = '';
-                document.getElementById('customerAddress').value = '';
-                document.getElementById('customerDetailAddress').value = '';
-                
-                // 중복 체크 메시지 제거
-                const residentMessageEl = document.getElementById('residentMessage');
-                if (residentMessageEl) residentMessageEl.remove();
-                const phoneMessageEl = document.getElementById('phoneMessage');
-                if (phoneMessageEl) phoneMessageEl.remove();
-                
-                // 첫 번째 입력란으로 포커스
-                document.getElementById('customerName').focus();
+                if (sessionId) {
+                    // 관리자(로그인 상태): 폼 초기화 후 계속 입력 가능
+                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n💡 계속해서 추가 등록이 가능합니다.');
+                    
+                    // 폼 초기화 (올바른 ID 사용)
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerResidentNumber').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    document.getElementById('customerPostcode').value = '';
+                    document.getElementById('customerAddress').value = '';
+                    document.getElementById('customerDetailAddress').value = '';
+                    
+                    // 중복 체크 메시지 제거
+                    const residentMessageEl = document.getElementById('residentMessage');
+                    if (residentMessageEl) residentMessageEl.remove();
+                    const phoneMessageEl = document.getElementById('phoneMessage');
+                    if (phoneMessageEl) phoneMessageEl.remove();
+                    
+                    // 첫 번째 입력란으로 포커스
+                    document.getElementById('customerName').focus();
+                } else {
+                    // 고객(비로그인 상태): 저장 후 뒤로가기하여 계약 등록 화면으로 복귀
+                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n계약 등록 화면으로 돌아갑니다.');
+                    
+                    // 뒤로가기 (고객계약 등록 화면으로 복귀)
+                    window.history.back();
+                }
             } catch (error) {
                 console.error('❌ 고객 등록 실패:', error);
                 console.error('❌ 에러 응답:', error.response);
