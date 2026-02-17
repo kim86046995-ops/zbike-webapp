@@ -967,8 +967,8 @@
             const photoCtx = photoCanvas.getContext('2d');
             photoCtx.drawImage(video, 0, 0, width, height);
             
-            // 품질을 0.4로 더 낮춤
-            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.4);
+            // 품질을 0.7로 설정 (원본 품질 유지)
+            loanIdCardPhotoData = photoCanvas.toDataURL('image/jpeg', 0.7);
             capturedPhoto.src = loanIdCardPhotoData;
             
             stopLoanCamera();
@@ -1007,8 +1007,8 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 품질을 0.4로 더 낮춤
-                    loanIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.4);
+                    // 품질을 0.7로 설정 (원본 품질 유지)
+                    loanIdCardPhotoData = canvas.toDataURL('image/jpeg', 0.7);
                     document.getElementById('loanCapturedPhoto').src = loanIdCardPhotoData;
                     document.getElementById('loanPhotoPreview').classList.remove('hidden');
                 };
