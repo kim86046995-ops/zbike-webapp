@@ -242,6 +242,52 @@
             max-height: 85vh;
             overflow-y: auto;
         }
+        
+        /* 이미지 확대 모달 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .image-modal img {
+            max-width: 95%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+        .image-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 3rem;
+            height: 3rem;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #374151;
+            transition: all 0.3s;
+            z-index: 10001;
+        }
+        .image-modal-close:hover {
+            background: white;
+            transform: scale(1.1);
+        }
     </style>
     
     
@@ -1115,9 +1161,12 @@
                             ${c.id_card_photo ? `
                                 <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
                                     <h4 class="font-bold mb-3 text-center text-lg">신분증 사본</h4>
-                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;">
-                                        <img src="${c.id_card_photo}" alt="신분증" style="width: 100%; height: 100%; object-fit: contain;">
+                                    <div class="border rounded bg-white mx-auto cursor-pointer hover:opacity-90 transition-opacity" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;" onclick="openImageModal('${c.id_card_photo}')" title="클릭하여 확대">
+                                        <img src="${c.id_card_photo}" alt="신분증" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;">
                                     </div>
+                                    <p class="text-center text-sm text-blue-600 mt-2 cursor-pointer hover:text-blue-800" onclick="openImageModal('${c.id_card_photo}')">
+                                        <i class="fas fa-search-plus mr-1"></i>확대 보기
+                                    </p>
                                 </div>
                             ` : ''}
                         </div>
@@ -1926,7 +1975,7 @@
                         <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
                             <h3 class="font-bold text-lg mb-4">신분증 사진</h3>
                             <div class="flex justify-center">
-                                <img src="${c.admin_id_card_photo}" alt="신분증" class="border border-gray-300 rounded max-w-md cursor-pointer hover:scale-110 transition-transform" onclick="window.open(this.src)">
+                                <img src="${c.admin_id_card_photo}" alt="신분증" class="border border-gray-300 rounded max-w-md cursor-pointer hover:opacity-80 transition-opacity" onclick="openImageModal('${c.admin_id_card_photo}')" title="클릭하여 확대">
                             </div>
                         </div>
                     ` : ''}
@@ -1938,6 +1987,56 @@
             const pdfContentElement = document.getElementById('pdfContent');
             if (pdfContentElement) {
                 pdfContentElement.innerHTML = html;
+            }
+        }
+
+        // 이미지 확대 모달 관련 함수
+        let imageModal = null;
+
+        function openImageModal(src) {
+            if (!src) return;
+            
+            // 모달이 없으면 생성
+            if (!imageModal) {
+                imageModal = document.createElement('div');
+                imageModal.className = 'image-modal';
+                imageModal.innerHTML = `
+                    <div class="image-modal-close" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                    <img id="modalImage" src="" alt="신분증 확대">
+                    <p class="text-white text-sm mt-4">
+                        <i class="fas fa-search-plus mr-2"></i>
+                        핀치 줌으로 확대/축소 가능
+                    </p>
+                `;
+                document.body.appendChild(imageModal);
+                
+                // 배경 클릭시 닫기
+                imageModal.addEventListener('click', (e) => {
+                    if (e.target === imageModal) {
+                        closeImageModal();
+                    }
+                });
+                
+                // ESC 키로 닫기
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && imageModal && imageModal.classList.contains('active')) {
+                        closeImageModal();
+                    }
+                });
+            }
+            
+            // 이미지 src 설정 및 모달 표시
+            document.getElementById('modalImage').src = src;
+            imageModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            if (imageModal) {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = '';
             }
         }
 
