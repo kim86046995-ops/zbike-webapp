@@ -52,6 +52,51 @@
             touch-action: none;
         }
         
+        /* 이미지 확대 모달 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .image-modal img {
+            max-width: 95%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+        .image-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 3rem;
+            height: 3rem;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #374151;
+            transition: all 0.3s;
+        }
+        .image-modal-close:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+        
         /* A4 출력 스타일 */
         @media print {
             body {
@@ -418,10 +463,15 @@
                     </div>
 
                     <div id="loanPhotoPreview" class="hidden mb-4">
-                        <img id="loanCapturedPhoto" class="w-full border rounded-lg">
-                        <button type="button" onclick="clearLoanPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-800">
-                            <i class="fas fa-trash mr-1"></i>사진 삭제
-                        </button>
+                        <img id="loanCapturedPhoto" class="w-full border rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal(this.src)" title="클릭하여 확대">
+                        <div class="mt-2 flex gap-2">
+                            <button type="button" onclick="openImageModal(document.getElementById('loanCapturedPhoto').src)" class="text-sm text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-search-plus mr-1"></i>확대 보기
+                            </button>
+                            <button type="button" onclick="clearLoanPhoto()" class="text-sm text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash mr-1"></i>사진 삭제
+                            </button>
+                        </div>
                     </div>
 
                     <div>
@@ -828,6 +878,50 @@
                 borrowerCtx.drawImage(modalCanvas, 0, 0, borrowerCanvas.width, borrowerCanvas.height);
             }
             closeSignatureModal();
+        }
+
+        // 이미지 확대 모달 관련 함수
+        let imageModal = null;
+        
+        function openImageModal(imageSrc) {
+            if (!imageSrc) return;
+            
+            // 모달이 없으면 생성
+            if (!imageModal) {
+                imageModal = document.createElement('div');
+                imageModal.className = 'image-modal';
+                imageModal.innerHTML = `
+                    <div class="image-modal-close" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                    <img id="modalImage" src="" alt="신분증 확대">
+                    <p class="text-white text-sm mt-4">
+                        <i class="fas fa-hand-pointer mr-2"></i>핀치 줌으로 확대/축소 가능
+                    </p>
+                `;
+                document.body.appendChild(imageModal);
+                
+                // 배경 클릭 시 닫기
+                imageModal.addEventListener('click', (e) => {
+                    if (e.target === imageModal) {
+                        closeImageModal();
+                    }
+                });
+            }
+            
+            // 이미지 설정 및 모달 열기
+            document.getElementById('modalImage').src = imageSrc;
+            imageModal.classList.add('active');
+            
+            // body 스크롤 방지
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeImageModal() {
+            if (imageModal) {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         }
 
         // 신분증 촬영 관련 함수
