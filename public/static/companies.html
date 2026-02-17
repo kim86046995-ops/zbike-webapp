@@ -393,14 +393,14 @@
             </div>
             
             <!-- 카메라 영역 -->
-            <div class="flex-1 relative flex items-center justify-center bg-black">
+            <div class="flex-1 relative bg-black overflow-hidden">
                 <video id="cameraVideo" autoplay playsinline 
                     class="w-full h-full object-cover"
                     style="filter: brightness(1.2) contrast(1.1);"></video>
                 
                 <!-- 신분증 가이드 틀 -->
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div class="relative" style="width: 85%; max-width: 500px; aspect-ratio: 85.6/53.98;">
+                <div class="absolute inset-0 flex justify-center pointer-events-none" style="padding-top: 15vh;">
+                    <div class="relative" style="width: 85%; max-width: 480px; aspect-ratio: 85.6/53.98;">
                         <!-- 반투명 오버레이 (틀 밖) -->
                         <div class="absolute inset-0" style="
                             box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
@@ -423,7 +423,7 @@
                 </div>
                 
                 <!-- 하단 안내 텍스트 -->
-                <div class="absolute bottom-20 left-0 right-0 text-center">
+                <div class="absolute bottom-24 left-0 right-0 text-center">
                     <p class="text-white text-sm bg-black bg-opacity-50 inline-block px-4 py-2 rounded-full">
                         신분증을 이 틀 안에 맞춰주세요
                     </p>
