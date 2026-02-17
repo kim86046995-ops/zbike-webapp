@@ -19,6 +19,15 @@
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     
     <style>
+        /* 서명 캔버스 터치 동작 제어 */
+        #borrowerSignatureCanvas {
+            touch-action: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
         /* A4 출력 스타일 */
         @media print {
             body {
@@ -573,10 +582,8 @@
         // 사업자 정보 로드
         async function loadCompanySettings() {
             try {
-                const sessionId = localStorage.getItem('sessionId');
-                const response = await axios.get('/api/company-settings', {
-                    headers: { 'X-Session-ID': sessionId }
-                });
+                // 공개 API 사용 (로그인 불필요)
+                const response = await axios.get('/api/company-settings/public');
                 const company = response.data;
                 
                 // 약관 임대인 정보에 자동 입력

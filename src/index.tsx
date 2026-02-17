@@ -2967,7 +2967,26 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
 // ============================================
 
 // 사업자 정보 조회
-// 회사 설정 조회 (인증 필요)
+// 회사 설정 조회 (공개 - 고객용 계약서에서 사용)
+app.get('/api/company-settings/public', async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  const result = await DB.prepare('SELECT company_name, business_number, representative_name, address, phone FROM company_settings ORDER BY id DESC LIMIT 1').first()
+  
+  if (!result) {
+    return c.json({ 
+      company_name: '배달대행 회사', 
+      business_number: '000-00-00000', 
+      representative_name: '대표자명',
+      address: '',
+      phone: ''
+    })
+  }
+  
+  return c.json(result)
+})
+
+// 회사 설정 조회 (인증 필요 - 관리자용)
 app.get('/api/company-settings', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   
