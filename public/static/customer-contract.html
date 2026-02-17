@@ -2649,21 +2649,33 @@
             
             const reader = new FileReader();
             reader.onload = function(e) {
-                // 업로드된 이미지 크기 축소
+                // 업로드된 이미지를 원본 비율 유지하며 크기 축소
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 320;
-                    canvas.height = 240;
+                    
+                    // 최대 너비 설정 (원본 비율 유지)
+                    const maxWidth = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // 너비가 maxWidth보다 크면 비율 유지하며 축소
+                    if (width > maxWidth) {
+                        height = Math.floor(height * (maxWidth / width));
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, 320, 240);
-                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    adminIdPhotoData = canvas.toDataURL('image/jpeg', 0.7);
                     document.getElementById('adminIdImage').src = adminIdPhotoData;
                     document.getElementById('adminIdPreview').classList.remove('hidden');
                 };
                 img.src = e.target.result;
-                document.getElementById('adminIdImage').src = adminIdPhotoData;
-                document.getElementById('adminIdPreview').classList.remove('hidden');
             };
             reader.readAsDataURL(file);
         }
