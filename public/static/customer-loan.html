@@ -19,6 +19,39 @@
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     
     <style>
+        /* 서명 확대 모달 */
+        .signature-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        .signature-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .signature-modal-content {
+            width: 95%;
+            max-width: 800px;
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem;
+        }
+        .signature-modal canvas {
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 800px;
+            max-height: 800px;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            touch-action: none;
+        }
+        
         /* A4 출력 스타일 */
         @media print {
             body {
@@ -352,13 +385,18 @@
                         <i class="fas fa-signature mr-2 text-orange-600"></i>
                         4. 차용인 서명
                     </h2>
-                    <p class="text-sm text-gray-600 mb-4">차용인의 서명을 받아주세요</p>
-                    <div id="signatureContainer" class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                        <canvas id="borrowerSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                    <p class="text-sm text-gray-600 mb-4">서명 영역을 클릭하여 확대 서명하세요</p>
+                    <div id="signatureContainer" class="border-2 border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-orange-500 transition-colors" onclick="openSignatureModal()">
+                        <canvas id="borrowerSignatureCanvas" width="800" height="200" class="w-full bg-white pointer-events-none"></canvas>
                     </div>
-                    <button type="button" onclick="clearBorrowerSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-eraser mr-1"></i>서명 지우기
-                    </button>
+                    <div class="mt-2 flex gap-2">
+                        <button type="button" onclick="openSignatureModal()" class="text-sm text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-expand mr-1"></i>확대하여 서명
+                        </button>
+                        <button type="button" onclick="clearBorrowerSignature()" class="text-sm text-red-600 hover:text-red-800">
+                            <i class="fas fa-eraser mr-1"></i>서명 지우기
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 5. 임차인 신분증 촬영 -->
@@ -624,11 +662,11 @@
 
 
         function initSignaturePads() {
-            // 임차인 서명
+            // 임차인 서명 캔버스 초기화
             borrowerCanvas = document.getElementById('borrowerSignatureCanvas');
             borrowerCtx = borrowerCanvas.getContext('2d');
             
-            // 캔버스 배경을 흰색으로 채우기 (중요!)
+            // 캔버스 배경을 흰색으로 채우기
             borrowerCtx.fillStyle = '#FFFFFF';
             borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
             
@@ -636,69 +674,6 @@
             borrowerCtx.lineWidth = 2;
             borrowerCtx.lineCap = 'round';
             borrowerCtx.lineJoin = 'round';
-
-            // 마우스 이벤트 (데스크톱)
-            borrowerCanvas.addEventListener('mousedown', (e) => startDrawing(e));
-            borrowerCanvas.addEventListener('mousemove', (e) => draw(e));
-            borrowerCanvas.addEventListener('mouseup', () => stopDrawing());
-            borrowerCanvas.addEventListener('mouseout', () => stopDrawing());
-            
-            // 터치 이벤트 (모바일) - 서명 중에만 확대 방지
-            borrowerCanvas.addEventListener('touchstart', (e) => {
-                // 한 손가락 터치만 허용 (서명)
-                if (e.touches.length === 1) {
-                    e.preventDefault(); // 서명 중 스크롤 방지
-                    startDrawing(e.touches[0]);
-                }
-                // 두 손가락 이상은 preventDefault 안 함 (확대 허용)
-            }, { passive: false });
-            
-            borrowerCanvas.addEventListener('touchmove', (e) => {
-                // 서명 중이고 한 손가락일 때만 그리기
-                if (borrowerIsDrawing && e.touches.length === 1) {
-                    e.preventDefault(); // 서명 중 확대 방지
-                    draw(e.touches[0]);
-                }
-                // 서명 중이 아니거나 두 손가락 이상이면 확대 허용
-            }, { passive: false });
-            
-            borrowerCanvas.addEventListener('touchend', (e) => {
-                if (borrowerIsDrawing) {
-                    stopDrawing();
-                }
-            }, { passive: false });
-        }
-
-        function startDrawing(e) {
-            borrowerIsDrawing = true;
-            
-            const rect = borrowerCanvas.getBoundingClientRect();
-            const scaleX = borrowerCanvas.width / rect.width;
-            const scaleY = borrowerCanvas.height / rect.height;
-            
-            borrowerCtx.beginPath();
-            borrowerCtx.moveTo(
-                (e.clientX - rect.left) * scaleX, 
-                (e.clientY - rect.top) * scaleY
-            );
-        }
-
-        function draw(e) {
-            if (!borrowerIsDrawing) return;
-            
-            const rect = borrowerCanvas.getBoundingClientRect();
-            const scaleX = borrowerCanvas.width / rect.width;
-            const scaleY = borrowerCanvas.height / rect.height;
-            
-            borrowerCtx.lineTo(
-                (e.clientX - rect.left) * scaleX, 
-                (e.clientY - rect.top) * scaleY
-            );
-            borrowerCtx.stroke();
-        }
-
-        function stopDrawing() {
-            borrowerIsDrawing = false;
         }
 
         function clearBorrowerSignature() {
@@ -706,6 +681,153 @@
             borrowerCtx.clearRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
             borrowerCtx.fillStyle = '#FFFFFF';
             borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+        }
+
+        // 서명 확대 모달 관련 함수
+        let signatureModal = null;
+        let modalCanvas = null;
+        let modalCtx = null;
+        let isModalDrawing = false;
+        
+        function openSignatureModal() {
+            // 모달이 없으면 생성
+            if (!signatureModal) {
+                signatureModal = document.createElement('div');
+                signatureModal.className = 'signature-modal';
+                signatureModal.innerHTML = `
+                    <div class="signature-modal-content">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">서명하기</h3>
+                            <button onclick="closeSignatureModal()" class="text-3xl text-gray-600 hover:text-gray-800 w-10 h-10 flex items-center justify-center">&times;</button>
+                        </div>
+                        <canvas id="modalSignatureCanvas" width="800" height="800" style="touch-action: none;"></canvas>
+                        <div class="flex justify-between mt-4 gap-2">
+                            <button onclick="clearModalSignature()" class="px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-bold">
+                                <i class="fas fa-eraser mr-1"></i>지우기
+                            </button>
+                            <button onclick="applyModalSignature()" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold flex-1">
+                                <i class="fas fa-check mr-1"></i>적용하기
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(signatureModal);
+                
+                // 모달 캔버스 초기화
+                modalCanvas = document.getElementById('modalSignatureCanvas');
+                modalCtx = modalCanvas.getContext('2d');
+                
+                // 배경 흰색
+                modalCtx.fillStyle = '#FFFFFF';
+                modalCtx.fillRect(0, 0, modalCanvas.width, modalCanvas.height);
+                
+                modalCtx.strokeStyle = '#000';
+                modalCtx.lineWidth = 3;
+                modalCtx.lineCap = 'round';
+                modalCtx.lineJoin = 'round';
+                
+                // 마우스 이벤트
+                modalCanvas.addEventListener('mousedown', startModalDrawing);
+                modalCanvas.addEventListener('mousemove', drawModal);
+                modalCanvas.addEventListener('mouseup', stopModalDrawing);
+                modalCanvas.addEventListener('mouseout', stopModalDrawing);
+                
+                // 터치 이벤트
+                modalCanvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = modalCanvas.getBoundingClientRect();
+                    const scaleX = modalCanvas.width / rect.width;
+                    const scaleY = modalCanvas.height / rect.height;
+                    const x = (touch.clientX - rect.left) * scaleX;
+                    const y = (touch.clientY - rect.top) * scaleY;
+                    isModalDrawing = true;
+                    modalCtx.beginPath();
+                    modalCtx.moveTo(x, y);
+                    modalCtx.lineTo(x, y);
+                    modalCtx.stroke();
+                }, { passive: false });
+                
+                modalCanvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!isModalDrawing) return;
+                    const touch = e.touches[0];
+                    const rect = modalCanvas.getBoundingClientRect();
+                    const scaleX = modalCanvas.width / rect.width;
+                    const scaleY = modalCanvas.height / rect.height;
+                    const x = (touch.clientX - rect.left) * scaleX;
+                    const y = (touch.clientY - rect.top) * scaleY;
+                    modalCtx.lineTo(x, y);
+                    modalCtx.stroke();
+                    modalCtx.beginPath();
+                    modalCtx.moveTo(x, y);
+                }, { passive: false });
+                
+                modalCanvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    isModalDrawing = false;
+                }, { passive: false });
+            }
+            
+            // 기존 서명을 모달 캔버스로 복사
+            if (borrowerCanvas) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = borrowerCanvas.width;
+                tempCanvas.height = borrowerCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(borrowerCanvas, 0, 0);
+                
+                modalCtx.fillStyle = '#FFFFFF';
+                modalCtx.fillRect(0, 0, modalCanvas.width, modalCanvas.height);
+                modalCtx.drawImage(tempCanvas, 0, 0, modalCanvas.width, modalCanvas.height);
+            }
+            
+            signatureModal.classList.add('active');
+        }
+        
+        function closeSignatureModal() {
+            if (signatureModal) {
+                signatureModal.classList.remove('active');
+            }
+        }
+        
+        function startModalDrawing(e) {
+            isModalDrawing = true;
+            const rect = modalCanvas.getBoundingClientRect();
+            const scaleX = modalCanvas.width / rect.width;
+            const scaleY = modalCanvas.height / rect.height;
+            modalCtx.beginPath();
+            modalCtx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+        }
+        
+        function drawModal(e) {
+            if (!isModalDrawing) return;
+            const rect = modalCanvas.getBoundingClientRect();
+            const scaleX = modalCanvas.width / rect.width;
+            const scaleY = modalCanvas.height / rect.height;
+            modalCtx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+            modalCtx.stroke();
+        }
+        
+        function stopModalDrawing() {
+            isModalDrawing = false;
+        }
+        
+        function clearModalSignature() {
+            if (modalCanvas && modalCtx) {
+                modalCtx.fillStyle = '#FFFFFF';
+                modalCtx.fillRect(0, 0, modalCanvas.width, modalCanvas.height);
+            }
+        }
+        
+        function applyModalSignature() {
+            // 모달 캔버스 내용을 원본 캔버스에 복사
+            if (borrowerCanvas && modalCanvas) {
+                borrowerCtx.fillStyle = '#FFFFFF';
+                borrowerCtx.fillRect(0, 0, borrowerCanvas.width, borrowerCanvas.height);
+                borrowerCtx.drawImage(modalCanvas, 0, 0, borrowerCanvas.width, borrowerCanvas.height);
+            }
+            closeSignatureModal();
         }
 
         // 신분증 촬영 관련 함수
