@@ -19,9 +19,10 @@
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     
     <style>
-        /* 서명 캔버스 터치 동작 제어 */
+        /* 서명 캔버스 및 컨테이너 터치 동작 제어 */
+        #signatureContainer,
         #borrowerSignatureCanvas {
-            touch-action: none;
+            touch-action: none !important;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -362,7 +363,7 @@
                         4. 차용인 서명
                     </h2>
                     <p class="text-sm text-gray-600 mb-4">차용인의 서명을 받아주세요</p>
-                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                    <div id="signatureContainer" class="border-2 border-gray-300 rounded-lg overflow-hidden">
                         <canvas id="borrowerSignatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
                     </div>
                     <button type="button" onclick="clearBorrowerSignature()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
@@ -652,19 +653,33 @@
             borrowerCanvas.addEventListener('mouseup', () => stopDrawing());
             borrowerCanvas.addEventListener('mouseout', () => stopDrawing());
             
-            // 터치 이벤트 (모바일)
+            // 터치 이벤트 (모바일) - passive: false로 preventDefault 활성화
             borrowerCanvas.addEventListener('touchstart', (e) => {
                 e.preventDefault(); // 확대/스크롤 방지
                 startDrawing(e.touches[0]);
-            });
+            }, { passive: false });
+            
             borrowerCanvas.addEventListener('touchmove', (e) => {
                 e.preventDefault(); // 확대/스크롤 방지
                 draw(e.touches[0]);
-            });
+            }, { passive: false });
+            
             borrowerCanvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 stopDrawing();
-            });
+            }, { passive: false });
+            
+            // 컨테이너의 터치 이벤트도 막기
+            const container = document.getElementById('signatureContainer');
+            if (container) {
+                container.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+                
+                container.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+            }
         }
 
         function startDrawing(e) {
