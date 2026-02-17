@@ -120,6 +120,54 @@
             border-radius: 0.5rem;
             touch-action: none;
         }
+        
+        /* 이미지 확대 모달 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .image-modal img {
+            max-width: 95%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+        .image-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 3rem;
+            height: 3rem;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #374151;
+            transition: all 0.3s;
+        }
+        .image-modal-close:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+            border-radius: 0.5rem;
+            touch-action: none;
+        }
     </style>
     
     
@@ -754,18 +802,23 @@
                     
                     <!-- 미리보기 영역 -->
                     <div id="adminIdPreview" class="hidden">
-                        <div class="relative border-2 border-gray-300 rounded-lg p-2 bg-gray-50">
+                        <div class="relative border-2 border-gray-300 rounded-lg p-2 bg-gray-50 cursor-pointer hover:border-green-500 transition-colors" onclick="openImageModal(document.getElementById('adminIdImage').src)" title="클릭하여 확대">
                             <!-- 신분증 비율 유지 (85:54 = 1.574:1) -->
                             <div class="relative w-full" style="aspect-ratio: 85/54;">
-                                <img id="adminIdImage" src="" alt="신분증" class="absolute inset-0 w-full h-full object-contain rounded">
+                                <img id="adminIdImage" src="" alt="신분증" class="absolute inset-0 w-full h-full object-contain rounded pointer-events-none">
                             </div>
-                            <button type="button" onclick="removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold z-10">
+                            <button type="button" onclick="event.stopPropagation(); removeAdminIdPhoto()" class="absolute top-4 right-4 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition font-semibold z-10">
                                 <i class="fas fa-trash mr-1"></i>삭제
                             </button>
                         </div>
-                        <p class="text-sm text-green-600 mt-2">
-                            <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다 (원본 비율 유지)
-                        </p>
+                        <div class="flex gap-2 mt-2">
+                            <p class="text-sm text-green-600 flex-1">
+                                <i class="fas fa-check-circle mr-1"></i>신분증이 등록되었습니다
+                            </p>
+                            <button type="button" onclick="openImageModal(document.getElementById('adminIdImage').src)" class="text-sm text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-search-plus mr-1"></i>확대 보기
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -3373,6 +3426,50 @@
                 adminSignatureCtx.drawImage(modalCanvas, 0, 0, adminSignatureCanvas.width, adminSignatureCanvas.height);
             }
             closeSignatureModal();
+        }
+
+        // 이미지 확대 모달 관련 함수
+        let imageModal = null;
+        
+        function openImageModal(imageSrc) {
+            if (!imageSrc) return;
+            
+            // 모달이 없으면 생성
+            if (!imageModal) {
+                imageModal = document.createElement('div');
+                imageModal.className = 'image-modal';
+                imageModal.innerHTML = `
+                    <div class="image-modal-close" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                    <img id="modalImage" src="" alt="신분증 확대">
+                    <p class="text-white text-sm mt-4">
+                        <i class="fas fa-hand-pointer mr-2"></i>핀치 줌으로 확대/축소 가능
+                    </p>
+                `;
+                document.body.appendChild(imageModal);
+                
+                // 배경 클릭 시 닫기
+                imageModal.addEventListener('click', (e) => {
+                    if (e.target === imageModal) {
+                        closeImageModal();
+                    }
+                });
+            }
+            
+            // 이미지 설정 및 모달 열기
+            document.getElementById('modalImage').src = imageSrc;
+            imageModal.classList.add('active');
+            
+            // body 스크롤 방지
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeImageModal() {
+            if (imageModal) {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         }
     </script>
 </body>
