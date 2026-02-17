@@ -639,25 +639,52 @@
             borrowerCtx.lineCap = 'round';
             borrowerCtx.lineJoin = 'round';
 
+            // 마우스 이벤트 (데스크톱)
             borrowerCanvas.addEventListener('mousedown', (e) => startDrawing(e));
             borrowerCanvas.addEventListener('mousemove', (e) => draw(e));
             borrowerCanvas.addEventListener('mouseup', () => stopDrawing());
             borrowerCanvas.addEventListener('mouseout', () => stopDrawing());
+            
+            // 터치 이벤트 (모바일)
+            borrowerCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // 확대/스크롤 방지
+                startDrawing(e.touches[0]);
+            });
+            borrowerCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // 확대/스크롤 방지
+                draw(e.touches[0]);
+            });
+            borrowerCanvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopDrawing();
+            });
         }
 
         function startDrawing(e) {
             borrowerIsDrawing = true;
             
             const rect = borrowerCanvas.getBoundingClientRect();
+            const scaleX = borrowerCanvas.width / rect.width;
+            const scaleY = borrowerCanvas.height / rect.height;
+            
             borrowerCtx.beginPath();
-            borrowerCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            borrowerCtx.moveTo(
+                (e.clientX - rect.left) * scaleX, 
+                (e.clientY - rect.top) * scaleY
+            );
         }
 
         function draw(e) {
             if (!borrowerIsDrawing) return;
             
             const rect = borrowerCanvas.getBoundingClientRect();
-            borrowerCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            const scaleX = borrowerCanvas.width / rect.width;
+            const scaleY = borrowerCanvas.height / rect.height;
+            
+            borrowerCtx.lineTo(
+                (e.clientX - rect.left) * scaleX, 
+                (e.clientY - rect.top) * scaleY
+            );
             borrowerCtx.stroke();
         }
 
