@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Z-BIKE 전자계약서</title>
     
     <!-- Open Graph / 카카오톡 공유 미리보기 -->
@@ -19,16 +19,6 @@
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     
     <style>
-        /* 서명 캔버스 및 컨테이너 터치 동작 제어 */
-        #signatureContainer,
-        #borrowerSignatureCanvas {
-            touch-action: none !important;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-        
         /* A4 출력 스타일 */
         @media print {
             body {
@@ -578,29 +568,6 @@
             } else {
                 document.getElementById('contractLocation').textContent = '브라우저가 위치 서비스를 지원하지 않습니다';
             }
-            
-            // 모바일 확대 제스처 완전 차단
-            document.addEventListener('gesturestart', function(e) {
-                e.preventDefault();
-            });
-            
-            document.addEventListener('gesturechange', function(e) {
-                e.preventDefault();
-            });
-            
-            document.addEventListener('gestureend', function(e) {
-                e.preventDefault();
-            });
-            
-            // 더블탭 확대 방지
-            let lastTouchEnd = 0;
-            document.addEventListener('touchend', function(e) {
-                const now = Date.now();
-                if (now - lastTouchEnd <= 300) {
-                    e.preventDefault();
-                }
-                lastTouchEnd = now;
-            }, false);
         });
         
         // 사업자 정보 로드
@@ -676,33 +643,30 @@
             borrowerCanvas.addEventListener('mouseup', () => stopDrawing());
             borrowerCanvas.addEventListener('mouseout', () => stopDrawing());
             
-            // 터치 이벤트 (모바일) - passive: false로 preventDefault 활성화
+            // 터치 이벤트 (모바일) - 서명 중에만 확대 방지
             borrowerCanvas.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // 확대/스크롤 방지
-                startDrawing(e.touches[0]);
+                // 한 손가락 터치만 허용 (서명)
+                if (e.touches.length === 1) {
+                    e.preventDefault(); // 서명 중 스크롤 방지
+                    startDrawing(e.touches[0]);
+                }
+                // 두 손가락 이상은 preventDefault 안 함 (확대 허용)
             }, { passive: false });
             
             borrowerCanvas.addEventListener('touchmove', (e) => {
-                e.preventDefault(); // 확대/스크롤 방지
-                draw(e.touches[0]);
+                // 서명 중이고 한 손가락일 때만 그리기
+                if (borrowerIsDrawing && e.touches.length === 1) {
+                    e.preventDefault(); // 서명 중 확대 방지
+                    draw(e.touches[0]);
+                }
+                // 서명 중이 아니거나 두 손가락 이상이면 확대 허용
             }, { passive: false });
             
             borrowerCanvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                stopDrawing();
+                if (borrowerIsDrawing) {
+                    stopDrawing();
+                }
             }, { passive: false });
-            
-            // 컨테이너의 터치 이벤트도 막기
-            const container = document.getElementById('signatureContainer');
-            if (container) {
-                container.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                }, { passive: false });
-                
-                container.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                }, { passive: false });
-            }
         }
 
         function startDrawing(e) {
