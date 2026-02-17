@@ -734,20 +734,14 @@
                         아래 <strong class="text-blue-700">"📁 파일 업로드"</strong> 버튼을 눌러 신분증을 업로드하세요!
                     </p>
                     
-                    <!-- 업로드 및 촬영 버튼 -->
-                    <div class="mb-4 grid grid-cols-2 gap-3">
+                    <!-- 업로드 버튼 (전체 너비) -->
+                    <div class="mb-4">
                         <!-- 파일 업로드 버튼 -->
-                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-md font-semibold text-base">
-                            <i class="fas fa-upload mr-2"></i>
-                            <span>📁 파일 업로드</span>
+                        <button type="button" onclick="document.getElementById('adminIdUpload').click()" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-lg hover:from-green-700 hover:to-green-800 transition transform hover:scale-105 active:scale-95 shadow-lg font-semibold text-lg">
+                            <i class="fas fa-upload mr-2 text-xl"></i>
+                            <span>📁 신분증 파일 업로드</span>
                         </button>
                         <input type="file" id="adminIdUpload" accept="image/*" style="display: none;" onchange="handleAdminIdUpload(event)">
-                        
-                        <!-- 카메라 촬영 버튼 -->
-                        <button type="button" onclick="startAdminIdCamera()" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition transform hover:scale-105 active:scale-95 shadow-md font-semibold text-base">
-                            <i class="fas fa-camera mr-2"></i>
-                            <span>📷 사진 촬영</span>
-                        </button>
                     </div>
                     
                     <!-- 미리보기 영역 - 신분증 비율 유지 (85:54) -->
