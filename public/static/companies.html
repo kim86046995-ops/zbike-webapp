@@ -372,30 +372,74 @@
     </div>
 
     <!-- 카메라 모달 -->
-    <div id="cameraModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
-            <div class="border-b px-6 py-4 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">
-                    <i class="fas fa-camera mr-2 text-green-600"></i>신분증 촬영
+    <div id="cameraModal" class="hidden fixed inset-0 bg-black bg-opacity-95 z-50">
+        <div class="h-full flex flex-col">
+            <!-- 헤더 -->
+            <div class="bg-blue-600 px-4 py-3 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-camera mr-2"></i>신분증 촬영
                 </h3>
-                <button onclick="closeCameraModal()" class="text-gray-500 hover:text-gray-700">
+                <button onclick="closeCameraModal()" class="text-white hover:text-gray-200">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
-            <div class="p-6">
-                <div class="mb-4">
-                    <video id="cameraVideo" autoplay playsinline class="w-full border rounded-lg bg-black"></video>
+            
+            <!-- 안내 메시지 -->
+            <div class="bg-yellow-400 px-4 py-2">
+                <p class="text-sm text-gray-800 text-center">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    신분증을 가로로 놓고 틀 안에 꽉 채워주세요
+                </p>
+            </div>
+            
+            <!-- 카메라 영역 -->
+            <div class="flex-1 relative flex items-center justify-center bg-black">
+                <video id="cameraVideo" autoplay playsinline 
+                    class="w-full h-full object-cover"
+                    style="filter: brightness(1.2) contrast(1.1);"></video>
+                
+                <!-- 신분증 가이드 틀 -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="relative" style="width: 85%; max-width: 500px; aspect-ratio: 85.6/53.98;">
+                        <!-- 반투명 오버레이 (틀 밖) -->
+                        <div class="absolute inset-0" style="
+                            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+                            border: 3px solid #10B981;
+                            border-radius: 12px;
+                        "></div>
+                        
+                        <!-- 모서리 가이드 -->
+                        <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-xl"></div>
+                        <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-xl"></div>
+                        <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-xl"></div>
+                        <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-xl"></div>
+                        
+                        <!-- 중앙 십자선 -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <div class="w-8 h-0.5 bg-green-400 mb-1"></div>
+                            <div class="w-0.5 h-8 bg-green-400 mx-auto"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="closeCameraModal()" 
-                        class="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-                        <i class="fas fa-times mr-2"></i>취소
-                    </button>
-                    <button onclick="capturePhoto()" 
-                        class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold">
-                        <i class="fas fa-camera mr-2"></i>촬영
-                    </button>
+                
+                <!-- 하단 안내 텍스트 -->
+                <div class="absolute bottom-20 left-0 right-0 text-center">
+                    <p class="text-white text-sm bg-black bg-opacity-50 inline-block px-4 py-2 rounded-full">
+                        신분증을 이 틀 안에 맞춰주세요
+                    </p>
                 </div>
+            </div>
+            
+            <!-- 버튼 영역 -->
+            <div class="bg-gray-900 px-4 py-4 flex gap-3">
+                <button onclick="closeCameraModal()" 
+                    class="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold">
+                    <i class="fas fa-times mr-2"></i>취소
+                </button>
+                <button onclick="capturePhoto()" 
+                    class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold">
+                    <i class="fas fa-camera mr-2"></i>촬영
+                </button>
             </div>
         </div>
     </div>
@@ -602,10 +646,45 @@
             try {
                 document.getElementById('cameraModal').classList.remove('hidden');
                 const video = document.getElementById('cameraVideo');
+                
+                // 고품질 카메라 설정 (밝기 및 해상도 향상)
                 cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        // 밝기 및 노출 자동 조절
+                        advanced: [
+                            { exposureMode: 'continuous' },
+                            { whiteBalanceMode: 'continuous' },
+                            { focusMode: 'continuous' }
+                        ]
+                    } 
                 });
+                
                 video.srcObject = cameraStream;
+                
+                // 비디오 트랙 설정 (밝기 향상)
+                const track = cameraStream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+                const settings = {};
+                
+                // 밝기 조절 가능하면 설정
+                if (capabilities.brightness) {
+                    settings.brightness = capabilities.brightness.max * 0.6; // 밝기 60%
+                }
+                if (capabilities.contrast) {
+                    settings.contrast = capabilities.contrast.max * 0.6; // 대비 60%
+                }
+                if (capabilities.exposureCompensation) {
+                    settings.exposureCompensation = capabilities.exposureCompensation.max * 0.3;
+                }
+                
+                if (Object.keys(settings).length > 0) {
+                    await track.applyConstraints({ advanced: [settings] });
+                }
+                
+                log('✅ 카메라 시작됨 (고품질 모드)');
             } catch (error) {
                 log('❌ 카메라 오류: ' + error.message);
                 alert('카메라 접근 권한이 필요합니다.');
