@@ -259,12 +259,18 @@
                 </div>
 
                 <!-- 대표자 서명 -->
-                <div>
+<div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">대표자 서명 *</label>
+                    <p class="text-xs text-gray-600 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        서명란을 클릭하거나 '서명하기' 버튼을 눌러 확대된 화면에서 서명하세요
+                    </p>
                     <div class="border rounded-lg p-4 bg-gray-50">
                         <div class="text-center mb-2">
                             <canvas id="signaturePreview" width="300" height="100" 
-                                class="border bg-white mx-auto cursor-pointer"
+                                onclick="openSignatureModal()"
+                                class="border bg-white mx-auto cursor-pointer hover:border-blue-500 transition-colors"
+                                title="클릭하여 서명하기"
                                 style="max-width: 100%;"></canvas>
                         </div>
                         <div class="flex gap-2">
