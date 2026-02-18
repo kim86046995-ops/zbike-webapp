@@ -219,7 +219,7 @@
 
     <!-- 서명 모달 -->
     <div id="signatureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full">
+        <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full">
             <div class="border-b px-6 py-4 flex justify-between items-center">
                 <h3 class="text-xl font-bold text-gray-800">
                     <i class="fas fa-signature mr-2 text-blue-600"></i>서명 입력
@@ -230,19 +230,20 @@
             </div>
             <div class="p-6">
                 <div class="mb-4 text-sm text-gray-600">
-                    마우스나 손가락으로 아래 영역에 서명해주세요.
+                    <i class="fas fa-info-circle mr-1"></i>
+                    마우스나 손가락으로 아래 영역에 서명해주세요. (더 큰 화면으로 편하게 서명하세요)
                 </div>
-                <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
-                    <canvas id="signatureCanvas" width="800" height="300" 
+                <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                    <canvas id="signatureCanvas" width="1000" height="400" 
                         class="bg-white cursor-crosshair" style="width: 100%; height: auto;"></canvas>
                 </div>
                 <div class="flex gap-2 mt-4">
                     <button onclick="clearSignature()" 
-                        class="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
+                        class="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-lg">
                         <i class="fas fa-eraser mr-2"></i>지우기
                     </button>
                     <button onclick="saveSignature()" 
-                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold">
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-lg">
                         <i class="fas fa-check mr-2"></i>서명 완료
                     </button>
                 </div>
