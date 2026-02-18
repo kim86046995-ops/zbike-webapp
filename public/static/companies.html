@@ -147,11 +147,15 @@
                     <label class="block text-sm font-bold text-gray-700 mb-2">대표자 신분증 *</label>
                     <div class="border rounded-lg p-4 bg-gray-50">
                         <div class="text-center mb-2">
-                            <img id="idCardPreview" class="hidden border bg-white mx-auto rounded" 
-                                style="max-width: 100%; max-height: 400px; width: auto; height: auto;" />
-                            <div id="idCardPlaceholder" class="text-gray-400 py-8">
-                                <i class="fas fa-id-card text-4xl mb-2"></i>
-                                <div>신분증 사진을 등록해주세요</div>
+                            <img id="idCardPreview" 
+                                class="hidden border-2 border-gray-300 bg-white mx-auto rounded cursor-pointer hover:border-blue-500 transition-colors shadow-lg" 
+                                style="max-width: 100%; max-height: 500px; width: auto; height: auto;"
+                                onclick="openIdCardModal()"
+                                title="클릭하여 크게 보기" />
+                            <div id="idCardPlaceholder" class="text-gray-400 py-12">
+                                <i class="fas fa-id-card text-5xl mb-3"></i>
+                                <div class="text-lg">신분증 사진을 등록해주세요</div>
+                                <div class="text-sm text-gray-500 mt-2">촬영 또는 업로드 후 클릭하면 크게 볼 수 있습니다</div>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -169,6 +173,19 @@
                             </button>
                         </div>
                         <input type="file" id="idCardFileInput" accept="image/*" class="hidden" />
+                    </div>
+                </div>
+
+                <!-- 신분증 확대 모달 -->
+                <div id="idCardModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onclick="closeIdCardModal()">
+                    <div class="relative max-w-6xl w-full">
+                        <button onclick="closeIdCardModal()" class="absolute top-4 right-4 text-white hover:text-gray-300 text-4xl z-10">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                        <img id="idCardModalImage" src="" class="w-full h-auto max-h-screen object-contain rounded-lg" />
+                        <div class="text-center mt-4 text-white text-sm">
+                            <i class="fas fa-search-plus mr-2"></i>핀치하여 확대/축소 가능 | 클릭하여 닫기
+                        </div>
                     </div>
                 </div>
 
@@ -628,6 +645,20 @@
             log('✅ 신분증 사진 등록됨: ' + Math.round(imageData.length / 1024) + ' KB');
         }
 
+        // 신분증 확대 모달 열기
+        function openIdCardModal() {
+            const idCardSrc = document.getElementById('idCardPreview').src;
+            if (idCardSrc) {
+                document.getElementById('idCardModalImage').src = idCardSrc;
+                document.getElementById('idCardModal').classList.remove('hidden');
+            }
+        }
+
+        // 신분증 확대 모달 닫기
+        function closeIdCardModal() {
+            document.getElementById('idCardModal').classList.add('hidden');
+        }
+
         // 신분증 삭제
         function clearIdCard() {
             idCardData = null;
@@ -910,6 +941,13 @@
             });
             document.getElementById('idCardFileInput').addEventListener('change', handleIdCardUpload);
             document.getElementById('clearIdBtn').addEventListener('click', clearIdCard);
+            
+            // ESC 키로 신분증 모달 닫기
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !document.getElementById('idCardModal').classList.contains('hidden')) {
+                    closeIdCardModal();
+                }
+            });
             
             // 업체 목록 로드
             loadCompanies();
