@@ -264,10 +264,13 @@
             </div>
             
             <!-- 안내 메시지 -->
-            <div class="bg-yellow-400 px-4 py-2">
-                <p class="text-sm text-gray-800 text-center">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    신분증을 가로로 놓고 틀 안에 꽉 채워주세요
+            <div class="bg-yellow-400 px-4 py-3">
+                <p class="text-sm text-gray-800 text-center font-medium">
+                    <i class="fas fa-lightbulb mr-1"></i>
+                    신분증을 가로로 놓고 틀 안에 맞추세요
+                </p>
+                <p class="text-xs text-gray-700 text-center mt-1">
+                    💡 빛 반사 방지: 조명이 직접 비치지 않도록 각도를 조절하세요
                 </p>
             </div>
             
@@ -275,7 +278,7 @@
             <div class="flex-1 relative bg-black overflow-hidden">
                 <video id="cameraVideo" autoplay playsinline 
                     class="w-full h-full object-cover"
-                    style="filter: brightness(1.2) contrast(1.1);"></video>
+                    style="filter: brightness(0.85) contrast(1.3) saturate(1.2);"></video>
                 
                 <!-- 신분증 가이드 틀 -->
                 <div class="absolute left-0 right-0 flex justify-center pointer-events-none" style="top: 60px;">
@@ -526,16 +529,16 @@
                 document.getElementById('cameraModal').classList.remove('hidden');
                 const video = document.getElementById('cameraVideo');
                 
-                // 고품질 카메라 설정 (밝기 및 해상도 향상)
+                // 고품질 카메라 설정 (반사 최소화)
                 cameraStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         facingMode: 'environment',
                         width: { ideal: 1920 },
                         height: { ideal: 1080 },
-                        // 밝기 및 노출 자동 조절
+                        // 자동 조절 설정
                         advanced: [
-                            { exposureMode: 'continuous' },
-                            { whiteBalanceMode: 'continuous' },
+                            { exposureMode: 'manual' },  // 수동 노출로 변경
+                            { whiteBalanceMode: 'manual' },  // 수동 화이트밸런스
                             { focusMode: 'continuous' }
                         ]
                     } 
@@ -543,27 +546,38 @@
                 
                 video.srcObject = cameraStream;
                 
-                // 비디오 트랙 설정 (밝기 향상)
+                // 비디오 트랙 설정 (반사 및 과다 노출 방지)
                 const track = cameraStream.getVideoTracks()[0];
                 const capabilities = track.getCapabilities();
                 const settings = {};
                 
-                // 밝기 조절 가능하면 설정
+                // 밝기를 낮춰서 반사 줄이기
                 if (capabilities.brightness) {
-                    settings.brightness = capabilities.brightness.max * 0.6; // 밝기 60%
+                    settings.brightness = capabilities.brightness.min + 
+                        (capabilities.brightness.max - capabilities.brightness.min) * 0.4; // 40% 수준
                 }
+                
+                // 대비를 높여서 선명도 향상
                 if (capabilities.contrast) {
-                    settings.contrast = capabilities.contrast.max * 0.6; // 대비 60%
+                    settings.contrast = capabilities.contrast.min + 
+                        (capabilities.contrast.max - capabilities.contrast.min) * 0.7; // 70% 수준
                 }
+                
+                // 노출 보정을 음수로 설정하여 밝은 부분 억제
                 if (capabilities.exposureCompensation) {
-                    settings.exposureCompensation = capabilities.exposureCompensation.max * 0.3;
+                    settings.exposureCompensation = capabilities.exposureCompensation.min * 0.5; // 음수값 적용
+                }
+                
+                // ISO 감도 낮춤 (지원되는 경우)
+                if (capabilities.iso) {
+                    settings.iso = capabilities.iso.min;
                 }
                 
                 if (Object.keys(settings).length > 0) {
                     await track.applyConstraints({ advanced: [settings] });
                 }
                 
-                log('✅ 카메라 시작됨 (고품질 모드)');
+                log('✅ 카메라 시작됨 (반사 방지 모드)');
             } catch (error) {
                 log('❌ 카메라 오류: ' + error.message);
                 alert('카메라 접근 권한이 필요합니다.');
@@ -580,7 +594,7 @@
             document.getElementById('cameraModal').classList.add('hidden');
         }
 
-        // 사진 촬영
+        // 사진 촬영 (후처리로 반사 개선)
         function capturePhoto() {
             const video = document.getElementById('cameraVideo');
             const canvas = document.createElement('canvas');
@@ -589,9 +603,44 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0);
             
-            // JPEG로 변환 (품질 0.7)
-            const imageData = canvas.toDataURL('image/jpeg', 0.7);
-            setIdCardImage(imageData);
+            // 이미지 후처리: 밝기/대비 조정으로 반사 줄이기
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // 각 픽셀의 밝기를 조정
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                
+                // 밝은 픽셀(반사 부분) 억제
+                const brightness = (r + g + b) / 3;
+                if (brightness > 200) {
+                    // 과도하게 밝은 부분은 감소
+                    const reduction = 0.7;
+                    data[i] = r * reduction;
+                    data[i + 1] = g * reduction;
+                    data[i + 2] = b * reduction;
+                } else {
+                    // 일반 영역은 대비 향상
+                    const contrast = 1.2;
+                    const factor = (259 * (contrast + 1)) / (259 - contrast);
+                    data[i] = factor * (r - 128) + 128;
+                    data[i + 1] = factor * (g - 128) + 128;
+                    data[i + 2] = factor * (b - 128) + 128;
+                }
+                
+                // 값 범위 제한 (0-255)
+                data[i] = Math.max(0, Math.min(255, data[i]));
+                data[i + 1] = Math.max(0, Math.min(255, data[i + 1]));
+                data[i + 2] = Math.max(0, Math.min(255, data[i + 2]));
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            
+            // JPEG로 변환 (품질 0.85로 향상)
+            const processedImageData = canvas.toDataURL('image/jpeg', 0.85);
+            setIdCardImage(processedImageData);
             closeCameraModal();
         }
 
