@@ -71,43 +71,46 @@
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">업체명 *</label>
                         <input type="text" id="companyName" required placeholder="예: 대성모터스" 
-                            class="w-full px-4 py-2 border rounded-lg">
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">사업자번호 *</label>
                         <input type="text" id="companyBusinessNumber" required placeholder="123-45-67890" 
-                            class="w-full px-4 py-2 border rounded-lg">
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">대표자 *</label>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">대표자 이름 *</label>
                         <input type="text" id="companyRepresentative" required placeholder="홍길동" 
-                            class="w-full px-4 py-2 border rounded-lg">
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">대표자 주민등록번호 *</label>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">주민등록번호 *</label>
                         <input type="text" id="companyResidentNumber" required placeholder="000000-0000000" maxlength="14"
-                            class="w-full px-4 py-2 border rounded-lg">
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">전화번호 *</label>
-                        <input type="tel" id="companyPhone" required placeholder="02-1234-5678" 
-                            class="w-full px-4 py-2 border rounded-lg">
+                        <input type="tel" id="companyPhone" required placeholder="010-0000-0000" 
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
                     </div>
                 </div>
 
-                <div class="flex gap-2">
-                    <input type="text" id="companyPostcode" required readonly placeholder="우편번호" 
-                        class="flex-1 px-4 py-2 border rounded-lg bg-gray-50">
-                    <button type="button" id="searchBtn" 
-                        class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
-                        <i class="fas fa-search mr-1"></i>검색
-                    </button>
+                <!-- 주소 입력 -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-bold text-gray-700">주소 *</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="companyPostcode" required readonly placeholder="우편번호" 
+                            class="w-32 px-4 py-2 border rounded-lg bg-gray-50">
+                        <button type="button" id="searchBtn" 
+                            class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
+                            <i class="fas fa-search mr-1"></i>우편번호 찾기
+                        </button>
+                    </div>
+                    <input type="text" id="companyAddress" required readonly placeholder="기본 주소" 
+                        class="w-full px-4 py-2 border rounded-lg bg-gray-50">
+                    <input type="text" id="companyDetailAddress" placeholder="상세 주소" 
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
                 </div>
-
-                <input type="text" id="companyAddress" required readonly placeholder="주소" 
-                    class="w-full px-4 py-2 border rounded-lg bg-gray-50">
-                <input type="text" id="companyDetailAddress" placeholder="상세주소" 
-                    class="w-full px-4 py-2 border rounded-lg">
 
                 <!-- 대표자 서명 -->
                 <div>
@@ -167,153 +170,20 @@
                     </div>
                 </div>
 
-                <!-- 업체 계약 약관 -->
-                <div class="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-                    <h3 class="font-bold text-lg mb-3 text-center">5. 업체 계약 약관</h3>
-                    
-                    <div class="border rounded-lg p-4 bg-white mb-4 contract-terms" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
-                        <!-- 사업자 정보 표기 -->
-                        <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
-                            <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">공급자 (사업자) 정보</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="font-size: 1.1rem;">
-                                <p><strong>상호:</strong> 대성</p>
-                                <p><strong>사업자등록번호:</strong> 487-39-01128</p>
-                                <p><strong>대표자:</strong> 김상춘</p>
-                            </div>
-                        </div>
-                        
-                        <p class="font-bold text-base text-purple-800 mb-3">
-                            <i class="fas fa-building mr-2"></i>업체 리스/렌트 계약서
-                        </p>
-                        
-                        <p class="text-gray-600">
-                            본 계약은 대여인(사업자)과 수요업체 간의 오토바이 리스/렌트 형태의 계약입니다.
-                        </p>
+                <div class="flex gap-2">
+                    <button type="button" id="clearBtn" 
+                        class="flex-1 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
+                        초기화
+                    </button>
+                    <button type="submit" 
+                        class="flex-1 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-bold">
+                        저장
+                    </button>
+                </div>
+            </form>
+        </div>
 
-                        <p class="font-bold mt-4 mb-2 text-purple-700">
-                            <i class="fas fa-star mr-1 text-yellow-500"></i>특별 안내
-                        </p>
-                        <div class="ml-4 space-y-1 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                            <p class="font-bold text-yellow-800">
-                                <i class="fas fa-info-circle mr-1"></i>업체 계약 간소화 제도
-                            </p>
-                            <p class="text-gray-700">
-                                대표자가 최초 1회 계약 체결 시 업체 정보, 대표자 정보, 서류를 등록하시면, 
-                                <span class="font-bold text-purple-700">이후 추가 오토바이 출고 시에는 별도의 계약서 작성 없이 자동으로 모든 계약서 서식이 완성</span>됩니다.
-                            </p>
-                            <p class="text-gray-700 mt-2">
-                                ✓ 최초 등록 정보 재사용<br>
-                                ✓ 간편한 추가 출고 절차<br>
-                                ✓ 동일한 약관 및 조건 적용
-                            </p>
-                        </div>
-
-                        <p class="font-bold mt-4 mb-2">제1조 (목적 및 계약 내용)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 본 계약은 업체 배달대행 목적의 리스/렌트 계약입니다.</p>
-                            <p>② 계약 타입: 위 기재된 계약 타입</p>
-                            <p>③ 계약 기간: 위 기재된 계약 기간</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제2조 (인도 및 관리)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 계약 시작일에 오토바이를 업체에 인도하며, 업체(임차인)는 선량한 관리자의 주의로 관리해야 합니다.</p>
-                            <p>② 업체(임차인)는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 오토바이는 업체(임차인)의 배달대행 업무에만 사용할 수 있습니다.</p>
-                            <p>② 업체(임차인)는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
-                            <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 업체(임차인)는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
-                            <p>② 일차감 금액: 위 기재된 일차감금액</p>
-                            <p>③ 보증금: 위 기재된 보증금</p>
-                            <p>④ 차감 금액은 업체(임차인)의 일당 정산 시 대여인이 지정한 계좌로 입금해야 합니다.</p>
-                            <p>⑤ 모든 정산은 임대인과 업체(임차인)의 합의한 납부방식이 우선한다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 업체(임차인)의 일당, 입금 금액, 누적 입금 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
-                            <p>② 업체(임차인)는 언제든 본인의 입금 내역 및 납부 현황을 조회할 수 있습니다.</p>
-                            <p>③ 입금 내역에 이의가 있는 경우, 업체(임차인)는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 오토바이에 대한 자동차보험(유상운송보험)에 가입하여야 합니다.</p>
-                            <p>② 사고 발생 시 업체(임차인)는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
-                            <p>③ 업체(임차인)의 고의 또는 과실로 발생한 사고의 자기부담금은 업체(임차인)가 부담합니다.</p>
-                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체(임차인)가 전액 배상합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체(임차인)가 전액 부담합니다.</p>
-                            <p>② 정비 및 수리가 필요한 경우, 업체(임차인)는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 다음 각 호의 경우 계약을 즉시 해지할 수 있습니다:</p>
-                            <p class="ml-4">- 리스/렌트비가 일주일 이상 밀린 경우</p>
-                            <p class="ml-4">- 음주운전 등 중대한 법규 위반이 있는 경우</p>
-                            <p class="ml-4">- 업체(임차인)가 허위 정보를 제공한 경우</p>
-                            <p>② 해지 시 업체(임차인)는 즉시 오토바이를 반환하며, 미납 대여료 및 손해액은 보증금에서 공제됩니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 업체(임차인)는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
-                            <p>② 중도 해지 시, 위약금(일차감금액의 30일분)은 보증금에서 공제 후 반환합니다.</p>
-                            <p>③ 리스 계약의 경우, 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부해야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제10조 (렌트 종료 시 반환)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 렌트 종료 시 업체(임차인)는 오토바이를 즉시 반환해야 합니다.</p>
-                            <p>② 오토바이에 손상이 있는 경우, 수리비는 보증금에서 공제됩니다.</p>
-                            <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료됩니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제11조 (추가 오토바이 출고)</p>
-                        <div class="ml-4 space-y-1 bg-purple-50 p-3 rounded border border-purple-200">
-                            <p class="font-bold text-purple-800">① 간소화된 계약 절차</p>
-                            <p>대표자가 최초 계약 체결 시 등록한 업체 정보, 대표자 정보 및 제출 서류는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
-                            <p class="font-bold text-purple-800 mt-2">② 자동 계약서 생성</p>
-                            <p>추가 오토바이 출고 시, 업체(임차인)는 오토바이 선택 및 계약 조건(기간, 금액 등)만 입력하면 모든 계약서 서식이 자동으로 완성됩니다.</p>
-                            <p class="font-bold text-purple-800 mt-2">③ 동일한 약관 적용</p>
-                            <p>추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체(임차인)는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
-                            <p class="font-bold text-purple-800 mt-2">④ 정보 변경</p>
-                            <p>업체 정보 또는 대표자 정보가 변경된 경우, 업체(임차인)는 즉시 대여인에게 서면으로 통지하고 변경된 서류를 제출해야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 업체(임차인)의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
-                            <p>③ 특약사항에 기재된 사항이 있는 경우 우선 적용됩니다.</p>
-                            <p>④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
-                        </div>
-
-                        <p class="mt-4 text-center text-gray-600">
-                            위 내용을 충분히 이해하고 계약서에 기재된 내용에 동의합니다.
-                        </p>
-                    </div>
-
-                    <!-- 약관 동의 체크박스 -->
-                    <div class="flex items-start p-4 bg-yellow-50 border-2 border-yellow-400 rounded">
-                        <input type="checkbox" id="agreeTerms" 
-                            class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                        <label for="agreeTerms" class="ml-3 text-base font-bold text-gray-800">
-                            위 계약 약관을 모두 확인하였으며 이에 동의합니다 <span class="text-red-600">*</span>
-                        </label>
-                    </div>
+        <!-- 업체 목록 섹션 -->
                 </div>
 
                 <div class="flex gap-2">
@@ -878,11 +748,6 @@
             
             if (!document.getElementById('companyPostcode').value) {
                 alert('우편번호를 검색하세요.');
-                return;
-            }
-            
-            if (!document.getElementById('agreeTerms').checked) {
-                alert('약관에 동의해주세요.');
                 return;
             }
             
