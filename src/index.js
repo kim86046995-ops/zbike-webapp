@@ -4307,7 +4307,7 @@ app.get('/dashboard', c => {
                         <i class="fas fa-user-plus text-3xl text-cyan-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">고객 등록</p>
                     </a>
-                    <a href="/static/companies-new.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg text-center transition">
+                    <a href="/static/companies.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-building text-3xl text-indigo-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">업체 등록</p>
                     </a>
