@@ -1763,12 +1763,18 @@
                     return;
                 }
                 
-                // 1. 진행 중인 계약 확인 (정보만 표시)
-                const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
-                    headers: { 'X-Session-ID': sessionId }
-                });
+                let activeContracts = [];
                 
-                const activeContracts = contractsResponse.data.filter(c => c.status === 'active');
+                // 1. 진행 중인 계약 확인 (에러가 나도 계속 진행)
+                try {
+                    const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
+                        headers: { 'X-Session-ID': sessionId }
+                    });
+                    activeContracts = contractsResponse.data.filter(c => c.status === 'active');
+                } catch (contractError) {
+                    console.log('계약 정보 조회 실패 (계속 진행):', contractError.message);
+                    // 계약 정보가 없거나 조회 실패해도 보험 정보는 수정 가능
+                }
                 
                 // 2. 진행 중인 계약이 있으면 안내 메시지만 표시
                 if (activeContracts.length > 0) {
