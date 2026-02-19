@@ -157,6 +157,12 @@
                 object-fit: contain !important;
             }
             
+            /* 신분증 이미지는 더 크게 표시 */
+            .contract-print img[alt="신분증"] {
+                max-height: 120mm !important;
+                width: 100% !important;
+            }
+            
             /* 서명/신분증 컨테이너 */
             .border-2 {
                 border-width: 2px !important;
@@ -1973,8 +1979,9 @@
                         <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
                             <h3 class="font-bold text-lg mb-4">신분증 사진</h3>
                             <div class="flex justify-center">
-                                <img src="${c.admin_id_card_photo}" alt="신분증" class="border border-gray-300 rounded max-w-md cursor-pointer hover:opacity-80 transition-opacity" onclick="openImageModal('${c.admin_id_card_photo}')" title="클릭하여 확대">
+                                <img src="${c.admin_id_card_photo}" alt="신분증" class="border-2 border-gray-300 rounded w-full md:max-w-2xl cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all" onclick="openImageModal('${c.admin_id_card_photo}')" title="클릭하여 확대">
                             </div>
+                            <p class="text-center text-sm text-gray-500 mt-2">💡 이미지를 클릭하면 크게 볼 수 있습니다</p>
                         </div>
                     ` : ''}
                 </div>
