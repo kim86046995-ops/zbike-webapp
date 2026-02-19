@@ -1749,12 +1749,14 @@
 
         // 보험 정보 저장
         async function saveInsuranceInfo() {
+            console.log('🔄 보험 정보 저장 시작...');
             try {
                 const id = document.getElementById('motorcycleId').value;
                 if (!id) {
                     alert('오토바이 ID가 없습니다');
                     return;
                 }
+                console.log('✅ 오토바이 ID 확인:', id);
                 
                 const sessionId = localStorage.getItem('sessionId');
                 if (!sessionId) {
@@ -1762,17 +1764,21 @@
                     window.location.href = '/static/login.html';
                     return;
                 }
+                console.log('✅ 세션 ID 확인');
                 
                 let activeContracts = [];
                 
                 // 1. 진행 중인 계약 확인 (에러가 나도 계속 진행)
+                console.log('📋 진행 중인 계약 조회 시작...');
                 try {
                     const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
                         headers: { 'X-Session-ID': sessionId }
                     });
+                    console.log('✅ 계약 정보 조회 성공:', contractsResponse.data);
                     activeContracts = contractsResponse.data.filter(c => c.status === 'active');
+                    console.log('✅ 활성 계약 필터링 완료:', activeContracts.length, '건');
                 } catch (contractError) {
-                    console.log('계약 정보 조회 실패 (계속 진행):', contractError.message);
+                    console.warn('⚠️ 계약 정보 조회 실패 (계속 진행):', contractError);
                     // 계약 정보가 없거나 조회 실패해도 보험 정보는 수정 가능
                 }
                 
@@ -1797,6 +1803,7 @@
                 }
                 
                 // 3. 보험 정보 수정 (계약 해지 없이)
+                console.log('💾 보험 정보 업데이트 시작...');
                 const data = {
                     insurance_company: document.getElementById('insuranceCompany').value,
                     owner_name: document.getElementById('ownerName').value,
@@ -1804,12 +1811,14 @@
                     insurance_end_date: document.getElementById('insuranceEndDate').value,
                     driving_range: document.getElementById('drivingRange').value
                 };
+                console.log('📝 업데이트할 데이터:', data);
                 
-                await axios.put(`/api/motorcycles/${id}`, data, {
+                const updateResponse = await axios.put(`/api/motorcycles/${id}`, data, {
                     headers: {
                         'X-Session-ID': sessionId
                     }
                 });
+                console.log('✅ 보험 정보 업데이트 응답:', updateResponse.data);
                 console.log('✅ 보험 정보 업데이트 완료');
                 
                 // 4. 결과 메시지

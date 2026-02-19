@@ -1410,24 +1410,6 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
 
 // 오토바이별 계약 이력 조회
 // 오토바이별 계약 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
-app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const id = c.req.param('id')
-  
-  const result = await DB.prepare(`
-    SELECT 
-      c.*,
-      cu.name as customer_name, cu.phone as customer_phone,
-      cu.resident_number, cu.address, cu.license_type
-    FROM contracts c
-    JOIN customers cu ON c.customer_id = cu.id
-    WHERE c.motorcycle_id = ?
-    ORDER BY c.created_at DESC
-  `).bind(id).all()
-  
-  return c.json(result.results)
-})
-
 // ============================================
 // 고객 API
 // ============================================
