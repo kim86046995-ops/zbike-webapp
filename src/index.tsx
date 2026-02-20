@@ -2043,8 +2043,8 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
   const motorcycleId = c.req.param('id')
   
   try {
-    // 개인 계약만 조회 (business_contracts는 일단 제외)
-    const result = await DB.prepare(`
+    // 개인 계약과 업체 계약을 별도로 조회
+    const personalContracts = await DB.prepare(`
       SELECT 
         c.id, 
         c.contract_number, 
@@ -2079,7 +2079,52 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
       ORDER BY c.created_at DESC
     `).bind(motorcycleId).all()
     
-    return c.json(result.results || [])
+    let businessContracts = { results: [] }
+    try {
+      businessContracts = await DB.prepare(`
+        SELECT 
+          bc.id, 
+          bc.contract_number, 
+          'business' as contract_type, 
+          bc.motorcycle_id,
+          NULL as customer_id, 
+          bc.contract_start_date as start_date, 
+          bc.contract_end_date as end_date,
+          bc.daily_amount as monthly_fee, 
+          bc.business_type as contract_type_text, 
+          bc.deposit,
+          bc.special_terms, 
+          NULL as contract_pdf_url, 
+          bc.id_card_photo as id_card_image_url,
+          NULL as contract_end_image_url, 
+          bc.status, 
+          bc.created_at, 
+          bc.updated_at,
+          NULL as completed_at, 
+          NULL as cancelled_at,
+          'business' as contract_source,
+          bc.company_name as customer_name, 
+          bc.business_number as resident_number, 
+          bc.business_phone as customer_phone,
+          bc.business_address as customer_address, 
+          NULL as customer_postcode,
+          bc.representative_address as customer_detail_address, 
+          bc.license_type
+        FROM business_contracts bc
+        WHERE bc.motorcycle_id = ?
+        ORDER BY bc.created_at DESC
+      `).bind(motorcycleId).all()
+    } catch (businessError) {
+      console.warn('Business contracts query failed (table might not exist):', businessError)
+    }
+    
+    // 두 결과 합치기
+    const allContracts = [
+      ...(personalContracts.results || []),
+      ...(businessContracts.results || [])
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    
+    return c.json(allContracts)
   } catch (error) {
     console.error('Error fetching motorcycle contracts:', error)
     return c.json({ error: 'Failed to fetch contracts', details: error.message }, 500)
