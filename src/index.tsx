@@ -2042,9 +2042,11 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
   const DB = c.env.DB || c.env.db
   const motorcycleId = c.req.param('id')
   
+  console.log('📋 Fetching contracts for motorcycle:', motorcycleId)
+  
   try {
-    // 일반 계약과 업체 계약을 UNION으로 합쳐서 반환
-    const result = await DB.prepare(`
+    // 먼저 personal contracts만 조회
+    const personalResult = await DB.prepare(`
       SELECT 
         c.id, c.contract_number, c.contract_type, c.motorcycle_id,
         c.customer_id, c.start_date, c.end_date,
@@ -2061,30 +2063,66 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
       FROM contracts c
       JOIN customers cu ON c.customer_id = cu.id
       WHERE c.motorcycle_id = ?
-      
-      UNION ALL
-      
-      SELECT 
-        bc.id, bc.contract_number, 'business' as contract_type, bc.motorcycle_id,
-        NULL as customer_id, bc.contract_start_date as start_date, bc.contract_end_date as end_date,
-        bc.daily_amount as monthly_fee, NULL as contract_type_text, bc.deposit,
-        bc.special_terms, NULL as contract_pdf_url, bc.id_card_photo as id_card_image_url,
-        NULL as contract_end_image_url, bc.status, bc.created_at, bc.updated_at,
-        NULL as completed_at, NULL as cancelled_at,
-        'business' as contract_source,
-        bc.company_name as customer_name, bc.business_number as resident_number,
-        bc.business_phone as customer_phone, bc.business_address as customer_address,
-        NULL as customer_postcode, bc.representative_address as customer_detail_address, bc.license_type,
-        bc.business_type as business_contract_type, bc.company_name
-      FROM business_contracts bc
-      WHERE bc.motorcycle_id = ?
-      
-      ORDER BY created_at DESC
-    `).bind(motorcycleId, motorcycleId).all()
+      ORDER BY c.created_at DESC
+    `).bind(motorcycleId).all()
     
-    return c.json(result.results || [])
+    console.log('✅ Personal contracts loaded:', personalResult.results?.length || 0)
+    
+    // 그 다음 business contracts 조회
+    let businessResult = { results: [] }
+    try {
+      businessResult = await DB.prepare(`
+        SELECT 
+          bc.id, bc.contract_number, 
+          'business' as contract_type, 
+          bc.motorcycle_id,
+          NULL as customer_id, 
+          bc.contract_start_date as start_date, 
+          bc.contract_end_date as end_date,
+          bc.daily_amount as monthly_fee, 
+          NULL as contract_type_text, 
+          bc.deposit,
+          bc.special_terms, 
+          NULL as contract_pdf_url, 
+          bc.id_card_photo as id_card_image_url,
+          NULL as contract_end_image_url, 
+          bc.status, 
+          bc.created_at, 
+          bc.updated_at,
+          NULL as completed_at, 
+          NULL as cancelled_at,
+          'business' as contract_source,
+          bc.company_name as customer_name, 
+          bc.business_number as resident_number,
+          bc.business_phone as customer_phone, 
+          bc.business_address as customer_address,
+          NULL as customer_postcode, 
+          bc.representative_address as customer_detail_address, 
+          bc.license_type,
+          bc.business_type as business_contract_type, 
+          bc.company_name as company_name
+        FROM business_contracts bc
+        WHERE bc.motorcycle_id = ?
+        ORDER BY bc.created_at DESC
+      `).bind(motorcycleId).all()
+      
+      console.log('✅ Business contracts loaded:', businessResult.results?.length || 0)
+    } catch (businessError) {
+      console.error('⚠️ Business contracts query failed:', businessError.message)
+      // business_contracts 테이블이 없거나 에러가 나도 personal contracts는 반환
+    }
+    
+    // 두 결과를 합치기
+    const allContracts = [
+      ...(personalResult.results || []),
+      ...(businessResult.results || [])
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    
+    console.log('✅ Total contracts:', allContracts.length)
+    
+    return c.json(allContracts)
   } catch (error) {
-    console.error('Error fetching motorcycle contracts:', error)
+    console.error('❌ Error fetching motorcycle contracts:', error)
     return c.json({ error: 'Failed to fetch contracts', details: error.message }, 500)
   }
 })
