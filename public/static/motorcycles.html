@@ -1135,6 +1135,8 @@
 
         async function showHistory(motorcycleId) {
             try {
+                console.log('🔍 오토바이 이력 조회 시작:', motorcycleId);
+                
                 // 즉시 모달 표시 (로딩 상태)
                 document.getElementById('motorcycleInfo').innerHTML = `
                     <div class="text-center py-4">
@@ -1152,17 +1154,42 @@
                 
                 const sessionId = localStorage.getItem('sessionId');
                 const headers = sessionId ? { 'X-Session-ID': sessionId } : {};
+                console.log('📡 세션 ID:', sessionId ? '있음' : '없음');
                 
-                // 병렬로 모든 데이터 조회 (속도 향상)
-                const [motorcycleResponse, historyResponse, detailedHistoryResponse] = await Promise.all([
-                    axios.get(`/api/motorcycles/${motorcycleId}`, { headers }),
-                    axios.get(`/api/motorcycles/${motorcycleId}/contracts`, { headers }),
-                    axios.get(`/api/motorcycles/${motorcycleId}/history`, { headers })
-                ]);
+                // 개별적으로 데이터 조회 (한 개 실패해도 나머지 표시)
+                let motorcycle = null;
+                let contracts = [];
+                let detailedHistory = [];
                 
-                const motorcycle = motorcycleResponse.data;
-                const contracts = historyResponse.data;
-                const detailedHistory = detailedHistoryResponse.data.history || [];
+                try {
+                    console.log('📡 오토바이 정보 조회 중...');
+                    const motorcycleResponse = await axios.get(`/api/motorcycles/${motorcycleId}`, { headers });
+                    motorcycle = motorcycleResponse.data;
+                    console.log('✅ 오토바이 정보 조회 성공:', motorcycle);
+                } catch (error) {
+                    console.error('❌ 오토바이 정보 조회 실패:', error);
+                    throw new Error('오토바이 정보를 불러올 수 없습니다');
+                }
+                
+                try {
+                    console.log('📡 계약 이력 조회 중...');
+                    const historyResponse = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`, { headers });
+                    contracts = historyResponse.data || [];
+                    console.log('✅ 계약 이력 조회 성공:', contracts.length, '건');
+                } catch (error) {
+                    console.error('❌ 계약 이력 조회 실패:', error);
+                    contracts = [];
+                }
+                
+                try {
+                    console.log('📡 상세 이력 조회 중...');
+                    const detailedHistoryResponse = await axios.get(`/api/motorcycles/${motorcycleId}/history`, { headers });
+                    detailedHistory = detailedHistoryResponse.data?.history || [];
+                    console.log('✅ 상세 이력 조회 성공:', detailedHistory.length, '건');
+                } catch (error) {
+                    console.error('❌ 상세 이력 조회 실패:', error);
+                    detailedHistory = [];
+                }
                 
                 // 오토바이 정보 표시
                 // 폐지된 경우 이력에서 폐지 전 번호판 찾기
