@@ -337,7 +337,7 @@
                                 <input type="text" id="contractType" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="계약종류 입력">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold mb-2">선납/보증금 (원)</label>
+                                <label class="block text-sm font-bold mb-2">선납금 (원)</label>
                                 <input type="number" id="deposit" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="보증금 입력">
                             </div>
                             <div>
@@ -1277,7 +1277,7 @@
                                             <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
                                                 <p><strong>계약기간:</strong> ${contract.start_date} ~ ${contract.end_date}</p>
                                                 <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
-                                                <p><strong>보증금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
+                                                <p><strong>선납금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
                                                 <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
                                                 ${contract.status === 'cancelled' && contract.cancelled_at ? `
                                                     <p class="text-red-600 font-bold"><strong>해지일:</strong> ${new Date(contract.cancelled_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ')}</p>
@@ -1898,7 +1898,7 @@
 
         // 계약 해지 (상태를 available로 변경 + 계약정보만 초기화, 기본정보와 보험정보는 유지)
         async function terminateMotorcycle(id) {
-            if (!confirm('계약을 해지하시겠습니까?\n\n해지하면:\n✅ 오토바이 상태가 "휴차중"으로 변경됩니다\n✅ 계약 정보만 초기화됩니다 (월차감, 보증금, 계약기간 등)\n✅ 기본 정보는 유지됩니다 (번호판, 차대번호, 차량명 등)\n✅ 보험 정보는 유지됩니다 (보험사, 보험기간, 운전범위 등)\n✅ 관련 계약서는 "해지" 상태로 보존됩니다\n\n💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.')) return;
+            if (!confirm('계약을 해지하시겠습니까?\n\n해지하면:\n✅ 오토바이 상태가 "휴차중"으로 변경됩니다\n✅ 계약 정보만 초기화됩니다 (월차감, 선납금, 계약기간 등)\n✅ 기본 정보는 유지됩니다 (번호판, 차대번호, 차량명 등)\n✅ 보험 정보는 유지됩니다 (보험사, 보험기간, 운전범위 등)\n✅ 관련 계약서는 "해지" 상태로 보존됩니다\n\n💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.')) return;
 
             try {
                 const sessionId = localStorage.getItem('sessionId');
@@ -1940,7 +1940,7 @@
                     `✅ 계약이 해지되었습니다!\n\n` +
                     `🏍️ 오토바이 상태: 휴차중\n` +
                     `📋 해지된 계약서: ${activeContracts.length}건 (기록 보존)\n\n` +
-                    `✅ 계약 정보: 초기화됨 (월차감, 보증금, 계약기간 등)\n` +
+                    `✅ 계약 정보: 초기화됨 (월차감, 선납금, 계약기간 등)\n` +
                     `✅ 기본 정보: 유지됨 (번호판, 차대번호, 차량명 등)\n` +
                     `✅ 보험 정보: 유지됨 (보험사, 보험기간, 운전범위 등)\n\n` +
                     `💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.`
@@ -2098,7 +2098,7 @@
                             <div>
                                 <p class="mb-1"><strong>계약기간:</strong> ${h.start_date} ~ ${h.end_date}</p>
                                 <p class="mb-1"><strong>일대여료:</strong> ${Number(h.monthly_fee).toLocaleString()}원</p>
-                                <p><strong>보증금:</strong> ${Number(h.deposit || 0).toLocaleString()}원</p>
+                                <p><strong>선납금:</strong> ${Number(h.deposit || 0).toLocaleString()}원</p>
                             </div>
                         </div>
                         
