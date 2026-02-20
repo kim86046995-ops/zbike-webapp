@@ -2054,12 +2054,9 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
         c.start_date, 
         c.end_date,
         c.monthly_fee, 
-        c.contract_type_text, 
         c.deposit,
         c.special_terms, 
-        c.contract_pdf_url, 
-        c.id_card_image_url,
-        c.contract_end_image_url, 
+        c.id_card_photo, 
         c.status, 
         c.created_at, 
         c.updated_at,
@@ -2091,12 +2088,9 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
           bc.contract_start_date as start_date, 
           bc.contract_end_date as end_date,
           bc.daily_amount as monthly_fee, 
-          bc.business_type as contract_type_text, 
           bc.deposit,
           bc.special_terms, 
-          NULL as contract_pdf_url, 
-          bc.id_card_photo as id_card_image_url,
-          NULL as contract_end_image_url, 
+          bc.id_card_photo, 
           bc.status, 
           bc.created_at, 
           bc.updated_at,
@@ -2109,7 +2103,8 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
           bc.business_address as customer_address, 
           NULL as customer_postcode,
           bc.representative_address as customer_detail_address, 
-          bc.license_type
+          bc.license_type,
+          bc.business_type as business_contract_type
         FROM business_contracts bc
         WHERE bc.motorcycle_id = ?
         ORDER BY bc.created_at DESC
