@@ -2104,9 +2104,14 @@
             
             const customerDetailsEl = document.getElementById('selectedCustomerDetails');
             if (customerDetailsEl) {
+                const postcodeText = customer.postcode ? `[${customer.postcode}]` : '';
+                const detailAddressText = customer.detail_address ? ` ${customer.detail_address}` : '';
+                const fullAddress = `${postcodeText} ${customer.address || '-'}${detailAddressText}`;
+                
                 customerDetailsEl.innerHTML = `
                     <span class="mr-3"><i class="fas fa-phone mr-1"></i>${customer.phone}</span>
-                    <span><i class="fas fa-id-card mr-1"></i>${customer.resident_number ? customer.resident_number.substring(0, 6) + '-*******' : '-'}</span>
+                    <span class="mr-3"><i class="fas fa-id-card mr-1"></i>${customer.resident_number ? customer.resident_number.substring(0, 6) + '-*******' : '-'}</span>
+                    <span><i class="fas fa-map-marker-alt mr-1"></i>${fullAddress.trim()}</span>
                 `;
             }
             
