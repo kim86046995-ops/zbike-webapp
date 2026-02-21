@@ -2105,7 +2105,7 @@
             const customerDetailsEl = document.getElementById('selectedCustomerDetails');
             if (customerDetailsEl) {
                 const postcodeText = customer.postcode ? `[${customer.postcode}]` : '';
-                const detailAddressText = customer.detail_address ? ` ${customer.detail_address}` : '';
+                const detailAddressText = customer.detail_address ? `, ${customer.detail_address}` : '';
                 const fullAddress = `${postcodeText} ${customer.address || '-'}${detailAddressText}`;
                 
                 customerDetailsEl.innerHTML = `
