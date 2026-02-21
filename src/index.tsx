@@ -2199,12 +2199,21 @@ app.post('/api/contracts', async (c) => {
   
   // 고객 정보가 전달된 경우 업데이트 (우편번호/상세주소 보존)
   if (data.customer_id && data.customer_name) {
+    // 기존 고객 데이터 조회
+    const existingCustomer = await DB.prepare(`
+      SELECT postcode, detail_address FROM customers WHERE id = ?
+    `).bind(data.customer_id).first() as any
+    
+    // 전달된 값이 없으면 기존 값 유지
+    const postcodeToUpdate = data.postcode || existingCustomer?.postcode || ''
+    const detailAddressToUpdate = data.detail_address || existingCustomer?.detail_address || ''
+    
     console.log('📝 Updating customer info:', {
       id: data.customer_id,
       name: data.customer_name,
-      postcode: data.postcode,
+      postcode: `${data.postcode || '(기존값 유지)'} → ${postcodeToUpdate}`,
       address: data.address,
-      detail_address: data.detail_address
+      detail_address: `${data.detail_address || '(기존값 유지)'} → ${detailAddressToUpdate}`
     })
     
     await DB.prepare(`
@@ -2222,9 +2231,9 @@ app.post('/api/contracts', async (c) => {
       data.customer_name, 
       data.customer_phone || '',
       data.resident_number || '', 
-      data.postcode || '',
+      postcodeToUpdate,
       data.address || '', 
-      data.detail_address || '',
+      detailAddressToUpdate,
       data.license_type || '2종소형', 
       data.customer_id
     ).run()
