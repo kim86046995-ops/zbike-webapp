@@ -2197,6 +2197,17 @@ app.post('/api/contracts', async (c) => {
   const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
+  // 🔍 전달된 데이터 전체 로그
+  console.log('📥 계약서 생성 요청 데이터:', JSON.stringify({
+    customer_id: data.customer_id,
+    customer_name: data.customer_name,
+    postcode: data.postcode,
+    address: data.address,
+    detail_address: data.detail_address,
+    customer_phone: data.customer_phone,
+    resident_number: data.resident_number
+  }, null, 2))
+  
   // 고객 정보가 전달된 경우 업데이트 (우편번호/상세주소 보존)
   if (data.customer_id && data.customer_name) {
     // 기존 고객 데이터 조회
