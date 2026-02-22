@@ -1778,33 +1778,8 @@ END`)
 
 
 // ============================================
-// 업체 API
+// 업체 API (Removed - using version at line 5879)
 // ============================================
-
-// 업체 목록 조회
-app.get('/api/companies', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  
-  const result = await DB.prepare(`
-    SELECT * FROM companies ORDER BY created_at DESC
-  `).all()
-  
-  return c.json(result.results)
-})
-
-// 업체 상세 조회
-app.get('/api/companies/:id', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const id = c.req.param('id')
-  
-  const company = await DB.prepare('SELECT * FROM companies WHERE id = ?').bind(id).first()
-  
-  if (!company) {
-    return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
-  }
-  
-  return c.json(company)
-})
 
 // 업체 생성
 // 업체 수정
@@ -5875,13 +5850,10 @@ app.get('/api/companies/:id', async (c) => {
   }
 })
 
-// 업체 목록 조회 (관리자용)
+// 업체 목록 조회 (전체)
 app.get('/api/companies', async (c) => {
   try {
     const { env } = c
-    const page = parseInt(c.req.query('page') || '1')
-    const limit = parseInt(c.req.query('limit') || '20')
-    const offset = (page - 1) * limit
 
     const companies = await env.DB.prepare(`
       SELECT 
@@ -5890,28 +5862,46 @@ app.get('/api/companies', async (c) => {
         business_number,
         representative,
         representative_phone,
-        business_address,
+        representative_resident_number,
+        representative_postcode,
+        representative_address,
+        representative_detail_address,
+        id_card_photo,
         status,
-        created_at
+        created_at,
+        updated_at
       FROM companies
+      WHERE status = 'active'
       ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).bind(limit, offset).all()
+    `).all()
 
-    const totalResult = await env.DB.prepare(`
-      SELECT COUNT(*) as total FROM companies
-    `).first()
-
-    return c.json({
-      success: true,
-      companies: companies.results || [],
-      total: totalResult?.total || 0,
-      page,
-      limit
-    })
+    console.log('📋 업체 목록 조회:', companies.results?.length || 0, '개')
+    return c.json(companies.results || [])
   } catch (error) {
     console.error('❌ 업체 목록 조회 실패:', error)
     return c.json({ error: '업체 목록 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 업체 상세 조회
+app.get('/api/companies/:id', async (c) => {
+  try {
+    const { env } = c
+    const id = c.req.param('id')
+
+    const company = await env.DB.prepare(`
+      SELECT * FROM companies WHERE id = ?
+    `).bind(id).first()
+
+    if (!company) {
+      return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
+    }
+
+    console.log('📋 업체 상세 조회:', company.company_name)
+    return c.json(company)
+  } catch (error) {
+    console.error('❌ 업체 상세 조회 실패:', error)
+    return c.json({ error: '업체 상세 조회 중 오류가 발생했습니다.' }, 500)
   }
 })
 
