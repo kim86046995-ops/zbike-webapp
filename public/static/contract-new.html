@@ -2494,24 +2494,67 @@
                 // 5. 서명 이미지 추출
                 const signatureData = canvas.toDataURL('image/png');
 
-                // 6. DB에 계약서 저장 (상태: active - 즉시 완료)
-                console.log('💾 계약서를 DB에 저장합니다 (상태: active - 즉시 완료)');
-                const contractResponse = await axios.post('/api/contracts', {
-                    ...pendingContractData,
+                // 6. 계약 데이터 직접 구성
+                const contractType = document.getElementById('contractType').value;
+                const customerName = document.getElementById('customerName').value;
+                const customerPhone = document.getElementById('customerPhone').value;
+                const baseAddress = document.getElementById('address').value;
+                const postcode = document.getElementById('postcode').value;
+                const detailAddress = document.getElementById('detailAddress').value;
+
+                const contractData = {
+                    contract_type: contractType,
+                    customer_id: selectedCustomerId,
+                    motorcycle_id: selectedMotorcycleId,
+                    // 오토바이 제원 정보
+                    motorcycle_plate: selectedMotorcycle?.plate_number || '',
+                    motorcycle_name: selectedMotorcycle?.vehicle_name || '',
+                    chassis_number: selectedMotorcycle?.chassis_number || '',
+                    mileage: selectedMotorcycle?.mileage || 0,
+                    model_year: selectedMotorcycle?.model_year || '',
+                    color: selectedMotorcycle?.color || '',
+                    displacement: selectedMotorcycle?.displacement || '',
+                    fuel_type: selectedMotorcycle?.fuel_type || '',
+                    // 계약 정보
+                    start_date: document.getElementById('startDate').value,
+                    end_date: document.getElementById('endDate').value,
+                    monthly_fee: parseInt(document.getElementById('dailyFee').value),
+                    daily_fee: parseInt(document.getElementById('dailyFee').value),
+                    deposit: parseInt(document.getElementById('deposit').value) || 0,
+                    driving_range: document.getElementById('drivingRange').value,
+                    insurance_age_limit: document.getElementById('drivingRange').value,
+                    // 보험 정보
+                    insurance_company: document.getElementById('insuranceCompany').value,
+                    insurance_start_date: document.getElementById('insuranceStartDate').value,
+                    insurance_end_date: document.getElementById('insuranceEndDate').value,
+                    special_terms: document.getElementById('specialTerms').value || '',
+                    // 고객 정보
+                    resident_number: document.getElementById('residentNumber').value,
+                    address: baseAddress,
+                    postcode: postcode,
+                    detail_address: detailAddress,
+                    license_type: document.getElementById('drivingRange').value,
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    // 서명 및 신분증
                     status: 'active',  // 즉시 완료 상태
                     signature_data: signatureData,
                     id_card_photo: adminIdPhotoData
-                }, {
+                };
+
+                // 7. DB에 계약서 저장
+                console.log('💾 계약서를 DB에 저장합니다 (상태: active - 즉시 완료)');
+                const contractResponse = await axios.post('/api/contracts', contractData, {
                     headers: { 'X-Session-ID': sessionId }
                 });
 
                 console.log('✅ 계약서 저장 완료:', contractResponse.data);
                 const { id: contractId, contract_number: contractNumber } = contractResponse.data;
 
-                // 7. 성공 메시지 표시
+                // 8. 성공 메시지 표시
                 alert(`✅ 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명 및 신분증이 저장되었습니다.\n\n계약서 목록 페이지로 이동합니다.`);
 
-                // 8. 계약서 목록으로 이동
+                // 9. 계약서 목록으로 이동
                 setTimeout(() => {
                     window.location.href = '/static/contracts.html';
                 }, 2000);
