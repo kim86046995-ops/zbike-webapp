@@ -873,10 +873,6 @@
             if (selectedCompany.representative_detail_address) {
                 document.getElementById('representativeDetailAddress').value = selectedCompany.representative_detail_address;
             }
-                document.getElementById('representativePostcode').value = selectedCompany.postcode;
-            }
-            document.getElementById('representativeAddress').value = selectedCompany.address || ''; // 기본주소
-            document.getElementById('representativeDetailAddress').value = selectedCompany.detail_address || ''; // 상세주소
             
             // 2. 서명 자동 입력
             if (selectedCompany.signature_data) {
