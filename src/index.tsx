@@ -2232,7 +2232,7 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
 
 // 계약서 생성 (인증 필요)
 // 계약서 생성 (공개 API - 고객 포털용)
-app.post('/api/contracts', async (c) => {
+app.post('/api/contracts', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
