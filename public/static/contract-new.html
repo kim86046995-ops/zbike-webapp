@@ -2494,13 +2494,18 @@
                 // 5. 서명 이미지 추출
                 const signatureData = canvas.toDataURL('image/png');
 
-                // 6. 계약 데이터 직접 구성
-                const contractType = document.getElementById('contractType').value;
-                const customerName = document.getElementById('customerName').value;
-                const customerPhone = document.getElementById('customerPhone').value;
-                const baseAddress = document.getElementById('address').value;
-                const postcode = document.getElementById('postcode').value;
-                const detailAddress = document.getElementById('detailAddress').value;
+                // 6. 계약 데이터 직접 구성 (안전하게 요소 확인)
+                const getElementValue = (id, defaultValue = '') => {
+                    const element = document.getElementById(id);
+                    return element ? element.value : defaultValue;
+                };
+
+                const contractType = getElementValue('contractType');
+                const customerName = getElementValue('customerName');
+                const customerPhone = getElementValue('customerPhone');
+                const baseAddress = getElementValue('address');
+                const postcode = getElementValue('postcode');
+                const detailAddress = getElementValue('detailAddress');
 
                 const contractData = {
                     contract_type: contractType,
@@ -2516,24 +2521,24 @@
                     displacement: selectedMotorcycle?.displacement || '',
                     fuel_type: selectedMotorcycle?.fuel_type || '',
                     // 계약 정보
-                    start_date: document.getElementById('startDate').value,
-                    end_date: document.getElementById('endDate').value,
-                    monthly_fee: parseInt(document.getElementById('dailyFee').value),
-                    daily_fee: parseInt(document.getElementById('dailyFee').value),
-                    deposit: parseInt(document.getElementById('deposit').value) || 0,
-                    driving_range: document.getElementById('drivingRange').value,
-                    insurance_age_limit: document.getElementById('drivingRange').value,
+                    start_date: getElementValue('startDate'),
+                    end_date: getElementValue('endDate'),
+                    monthly_fee: parseInt(getElementValue('dailyFee', '0')) || 0,
+                    daily_fee: parseInt(getElementValue('dailyFee', '0')) || 0,
+                    deposit: parseInt(getElementValue('deposit', '0')) || 0,
+                    driving_range: getElementValue('drivingRange'),
+                    insurance_age_limit: getElementValue('drivingRange'),
                     // 보험 정보
-                    insurance_company: document.getElementById('insuranceCompany').value,
-                    insurance_start_date: document.getElementById('insuranceStartDate').value,
-                    insurance_end_date: document.getElementById('insuranceEndDate').value,
-                    special_terms: document.getElementById('specialTerms').value || '',
+                    insurance_company: getElementValue('insuranceCompany'),
+                    insurance_start_date: getElementValue('insuranceStartDate'),
+                    insurance_end_date: getElementValue('insuranceEndDate'),
+                    special_terms: getElementValue('specialTerms'),
                     // 고객 정보
-                    resident_number: document.getElementById('residentNumber').value,
+                    resident_number: getElementValue('residentNumber'),
                     address: baseAddress,
                     postcode: postcode,
                     detail_address: detailAddress,
-                    license_type: document.getElementById('drivingRange').value,
+                    license_type: getElementValue('drivingRange'),
                     customer_name: customerName,
                     customer_phone: customerPhone,
                     // 서명 및 신분증
