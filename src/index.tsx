@@ -6057,13 +6057,21 @@ app.put('/api/companies/:id', async (c) => {
     })
 
     // 업체 존재 확인
+    console.log('🔍 업체 존재 확인 중...')
     const company = await DB.prepare(`
       SELECT id, company_name FROM companies WHERE id = ?
     `).bind(id).first()
 
+    console.log('📋 조회된 업체:', company)
+
     if (!company) {
+      console.error('❌ 업체를 찾을 수 없음:', id)
       return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
     }
+
+    // 업체 이름을 즉시 변수에 저장
+    const companyName = company.company_name || `업체 ID ${id}`
+    console.log('✅ 업체 확인:', companyName)
 
     // 업데이트할 필드만 업데이트
     const updateFields = []
@@ -6122,7 +6130,6 @@ app.put('/api/companies/:id', async (c) => {
     const result = await DB.prepare(sql).bind(...updateValues).run()
     console.log('✅ DB 쿼리 실행 완료:', result)
 
-    const companyName = company?.company_name || `업체 ID ${id}`
     console.log('✅ 업체 수정 완료:', companyName)
     return c.json({ 
       success: true, 
