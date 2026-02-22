@@ -302,11 +302,27 @@
                     const response = await axios.post('/api/companies', formData);
                     console.log('✅ 등록 성공:', response.data);
                     
-                    alert('업체 정보가 성공적으로 등록되었습니다!');
+                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n사업자번호: ' + formData.business_number);
                     resetForm();
                 } catch (error) {
                     console.error('❌ 등록 실패:', error);
-                    alert('등록 중 오류가 발생했습니다: ' + (error.response?.data?.error || error.message));
+                    
+                    let errorMessage = '등록 중 오류가 발생했습니다.';
+                    
+                    if (error.response) {
+                        // 서버에서 응답이 온 경우
+                        if (error.response.status === 400) {
+                            errorMessage = error.response.data?.error || '이미 등록된 사업자번호입니다.';
+                        } else if (error.response.status === 500) {
+                            errorMessage = '서버 오류가 발생했습니다.\n\n다른 사업자번호로 시도해주세요.\n(이미 등록된 번호일 수 있습니다)';
+                        } else {
+                            errorMessage = error.response.data?.error || error.message;
+                        }
+                    } else {
+                        errorMessage = '네트워크 오류: ' + error.message;
+                    }
+                    
+                    alert('❌ ' + errorMessage);
                 }
             };
             reader.readAsDataURL(idCardFile);
