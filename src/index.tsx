@@ -5747,8 +5747,9 @@ app.post('/api/upload/id-card', async (c) => {
       }
     })
     
-    // 공개 URL 생성 (Cloudflare R2 public domain 사용)
-    const publicUrl = `https://pub-${c.env.CLOUDFLARE_ACCOUNT_ID || 'your-account'}.r2.dev/${fileName}`
+    // Workers를 통한 공개 URL 생성
+    const justFileName = fileName.replace('id-cards/', '')
+    const publicUrl = `/api/r2/id-cards/${justFileName}`
     
     console.log('✅ R2 업로드 성공:', publicUrl)
     
@@ -6007,6 +6008,42 @@ app.delete('/api/companies/:id', async (c) => {
   } catch (error) {
     console.error('❌ 업체 삭제 실패:', error)
     return c.json({ error: '업체 삭제 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// R2 이미지 서빙 (공개 접근)
+app.get('/api/r2/id-cards/:fileName', async (c) => {
+  const R2 = c.env.R2_ID_CARDS
+  
+  if (!R2) {
+    return c.json({ error: 'R2 storage not configured' }, 500)
+  }
+  
+  try {
+    const fileName = c.req.param('fileName')
+    const fullPath = `id-cards/${fileName}`
+    
+    console.log('📥 R2 이미지 요청:', fullPath)
+    
+    const object = await R2.get(fullPath)
+    
+    if (!object) {
+      console.error('❌ R2에서 이미지를 찾을 수 없음:', fullPath)
+      return c.notFound()
+    }
+    
+    console.log('✅ R2 이미지 로드 성공:', fullPath)
+    
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000', // 1년 캐시
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
+  } catch (error) {
+    console.error('❌ R2 이미지 로드 실패:', error)
+    return c.json({ error: '이미지를 불러올 수 없습니다.' }, 500)
   }
 })
 
