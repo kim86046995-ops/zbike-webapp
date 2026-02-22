@@ -1430,8 +1430,25 @@
             console.log('📤 계약서 저장 시작');
             console.log('='.repeat(60));
             console.log('계약 데이터:', contractData);
+            console.log('');
+            console.log('🔍 주요 필드 검증:');
+            console.log('  - motorcycle_id:', contractData.motorcycle_id, typeof contractData.motorcycle_id);
+            console.log('  - company_name:', contractData.company_name);
+            console.log('  - company_code:', contractData.company_code);
+            console.log('  - contract_start_date:', contractData.contract_start_date);
+            console.log('  - daily_amount:', contractData.daily_amount);
             console.log('세션 ID:', sessionId ? '✅ 있음' : '❌ 없음');
             console.log('='.repeat(60));
+            
+            // 필수 필드 검증
+            if (!contractData.motorcycle_id) {
+                alert('❌ 오토바이를 선택해주세요.');
+                return;
+            }
+            if (!contractData.company_name || !contractData.company_code) {
+                alert('❌ 업체 정보를 입력해주세요.');
+                return;
+            }
 
             try {
                 console.log('🌐 API 호출: POST /api/business-contracts');
