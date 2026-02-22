@@ -6016,8 +6016,11 @@ app.put('/api/companies/:id', async (c) => {
   const DB = c.env.DB || c.env.db
   
   try {
+    console.log('🔍 업체 수정 API 호출됨')
+    
     // 세션 체크
     const sessionId = c.req.header('X-Session-ID')
+    console.log('🔑 받은 세션 ID:', sessionId ? sessionId.substring(0, 10) + '...' : '없음')
     
     if (!sessionId) {
       console.error('❌ 세션 ID 없음')
@@ -6025,6 +6028,7 @@ app.put('/api/companies/:id', async (c) => {
     }
     
     // 세션 검증
+    console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
       SELECT * FROM sessions WHERE session_id = ? AND expires_at > datetime('now')
     `).bind(sessionId).first()
@@ -6038,6 +6042,12 @@ app.put('/api/companies/:id', async (c) => {
     
     const id = c.req.param('id')
     const data = await c.req.json()
+    
+    console.log('📝 업체 수정 요청 상세:', {
+      id,
+      data,
+      fields: Object.keys(data)
+    })
 
     console.log('📝 업체 수정 요청:', {
       id,
@@ -6104,8 +6114,13 @@ app.put('/api/companies/:id', async (c) => {
       SET ${updateFields.join(', ')}
       WHERE id = ?
     `
+    
+    console.log('🗄️ SQL 쿼리:', sql)
+    console.log('🗄️ SQL 파라미터:', updateValues)
 
-    await DB.prepare(sql).bind(...updateValues).run()
+    console.log('🔄 DB 쿼리 실행 중...')
+    const result = await DB.prepare(sql).bind(...updateValues).run()
+    console.log('✅ DB 쿼리 실행 완료:', result)
 
     console.log('✅ 업체 수정 완료:', company.company_name, `(ID: ${id})`)
     return c.json({ 
@@ -6114,10 +6129,16 @@ app.put('/api/companies/:id', async (c) => {
       id: parseInt(id)
     })
   } catch (error) {
-    console.error('❌ 업체 수정 실패:', error)
+    console.error('❌ 업체 수정 실패 (상세):', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    })
     return c.json({ 
       error: '업체 수정 중 오류가 발생했습니다.',
-      details: error.message 
+      details: error.message,
+      type: error.name
     }, 500)
   }
 })
