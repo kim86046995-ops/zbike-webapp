@@ -736,10 +736,15 @@
                 const response = await axios.get('/api/companies', {
                     headers: { 'X-Session-ID': sessionId }
                 });
-                allCompanies = response.data;
-                companies = response.data.companies || [];
+                
+                // API는 배열을 직접 반환함
+                companies = response.data || [];
+                allCompanies = { companies: companies };
                 
                 console.log('✅ 업체 목록 로드:', companies.length + '건');
+                if (companies.length > 0) {
+                    console.log('📋 첫 번째 업체 샘플:', companies[0]);
+                }
             } catch (error) {
                 console.error('❌ 업체 목록 로드 실패:', error);
                 companies = [];
@@ -761,12 +766,12 @@
             document.getElementById('companySearch').value = '';
         }
         
-        // 모달 내 업체 검색 필터 (사업자번호, 이름, 전화번호 뒷자리, 주민번호 앞 6자리)
+        // 모달 내 업체 검색 필터 (업체코드, 이름, 전화번호 뒷자리, 주민번호 앞 6자리)
         async function filterCompaniesInModal() {
             const searchTerm = document.getElementById('companySearch').value.trim();
             
             if (!searchTerm) {
-                renderCompanyList(allCompanies.companies || []);
+                renderCompanyList(companies);
                 return;
             }
             
@@ -780,20 +785,13 @@
             } catch (error) {
                 console.error('❌ 업체 검색 실패:', error);
                 // 실패 시 로컬 필터링으로 폴백
-                const searchLower = searchTerm.toLowerCase();
-                const filtered = (allCompanies.companies || []).filter(c => {
-                    const name = (c.company_name || '').toLowerCase();
-                    const companyCode = (c.company_code || '').replace(/-/g, '');
-                    const representative = (c.representative || '').toLowerCase();
-                    const phone = (c.representative_phone || '').replace(/-/g, '');
-                    const residentNumber = (c.representative_resident_number || '').replace(/-/g, '').substring(0, 6);
-                    
-                    return name.includes(searchLower) || 
-                           companyCode.includes(searchTerm.replace(/-/g, '')) ||
-                           representative.includes(searchLower) ||
-                           phone.includes(searchTerm.replace(/-/g, '')) ||
-                           residentNumber.includes(searchTerm.replace(/-/g, ''));
-                });
+                const filtered = companies.filter(c => 
+                    c.company_name?.includes(searchTerm) ||
+                    c.company_code?.includes(searchTerm) ||
+                    c.representative?.includes(searchTerm) ||
+                    c.representative_phone?.includes(searchTerm)
+                );
+                console.log(`🔍 로컬 검색 결과: ${filtered.length}건`);
                 renderCompanyList(filtered);
             }
         }
