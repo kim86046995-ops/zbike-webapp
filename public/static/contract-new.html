@@ -552,6 +552,69 @@
                     </div>
                 </div>
 
+                <!-- 6. 계약 약관 (읽기 전용 - 고객이 링크에서 동의) -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">
+                        <i class="fas fa-file-contract mr-2 text-purple-600"></i>
+                        6. 계약 약관
+                        <span class="text-sm font-normal text-gray-600 ml-2">(고객이 SMS 링크에서 동의합니다)</span>
+                    </h2>
+                    <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-6 max-h-96 overflow-y-auto">
+                        <div class="prose prose-sm max-w-none">
+                            <h3 class="text-lg font-bold mb-3">제1조 (계약의 목적)</h3>
+                            <p class="mb-4">본 계약은 임대인(갑)이 임차인(을)에게 오토바이를 대여하고, 임차인은 이를 임차하여 사용함에 있어 필요한 제반 사항을 정함을 목적으로 한다.</p>
+
+                            <h3 class="text-lg font-bold mb-3">제2조 (계약기간)</h3>
+                            <p class="mb-4">계약기간은 계약서에 명시된 시작일부터 종료일까지로 한다. 계약기간 연장 시 별도 협의한다.</p>
+
+                            <h3 class="text-lg font-bold mb-3">제3조 (대여료 및 선납금)</h3>
+                            <p class="mb-4">
+                                1. 월 대여료는 계약서에 명시된 금액으로 하며, 매월 초에 선납한다.<br>
+                                2. 선납금은 계약서에 명시된 금액으로 하며, 계약 종료 시 미납금을 제외하고 반환한다.<br>
+                                3. 일 차감액은 계약서에 명시된 금액으로 하며, 월 대여료를 일할 계산한 금액이다.
+                            </p>
+
+                            <h3 class="text-lg font-bold mb-3">제4조 (임차인의 의무)</h3>
+                            <p class="mb-4">
+                                1. 임차인은 선량한 관리자의 주의로 오토바이를 관리하고 보관해야 한다.<br>
+                                2. 임차인은 오토바이를 계약 목적 외의 용도로 사용할 수 없다.<br>
+                                3. 임차인은 임대인의 사전 동의 없이 오토바이를 제3자에게 대여하거나 양도할 수 없다.<br>
+                                4. 임차인은 정기적으로 오토바이 점검 및 정비를 받아야 한다.
+                            </p>
+
+                            <h3 class="text-lg font-bold mb-3">제5조 (보험)</h3>
+                            <p class="mb-4">
+                                1. 오토바이에 대한 보험은 임대인이 가입하며, 보험 내용은 계약서에 명시된 바와 같다.<br>
+                                2. 임차인의 과실로 인한 사고 발생 시, 보험 처리 후 공제금액은 임차인이 부담한다.<br>
+                                3. 음주운전, 무면허운전 등 중과실로 인한 사고는 보험 처리가 불가하며 전액 임차인이 배상한다.
+                            </p>
+
+                            <h3 class="text-lg font-bold mb-3">제6조 (사고 및 손해배상)</h3>
+                            <p class="mb-4">
+                                1. 임차인의 과실로 오토바이가 파손되거나 분실된 경우 임차인은 이를 배상해야 한다.<br>
+                                2. 사고 발생 즉시 임대인에게 통보하고, 필요한 조치를 취해야 한다.<br>
+                                3. 교통법규 위반으로 인한 범칙금, 과태료는 임차인이 부담한다.
+                            </p>
+
+                            <h3 class="text-lg font-bold mb-3">제7조 (계약의 해지)</h3>
+                            <p class="mb-4">
+                                1. 임차인이 대여료를 2회 이상 연체한 경우 임대인은 본 계약을 해지할 수 있다.<br>
+                                2. 임차인이 본 계약의 조항을 위반한 경우 임대인은 즉시 계약을 해지할 수 있다.<br>
+                                3. 계약 해지 시 선납금에서 미납금 및 손해배상액을 공제한 후 반환한다.
+                            </p>
+
+                            <h3 class="text-lg font-bold mb-3">제8조 (분쟁의 해결)</h3>
+                            <p class="mb-4">본 계약과 관련하여 분쟁이 발생한 경우 상호 협의하여 해결하되, 협의가 이루어지지 않을 경우 관할 법원에 제소할 수 있다.</p>
+
+                            <div class="mt-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                                <p class="text-sm font-bold text-yellow-800">
+                                    ⚠️ 위 약관은 참고용이며, 고객이 SMS 링크를 통해 실제 계약서를 확인하고 동의해야 계약이 완료됩니다.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ⚠️ 약관 동의는 고객이 링크에서 직접 확인하고 동의합니다 -->
 
                 <!-- 7. 계약자 서명 -->
@@ -2354,7 +2417,7 @@
                 
                 // 계약서 목록으로 이동
                 setTimeout(() => {
-                    window.location.href = '/static/contracts-list.html';
+                    window.location.href = '/static/contracts.html';
                 }, 3000);
                 
             } catch (error) {
