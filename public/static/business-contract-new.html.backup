@@ -529,7 +529,7 @@
                         <i class="fas fa-times mr-2"></i>취소
                     </button>
                     <button type="submit" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-bold">
-                        <i class="fas fa-paper-plane mr-2"></i>계약서 작성 완료 및 업체에 전송
+                        <i class="fas fa-save mr-2"></i>계약서 저장
                     </button>
                 </div>
             </form>
@@ -1366,8 +1366,27 @@
                 return;
             }
 
-            // ⚠️ 관리자는 서명하지 않음 - 업체 대표가 나중에 서명합니다
-            // ⚠️ 신분증도 검증하지 않음 - 업체 선택 시 자동으로 불러온 신분증 사용
+            // 서명 확인
+            const signatureData = getBusinessSignatureData();
+            if (!signatureData) {
+                alert('대표자 서명을 해주세요');
+                return;
+            }
+
+            // 빈 캔버스 체크
+            const imageData = businessSignatureCtx.getImageData(0, 0, businessSignatureCanvas.width, businessSignatureCanvas.height);
+            const isBlank = !imageData.data.some(channel => channel !== 255 && channel !== 0);
+            if (isBlank) {
+                alert('대표자 서명을 해주세요');
+                return;
+            }
+
+            // 신분증 확인
+            const idCardPhoto = document.getElementById('idCardPhoto').value;
+            if (!idCardPhoto) {
+                alert('대표자 신분증을 첨부해주세요');
+                return;
+            }
 
             // 대표자 주소 조합
             const representativeFullAddress = `[${document.getElementById('representativePostcode').value}] ${document.getElementById('representativeAddress').value} ${document.getElementById('representativeDetailAddress').value}`.trim();
@@ -1396,8 +1415,10 @@
                 daily_amount: parseInt(document.getElementById('dailyAmount').value),
                 deposit: parseInt(document.getElementById('deposit').value),
                 special_terms: document.getElementById('specialTerms').value,
-                // ⚠️ 서명과 신분증은 업체 대표가 나중에 제출합니다
-                status: 'pending'  // 대기 상태
+                // 서류 및 서명
+                signature_data: signatureData,
+                id_card_photo: idCardPhoto,
+                status: 'active'
             };
 
             console.log('');
@@ -1434,106 +1455,27 @@
             }
 
             try {
-                // 관리자가 작성한 계약 데이터를 삭제 (서명, 신분증 제외)
-                const contractDataForShare = { ...contractData };
-                delete contractDataForShare.signature_data;  // 관리자 서명은 제외
-                delete contractDataForShare.id_card_photo;   // 관리자가 업로드한 신분증 제외
-                
-                console.log('🌐 API 호출: POST /api/contract-share/create');
-                console.log('공유할 계약 데이터:', contractDataForShare);
-                
-                // 공유 링크 생성
-                const response = await axios.post('/api/contract-share/create', {
-                    contract_type: 'business',
-                    contract_data: contractDataForShare,
-                    customer_name: contractData.representative,  // 대표자 이름
-                    customer_phone: contractData.representative_phone  // 대표자 전화번호
-                }, {
+                console.log('🌐 API 호출: POST /api/business-contracts');
+                const response = await axios.post('/api/business-contracts', contractData, {
                     headers: { 'X-Session-ID': sessionId }
                 });
                 
-                console.log('✅ 공유 링크 생성 완료:', response.data);
+                console.log('✅ 업체 계약서 생성 완료:', response.data);
+                console.log('계약번호:', response.data.contract_number);
                 
-                const shareToken = response.data.share_token;
-                const shareUrl = window.location.origin + response.data.share_url;
-                
-                console.log('📱 공유 링크:', shareUrl);
-                
-                // SMS 전송 시도
-                try {
-                    console.log('📤 SMS 전송 시작');
-                    const smsResult = await axios.post('/api/send-sms', {
-                        phone: contractData.representative_phone,
-                        share_url: shareUrl,
-                        customer_name: contractData.representative,
-                        contract_type: 'business'
-                    }, {
-                        headers: { 'X-Session-ID': sessionId }
-                    });
-                    
-                    console.log('✅ SMS 전송 결과:', smsResult.data);
-                    
-                    // 링크를 클립보드에 복사
-                    let clipboardSuccess = false;
-                    try {
-                        await navigator.clipboard.writeText(shareUrl);
-                        clipboardSuccess = true;
-                    } catch (err) {
-                        console.warn('클립보드 복사 실패:', err);
-                    }
-                    
-                    // 시뮬레이션 모드 체크
-                    if (smsResult.data.simulation) {
-                        alert(
-                            `⚠️ SMS 시뮬레이션 모드\n\n` +
-                            (clipboardSuccess ? `✅ 링크가 클립보드에 복사되었습니다!\n\n` : '') +
-                            `실제 문자는 전송되지 않았습니다.\n` +
-                            `네이버 클라우드 SMS API 키를 설정하면 실제 전송됩니다.\n\n` +
-                            `업체명: ${contractData.company_name}\n` +
-                            `대표자: ${contractData.representative}\n` +
-                            `전화번호: ${contractData.representative_phone}\n` +
-                            `링크: ${shareUrl}\n\n` +
-                            `📖 업체 대표에게 링크를 직접 전달해주세요.`
-                        );
-                    } else {
-                        alert(
-                            `✅ 업체 계약서 링크가 전송되었습니다!\n\n` +
-                            (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
-                            `업체명: ${contractData.company_name}\n` +
-                            `대표자: ${contractData.representative}\n` +
-                            `전화번호: ${contractData.representative_phone}\n` +
-                            `링크: ${shareUrl}\n\n` +
-                            `📱 업체 대표가 링크에 접속하여 동의 및 서명을 완료하면\n` +
-                            `계약서 목록에 자동 저장됩니다.`
-                        );
-                    }
-                } catch (smsError) {
-                    console.error('❌ SMS 전송 실패:', smsError);
-                    // SMS 실패해도 링크는 생성되었으므로 계속 진행
-                    alert(
-                        `⚠️ SMS 전송에 실패했습니다.\n\n` +
-                        `하지만 계약서 링크는 생성되었습니다!\n\n` +
-                        `링크: ${shareUrl}\n\n` +
-                        `위 링크를 업체 대표에게 직접 전달해주세요.\n` +
-                        `링크를 클립보드에 복사하시겠습니까?`
-                    );
-                    try {
-                        await navigator.clipboard.writeText(shareUrl);
-                        alert('✅ 링크가 클립보드에 복사되었습니다!');
-                    } catch (err) {
-                        console.warn('클립보드 복사 실패:', err);
-                    }
-                }
+                // 성공 메시지 표시
+                alert(
+                    `✅ 업체 계약서가 저장되었습니다!\n\n` +
+                    `계약번호: ${response.data.contract_number}\n` +
+                    `업체명: ${contractData.company_name}`
+                );
                 
                 // 계약서 목록 페이지로 이동
-                setTimeout(() => {
-                    window.location.href = '/static/contracts-list.html';
-                }, 3000);
-                
+                window.location.href = '/static/contracts-list.html';
             } catch (error) {
                 console.error('');
                 console.error('='.repeat(60));
-                console.error('❌ 공유 링크 생성 실패');
+                console.error('❌ 계약서 생성 실패');
                 console.error('='.repeat(60));
                 console.error('에러 객체:', error);
                 console.error('응답 상태:', error.response?.status);
@@ -1542,7 +1484,7 @@
                 console.error('='.repeat(60));
                 
                 const errorMessage = error.response?.data?.error || error.message || '알 수 없는 오류';
-                alert('공유 링크 생성에 실패했습니다:\n\n' + errorMessage);
+                alert('계약서 생성에 실패했습니다:\n\n' + errorMessage);
             }
         });
 
