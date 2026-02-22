@@ -1957,6 +1957,7 @@
             // 계약 데이터 준비 (서명과 신분증 제외)
             pendingContractData = {
                 contract_type: contractType,
+                customer_id: selectedCustomerId,  // 고객 ID 추가
                 motorcycle_id: selectedMotorcycleId,
                 // 오토바이 제원 정보 추가
                 motorcycle_plate: selectedMotorcycle?.plate_number || '',
