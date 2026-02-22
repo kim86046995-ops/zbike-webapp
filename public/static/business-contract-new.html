@@ -1442,20 +1442,15 @@
                 console.log('✅ 업체 계약서 생성 완료:', response.data);
                 console.log('계약번호:', response.data.contract_number);
                 
-                // 1. 계약서 목록을 새 창으로 열기
-                window.open('/static/contracts.html?refresh=true', 'contractsWindow');
-                
-                // 2. 성공 메시지 표시
+                // 성공 메시지 표시
                 alert(
                     `✅ 업체 계약서가 저장되었습니다!\n\n` +
                     `계약번호: ${response.data.contract_number}\n` +
-                    `업체명: ${contractData.company_name}\n\n` +
-                    `💡 계약서 목록이 새 창에서 열렸습니다.\n` +
-                    `계속해서 추가 계약서를 작성할 수 있습니다.`
+                    `업체명: ${contractData.company_name}`
                 );
                 
-                // 3. 폼 초기화 (연속 등록을 위해)
-                resetBusinessContractForm();
+                // 계약서 목록 페이지로 이동
+                window.location.href = '/static/contracts-list.html';
             } catch (error) {
                 console.error('');
                 console.error('='.repeat(60));

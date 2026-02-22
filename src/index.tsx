@@ -3124,7 +3124,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     for (const contract of existingContracts.results) {
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+        SET status = 'completed', updated_at = datetime('now') 
         WHERE id = ?
       `).bind((contract as any).id).run()
       console.log(`✅ [Business] Completed personal contract: ${(contract as any).contract_number}`)
@@ -3142,7 +3142,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     for (const contract of existingBusinessContracts.results) {
       await DB.prepare(`
         UPDATE business_contracts 
-        SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+        SET status = 'completed', updated_at = datetime('now') 
         WHERE id = ?
       `).bind((contract as any).id).run()
       console.log(`✅ [Business] Completed business contract: ${(contract as any).contract_number}`)
