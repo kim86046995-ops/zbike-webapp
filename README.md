@@ -548,13 +548,13 @@ MIT License
 오토바이 리스/렌트 업체 관리자
 
 ## 📅 최종 업데이트
-2026-02-22 - 업체 코드 자동 생성 기능 완성
-- 페이지 로드 시 업체 코드 자동 생성 (AUTO-YYYYMMDD-XXX)
-- 업체 코드 즉시 화면 표시
-- 등록 시 화면에 표시된 코드 사용
-- '사업자번호' → '업체 코드'로 용어 통일
-- 업체 계약서에 업체 코드 필드 추가
-- 중복 체크 시 active 업체만 확인 (inactive 코드 재사용 가능)
+2026-02-22 - 사업자번호 완전 제거, 업체 코드로 통일
+- ✅ business_number 컬럼을 company_code로 변경 (데이터베이스 마이그레이션)
+- ✅ 모든 백엔드 API에서 business_number → company_code 변경
+- ✅ 모든 프론트엔드 HTML에서 businessNumber → companyCode 변경
+- ✅ 페이지 로드 시 업체 코드 자동 생성 및 표시
+- ✅ 업체 계약서에 업체 코드 필드 자동 입력
+- ✅ '사업자번호' 용어 완전 제거, '업체 코드'로 통일
 # Force rebuild Sat Feb  7 13:37:07 UTC 2026
 # Deploy Sat Feb  7 22:59:47 UTC 2026
 Last updated: Sun Feb  8 00:46:30 UTC 2026
