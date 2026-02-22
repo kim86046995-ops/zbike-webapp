@@ -337,8 +337,18 @@
                                          alt="신분증" 
                                          class="max-w-full rounded-lg shadow-lg border-2 border-gray-200"
                                          onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect width=%22400%22 height=%22300%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23999%22>이미지 로드 실패</text></svg>';">
+                                    <button onclick="updateIdCard(${company.id})" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        <i class="fas fa-sync-alt mr-2"></i>신분증 다시 업로드
+                                    </button>
                                 </div>
-                            ` : '<p class="text-gray-400">신분증 사진 없음</p>'}
+                            ` : `
+                                <div class="space-y-3">
+                                    <p class="text-gray-400 mb-3">신분증 사진 없음</p>
+                                    <button onclick="updateIdCard(${company.id})" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                        <i class="fas fa-upload mr-2"></i>신분증 업로드
+                                    </button>
+                                </div>
+                            `}
                         </div>
 
                         <!-- 등록 정보 -->
@@ -417,6 +427,73 @@
                 
                 alert(errorMessage);
             }
+        }
+
+        // 신분증 업로드/재업로드
+        async function updateIdCard(companyId) {
+            // 파일 선택 input 생성
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                try {
+                    console.log('📤 신분증 업로드 시작...', file.name, file.size, 'bytes');
+                    
+                    // 파일을 Base64로 변환
+                    const reader = new FileReader();
+                    reader.onload = async function(event) {
+                        const base64Image = event.target.result;
+                        
+                        console.log('📦 Base64 변환 완료, R2 업로드 중...');
+                        
+                        // R2에 업로드
+                        const uploadResponse = await axios.post('/api/upload/id-card', {
+                            image: base64Image
+                        });
+                        
+                        if (!uploadResponse.data.success) {
+                            throw new Error('R2 업로드 실패');
+                        }
+                        
+                        const idCardUrl = uploadResponse.data.url;
+                        console.log('✅ R2 업로드 성공:', idCardUrl);
+                        
+                        // 업체 정보 업데이트
+                        console.log('📝 업체 정보 업데이트 중...');
+                        const updateResponse = await axios.put(`/api/companies/${companyId}`, {
+                            id_card_photo: idCardUrl
+                        });
+                        
+                        if (updateResponse.data.success) {
+                            console.log('✅ 업체 정보 업데이트 완료');
+                            alert('✅ 신분증이 성공적으로 업로드되었습니다!');
+                            
+                            // 모달 닫고 목록 새로고침
+                            closeDetailModal();
+                            await loadCompanies();
+                        } else {
+                            throw new Error('업체 정보 업데이트 실패');
+                        }
+                    };
+                    
+                    reader.onerror = function() {
+                        console.error('❌ 파일 읽기 실패');
+                        alert('❌ 파일을 읽을 수 없습니다.');
+                    };
+                    
+                    reader.readAsDataURL(file);
+                    
+                } catch (error) {
+                    console.error('❌ 신분증 업로드 실패:', error);
+                    alert(`❌ 신분증 업로드 중 오류가 발생했습니다.\n\n${error.message}`);
+                }
+            };
+            
+            input.click();
         }
     </script>
 </body>
