@@ -5721,14 +5721,8 @@ app.post('/api/companies', async (c) => {
       representative: data.representative
     })
 
-    // 사업자번호 중복 체크 (active 업체만)
-    const existing = await env.DB.prepare(`
-      SELECT id FROM companies WHERE business_number = ? AND status = 'active'
-    `).bind(data.business_number).first()
-
-    if (existing) {
-      return c.json({ error: '이미 등록된 사업자번호입니다.' }, 400)
-    }
+    // 사업자번호 중복 체크 제거 (자동 생성되므로 중복 불가)
+    // AUTO-YYYYMMDD-XXX 형식으로 항상 고유함
 
     // 업체 정보 저장
     const result = await env.DB.prepare(`

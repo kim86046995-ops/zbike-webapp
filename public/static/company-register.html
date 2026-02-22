@@ -38,7 +38,7 @@
                         업체 기본 정보
                     </h2>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4">
                         <!-- 상호명 -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -49,14 +49,15 @@
                                 placeholder="예: (주)테스트컴퍼니">
                         </div>
 
-                        <!-- 사업자번호 -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                사업자번호 <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="businessNumber" required maxlength="12"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="123-45-67890">
+                        <!-- 사업자번호 자동 생성 안내 -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-info-circle text-blue-600 text-xl mt-0.5"></i>
+                                <div>
+                                    <p class="text-sm font-semibold text-blue-900 mb-1">사업자번호 자동 생성</p>
+                                    <p class="text-xs text-blue-700">등록 시 시스템이 자동으로 고유 식별번호를 생성합니다. (형식: AUTO-YYYYMMDD-XXX)</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -199,17 +200,8 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 사업자번호 자동 하이픈 추가
-            document.getElementById('businessNumber').addEventListener('input', function(e) {
-                let value = e.target.value.replace(/[^0-9]/g, '');
-                if (value.length > 3 && value.length <= 5) {
-                    value = value.slice(0, 3) + '-' + value.slice(3);
-                } else if (value.length > 5) {
-                    value = value.slice(0, 3) + '-' + value.slice(3, 5) + '-' + value.slice(5, 10);
-                }
-                e.target.value = value;
-            });
-
+            // 사업자번호 자동 하이픈 - 제거됨 (자동 생성)
+            
             // 전화번호 자동 하이픈 추가
             document.getElementById('representativePhone').addEventListener('input', function(e) {
                 let value = e.target.value.replace(/[^0-9]/g, '');
@@ -269,9 +261,6 @@
             e.preventDefault();
             
             // 유효성 검사
-            const businessNumber = document.getElementById('businessNumber').value;
-            const representativePhone = document.getElementById('representativePhone').value;
-            const representativeResidentNumber = document.getElementById('representativeResidentNumber').value;
             const representativePostcode = document.getElementById('representativePostcode').value;
             const idCardFile = document.getElementById('idCardPhoto').files[0];
             
@@ -285,6 +274,16 @@
                 return;
             }
             
+            // 사업자번호 자동 생성 (형식: AUTO-YYYYMMDD-XXX)
+            const now = new Date();
+            const dateStr = now.getFullYear() + 
+                           String(now.getMonth() + 1).padStart(2, '0') + 
+                           String(now.getDate()).padStart(2, '0');
+            const randomNum = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+            const autoBusinessNumber = `AUTO-${dateStr}-${randomNum}`;
+            
+            console.log('🔢 자동 생성된 사업자번호:', autoBusinessNumber);
+            
             // 신분증 Base64 인코딩
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -292,10 +291,10 @@
                 
                 const formData = {
                     company_name: document.getElementById('companyName').value,
-                    business_number: businessNumber,
+                    business_number: autoBusinessNumber,  // 자동 생성된 번호
                     representative: document.getElementById('representative').value,
-                    representative_phone: representativePhone,
-                    representative_resident_number: representativeResidentNumber,
+                    representative_phone: document.getElementById('representativePhone').value,
+                    representative_resident_number: document.getElementById('representativeResidentNumber').value,
                     business_postcode: null,
                     business_address: null,
                     business_detail_address: null,
