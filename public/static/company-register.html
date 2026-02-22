@@ -52,10 +52,18 @@
                         <!-- 업체 코드 자동 생성 안내 -->
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <div class="flex items-start gap-3">
-                                <i class="fas fa-info-circle text-blue-600 text-xl mt-0.5"></i>
-                                <div>
-                                    <p class="text-sm font-semibold text-blue-900 mb-1">업체 코드 자동 생성</p>
-                                    <p class="text-xs text-blue-700">등록 시 시스템이 자동으로 고유 업체 코드를 생성합니다. (형식: AUTO-YYYYMMDD-XXX)</p>
+                                <i class="fas fa-barcode text-blue-600 text-2xl mt-0.5"></i>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-blue-900 mb-2">업체 코드 (자동 생성)</p>
+                                    <div class="bg-white border-2 border-blue-300 rounded-lg p-3">
+                                        <p id="generatedCompanyCode" class="text-xl font-bold text-blue-600 text-center tracking-wider">
+                                            <!-- 자동 생성된 코드가 여기 표시됩니다 -->
+                                        </p>
+                                    </div>
+                                    <p class="text-xs text-blue-700 mt-2">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        이 코드로 업체가 등록됩니다. 변경할 수 없습니다.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -200,7 +208,8 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 사업자번호 자동 하이픈 - 제거됨 (자동 생성)
+            // 페이지 로드 시 업체 코드 자동 생성 및 표시
+            generateCompanyCode();
             
             // 전화번호 자동 하이픈 추가
             document.getElementById('representativePhone').addEventListener('input', function(e) {
@@ -222,6 +231,25 @@
                 e.target.value = value;
             });
         });
+
+        // 업체 코드 생성 함수
+        function generateCompanyCode() {
+            const now = new Date();
+            const dateStr = now.getFullYear() + 
+                           String(now.getMonth() + 1).padStart(2, '0') + 
+                           String(now.getDate()).padStart(2, '0');
+            const randomNum = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+            const companyCode = `AUTO-${dateStr}-${randomNum}`;
+            
+            // 화면에 표시
+            const codeElement = document.getElementById('generatedCompanyCode');
+            if (codeElement) {
+                codeElement.textContent = companyCode;
+                console.log('🔢 업체 코드 생성됨:', companyCode);
+            }
+            
+            return companyCode;
+        }
 
         // 사업장 주소 검색
         // 대표자 주소 검색
@@ -274,15 +302,10 @@
                 return;
             }
             
-            // 사업자번호 자동 생성 (형식: AUTO-YYYYMMDD-XXX)
-            const now = new Date();
-            const dateStr = now.getFullYear() + 
-                           String(now.getMonth() + 1).padStart(2, '0') + 
-                           String(now.getDate()).padStart(2, '0');
-            const randomNum = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-            const autoBusinessNumber = `AUTO-${dateStr}-${randomNum}`;
+            // 화면에 표시된 업체 코드 사용
+            const autoBusinessNumber = document.getElementById('generatedCompanyCode').textContent;
             
-            console.log('🔢 자동 생성된 사업자번호:', autoBusinessNumber);
+            console.log('🔢 사용할 업체 코드:', autoBusinessNumber);
             
             // 신분증 Base64 인코딩
             const reader = new FileReader();
