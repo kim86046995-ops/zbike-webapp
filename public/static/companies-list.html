@@ -508,6 +508,10 @@
                         // 업체 정보 업데이트
                         console.log('📝 업체 정보 업데이트 중...');
                         console.log('🔑 세션 ID:', sessionId);
+                        console.log('📤 업데이트 요청 데이터:', {
+                            companyId,
+                            id_card_photo: idCardUrl
+                        });
                         
                         const updateResponse = await axios.put(`/api/companies/${companyId}`, {
                             id_card_photo: idCardUrl
@@ -517,7 +521,9 @@
                             }
                         });
                         
-                        console.log('📋 업데이트 응답:', updateResponse.data);
+                        console.log('📋 업데이트 응답 상태:', updateResponse.status);
+                        console.log('📋 업데이트 응답 데이터:', updateResponse.data);
+                        console.log('📋 업데이트 응답 전체:', updateResponse);
                         
                         if (updateResponse.data.success) {
                             console.log('✅ 업체 정보 업데이트 완료');
@@ -541,8 +547,12 @@
                     
                 } catch (error) {
                     console.error('❌ 신분증 업로드 실패:', error);
-                    console.error('❌ 에러 응답:', error.response?.data);
-                    console.error('❌ 에러 상태:', error.response?.status);
+                    console.error('❌ 에러 전체 객체:', error);
+                    console.error('❌ 에러 응답:', error.response);
+                    console.error('❌ 에러 응답 데이터:', error.response?.data);
+                    console.error('❌ 에러 상태 코드:', error.response?.status);
+                    console.error('❌ 에러 헤더:', error.response?.headers);
+                    console.error('❌ 에러 메시지:', error.message);
                     
                     if (error.response?.status === 401) {
                         alert('❌ 세션이 만료되었습니다.\n\n다시 로그인해주세요.');
@@ -550,9 +560,9 @@
                     } else if (error.response?.status === 500) {
                         const errorMsg = error.response?.data?.error || '서버 오류';
                         const errorDetails = error.response?.data?.details || '';
-                        alert(`❌ 서버 오류가 발생했습니다.\n\n${errorMsg}\n${errorDetails}`);
+                        alert(`❌ 서버 오류가 발생했습니다.\n\n${errorMsg}\n\n상세: ${errorDetails}\n\n콘솔을 확인해주세요.`);
                     } else {
-                        alert(`❌ 신분증 업로드 중 오류가 발생했습니다.\n\n${error.response?.data?.error || error.message}`);
+                        alert(`❌ 신분증 업로드 중 오류가 발생했습니다.\n\n${error.response?.data?.error || error.message}\n\n콘솔을 확인해주세요.`);
                     }
                 }
             };
