@@ -5709,6 +5709,63 @@ app.get('/dashboard', (c) => {
 // 업체(사업자) 관리 API
 // ============================================
 
+// 신분증 이미지 업로드 (R2 Storage)
+app.post('/api/upload/id-card', async (c) => {
+  const R2 = c.env.R2_ID_CARDS
+  
+  if (!R2) {
+    return c.json({ error: 'R2 storage not configured' }, 500)
+  }
+  
+  try {
+    const data = await c.req.json()
+    const base64Image = data.image
+    
+    if (!base64Image) {
+      return c.json({ error: '이미지 데이터가 없습니다.' }, 400)
+    }
+    
+    // Base64 이미지를 Buffer로 변환
+    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
+    
+    // 파일명 생성 (타임스탬프 + 랜덤)
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    const fileName = `id-cards/${timestamp}-${random}.jpg`
+    
+    console.log('📤 R2에 신분증 업로드:', {
+      fileName,
+      size: buffer.length,
+      sizeKB: (buffer.length / 1024).toFixed(2) + 'KB'
+    })
+    
+    // R2에 업로드
+    await R2.put(fileName, buffer, {
+      httpMetadata: {
+        contentType: 'image/jpeg'
+      }
+    })
+    
+    // 공개 URL 생성 (Cloudflare R2 public domain 사용)
+    const publicUrl = `https://pub-${c.env.CLOUDFLARE_ACCOUNT_ID || 'your-account'}.r2.dev/${fileName}`
+    
+    console.log('✅ R2 업로드 성공:', publicUrl)
+    
+    return c.json({
+      success: true,
+      url: publicUrl,
+      fileName: fileName
+    })
+  } catch (error) {
+    console.error('❌ R2 업로드 실패:', error)
+    return c.json({ 
+      error: '이미지 업로드 중 오류가 발생했습니다.',
+      details: error.message 
+    }, 500)
+  }
+})
+
 // 업체 등록
 app.post('/api/companies', async (c) => {
   const DB = c.env.DB || c.env.db
@@ -5725,7 +5782,7 @@ app.post('/api/companies', async (c) => {
       representative_postcode: data.representative_postcode,
       representative_address: data.representative_address,
       representative_detail_address: data.representative_detail_address,
-      id_card_photo_length: data.id_card_photo?.length
+      id_card_photo: data.id_card_photo?.startsWith('http') ? 'URL (R2)' : `Base64 (${data.id_card_photo?.length} bytes)`
     })
 
     // 사업자번호 중복 체크 제거 (자동 생성되므로 중복 불가)

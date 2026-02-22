@@ -211,7 +211,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         // 버전 체크 및 강제 새로고침
-        const CURRENT_VERSION = '2026-02-22-v5'; // 버전 업데이트! 상세 에러 로깅 추가
+        const CURRENT_VERSION = '2026-02-22-v6'; // R2 Storage 적용!
         const storedVersion = localStorage.getItem('company-register-version');
         
         if (storedVersion !== CURRENT_VERSION) {
@@ -340,39 +340,54 @@
             
             console.log('🔢 사용할 업체 코드:', autoBusinessNumber);
             
-            // 신분증 Base64 인코딩
+            // 신분증 이미지 읽기
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const idCardPhotoBase64 = e.target.result;
                 
-                const formData = {
-                    company_name: document.getElementById('companyName').value,
-                    company_code: autoBusinessNumber,  // 자동 생성된 번호
-                    representative: document.getElementById('representative').value,
-                    representative_phone: document.getElementById('representativePhone').value,
-                    representative_resident_number: document.getElementById('representativeResidentNumber').value,
-                    business_postcode: null,
-                    business_address: null,
-                    business_detail_address: null,
-                    representative_postcode: representativePostcode,
-                    representative_address: document.getElementById('representativeAddress').value,
-                    representative_detail_address: document.getElementById('representativeDetailAddress').value,
-                    id_card_photo: idCardPhotoBase64
-                };
-                
-                console.log('📝 업체 등록 요청:', {
-                    company_name: formData.company_name,
-                    company_code: formData.company_code,
-                    representative: formData.representative,
-                    representative_phone: formData.representative_phone,
-                    representative_resident_number: formData.representative_resident_number,
-                    representative_postcode: formData.representative_postcode,
-                    representative_address: formData.representative_address,
-                    representative_detail_address: formData.representative_detail_address,
-                    id_card_photo_length: formData.id_card_photo.length
-                });
-                
                 try {
+                    // 1단계: 신분증 이미지를 R2에 업로드
+                    console.log('📤 신분증 이미지 업로드 중... (크기:', (idCardPhotoBase64.length / 1024 / 1024).toFixed(2), 'MB)');
+                    
+                    const uploadResponse = await axios.post('/api/upload/id-card', {
+                        image: idCardPhotoBase64
+                    }, {
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+                    
+                    console.log('✅ 신분증 업로드 완료:', uploadResponse.data.url);
+                    
+                    // 2단계: R2 URL을 포함하여 업체 정보 등록
+                    const formData = {
+                        company_name: document.getElementById('companyName').value,
+                        company_code: autoBusinessNumber,
+                        representative: document.getElementById('representative').value,
+                        representative_phone: document.getElementById('representativePhone').value,
+                        representative_resident_number: document.getElementById('representativeResidentNumber').value,
+                        business_postcode: null,
+                        business_address: null,
+                        business_detail_address: null,
+                        representative_postcode: representativePostcode,
+                        representative_address: document.getElementById('representativeAddress').value,
+                        representative_detail_address: document.getElementById('representativeDetailAddress').value,
+                        id_card_photo: uploadResponse.data.url  // R2 URL 저장
+                    };
+                    
+                    console.log('📝 업체 등록 요청:', {
+                        company_name: formData.company_name,
+                        company_code: formData.company_code,
+                        representative: formData.representative,
+                        representative_phone: formData.representative_phone,
+                        representative_resident_number: formData.representative_resident_number,
+                        representative_postcode: formData.representative_postcode,
+                        representative_address: formData.representative_address,
+                        representative_detail_address: formData.representative_detail_address,
+                        id_card_photo: 'R2 URL: ' + uploadResponse.data.url
+                    });
+                    
                     console.log('🚀 POST /api/companies 호출 중...');
                     console.log('📦 전송 데이터 크기:', JSON.stringify(formData).length, 'bytes');
                     console.log('📦 formData 필드:', Object.keys(formData));
