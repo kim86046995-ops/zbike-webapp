@@ -6016,13 +6016,34 @@ app.put('/api/companies/:id', async (c) => {
   const DB = c.env.DB || c.env.db
   
   try {
+    // 세션 체크
+    const sessionId = c.req.header('X-Session-ID')
+    
+    if (!sessionId) {
+      console.error('❌ 세션 ID 없음')
+      return c.json({ error: '인증이 필요합니다' }, 401)
+    }
+    
+    // 세션 검증
+    const session = await DB.prepare(`
+      SELECT * FROM sessions WHERE session_id = ? AND expires_at > datetime('now')
+    `).bind(sessionId).first()
+    
+    if (!session) {
+      console.error('❌ 유효하지 않은 세션:', sessionId)
+      return c.json({ error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
+    }
+    
+    console.log('✅ 세션 인증 성공:', session.username)
+    
     const id = c.req.param('id')
     const data = await c.req.json()
 
     console.log('📝 업체 수정 요청:', {
       id,
       company_name: data.company_name,
-      id_card_photo: data.id_card_photo ? 'URL 제공됨' : '없음'
+      id_card_photo: data.id_card_photo ? 'URL 제공됨' : '없음',
+      user: session.username
     })
 
     // 업체 존재 확인
