@@ -49,13 +49,13 @@
                                 placeholder="예: (주)테스트컴퍼니">
                         </div>
 
-                        <!-- 사업자번호 자동 생성 안내 -->
+                        <!-- 업체 코드 자동 생성 안내 -->
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <div class="flex items-start gap-3">
                                 <i class="fas fa-info-circle text-blue-600 text-xl mt-0.5"></i>
                                 <div>
-                                    <p class="text-sm font-semibold text-blue-900 mb-1">사업자번호 자동 생성</p>
-                                    <p class="text-xs text-blue-700">등록 시 시스템이 자동으로 고유 식별번호를 생성합니다. (형식: AUTO-YYYYMMDD-XXX)</p>
+                                    <p class="text-sm font-semibold text-blue-900 mb-1">업체 코드 자동 생성</p>
+                                    <p class="text-xs text-blue-700">등록 시 시스템이 자동으로 고유 업체 코드를 생성합니다. (형식: AUTO-YYYYMMDD-XXX)</p>
                                 </div>
                             </div>
                         </div>
@@ -316,7 +316,7 @@
                     const response = await axios.post('/api/companies', formData);
                     console.log('✅ 서버 응답:', response.status, response.data);
                     
-                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n사업자번호: ' + formData.business_number + '\n업체 ID: ' + response.data.id);
+                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n업체 코드: ' + formData.business_number + '\n업체 ID: ' + response.data.id);
                     
                     // 업체 목록 페이지로 자동 이동
                     console.log('🔄 업체 목록 페이지로 이동 중...');
