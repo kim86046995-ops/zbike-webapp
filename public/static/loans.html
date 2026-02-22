@@ -730,7 +730,7 @@
                 const company = res.data;
                 
                 document.getElementById('modal-company-name').textContent = company.company_name || '정보 없음';
-                document.getElementById('modal-business-number').textContent = company.business_number || '정보 없음';
+                document.getElementById('modal-business-number').textContent = company.company_code || '정보 없음';
                 document.getElementById('modal-representative-name').textContent = company.representative_name || '정보 없음';
                 document.getElementById('modal-manager-phone').textContent = company.phone || '정보 없음';
                 document.getElementById('modal-manager-phone2').textContent = company.manager_phone2 || '정보 없음';

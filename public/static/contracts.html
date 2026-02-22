@@ -560,7 +560,7 @@
                 console.error('❌ 회사 설정 로드 실패:', error);
                 companySettings = {
                     company_name: '대성',
-                    business_number: '487-39-01128',
+                    company_code: '487-39-01128',
                     representative_name: '김상춘',
                     manager_phone: '-'
                 };
@@ -952,7 +952,7 @@
                         <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
                         <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> ${companySettings?.company_name || '대성'}</p>
-                            <p><strong>사업자등록번호:</strong> ${companySettings?.business_number || '487-39-01128'}</p>
+                            <p><strong>사업자등록번호:</strong> ${companySettings?.company_code || '487-39-01128'}</p>
                             <p><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}</p>
                             <p><strong>총괄매니저:</strong> ${companySettings?.manager_phone1 || '-'}</p>
                             <p class="col-span-2"><strong>매니저:</strong> ${companySettings?.manager_phone2 || '-'}</p>
@@ -1613,7 +1613,7 @@
                         <h3 class="font-bold text-lg mb-4">임차인 (업체) 정보</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>업체명:</strong> ${c.company_name}</p>
-                            <p><strong>사업자번호:</strong> ${c.business_number}</p>
+                            <p><strong>사업자번호:</strong> ${c.company_code}</p>
                             <p><strong>대표자:</strong> ${c.representative}</p>
                             <p><strong>업체 연락처:</strong> ${c.business_phone}</p>
                             <p class="col-span-2"><strong>사업장 주소:</strong> ${c.business_address}</p>
@@ -1875,7 +1875,7 @@
                         <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
                         <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> ${companySettings?.company_name || '대성'}</p>
-                            <p><strong>사업자등록번호:</strong> ${companySettings?.business_number || '487-39-01128'}</p>
+                            <p><strong>사업자등록번호:</strong> ${companySettings?.company_code || '487-39-01128'}</p>
                             <p><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}</p>
                             <p><strong>총괄매니저:</strong> ${companySettings?.manager_phone1 || '-'}</p>
                             <p class="col-span-2"><strong>매니저:</strong> ${companySettings?.manager_phone2 || '-'}</p>

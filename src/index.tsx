@@ -1790,13 +1790,13 @@ app.put('/api/companies/:id', authMiddleware, async (c) => {
   
   await DB.prepare(`
     UPDATE companies SET
-      name = ?, business_number = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
+      name = ?, company_code = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
       signature_data = ?, id_card_photo = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).bind(
     data.name,
-    data.business_number,
+    data.company_code,
     data.representative,
     data.representative_resident_number || '',
     data.phone,
@@ -1817,20 +1817,20 @@ app.put('/api/companies/:id', authMiddleware, async (c) => {
 //   const DB = c.env.DB || c.env.db
 //   const id = c.req.param('id')
 //   
-//   // 1. 업체 정보 조회 (삭제 전에 company_name과 business_number 가져오기)
+//   // 1. 업체 정보 조회 (삭제 전에 company_name과 company_code 가져오기)
 //   const company = await DB.prepare(`
-//     SELECT name, business_number FROM companies WHERE id = ?
+//     SELECT name, company_code FROM companies WHERE id = ?
 //   `).bind(id).first()
 //   
 //   if (!company) {
 //     return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
 //   }
 //   
-//   // 2. 관련 업체 계약서 삭제 (company_name과 business_number로 매칭)
+//   // 2. 관련 업체 계약서 삭제 (company_name과 company_code로 매칭)
 //   await DB.prepare(`
 //     DELETE FROM business_contracts 
-//     WHERE company_name = ? AND business_number = ?
-//   `).bind(company.name, company.business_number).run()
+//     WHERE company_name = ? AND company_code = ?
+//   `).bind(company.name, company.company_code).run()
 //   
 //   // 3. 업체 정보 삭제
 //   await DB.prepare(`
@@ -2050,7 +2050,7 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
           NULL as cancelled_at,
           'business' as contract_source,
           bc.company_name as customer_name, 
-          bc.business_number as resident_number, 
+          bc.company_code as resident_number, 
           bc.business_phone as customer_phone,
           bc.business_address as customer_address, 
           NULL as customer_postcode,
@@ -2971,12 +2971,12 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
 app.get('/api/company-settings/public', async (c) => {
   const DB = c.env.DB || c.env.db
   
-  const result = await DB.prepare('SELECT company_name, business_number, representative_name, address, phone FROM company_settings ORDER BY id DESC LIMIT 1').first()
+  const result = await DB.prepare('SELECT company_name, company_code, representative_name, address, phone FROM company_settings ORDER BY id DESC LIMIT 1').first()
   
   if (!result) {
     return c.json({ 
       company_name: '배달대행 회사', 
-      business_number: '000-00-00000', 
+      company_code: '000-00-00000', 
       representative_name: '대표자명',
       address: '',
       phone: ''
@@ -2995,7 +2995,7 @@ app.get('/api/company-settings', authMiddleware, async (c) => {
   if (!result) {
     return c.json({ 
       company_name: '배달대행 회사', 
-      business_number: '000-00-00000', 
+      company_code: '000-00-00000', 
       representative_name: '대표자명' 
     })
   }
@@ -3018,14 +3018,14 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
       // 업데이트
       await DB.prepare(`
         UPDATE company_settings 
-        SET company_name = ?, business_number = ?, representative_name = ?,
+        SET company_name = ?, company_code = ?, representative_name = ?,
             phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
             manager_phone1 = ?, manager_phone2 = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(
         data.company_name,
-        data.business_number,
+        data.company_code,
         data.representative_name,
         data.phone || '',
         data.address || '',
@@ -3039,11 +3039,11 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
     } else {
       // 신규 삽입
       await DB.prepare(`
-        INSERT INTO company_settings (company_name, business_number, representative_name, phone, address, bank_name, account_number, account_holder, manager_phone1, manager_phone2)
+        INSERT INTO company_settings (company_name, company_code, representative_name, phone, address, bank_name, account_number, account_holder, manager_phone1, manager_phone2)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         data.company_name,
-        data.business_number,
+        data.company_code,
         data.representative_name,
         data.phone || '',
         data.address || '',
@@ -3132,7 +3132,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
   const result = await DB.prepare(`
     INSERT INTO business_contracts (
       motorcycle_id, contract_number,
-      company_name, business_number, representative, business_type, business_category,
+      company_name, company_code, representative, business_type, business_category,
       business_phone, business_address,
       representative_resident_number, representative_phone, representative_address,
       contract_start_date, contract_end_date, insurance_start_date, insurance_end_date,
@@ -3143,7 +3143,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     data.motorcycle_id,
     contractNumber,
     data.company_name,
-    data.business_number,
+    data.company_code,
     data.representative,
     data.business_contract_type || 'rent',  // 리스/렌트 타입 (기본값: rent)
     '배달대행',  // business_category 기본값
@@ -3219,7 +3219,7 @@ app.get('/api/business-contracts/:id', authMiddleware, async (c) => {
       co.terms_agreed
     FROM business_contracts bc
     JOIN motorcycles m ON bc.motorcycle_id = m.id
-    LEFT JOIN companies co ON bc.business_number = co.business_number
+    LEFT JOIN companies co ON bc.company_code = co.company_code
     WHERE bc.id = ?
   `).bind(id).first()
   
@@ -3662,7 +3662,7 @@ app.post('/api/contract-share/:token/sign', async (c) => {
       await DB.prepare(`
         INSERT INTO business_contracts (
           contract_number, motorcycle_id,
-          company_name, business_number, representative,
+          company_name, company_code, representative,
           business_type, business_category, business_phone, business_address,
           representative_resident_number, representative_phone, representative_address,
           contract_start_date, contract_end_date,
@@ -3674,7 +3674,7 @@ app.post('/api/contract-share/:token/sign', async (c) => {
         contractNumber,
         contractInfo.motorcycle_id,
         contractInfo.company_name || '',
-        contractInfo.business_number || '',
+        contractInfo.company_code || '',
         contractInfo.representative || '',
         contractInfo.business_type || '',
         contractInfo.business_category || '',
@@ -5717,7 +5717,7 @@ app.post('/api/companies', async (c) => {
 
     console.log('📝 업체 등록 요청:', {
       company_name: data.company_name,
-      business_number: data.business_number,
+      company_code: data.company_code,
       representative: data.representative
     })
 
@@ -5728,7 +5728,7 @@ app.post('/api/companies', async (c) => {
     const result = await env.DB.prepare(`
       INSERT INTO companies (
         company_name,
-        business_number,
+        company_code,
         representative,
         representative_resident_number,
         representative_phone,
@@ -5745,7 +5745,7 @@ app.post('/api/companies', async (c) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `).bind(
       data.company_name,
-      data.business_number,
+      data.company_code,
       data.representative,
       data.representative_resident_number || null,
       data.representative_phone,
@@ -5787,7 +5787,7 @@ app.get('/api/companies/search', async (c) => {
       SELECT 
         id,
         company_name,
-        business_number,
+        company_code,
         representative,
         representative_phone,
         representative_resident_number,
@@ -5804,7 +5804,7 @@ app.get('/api/companies/search', async (c) => {
       WHERE 
         status = 'active'
         AND (
-          REPLACE(business_number, '-', '') LIKE '%' || ? || '%'
+          REPLACE(company_code, '-', '') LIKE '%' || ? || '%'
           OR representative LIKE '%' || ? || '%'
           OR REPLACE(representative_phone, '-', '') LIKE '%' || ? || '%'
           OR SUBSTR(REPLACE(representative_resident_number, '-', ''), 1, 6) LIKE '%' || ? || '%'
@@ -5858,7 +5858,7 @@ app.get('/api/companies', async (c) => {
       SELECT 
         id,
         company_name,
-        business_number,
+        company_code,
         representative,
         representative_phone,
         representative_resident_number,

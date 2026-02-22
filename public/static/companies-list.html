@@ -156,7 +156,7 @@
                                 <div class="flex items-center text-gray-600">
                                     <i class="fas fa-id-card mr-2 text-blue-600 w-4"></i>
                                     <span class="font-semibold mr-2">사업자번호:</span>
-                                    <span>${company.business_number}</span>
+                                    <span>${company.company_code}</span>
                                 </div>
                                 <div class="flex items-center text-gray-600">
                                     <i class="fas fa-user mr-2 text-blue-600 w-4"></i>
@@ -219,7 +219,7 @@
 
             const filtered = allCompanies.filter(company => 
                 company.company_name.toLowerCase().includes(searchTerm) ||
-                company.business_number.includes(searchTerm) ||
+                company.company_code.includes(searchTerm) ||
                 company.representative.toLowerCase().includes(searchTerm) ||
                 (company.representative_phone && company.representative_phone.includes(searchTerm))
             );
@@ -248,7 +248,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체 코드</label>
-                                    <p class="text-gray-800">${company.business_number}</p>
+                                    <p class="text-gray-800">${company.company_code}</p>
                                 </div>
                             </div>
                         </div>

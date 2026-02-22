@@ -46,7 +46,7 @@
                         <label class="block text-sm font-bold mb-2 text-gray-700">
                             <i class="fas fa-id-card mr-1 text-blue-500"></i>사업자번호 *
                         </label>
-                        <input type="text" id="businessNumber" required 
+                        <input type="text" id="companyCode" required 
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                placeholder="000-00-00000">
                     </div>
@@ -208,7 +208,7 @@
                 const data = response.data;
                 
                 document.getElementById('companyName').value = data.company_name || '';
-                document.getElementById('businessNumber').value = data.business_number || '';
+                document.getElementById('companyCode').value = data.company_code || '';
                 document.getElementById('representativeName').value = data.representative_name || '';
                 document.getElementById('phone').value = data.phone || '';
                 document.getElementById('managerPhone').value = data.manager_phone1 || '';
@@ -238,7 +238,7 @@
 
             const settingsData = {
                 company_name: document.getElementById('companyName').value,
-                business_number: document.getElementById('businessNumber').value,
+                company_code: document.getElementById('companyCode').value,
                 representative_name: document.getElementById('representativeName').value,
                 phone: document.getElementById('phone').value,
                 manager_phone1: document.getElementById('managerPhone').value,

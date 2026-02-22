@@ -168,7 +168,7 @@
                 <div class="border-b py-4">
                     <div class="font-bold">${company.name}</div>
                     <div class="text-sm text-gray-600">
-                        ${company.business_number} | ${company.representative} | ${company.phone}
+                        ${company.company_code} | ${company.representative} | ${company.phone}
                     </div>
                     <div class="text-sm text-gray-500">${company.address || ''}</div>
                 </div>
@@ -191,7 +191,7 @@
             
             const data = {
                 name: document.getElementById('companyName').value.trim(),
-                business_number: document.getElementById('companyBusinessNumber').value.trim(),
+                company_code: document.getElementById('companyBusinessNumber').value.trim(),
                 representative: document.getElementById('companyRepresentative').value.trim(),
                 phone: document.getElementById('companyPhone').value.trim(),
                 address: document.getElementById('companyAddress').value.trim(),

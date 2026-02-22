@@ -314,7 +314,7 @@
                 
                 const formData = {
                     company_name: document.getElementById('companyName').value,
-                    business_number: autoBusinessNumber,  // 자동 생성된 번호
+                    company_code: autoBusinessNumber,  // 자동 생성된 번호
                     representative: document.getElementById('representative').value,
                     representative_phone: document.getElementById('representativePhone').value,
                     representative_resident_number: document.getElementById('representativeResidentNumber').value,
@@ -329,7 +329,7 @@
                 
                 console.log('📝 업체 등록 요청:', {
                     company_name: formData.company_name,
-                    business_number: formData.business_number,
+                    company_code: formData.company_code,
                     representative: formData.representative,
                     id_card_photo_length: formData.id_card_photo.length
                 });
@@ -339,7 +339,7 @@
                     const response = await axios.post('/api/companies', formData);
                     console.log('✅ 서버 응답:', response.status, response.data);
                     
-                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n업체 코드: ' + formData.business_number + '\n업체 ID: ' + response.data.id);
+                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n업체 코드: ' + formData.company_code + '\n업체 ID: ' + response.data.id);
                     
                     // 업체 목록 페이지로 자동 이동
                     console.log('🔄 업체 목록 페이지로 이동 중...');

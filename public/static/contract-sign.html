@@ -274,7 +274,7 @@
                 // 기본값 설정
                 companySettings = {
                     company_name: 'Z-BIKE',
-                    business_number: '123-45-67890',
+                    company_code: '123-45-67890',
                     representative: '대표자',
                     address: '서울시',
                     phone: '02-1234-5678'
@@ -313,7 +313,7 @@
             // 업체 정보 표시
             if (companySettings) {
                 document.getElementById('company-name').textContent = companySettings.company_name || 'Z-BIKE';
-                document.getElementById('business-number').textContent = companySettings.business_number || '-';
+                document.getElementById('business-number').textContent = companySettings.company_code || '-';
                 document.getElementById('representative').textContent = companySettings.representative || '-';
                 document.getElementById('company-phone').textContent = companySettings.manager_phone || companySettings.phone || '-';
                 document.getElementById('company-address').textContent = companySettings.address || '-';
@@ -706,7 +706,7 @@
         // 약관 내용
         function getContractTerms(type) {
             const companyName = companySettings?.company_name || 'Z-BIKE';
-            const businessNumber = companySettings?.business_number || '사업자등록번호';
+            const companyCode = companySettings?.company_code || '사업자등록번호';
             const representative = companySettings?.representative || '대표자';
             const companyAddress = companySettings?.address || '주소';
             const companyPhone = companySettings?.manager_phone || companySettings?.phone || '연락처';
@@ -718,7 +718,7 @@
                         <h3 class="font-bold text-lg mb-3">대주 정보</h3>
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
-                            <p><span class="font-semibold">사업자등록번호:</span> ${businessNumber}</p>
+                            <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
                             <p><span class="font-semibold">대표자:</span> ${representative}</p>
                             <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
                             <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
@@ -782,7 +782,7 @@
                         <h3 class="font-bold text-lg mb-3">임대인 (업체) 정보</h3>
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
-                            <p><span class="font-semibold">사업자등록번호:</span> ${businessNumber}</p>
+                            <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
                             <p><span class="font-semibold">대표자:</span> ${representative}</p>
                             <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
                             <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
