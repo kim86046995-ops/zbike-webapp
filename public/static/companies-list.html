@@ -540,17 +540,31 @@
                             console.error('❌ reader.onload 내부 에러:', readerError);
                             console.error('❌ 에러 응답:', readerError.response);
                             console.error('❌ 에러 응답 데이터:', readerError.response?.data);
+                            console.error('❌ 에러 응답 타입:', typeof readerError.response?.data);
+                            
+                            // 응답이 텍스트인 경우 JSON으로 파싱 시도
+                            let errorData = readerError.response?.data;
+                            if (typeof errorData === 'string') {
+                                try {
+                                    errorData = JSON.parse(errorData);
+                                    console.log('✅ JSON 파싱 성공:', errorData);
+                                } catch (e) {
+                                    console.log('❌ JSON 파싱 실패, 원본 텍스트:', errorData);
+                                }
+                            }
                             
                             if (readerError.response?.status === 401) {
                                 alert('❌ 세션이 만료되었습니다.\n\n다시 로그인해주세요.');
                                 window.location.href = '/static/login.html';
                             } else if (readerError.response?.status === 500) {
-                                const errorMsg = readerError.response?.data?.error || '서버 오류';
-                                const errorDetails = readerError.response?.data?.details || '알 수 없음';
-                                const errorType = readerError.response?.data?.type || '';
-                                alert(`❌ 서버 오류 (500)\n\n에러: ${errorMsg}\n\n상세: ${errorDetails}\n\n타입: ${errorType}\n\n콘솔에서 자세한 정보를 확인하세요.`);
+                                const errorMsg = errorData?.error || errorData || '서버 오류';
+                                const errorDetails = errorData?.details || '알 수 없음';
+                                const errorType = errorData?.type || '';
+                                const availableBindings = errorData?.available_bindings?.join(', ') || '정보 없음';
+                                
+                                alert(`❌ 서버 오류 (500)\n\n에러: ${errorMsg}\n\n상세: ${errorDetails}\n\n타입: ${errorType}\n\n사용 가능한 바인딩: ${availableBindings}\n\n콘솔에서 자세한 정보를 확인하세요.`);
                             } else {
-                                alert(`❌ 업로드 실패\n\n${readerError.response?.data?.error || readerError.message}`);
+                                alert(`❌ 업로드 실패\n\n${errorData?.error || readerError.message}`);
                             }
                         }
                     };
