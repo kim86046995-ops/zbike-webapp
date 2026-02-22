@@ -6015,15 +6015,26 @@ app.delete('/api/companies/:id', async (c) => {
 app.put('/api/companies/:id', async (c) => {
   try {
     console.log('🔍 업체 수정 API 호출됨')
+    console.log('🔍 c.env 존재:', !!c.env)
+    console.log('🔍 c.env 키:', c.env ? Object.keys(c.env) : '없음')
     
-    // D1 바인딩 체크
+    // D1 바인딩 체크 (안전하게)
+    if (!c.env) {
+      console.error('❌ c.env가 없습니다!')
+      return c.json({ 
+        error: 'Cloudflare 환경이 초기화되지 않았습니다.',
+        details: 'c.env가 undefined입니다.',
+        available_bindings: []
+      }, 500)
+    }
+    
     const DB = c.env.DB || c.env.db
     if (!DB) {
       console.error('❌ D1 데이터베이스 바인딩이 없습니다!')
-      console.error('❌ c.env:', Object.keys(c.env || {}))
+      console.error('❌ c.env 키:', Object.keys(c.env || {}))
       return c.json({ 
         error: 'D1 데이터베이스가 연결되지 않았습니다.',
-        details: 'DB 바인딩이 누락되었습니다. wrangler.jsonc를 확인하세요.',
+        details: 'DB 바인딩이 누락되었습니다. Cloudflare Dashboard에서 바인딩을 확인하세요.',
         available_bindings: Object.keys(c.env || {})
       }, 500)
     }
