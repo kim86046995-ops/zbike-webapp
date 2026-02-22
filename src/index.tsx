@@ -5721,9 +5721,9 @@ app.post('/api/companies', async (c) => {
       representative: data.representative
     })
 
-    // 사업자번호 중복 체크
+    // 사업자번호 중복 체크 (active 업체만)
     const existing = await env.DB.prepare(`
-      SELECT id FROM companies WHERE business_number = ?
+      SELECT id FROM companies WHERE business_number = ? AND status = 'active'
     `).bind(data.business_number).first()
 
     if (existing) {
