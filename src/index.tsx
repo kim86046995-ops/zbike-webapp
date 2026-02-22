@@ -5711,9 +5711,10 @@ app.get('/dashboard', (c) => {
 
 // 업체 등록
 app.post('/api/companies', async (c) => {
+  const DB = c.env.DB || c.env.db
+  
   try {
     const data = await c.req.json()
-    const { env } = c
 
     console.log('📝 업체 등록 요청:', {
       company_name: data.company_name,
@@ -5731,7 +5732,7 @@ app.post('/api/companies', async (c) => {
     // AUTO-YYYYMMDD-XXX 형식으로 항상 고유함
 
     // 업체 정보 저장
-    const result = await env.DB.prepare(`
+    const result = await DB.prepare(`
       INSERT INTO companies (
         company_name,
         business_number,
