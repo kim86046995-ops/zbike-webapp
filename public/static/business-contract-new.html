@@ -1399,6 +1399,7 @@
                 // 업체 및 대표자 정보
                 company_name: document.getElementById('companyName').value,
                 company_code: document.getElementById('companyCode').value,
+                business_number: document.getElementById('businessNumber')?.value || document.getElementById('companyCode').value,  // 사업자등록번호
                 representative: document.getElementById('representative').value,
                 representative_resident_number: document.getElementById('representativeResidentNumber').value,
                 representative_phone: document.getElementById('representativePhone').value,
