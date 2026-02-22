@@ -3164,18 +3164,19 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
   const result = await DB.prepare(`
     INSERT INTO business_contracts (
       motorcycle_id, contract_number,
-      company_name, company_code, representative, business_type, business_category,
+      company_name, company_code, business_number, representative, business_type, business_category,
       business_phone, business_address,
       representative_resident_number, representative_phone, representative_address,
       contract_start_date, contract_end_date, insurance_start_date, insurance_end_date,
       license_type, driving_range, daily_amount, deposit, special_terms,
       signature_data, id_card_photo, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.motorcycle_id,
     contractNumber,
     data.company_name,
     data.company_code,
+    data.business_number || data.company_code || '',  // 사업자등록번호 (기본값: 업체코드)
     data.representative,
     data.business_contract_type || 'rent',  // 리스/렌트 타입 (기본값: rent)
     '배달대행',  // business_category 기본값
