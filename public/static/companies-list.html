@@ -466,6 +466,14 @@
 
         // 신분증 업로드/재업로드
         async function updateIdCard(companyId) {
+            // ✅ 세션 체크
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('❌ 로그인이 필요합니다.\n\n로그인 페이지로 이동합니다.');
+                window.location.href = '/static/login.html';
+                return;
+            }
+            
             // 파일 선택 input 생성
             const input = document.createElement('input');
             input.type = 'file';
@@ -499,8 +507,7 @@
                         
                         // 업체 정보 업데이트
                         console.log('📝 업체 정보 업데이트 중...');
-                        const sessionId = localStorage.getItem('sessionId');
-                        console.log('🔑 세션 ID:', sessionId ? '있음' : '없음');
+                        console.log('🔑 세션 ID:', sessionId);
                         
                         const updateResponse = await axios.put(`/api/companies/${companyId}`, {
                             id_card_photo: idCardUrl
@@ -510,16 +517,13 @@
                             }
                         });
                         
-                        if (updateResponse.data.success) {
-                            console.log('✅ 업체 정보 업데이트 완료');
-                            alert('✅ 신분증이 성공적으로 업로드되었습니다!');
-                            
-                            // 모달 닫고 목록 새로고침
-                            closeDetailModal();
-                            await loadCompanies();
-                        } else {
-                            throw new Error('업체 정보 업데이트 실패');
-                        }
+                        console.log('✅ 업체 정보 업데이트 완료');
+                        alert('✅ 신분증이 성공적으로 업로드되었습니다!');
+                        
+                        // 모달 닫고 목록 새로고침
+                        closeDetailModal();
+                        await loadCompanies();
+                        
                     };
                     
                     reader.onerror = function() {
@@ -531,7 +535,13 @@
                     
                 } catch (error) {
                     console.error('❌ 신분증 업로드 실패:', error);
-                    alert(`❌ 신분증 업로드 중 오류가 발생했습니다.\n\n${error.message}`);
+                    
+                    if (error.response?.status === 401) {
+                        alert('❌ 세션이 만료되었습니다.\n\n다시 로그인해주세요.');
+                        window.location.href = '/static/login.html';
+                    } else {
+                        alert(`❌ 신분증 업로드 중 오류가 발생했습니다.\n\n${error.response?.data?.error || error.message}`);
+                    }
                 }
             };
             
