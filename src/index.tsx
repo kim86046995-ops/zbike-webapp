@@ -5728,6 +5728,7 @@ app.post('/api/companies', async (c) => {
     const result = await env.DB.prepare(`
       INSERT INTO companies (
         company_name,
+        business_number,
         company_code,
         representative,
         representative_resident_number,
@@ -5739,9 +5740,10 @@ app.post('/api/companies', async (c) => {
         status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `).bind(
       data.company_name,
+      data.company_code, // business_number에도 company_code 저장 (하위 호환성)
       data.company_code,
       data.representative,
       data.representative_resident_number || null,
