@@ -5749,4 +5749,194 @@ app.get('/dashboard', (c) => {
   `)
 })
 
+// ============================================
+// 업체(사업자) 관리 API
+// ============================================
+
+// 업체 등록
+app.post('/api/companies', async (c) => {
+  try {
+    const data = await c.req.json()
+    const { env } = c
+
+    console.log('📝 업체 등록 요청:', {
+      company_name: data.company_name,
+      business_number: data.business_number,
+      representative: data.representative
+    })
+
+    // 사업자번호 중복 체크
+    const existing = await env.DB.prepare(`
+      SELECT id FROM companies WHERE business_number = ?
+    `).bind(data.business_number).first()
+
+    if (existing) {
+      return c.json({ error: '이미 등록된 사업자번호입니다.' }, 400)
+    }
+
+    // 업체 정보 저장
+    const result = await env.DB.prepare(`
+      INSERT INTO companies (
+        company_name,
+        business_number,
+        representative,
+        representative_resident_number,
+        representative_phone,
+        business_postcode,
+        business_address,
+        business_detail_address,
+        representative_postcode,
+        representative_address,
+        representative_detail_address,
+        id_card_photo,
+        status,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+    `).bind(
+      data.company_name,
+      data.business_number,
+      data.representative,
+      data.representative_resident_number,
+      data.representative_phone,
+      data.business_postcode || '',
+      data.business_address,
+      data.business_detail_address || '',
+      data.representative_postcode || '',
+      data.representative_address,
+      data.representative_detail_address || '',
+      data.id_card_photo || ''
+    ).run()
+
+    console.log('✅ 업체 등록 성공:', result.meta.last_row_id)
+
+    return c.json({
+      success: true,
+      id: result.meta.last_row_id,
+      message: '업체 정보가 성공적으로 등록되었습니다.'
+    })
+  } catch (error) {
+    console.error('❌ 업체 등록 실패:', error)
+    return c.json({ error: '업체 등록 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 업체 검색 (사업자번호, 이름, 전화번호 뒷자리, 주민번호 앞 6자리)
+app.get('/api/companies/search', async (c) => {
+  try {
+    const query = c.req.query('q') || ''
+    const { env } = c
+
+    console.log('🔍 업체 검색:', query)
+
+    // 검색어 정제
+    const cleanQuery = query.replace(/-/g, '').trim()
+
+    // 검색: 사업자번호, 대표자명, 전화번호 뒷자리, 주민번호 앞 6자리
+    const companies = await env.DB.prepare(`
+      SELECT 
+        id,
+        company_name,
+        business_number,
+        representative,
+        representative_phone,
+        representative_resident_number,
+        business_address,
+        business_detail_address,
+        representative_address,
+        representative_detail_address,
+        business_postcode,
+        representative_postcode,
+        id_card_photo,
+        status,
+        created_at
+      FROM companies
+      WHERE 
+        status = 'active'
+        AND (
+          REPLACE(business_number, '-', '') LIKE '%' || ? || '%'
+          OR representative LIKE '%' || ? || '%'
+          OR REPLACE(representative_phone, '-', '') LIKE '%' || ? || '%'
+          OR SUBSTR(REPLACE(representative_resident_number, '-', ''), 1, 6) LIKE '%' || ? || '%'
+        )
+      ORDER BY created_at DESC
+      LIMIT 50
+    `).bind(cleanQuery, query, cleanQuery, cleanQuery).all()
+
+    console.log(`✅ 검색 결과: ${companies.results?.length || 0}건`)
+
+    return c.json({
+      success: true,
+      companies: companies.results || []
+    })
+  } catch (error) {
+    console.error('❌ 업체 검색 실패:', error)
+    return c.json({ error: '업체 검색 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 업체 상세 조회
+app.get('/api/companies/:id', async (c) => {
+  try {
+    const companyId = c.req.param('id')
+    const { env } = c
+
+    const company = await env.DB.prepare(`
+      SELECT * FROM companies WHERE id = ?
+    `).bind(companyId).first()
+
+    if (!company) {
+      return c.json({ error: '업체를 찾을 수 없습니다.' }, 404)
+    }
+
+    return c.json({
+      success: true,
+      company
+    })
+  } catch (error) {
+    console.error('❌ 업체 조회 실패:', error)
+    return c.json({ error: '업체 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 업체 목록 조회 (관리자용)
+app.get('/api/companies', async (c) => {
+  try {
+    const { env } = c
+    const page = parseInt(c.req.query('page') || '1')
+    const limit = parseInt(c.req.query('limit') || '20')
+    const offset = (page - 1) * limit
+
+    const companies = await env.DB.prepare(`
+      SELECT 
+        id,
+        company_name,
+        business_number,
+        representative,
+        representative_phone,
+        business_address,
+        status,
+        created_at
+      FROM companies
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).bind(limit, offset).all()
+
+    const totalResult = await env.DB.prepare(`
+      SELECT COUNT(*) as total FROM companies
+    `).first()
+
+    return c.json({
+      success: true,
+      companies: companies.results || [],
+      total: totalResult?.total || 0,
+      page,
+      limit
+    })
+  } catch (error) {
+    console.error('❌ 업체 목록 조회 실패:', error)
+    return c.json({ error: '업체 목록 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
 export default app
