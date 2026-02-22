@@ -6073,7 +6073,7 @@ app.put('/api/companies/:id', async (c) => {
     // 세션 검증
     console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
-      SELECT * FROM sessions WHERE session_id = ? AND expires_at > datetime('now')
+      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now')
     `).bind(sessionId).first()
     
     if (!session) {
@@ -6267,7 +6267,7 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
     // 세션 검증
     console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
-      SELECT * FROM sessions WHERE session_id = ? AND expires_at > datetime('now')
+      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now')
     `).bind(sessionId).first()
     
     if (!session) {
