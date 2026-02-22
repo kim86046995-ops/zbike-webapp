@@ -7,10 +7,10 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v5 - 상세 디버깅)**: https://9fb26679.zbike-webapp.pages.dev
+- **최신 배포 (v6 - R2 Storage)**: https://74dccf25.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
-- **업체 목록**: https://9fb26679.zbike-webapp.pages.dev/static/companies-list.html
-- **업체 등록**: https://9fb26679.zbike-webapp.pages.dev/static/company-register.html
+- **업체 목록**: https://74dccf25.zbike-webapp.pages.dev/static/companies-list.html
+- **업체 등록**: https://74dccf25.zbike-webapp.pages.dev/static/company-register.html
 
 ## ✨ 주요 기능
 
@@ -196,6 +196,19 @@
 
 ## 📊 데이터 아키텍처
 
+### 저장소 (Storage)
+
+#### Cloudflare D1 (SQLite) - 구조화된 데이터
+텍스트 데이터, 관계형 데이터 저장 (최대 1MB/컬럼)
+
+#### Cloudflare R2 Storage - 파일 저장소 🆕
+- **신분증 이미지** 저장 (D1 1MB 제한 회피)
+- **버킷**: `zbike-id-cards`
+- **바인딩**: `R2_ID_CARDS`
+- **파일 경로**: `id-cards/{timestamp}-{random}.jpg`
+- **공개 URL**: R2 public domain을 통한 접근
+- DB에는 R2 URL만 저장 (텍스트)
+
 ### 데이터베이스: Cloudflare D1 (SQLite)
 
 #### 테이블 구조
@@ -271,6 +284,14 @@
 - `GET /api/loan-contracts/:id` - 상세 조회
 - `POST /api/loan-contracts` - 생성
 - `PATCH /api/loan-contracts/:id/status` - 상태 변경
+
+#### 업체 관리 API 🆕
+- `POST /api/upload/id-card` - 신분증 이미지 업로드 (R2 Storage)
+  - Request: `{ image: "data:image/jpeg;base64,..." }`
+  - Response: `{ success: true, url: "https://...", fileName: "..." }`
+- `POST /api/companies` - 업체 등록 (id_card_photo는 R2 URL)
+- `GET /api/companies` - 업체 목록 조회
+- `GET /api/companies/search?q=<query>` - 업체 검색
 
 ## 📱 사용 가이드
 
