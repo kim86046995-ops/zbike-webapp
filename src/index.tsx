@@ -5718,7 +5718,13 @@ app.post('/api/companies', async (c) => {
     console.log('📝 업체 등록 요청:', {
       company_name: data.company_name,
       company_code: data.company_code,
-      representative: data.representative
+      representative: data.representative,
+      representative_phone: data.representative_phone,
+      representative_resident_number: data.representative_resident_number,
+      representative_postcode: data.representative_postcode,
+      representative_address: data.representative_address,
+      representative_detail_address: data.representative_detail_address,
+      id_card_photo_length: data.id_card_photo?.length
     })
 
     // 사업자번호 중복 체크 제거 (자동 생성되므로 중복 불가)
