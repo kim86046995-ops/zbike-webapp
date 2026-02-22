@@ -6011,6 +6011,96 @@ app.delete('/api/companies/:id', async (c) => {
   }
 })
 
+// 업체 정보 수정
+app.put('/api/companies/:id', async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    const id = c.req.param('id')
+    const data = await c.req.json()
+
+    console.log('📝 업체 수정 요청:', {
+      id,
+      company_name: data.company_name,
+      id_card_photo: data.id_card_photo ? 'URL 제공됨' : '없음'
+    })
+
+    // 업체 존재 확인
+    const company = await DB.prepare(`
+      SELECT id, company_name FROM companies WHERE id = ?
+    `).bind(id).first()
+
+    if (!company) {
+      return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
+    }
+
+    // 업데이트할 필드만 업데이트
+    const updateFields = []
+    const updateValues = []
+
+    if (data.company_name) {
+      updateFields.push('company_name = ?')
+      updateValues.push(data.company_name)
+    }
+    if (data.representative) {
+      updateFields.push('representative = ?')
+      updateValues.push(data.representative)
+    }
+    if (data.representative_phone) {
+      updateFields.push('representative_phone = ?')
+      updateValues.push(data.representative_phone)
+    }
+    if (data.representative_resident_number !== undefined) {
+      updateFields.push('representative_resident_number = ?')
+      updateValues.push(data.representative_resident_number)
+    }
+    if (data.representative_postcode !== undefined) {
+      updateFields.push('representative_postcode = ?')
+      updateValues.push(data.representative_postcode)
+    }
+    if (data.representative_address !== undefined) {
+      updateFields.push('representative_address = ?')
+      updateValues.push(data.representative_address)
+    }
+    if (data.representative_detail_address !== undefined) {
+      updateFields.push('representative_detail_address = ?')
+      updateValues.push(data.representative_detail_address)
+    }
+    if (data.id_card_photo !== undefined) {
+      updateFields.push('id_card_photo = ?')
+      updateValues.push(data.id_card_photo)
+    }
+    if (data.signature_data !== undefined) {
+      updateFields.push('signature_data = ?')
+      updateValues.push(data.signature_data)
+    }
+
+    updateFields.push('updated_at = CURRENT_TIMESTAMP')
+    updateValues.push(id)
+
+    const sql = `
+      UPDATE companies 
+      SET ${updateFields.join(', ')}
+      WHERE id = ?
+    `
+
+    await DB.prepare(sql).bind(...updateValues).run()
+
+    console.log('✅ 업체 수정 완료:', company.company_name, `(ID: ${id})`)
+    return c.json({ 
+      success: true, 
+      message: '업체 정보가 성공적으로 수정되었습니다.',
+      id: parseInt(id)
+    })
+  } catch (error) {
+    console.error('❌ 업체 수정 실패:', error)
+    return c.json({ 
+      error: '업체 수정 중 오류가 발생했습니다.',
+      details: error.message 
+    }, 500)
+  }
+})
+
 // R2 이미지 서빙 (공개 접근)
 app.get('/api/r2/id-cards/:fileName', async (c) => {
   const R2 = c.env.R2_ID_CARDS
