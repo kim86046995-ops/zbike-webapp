@@ -906,13 +906,6 @@
                 document.getElementById('idCardPreview').classList.add('hidden');
             }
             
-            // 4. 약관 동의 자동 체크
-            if (selectedCompany.terms_agreed) {
-                console.log('✅ 업체의 약관 동의 정보를 불러옵니다...');
-                document.getElementById('agreeTerms').checked = true;
-                console.log('✅ 약관 동의 자동 체크 완료');
-            }
-            
             // 모달 닫기
             hideCompanySelectModal();
             
@@ -921,12 +914,11 @@
             if (!selectedCompany.postcode) missingFields.push('우편번호');
             if (!selectedCompany.signature_data) missingFields.push('서명');
             if (!selectedCompany.id_card_photo) missingFields.push('신분증');
-            if (!selectedCompany.terms_agreed) missingFields.push('약관 동의');
             
             if (missingFields.length > 0) {
-                alert(`✅ "${selectedCompany.name}" 업체 정보가 입력되었습니다.\n\n※ ${missingFields.join(', ')}는 직접 입력해주세요.\n\n💡 업체 관리에서 ${missingFields.join(', ')}를 등록하면\n다음부터 자동으로 입력됩니다.`);
+                alert(`✅ "${selectedCompany.company_name}" 업체 정보가 입력되었습니다.\n\n※ ${missingFields.join(', ')}는 직접 입력해주세요.\n\n💡 업체 관리에서 ${missingFields.join(', ')}를 등록하면\n다음부터 자동으로 입력됩니다.\n\n⚠️ 약관 동의는 매번 직접 체크해주세요.`);
             } else {
-                alert(`✅ "${selectedCompany.name}" 업체 정보가 모두 자동 입력되었습니다!\n\n✓ 업체명: ${selectedCompany.name}\n✓ 사업자번호: ${selectedCompany.company_code}\n✓ 대표자: ${selectedCompany.representative}\n✓ 전화번호: ${selectedCompany.phone}\n✓ 주소: ${selectedCompany.address}\n✓ 서명: 자동 등록됨\n✓ 신분증: 자동 등록됨\n✓ 약관 동의: 확인됨\n\n👉 이제 오토바이와 계약 조건만 입력하시면 됩니다!`);
+                alert(`✅ "${selectedCompany.company_name}" 업체 정보가 모두 자동 입력되었습니다!\n\n✓ 업체명: ${selectedCompany.company_name}\n✓ 업체 코드: ${selectedCompany.company_code}\n✓ 대표자: ${selectedCompany.representative}\n✓ 전화번호: ${selectedCompany.representative_phone}\n✓ 주소: ${selectedCompany.representative_address}\n✓ 서명: 자동 등록됨\n✓ 신분증: 자동 등록됨\n\n⚠️ 약관 동의는 직접 체크해주세요.\n\n👉 이제 오토바이와 계약 조건만 입력하시면 됩니다!`);
             }
         }
 
