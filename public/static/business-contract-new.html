@@ -558,11 +558,15 @@
             <!-- 검색창 -->
             <div class="p-4 border-b bg-gray-50">
                 <div class="relative">
-                    <input type="text" id="companySearch" placeholder="업체명/사업자번호로 검색..." 
+                    <input type="text" id="companySearch" placeholder="업체명/사업자번호/이름/전화번호 뒷자리/주민번호 앞 6자리로 검색..." 
                            class="w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-green-500"
                            oninput="filterCompaniesInModal()">
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 </div>
+                <p class="text-xs text-gray-600 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    검색 가능: 상호명, 사업자번호, 대표자명, 전화번호 뒷자리 (예: 6991), 주민번호 앞 6자리 (예: 900806)
+                </p>
             </div>
             
             <!-- 업체 목록 -->
@@ -739,10 +743,14 @@
                 const response = await axios.get('/api/companies', {
                     headers: { 'X-Session-ID': sessionId }
                 });
-                companies = response.data;
                 allCompanies = response.data;
+                companies = response.data.companies || [];
+                
+                console.log('✅ 업체 목록 로드:', companies.length + '건');
             } catch (error) {
-                console.error('업체 목록 로드 실패:', error);
+                console.error('❌ 업체 목록 로드 실패:', error);
+                companies = [];
+                allCompanies = { companies: [] };
             }
         }
         
@@ -760,22 +768,41 @@
             document.getElementById('companySearch').value = '';
         }
         
-        // 모달 내 업체 검색 필터
-        function filterCompaniesInModal() {
-            const searchTerm = document.getElementById('companySearch').value.toLowerCase().trim();
+        // 모달 내 업체 검색 필터 (사업자번호, 이름, 전화번호 뒷자리, 주민번호 앞 6자리)
+        async function filterCompaniesInModal() {
+            const searchTerm = document.getElementById('companySearch').value.trim();
             
             if (!searchTerm) {
-                renderCompanyList(companies);
+                renderCompanyList(allCompanies.companies || []);
                 return;
             }
             
-            const filtered = companies.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const businessNumber = (c.business_number || '').toLowerCase();
-                return name.includes(searchTerm) || businessNumber.includes(searchTerm);
-            });
-            
-            renderCompanyList(filtered);
+            try {
+                // 백엔드 API로 검색 (4가지 방식 지원)
+                const response = await axios.get(`/api/companies/search?q=${encodeURIComponent(searchTerm)}`);
+                const filtered = response.data.companies || [];
+                
+                console.log(`🔍 검색 결과: ${filtered.length}건`);
+                renderCompanyList(filtered);
+            } catch (error) {
+                console.error('❌ 업체 검색 실패:', error);
+                // 실패 시 로컬 필터링으로 폴백
+                const searchLower = searchTerm.toLowerCase();
+                const filtered = (allCompanies.companies || []).filter(c => {
+                    const name = (c.company_name || '').toLowerCase();
+                    const businessNumber = (c.business_number || '').replace(/-/g, '');
+                    const representative = (c.representative || '').toLowerCase();
+                    const phone = (c.representative_phone || '').replace(/-/g, '');
+                    const residentNumber = (c.representative_resident_number || '').replace(/-/g, '').substring(0, 6);
+                    
+                    return name.includes(searchLower) || 
+                           businessNumber.includes(searchTerm.replace(/-/g, '')) ||
+                           representative.includes(searchLower) ||
+                           phone.includes(searchTerm.replace(/-/g, '')) ||
+                           residentNumber.includes(searchTerm.replace(/-/g, ''));
+                });
+                renderCompanyList(filtered);
+            }
         }
         
         // 업체 목록 렌더링
@@ -802,13 +829,13 @@
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-building text-green-600 mr-2"></i>
-                                <h4 class="font-bold text-lg">${company.name}</h4>
+                                <h4 class="font-bold text-lg">${company.company_name}</h4>
                                 ${selectedCompany && selectedCompany.id === company.id ? '<span class="ml-2 bg-green-600 text-white text-xs px-2 py-1 rounded">선택됨</span>' : ''}
                             </div>
                             <div class="text-sm text-gray-600 space-y-1">
                                 <p><i class="fas fa-id-card w-4 mr-2"></i>${company.business_number}</p>
                                 <p><i class="fas fa-user-tie w-4 mr-2"></i>${company.representative}</p>
-                                <p><i class="fas fa-phone w-4 mr-2"></i>${company.phone}</p>
+                                <p><i class="fas fa-phone w-4 mr-2"></i>${company.representative_phone}</p>
                             </div>
                         </div>
                     </div>
@@ -821,12 +848,12 @@
             selectedCompany = companies.find(c => c.id === id);
             if (!selectedCompany) return;
             
-            console.log('✅ 업체 선택됨:', selectedCompany.name);
+            console.log('✅ 업체 선택됨:', selectedCompany.company_name);
             console.log('📋 서명 데이터:', selectedCompany.signature_data ? '있음' : '없음');
             console.log('🪪 신분증 데이터:', selectedCompany.id_card_photo ? '있음' : '없음');
             
             // 1. 업체 및 대표자 정보 자동 입력
-            document.getElementById('companyName').value = selectedCompany.name; // 상호
+            document.getElementById('companyName').value = selectedCompany.company_name; // 상호
             document.getElementById('businessNumber').value = selectedCompany.business_number; // 사업자번호
             document.getElementById('representative').value = selectedCompany.representative; // 대표자 이름
             
@@ -834,10 +861,18 @@
             if (selectedCompany.representative_resident_number) {
                 document.getElementById('representativeResidentNumber').value = selectedCompany.representative_resident_number;
             }
-            document.getElementById('representativePhone').value = selectedCompany.phone; // 전화번호
+            document.getElementById('representativePhone').value = selectedCompany.representative_phone; // 전화번호
             
-            // 우편번호 및 주소 자동 입력
-            if (selectedCompany.postcode) {
+            // 대표자 주소 자동 입력
+            if (selectedCompany.representative_postcode) {
+                document.getElementById('representativePostcode').value = selectedCompany.representative_postcode;
+            }
+            if (selectedCompany.representative_address) {
+                document.getElementById('representativeAddress').value = selectedCompany.representative_address;
+            }
+            if (selectedCompany.representative_detail_address) {
+                document.getElementById('representativeDetailAddress').value = selectedCompany.representative_detail_address;
+            }
                 document.getElementById('representativePostcode').value = selectedCompany.postcode;
             }
             document.getElementById('representativeAddress').value = selectedCompany.address || ''; // 기본주소
@@ -989,7 +1024,20 @@
                 'scrapped': '폐지'
             };
 
-            container.innerHTML = list.map(m => `
+            container.innerHTML = list.map(m => {
+                // 계약 유형 표시 (business_contracts는 업체 계약)
+                let contractTypeHTML = '';
+                if (m.status === 'rented' || m.current_contract_type) {
+                    const typeMap = {
+                        'rent': '렌트',
+                        'lease': '리스',
+                        'temp_rent': '임시렌트'
+                    };
+                    const contractType = typeMap[m.current_contract_type] || '계약중';
+                    contractTypeHTML = `<span class="ml-2 px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">${contractType}</span>`;
+                }
+                
+                return `
                 <div class="border rounded-lg p-4 mb-3 hover:bg-purple-50 cursor-pointer transition ${selectedMotorcycleId === m.id ? 'bg-purple-50 border-purple-500' : 'hover:border-purple-300'}"
                      onclick="selectMotorcycleFromModal(${m.id})">
                     <div class="flex items-center justify-between">
@@ -999,6 +1047,7 @@
                                 <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[m.status] || 'bg-gray-100 text-gray-800'}">
                                     ${statusTexts[m.status] || m.status}
                                 </span>
+                                ${contractTypeHTML}
                                 ${selectedMotorcycleId === m.id ? '<span class="bg-purple-600 text-white px-2 py-1 rounded text-xs">선택됨</span>' : ''}
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-600">
@@ -1012,7 +1061,8 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // 모달에서 오토바이 선택
