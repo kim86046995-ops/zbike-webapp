@@ -5763,7 +5763,15 @@ app.post('/api/companies', async (c) => {
     })
   } catch (error) {
     console.error('❌ 업체 등록 실패:', error)
-    return c.json({ error: '업체 등록 중 오류가 발생했습니다.' }, 500)
+    console.error('❌ 에러 상세:', {
+      name: error.name,
+      message: error.message,
+      cause: error.cause
+    })
+    return c.json({ 
+      error: '업체 등록 중 오류가 발생했습니다.',
+      details: error.message 
+    }, 500)
   }
 })
 
