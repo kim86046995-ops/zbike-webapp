@@ -211,7 +211,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
         // 버전 체크 및 강제 새로고침
-        const CURRENT_VERSION = '2026-02-22-v4'; // 버전 업데이트!
+        const CURRENT_VERSION = '2026-02-22-v5'; // 버전 업데이트! 상세 에러 로깅 추가
         const storedVersion = localStorage.getItem('company-register-version');
         
         if (storedVersion !== CURRENT_VERSION) {
@@ -374,6 +374,9 @@
                 
                 try {
                     console.log('🚀 POST /api/companies 호출 중...');
+                    console.log('📦 전송 데이터 크기:', JSON.stringify(formData).length, 'bytes');
+                    console.log('📦 formData 필드:', Object.keys(formData));
+                    
                     const response = await axios.post('/api/companies', formData, {
                         headers: {
                             'Cache-Control': 'no-cache',
@@ -388,11 +391,14 @@
                     console.log('🔄 업체 목록 페이지로 이동 중...');
                     window.location.href = '/static/companies-list.html';
                 } catch (error) {
+                    console.error('❌ 등록 실패 전체 에러 객체:', error);
                     console.error('❌ 등록 실패 상세:', {
                         message: error.message,
                         response: error.response,
                         status: error.response?.status,
-                        data: error.response?.data
+                        statusText: error.response?.statusText,
+                        data: error.response?.data,
+                        headers: error.response?.headers
                     });
                     
                     let errorMessage = '등록 중 오류가 발생했습니다.';
@@ -402,15 +408,27 @@
                         // 서버에서 응답이 온 경우
                         const status = error.response.status;
                         const serverError = error.response.data?.error;
+                        const serverDetails = error.response.data?.details;
                         
-                        console.log('🔍 에러 분석:', { status, serverError });
+                        console.log('🔍 에러 분석:', { 
+                            status, 
+                            serverError, 
+                            serverDetails,
+                            fullData: error.response.data 
+                        });
                         
                         if (status === 400) {
                             errorMessage = serverError || '이미 등록된 사업자번호입니다.';
                             errorDetails = '\n\n💡 다른 사업자번호로 시도해주세요.';
                         } else if (status === 500) {
                             errorMessage = serverError || '서버 오류가 발생했습니다.';
-                            errorDetails = '\n\n💡 가능한 원인:\n- 이미 등록된 사업자번호\n- 데이터베이스 오류\n- 잘못된 데이터 형식\n\n다른 사업자번호로 시도해주세요.';
+                            
+                            // 서버 에러 상세 정보 표시
+                            if (error.response.data?.details) {
+                                errorDetails = '\n\n🔍 에러 상세:\n' + error.response.data.details;
+                            } else {
+                                errorDetails = '\n\n💡 가능한 원인:\n- 데이터베이스 오류\n- 서버 내부 오류\n\n개발자 도구(F12)의 Console 탭에서 자세한 로그를 확인하세요.';
+                            }
                         } else {
                             errorMessage = serverError || error.message;
                             errorDetails = '\n\n상태 코드: ' + status;
