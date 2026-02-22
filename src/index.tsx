@@ -5732,6 +5732,9 @@ app.post('/api/companies', async (c) => {
     // AUTO-YYYYMMDD-XXX 형식으로 항상 고유함
 
     // 업체 정보 저장
+    // business_number는 고유 제약조건이 있으므로 현재 타임스탬프를 추가하여 고유성 보장
+    const uniqueBusinessNumber = `${data.company_code}-${Date.now()}`;
+    
     const result = await DB.prepare(`
       INSERT INTO companies (
         company_name,
@@ -5750,7 +5753,7 @@ app.post('/api/companies', async (c) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `).bind(
       data.company_name,
-      data.company_code, // business_number에도 company_code 저장 (하위 호환성)
+      uniqueBusinessNumber, // 타임스탬프를 추가하여 고유성 보장
       data.company_code,
       data.representative,
       data.representative_resident_number || null,
