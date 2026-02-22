@@ -5797,15 +5797,15 @@ app.post('/api/companies', async (c) => {
       data.company_name,
       data.business_number,
       data.representative,
-      data.representative_resident_number,
+      data.representative_resident_number || null,
       data.representative_phone,
-      data.business_postcode || '',
-      data.business_address,
-      data.business_detail_address || '',
-      data.representative_postcode || '',
-      data.representative_address,
-      data.representative_detail_address || '',
-      data.id_card_photo || ''
+      data.business_postcode || null,
+      data.business_address || null,
+      data.business_detail_address || null,
+      data.representative_postcode || null,
+      data.representative_address || null,
+      data.representative_detail_address || null,
+      data.id_card_photo || null
     ).run()
 
     console.log('✅ 업체 등록 성공:', result.meta.last_row_id)
