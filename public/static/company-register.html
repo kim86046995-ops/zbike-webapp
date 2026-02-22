@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>업체정보 등록 - Z-BIKE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -207,6 +210,36 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
+        // 버전 체크 및 강제 새로고침
+        const CURRENT_VERSION = '2026-02-22-v3';
+        const storedVersion = localStorage.getItem('company-register-version');
+        
+        if (storedVersion !== CURRENT_VERSION) {
+            console.log('🔄 새 버전 감지, 캐시 삭제 중...', { old: storedVersion, new: CURRENT_VERSION });
+            localStorage.setItem('company-register-version', CURRENT_VERSION);
+            
+            // Service Worker 캐시 삭제
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+            
+            // 캐시 스토리지 삭제
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            console.log('✅ 캐시 삭제 완료, 페이지 새로고침');
+            window.location.reload(true);
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // 페이지 로드 시 업체 코드 자동 생성 및 표시
             generateCompanyCode();
@@ -341,7 +374,12 @@
                 
                 try {
                     console.log('🚀 POST /api/companies 호출 중...');
-                    const response = await axios.post('/api/companies', formData);
+                    const response = await axios.post('/api/companies', formData, {
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
                     console.log('✅ 서버 응답:', response.status, response.data);
                     
                     alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n업체 코드: ' + formData.company_code + '\n업체 ID: ' + response.data.id);
