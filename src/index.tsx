@@ -3089,17 +3089,29 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
 // 업체 계약서 생성
 // 업체 계약 생성 (인증 필요)
 app.post('/api/business-contracts', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const data = await c.req.json()
-  
-  // 오토바이 정보 조회 (driving_range를 가져오기 위함)
-  const motorcycle = await DB.prepare(
-    `SELECT driving_range FROM motorcycles WHERE id = ?`
-  ).bind(data.motorcycle_id).first() as any
-  
-  if (!motorcycle) {
-    return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
-  }
+  try {
+    console.log('🔍 [Business Contract] API 호출 시작')
+    const DB = c.env.DB || c.env.db
+    const data = await c.req.json()
+    
+    console.log('📋 [Business Contract] 요청 데이터:', {
+      motorcycle_id: data.motorcycle_id,
+      company_name: data.company_name,
+      business_phone: data.business_phone,
+      representative_phone: data.representative_phone
+    })
+    
+    // 오토바이 정보 조회 (driving_range를 가져오기 위함)
+    const motorcycle = await DB.prepare(
+      `SELECT driving_range FROM motorcycles WHERE id = ?`
+    ).bind(data.motorcycle_id).first() as any
+    
+    if (!motorcycle) {
+      console.error('❌ [Business Contract] 오토바이를 찾을 수 없음:', data.motorcycle_id)
+      return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+    }
+    
+    console.log('✅ [Business Contract] 오토바이 조회 성공:', motorcycle)
   
   // 계약서 번호 생성 (B-YYYYMMDD-XXXX 형식)
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
@@ -3191,7 +3203,22 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     `UPDATE motorcycles SET status = 'rented' WHERE id = ?`
   ).bind(data.motorcycle_id).run()
   
+  console.log('✅ [Business Contract] 계약서 생성 완료:', contractNumber)
   return c.json({ id: result.meta.last_row_id, contract_number: contractNumber }, 201)
+  
+  } catch (error: any) {
+    console.error('❌ [Business Contract] 에러 발생:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    })
+    return c.json({ 
+      error: '계약서 생성 중 오류가 발생했습니다',
+      details: error.message,
+      type: error.name
+    }, 500)
+  }
 })
 
 // 업체 계약서 목록 조회
