@@ -145,17 +145,24 @@
                         대표자 신분증 (1회 등록)
                     </h2>
                     
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
                         <input type="file" id="idCardPhoto" accept="image/*" onchange="previewIdCard(event)"
                             class="hidden">
-                        <label for="idCardPhoto" class="cursor-pointer">
-                            <div id="idCardPreview" class="mb-4">
-                                <i class="fas fa-camera text-gray-400 text-4xl mb-2"></i>
-                                <p class="text-gray-600">클릭하여 신분증 사진 업로드</p>
-                                <p class="text-sm text-gray-500 mt-1">JPG, PNG 형식 (최대 10MB)</p>
-                            </div>
-                        </label>
-                        <img id="idCardImage" class="hidden max-w-full max-h-64 mx-auto rounded-lg">
+                        
+                        <div id="idCardPreview" class="mb-4">
+                            <i class="fas fa-camera text-gray-400 text-5xl mb-3"></i>
+                            <p class="text-gray-700 font-medium mb-2">신분증 사진 업로드</p>
+                            <p class="text-sm text-gray-500 mb-4">JPG, PNG 형식 (최대 10MB)</p>
+                            
+                            <label for="idCardPhoto" class="inline-block cursor-pointer">
+                                <div class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                    <i class="fas fa-upload mr-2"></i>
+                                    파일 선택
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <img id="idCardImage" class="hidden max-w-full max-h-64 mx-auto rounded-lg shadow-lg">
                     </div>
                     <p class="text-sm text-gray-600 mt-2">
                         <i class="fas fa-info-circle text-blue-600 mr-1"></i>
