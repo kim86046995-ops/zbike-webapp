@@ -252,6 +252,29 @@
                 console.log('  - representative:', company.representative, typeof company.representative);
                 console.log('  - representative_phone:', company.representative_phone, typeof company.representative_phone);
                 console.log('  - id_card_photo:', company.id_card_photo, typeof company.id_card_photo);
+                
+                // 안전하게 값 추출
+                const companyId = company.id;
+                const companyName = company.company_name || 'N/A';
+                const companyCode = company.company_code || 'N/A';
+                const businessNumber = company.business_number;
+                const representative = company.representative || 'N/A';
+                const representativePhone = company.representative_phone || 'N/A';
+                const representativeResidentNumber = company.representative_resident_number;
+                const representativePostcode = company.representative_postcode;
+                const representativeAddress = company.representative_address;
+                const representativeDetailAddress = company.representative_detail_address;
+                const idCardPhoto = company.id_card_photo;
+                const status = company.status;
+                const createdAt = company.created_at;
+                const updatedAt = company.updated_at;
+                
+                console.log('✅ 값 추출 완료:', {
+                    companyName,
+                    companyCode,
+                    representative,
+                    representativePhone
+                });
 
                 document.getElementById('detailContent').innerHTML = `
                     <div class="space-y-6">
@@ -273,16 +296,16 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체명</label>
-                                    <p class="text-gray-800 font-bold">${company.company_name || 'N/A'}</p>
+                                    <p class="text-gray-800 font-bold">${companyName}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체 코드</label>
-                                    <p class="text-gray-800 font-mono bg-blue-50 px-2 py-1 rounded">${company.company_code || 'N/A'}</p>
+                                    <p class="text-gray-800 font-mono bg-blue-50 px-2 py-1 rounded">${companyCode}</p>
                                 </div>
-                                ${company.business_number ? `
+                                ${businessNumber ? `
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">사업자번호</label>
-                                    <p class="text-gray-800">${company.business_number}</p>
+                                    <p class="text-gray-800">${businessNumber}</p>
                                 </div>
                                 ` : ''}
                             </div>
@@ -297,16 +320,16 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">대표자 이름</label>
-                                    <p class="text-gray-800 font-bold">${company.representative || 'N/A'}</p>
+                                    <p class="text-gray-800 font-bold">${representative}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">전화번호</label>
-                                    <p class="text-gray-800">${company.representative_phone || 'N/A'}</p>
+                                    <p class="text-gray-800">${representativePhone}</p>
                                 </div>
-                                ${company.representative_resident_number ? `
+                                ${representativeResidentNumber ? `
                                     <div class="md:col-span-2">
                                         <label class="block text-sm font-semibold text-gray-600 mb-1">주민등록번호</label>
-                                        <p class="text-gray-800 font-mono">${company.representative_resident_number}</p>
+                                        <p class="text-gray-800 font-mono">${representativeResidentNumber}</p>
                                     </div>
                                 ` : ''}
                             </div>
@@ -319,14 +342,14 @@
                                 대표자 주소
                             </h3>
                             <div class="space-y-2">
-                                ${company.representative_postcode ? `
-                                    <p class="text-sm"><span class="font-semibold text-gray-600">우편번호:</span> ${company.representative_postcode}</p>
+                                ${representativePostcode ? `
+                                    <p class="text-sm"><span class="font-semibold text-gray-600">우편번호:</span> ${representativePostcode}</p>
                                 ` : '<p class="text-gray-400 text-sm">우편번호 없음</p>'}
-                                ${company.representative_address ? `
-                                    <p class="text-gray-800">${company.representative_address}</p>
+                                ${representativeAddress ? `
+                                    <p class="text-gray-800">${representativeAddress}</p>
                                 ` : '<p class="text-gray-400 text-sm">주소 없음</p>'}
-                                ${company.representative_detail_address ? `
-                                    <p class="text-gray-600">${company.representative_detail_address}</p>
+                                ${representativeDetailAddress ? `
+                                    <p class="text-gray-600">${representativeDetailAddress}</p>
                                 ` : ''}
                             </div>
                         </div>
@@ -337,24 +360,24 @@
                                 <i class="fas fa-id-card text-blue-600 mr-2"></i>
                                 대표자 신분증
                             </h3>
-                            ${company.id_card_photo ? `
+                            ${idCardPhoto ? `
                                 <div class="space-y-3">
                                     <div class="bg-gray-50 p-2 rounded">
                                         <p class="text-xs text-gray-600 mb-1">이미지 URL:</p>
-                                        <p class="text-xs text-gray-800 break-all font-mono bg-white p-2 rounded">${company.id_card_photo}</p>
+                                        <p class="text-xs text-gray-800 break-all font-mono bg-white p-2 rounded">${idCardPhoto}</p>
                                     </div>
-                                    <img src="${company.id_card_photo}" 
+                                    <img src="${idCardPhoto}" 
                                          alt="신분증" 
                                          class="max-w-full rounded-lg shadow-lg border-2 border-gray-200"
                                          onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect width=%22400%22 height=%22300%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23999%22>이미지 로드 실패</text></svg>';">
-                                    <button onclick="updateIdCard(${company.id})" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    <button onclick="updateIdCard(${companyId})" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                         <i class="fas fa-sync-alt mr-2"></i>신분증 다시 업로드
                                     </button>
                                 </div>
                             ` : `
                                 <div class="space-y-3">
                                     <p class="text-gray-400 mb-3">신분증 사진 없음</p>
-                                    <button onclick="updateIdCard(${company.id})" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                    <button onclick="updateIdCard(${companyId})" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                                         <i class="fas fa-upload mr-2"></i>신분증 업로드
                                     </button>
                                 </div>
@@ -370,17 +393,17 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">등록일</label>
-                                    <p class="text-gray-800">${new Date(company.created_at).toLocaleString('ko-KR')}</p>
+                                    <p class="text-gray-800">${new Date(createdAt).toLocaleString('ko-KR')}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">수정일</label>
-                                    <p class="text-gray-800">${new Date(company.updated_at).toLocaleString('ko-KR')}</p>
+                                    <p class="text-gray-800">${new Date(updatedAt).toLocaleString('ko-KR')}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">상태</label>
                                     <p class="text-gray-800">
-                                        <span class="px-2 py-1 ${company.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} rounded text-xs">
-                                            ${company.status === 'active' ? '✅ 활성' : '❌ 비활성'}
+                                        <span class="px-2 py-1 ${status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} rounded text-xs">
+                                            ${status === 'active' ? '✅ 활성' : '❌ 비활성'}
                                         </span>
                                     </p>
                                 </div>
