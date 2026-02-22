@@ -2455,13 +2455,13 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     data.contract_type,
     'created',
     null,
-    'active',
+    statusToSave,  // 실제 저장된 상태 사용
     data.start_date,
     data.end_date,
     data.monthly_fee,
     data.deposit || 0,
     data.special_terms || '',
-    '새 계약 생성'
+    statusToSave === 'pending' ? '계약 생성 (서명 대기)' : '새 계약 생성'
   )
   
   // 오토바이 상태 업데이트 (active 상태일 때만)
