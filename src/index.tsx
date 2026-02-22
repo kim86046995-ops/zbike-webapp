@@ -1807,30 +1807,6 @@ app.get('/api/companies/:id', authMiddleware, async (c) => {
 })
 
 // 업체 생성
-app.post('/api/companies', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const data = await c.req.json()
-  
-  const result = await DB.prepare(`
-    INSERT INTO companies (name, business_number, representative, representative_resident_number, phone, postcode, address, detail_address, signature_data, id_card_photo, terms_agreed)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    data.name,
-    data.business_number,
-    data.representative,
-    data.representative_resident_number || '',
-    data.phone,
-    data.postcode || '',
-    data.address,
-    data.detail_address || '',
-    data.signature_data || '',
-    data.id_card_photo || '',
-    data.terms_agreed ? 1 : 0
-  ).run()
-  
-  return c.json({ id: result.meta.last_row_id, ...data }, 201)
-})
-
 // 업체 수정
 app.put('/api/companies/:id', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
