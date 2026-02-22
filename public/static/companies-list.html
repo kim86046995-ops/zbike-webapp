@@ -264,19 +264,19 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">ID</label>
-                                    <p class="text-gray-800">${company.id}</p>
+                                    <p class="text-gray-800">${company.id || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체명</label>
-                                    <p class="text-gray-800 font-bold">${company.company_name}</p>
+                                    <p class="text-gray-800 font-bold">${company.company_name || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체 코드</label>
-                                    <p class="text-gray-800 font-mono bg-blue-50 px-2 py-1 rounded">${company.company_code}</p>
+                                    <p class="text-gray-800 font-mono bg-blue-50 px-2 py-1 rounded">${company.company_code || 'N/A'}</p>
                                 </div>
                                 ${company.business_number ? `
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-600 mb-1">사업자번호 (레거시)</label>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">사업자번호</label>
                                     <p class="text-gray-800">${company.business_number}</p>
                                 </div>
                                 ` : ''}
@@ -292,11 +292,11 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">대표자 이름</label>
-                                    <p class="text-gray-800 font-bold">${company.representative}</p>
+                                    <p class="text-gray-800 font-bold">${company.representative || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">전화번호</label>
-                                    <p class="text-gray-800">${company.representative_phone}</p>
+                                    <p class="text-gray-800">${company.representative_phone || 'N/A'}</p>
                                 </div>
                                 ${company.representative_resident_number ? `
                                     <div class="md:col-span-2">
