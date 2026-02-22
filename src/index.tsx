@@ -6158,4 +6158,82 @@ app.get('/api/r2/id-cards/:fileName', async (c) => {
   }
 })
 
+// 관리자 전용: 기존 신분증 URL 마이그레이션
+app.post('/api/admin/migrate-id-card-urls', async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    // 세션 체크
+    const sessionId = c.req.header('X-Session-ID')
+    
+    if (!sessionId) {
+      return c.json({ error: '인증이 필요합니다' }, 401)
+    }
+    
+    // 세션 검증
+    const session = await DB.prepare(`
+      SELECT * FROM sessions WHERE session_id = ? AND expires_at > datetime('now')
+    `).bind(sessionId).first()
+    
+    if (!session) {
+      return c.json({ error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
+    }
+    
+    console.log('🔄 신분증 URL 마이그레이션 시작...')
+    
+    // 구버전 URL을 사용하는 업체 조회
+    const companies = await DB.prepare(`
+      SELECT id, company_name, id_card_photo 
+      FROM companies 
+      WHERE id_card_photo LIKE 'https://pub-%'
+    `).all()
+    
+    console.log('📋 마이그레이션 대상:', companies.results?.length || 0, '개 업체')
+    
+    let updatedCount = 0
+    
+    for (const company of companies.results || []) {
+      const oldUrl = company.id_card_photo
+      
+      // URL에서 파일명 추출
+      // https://pub-your-account.r2.dev/id-cards/1721755887446-vvwh12.jpg
+      // → /api/r2/id-cards/1721755887446-vvwh12.jpg
+      const match = oldUrl.match(/id-cards\/(.+)$/)
+      
+      if (match) {
+        const fileName = match[1]
+        const newUrl = `/api/r2/id-cards/${fileName}`
+        
+        console.log('🔄 업데이트:', company.company_name)
+        console.log('  이전:', oldUrl)
+        console.log('  이후:', newUrl)
+        
+        // URL 업데이트
+        await DB.prepare(`
+          UPDATE companies 
+          SET id_card_photo = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(newUrl, company.id).run()
+        
+        updatedCount++
+      }
+    }
+    
+    console.log('✅ 마이그레이션 완료:', updatedCount, '개 업체 업데이트됨')
+    
+    return c.json({
+      success: true,
+      message: `${updatedCount}개 업체의 신분증 URL이 업데이트되었습니다.`,
+      total: companies.results?.length || 0,
+      updated: updatedCount
+    })
+  } catch (error) {
+    console.error('❌ 마이그레이션 실패:', error)
+    return c.json({ 
+      error: '마이그레이션 중 오류가 발생했습니다.',
+      details: error.message 
+    }, 500)
+  }
+})
+
 export default app
