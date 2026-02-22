@@ -5,9 +5,27 @@ import { serveStatic } from '@hono/node-server/serve-static'
 type Bindings = {
   DB: D1Database;
   db: D1Database;
+  R2_ID_CARDS: R2Bucket;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+// ============================================
+// 글로벌 에러 핸들러
+// ============================================
+app.onError((err, c) => {
+  console.error('🚨 글로벌 에러 핸들러:', err)
+  console.error('🚨 에러 스택:', err.stack)
+  console.error('🚨 에러 이름:', err.name)
+  console.error('🚨 에러 메시지:', err.message)
+  
+  return c.json({
+    error: '서버 내부 오류가 발생했습니다',
+    details: err.message,
+    type: err.name,
+    available_bindings: c.env ? Object.keys(c.env) : []
+  }, 500)
+})
 
 // ============================================
 // 전역 CORS 설정 (모든 브라우저 호환)
@@ -1783,33 +1801,35 @@ END`)
 
 // 업체 생성
 // 업체 수정
-app.put('/api/companies/:id', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const id = c.req.param('id')
-  const data = await c.req.json()
-  
-  await DB.prepare(`
-    UPDATE companies SET
-      name = ?, company_code = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
-      signature_data = ?, id_card_photo = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(
-    data.name,
-    data.company_code,
-    data.representative,
-    data.representative_resident_number || '',
-    data.phone,
-    data.postcode || '',
-    data.address,
-    data.detail_address || '',
-    data.signature_data || '',
-    data.id_card_photo || '',
-    id
-  ).run()
-  
-  return c.json({ id, ...data })
-})
+// [주석 처리] 구버전 PUT 핸들러 - 잘못된 필드명(name → company_name) 사용으로 인한 충돌
+// 최신 PUT 핸들러는 line 6033에 정의됨
+// app.put('/api/companies/:id', authMiddleware, async (c) => {
+//   const DB = c.env.DB || c.env.db
+//   const id = c.req.param('id')
+//   const data = await c.req.json()
+//   
+//   await DB.prepare(`
+//     UPDATE companies SET
+//       name = ?, company_code = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
+//       signature_data = ?, id_card_photo = ?,
+//       updated_at = CURRENT_TIMESTAMP
+//     WHERE id = ?
+//   `).bind(
+//     data.name,
+//     data.company_code,
+//     data.representative,
+//     data.representative_resident_number || '',
+//     data.phone,
+//     data.postcode || '',
+//     data.address,
+//     data.detail_address || '',
+//     data.signature_data || '',
+//     data.id_card_photo || '',
+//     id
+//   ).run()
+//   
+//   return c.json({ id, ...data })
+// })
 
 // [주석 처리] 업체 삭제 (슈퍼관리자 전용) - 관련 데이터 완전 삭제
 // 현재 일반 사용자용 Soft Delete 엔드포인트를 사용 중 (라인 5913)
