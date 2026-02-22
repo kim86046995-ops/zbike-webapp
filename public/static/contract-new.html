@@ -2478,7 +2478,7 @@
                 }
 
                 // 3. 신분증 확인
-                if (!capturedAdminIdImage) {
+                if (!adminIdPhotoData) {
                     alert('❌ 신분증을 촬영하거나 업로드해주세요.\n\n8. 신분증 촬영 섹션에서 신분증을 업로드하세요.');
                     return;
                 }
@@ -2500,7 +2500,7 @@
                     ...pendingContractData,
                     status: 'active',  // 즉시 완료 상태
                     signature_data: signatureData,
-                    id_card_photo: capturedAdminIdImage
+                    id_card_photo: adminIdPhotoData
                 }, {
                     headers: { 'X-Session-ID': sessionId }
                 });
