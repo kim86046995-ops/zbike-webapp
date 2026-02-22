@@ -6013,10 +6013,22 @@ app.delete('/api/companies/:id', async (c) => {
 
 // 업체 정보 수정
 app.put('/api/companies/:id', async (c) => {
-  const DB = c.env.DB || c.env.db
-  
   try {
     console.log('🔍 업체 수정 API 호출됨')
+    
+    // D1 바인딩 체크
+    const DB = c.env.DB || c.env.db
+    if (!DB) {
+      console.error('❌ D1 데이터베이스 바인딩이 없습니다!')
+      console.error('❌ c.env:', Object.keys(c.env || {}))
+      return c.json({ 
+        error: 'D1 데이터베이스가 연결되지 않았습니다.',
+        details: 'DB 바인딩이 누락되었습니다. wrangler.jsonc를 확인하세요.',
+        available_bindings: Object.keys(c.env || {})
+      }, 500)
+    }
+    
+    console.log('✅ D1 바인딩 확인됨')
     
     // 세션 체크
     const sessionId = c.req.header('X-Session-ID')
