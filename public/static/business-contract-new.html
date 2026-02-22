@@ -732,21 +732,32 @@
         // 업체 목록 로드
         async function loadCompanies() {
             try {
+                console.log('🔍 업체 목록 로드 시작...');
                 const sessionId = localStorage.getItem('sessionId');
+                console.log('📋 세션 ID:', sessionId ? '있음' : '없음');
+                
                 const response = await axios.get('/api/companies', {
                     headers: { 'X-Session-ID': sessionId }
                 });
+                
+                console.log('📦 API 응답 상태:', response.status);
+                console.log('📦 API 응답 데이터 타입:', Array.isArray(response.data) ? '배열' : typeof response.data);
+                console.log('📦 API 응답 데이터:', response.data);
                 
                 // API는 배열을 직접 반환함
                 companies = response.data || [];
                 allCompanies = { companies: companies };
                 
-                console.log('✅ 업체 목록 로드:', companies.length + '건');
+                console.log('✅ 업체 목록 로드 완료:', companies.length + '건');
                 if (companies.length > 0) {
-                    console.log('📋 첫 번째 업체 샘플:', companies[0]);
+                    console.log('📋 첫 번째 업체 상세 정보:', JSON.stringify(companies[0], null, 2));
                 }
             } catch (error) {
                 console.error('❌ 업체 목록 로드 실패:', error);
+                console.error('❌ 에러 메시지:', error.message);
+                console.error('❌ 에러 응답:', error.response);
+                console.error('❌ 에러 상태:', error.response?.status);
+                console.error('❌ 에러 데이터:', error.response?.data);
                 companies = [];
                 allCompanies = { companies: [] };
             }
@@ -754,9 +765,19 @@
         
         // 업체 선택 모달 표시
         function showCompanySelectModal() {
+            console.log('🔍 업체 선택 모달 열기 시도...');
+            console.log('📊 현재 업체 목록:', companies.length + '건');
+            
             const modal = document.getElementById('companySelectModal');
+            if (!modal) {
+                console.error('❌ 모달 요소를 찾을 수 없습니다!');
+                return;
+            }
+            
+            console.log('✅ 모달 요소 발견, 표시 중...');
             modal.classList.remove('hidden');
             renderCompanyList(companies);
+            console.log('✅ 업체 목록 렌더링 완료');
         }
         
         // 업체 선택 모달 숨기기
@@ -924,21 +945,30 @@
         // 오토바이 선택 모달 표시
         // 오토바이 선택 모달 표시
         function showMotorcycleModal() {
-            console.log('🔍 오토바이 선택 모달 열기');
+            console.log('🔍 오토바이 선택 모달 열기 시도...');
             console.log('📊 현재 오토바이 목록:', motorcycles.length, '대');
             
             const modal = document.getElementById('motorcycleModal');
+            if (!modal) {
+                console.error('❌ 오토바이 모달 요소를 찾을 수 없습니다!');
+                return;
+            }
+            
+            console.log('✅ 모달 요소 발견, 표시 중...');
             modal.classList.remove('hidden');
             
             // 목록이 비어있으면 다시 로드
             if (motorcycles.length === 0) {
                 console.log('⚠️ 오토바이 목록이 비어있습니다. 다시 로드합니다...');
                 loadMotorcycles().then(() => {
+                    console.log('✅ 오토바이 목록 재로드 완료:', motorcycles.length, '대');
                     renderMotorcycleList(motorcycles);
                 });
             } else {
+                console.log('✅ 기존 오토바이 목록 렌더링 중...');
                 renderMotorcycleList(motorcycles);
             }
+            console.log('✅ 오토바이 모달 표시 완료');
         }
 
         // 오토바이 선택 모달 숨기기
