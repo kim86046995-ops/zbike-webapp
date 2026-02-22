@@ -524,12 +524,37 @@
                 </div>
 
                 <!-- 제출 버튼 -->
-                <div class="flex gap-4">
-                    <button type="button" onclick="window.location.href='/'" class="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-bold">
+                <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border-2 border-purple-300">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-save mr-2 text-purple-600"></i>
+                        계약서 저장 방식 선택
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <!-- SMS 전송 버튼 -->
+                        <button type="submit" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-indigo-700 transition shadow-lg transform hover:scale-105">
+                            <i class="fas fa-mobile-alt mr-2"></i>
+                            <div class="text-sm font-normal opacity-90">업체가 직접 서명</div>
+                            <div>SMS 링크 전송</div>
+                        </button>
+                        
+                        <!-- 관리자 직접 저장 버튼 -->
+                        <button type="button" onclick="saveDirectlyByAdmin()" class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition shadow-lg transform hover:scale-105">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <div class="text-sm font-normal opacity-90">관리자가 직접 받기</div>
+                            <div>즉시 완료 처리</div>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>SMS 전송:</strong> 계약서를 저장하고 업체에게 링크를 전송합니다 (업체가 나중에 서명)<br>
+                            <strong>즉시 완료:</strong> 관리자가 업체 앞에서 직접 동의·서명을 받아 즉시 완료합니다
+                        </p>
+                    </div>
+                    
+                    <button type="button" onclick="window.location.href='/'" class="block mt-4 w-full bg-gray-300 text-gray-700 py-3 rounded-lg font-bold text-center hover:bg-gray-400 transition">
                         <i class="fas fa-times mr-2"></i>취소
-                    </button>
-                    <button type="submit" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-bold">
-                        <i class="fas fa-paper-plane mr-2"></i>계약서 작성 완료 및 업체에 전송
                     </button>
                 </div>
             </form>
@@ -1348,6 +1373,116 @@
             document.getElementById('idCardImage').src = '';
             document.getElementById('idCardPreview').classList.add('hidden');
             document.getElementById('idCardUpload').value = '';
+        }
+
+        // 관리자가 직접 저장 (약관 동의 + 서명 → 즉시 완료)
+        async function saveDirectlyByAdmin() {
+            try {
+                console.log('💾 관리자 직접 저장 시작 (업체 계약서)');
+
+                // 1. 오토바이 선택 확인
+                if (!selectedMotorcycleId) {
+                    alert('❌ 오토바이를 선택해주세요');
+                    return;
+                }
+
+                // 2. 약관 동의 체크 확인
+                const agreeTerms = document.getElementById('agreeTermsAdmin');
+                if (!agreeTerms || !agreeTerms.checked) {
+                    alert('❌ 약관을 확인하고 동의해주세요.\n\n약관 동의 체크박스는 5. 업체 계약 약관 섹션 하단에 있습니다.');
+                    const termsSection = document.querySelector('#agreeTermsAdmin');
+                    if (termsSection) {
+                        termsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+
+                // 3. 서명 확인
+                const canvas = document.getElementById('businessSignatureCanvas');
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                let hasSignature = false;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    if (data[i + 3] > 0) {
+                        hasSignature = true;
+                        break;
+                    }
+                }
+
+                if (!hasSignature) {
+                    alert('❌ 대표자 서명을 작성해주세요.\n\n4. 대표자 서명 섹션에서 서명란을 터치하여 서명하세요.');
+                    return;
+                }
+
+                // 4. 세션 ID 확인
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('❌ 로그인이 필요합니다.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+
+                // 5. 서명 이미지 추출
+                const signatureData = canvas.toDataURL('image/png');
+
+                // 6. 대표자 주소 조합
+                const representativeFullAddress = `[${document.getElementById('representativePostcode').value}] ${document.getElementById('representativeAddress').value} ${document.getElementById('representativeDetailAddress').value}`.trim();
+
+                // 7. 계약 데이터 구성
+                const contractData = {
+                    contract_type: 'business',
+                    business_contract_type: document.getElementById('contractType').value,
+                    motorcycle_id: selectedMotorcycleId,
+                    company_name: document.getElementById('companyName').value,
+                    company_code: document.getElementById('companyCode').value,
+                    business_number: document.getElementById('businessNumber')?.value || document.getElementById('companyCode').value,
+                    representative: document.getElementById('representative').value,
+                    representative_resident_number: document.getElementById('representativeResidentNumber').value,
+                    representative_phone: document.getElementById('representativePhone').value,
+                    representative_address: representativeFullAddress,
+                    business_type: document.getElementById('businessType').value,
+                    business_category: document.getElementById('businessCategory').value,
+                    contract_start_date: document.getElementById('contractStartDate').value,
+                    contract_end_date: document.getElementById('contractEndDate').value,
+                    insurance_start_date: document.getElementById('insuranceStartDate').value,
+                    insurance_end_date: document.getElementById('insuranceEndDate').value,
+                    license_type: document.getElementById('licenseType').value,
+                    daily_amount: parseInt(document.getElementById('dailyAmount').value.replace(/,/g, '')),
+                    deposit: parseInt(document.getElementById('deposit').value.replace(/,/g, '')),
+                    special_terms: document.getElementById('specialTerms').value,
+                    status: 'active',  // 즉시 완료
+                    signature_data: signatureData
+                };
+
+                // 8. DB에 저장
+                console.log('💾 업체 계약서를 DB에 저장합니다 (상태: active - 즉시 완료)');
+                const response = await axios.post('/api/business-contracts', contractData, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+
+                console.log('✅ 계약서 저장 완료:', response.data);
+                const { id: contractId, contract_number: contractNumber } = response.data;
+
+                // 9. 성공 메시지 표시
+                alert(`✅ 업체 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명이 저장되었습니다.\n\n계약서 목록 페이지로 이동합니다.`);
+
+                // 10. 계약서 목록으로 이동
+                setTimeout(() => {
+                    window.location.href = '/static/contracts.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('❌ 관리자 직접 저장 실패:', error);
+                
+                if (error.response?.status === 401) {
+                    alert('❌ 로그인이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                } else {
+                    alert(`❌ 계약서 저장 실패\n\n${error.response?.data?.error || error.message || '알 수 없는 오류'}`);
+                }
+            }
         }
 
         // 폼 제출
