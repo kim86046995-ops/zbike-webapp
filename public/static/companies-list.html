@@ -489,53 +489,70 @@
                     // 파일을 Base64로 변환
                     const reader = new FileReader();
                     reader.onload = async function(event) {
-                        const base64Image = event.target.result;
-                        
-                        console.log('📦 Base64 변환 완료, R2 업로드 중...');
-                        
-                        // R2에 업로드
-                        const uploadResponse = await axios.post('/api/upload/id-card', {
-                            image: base64Image
-                        });
-                        
-                        if (!uploadResponse.data.success) {
-                            throw new Error('R2 업로드 실패');
-                        }
-                        
-                        const idCardUrl = uploadResponse.data.url;
-                        console.log('✅ R2 업로드 성공:', idCardUrl);
-                        
-                        // 업체 정보 업데이트
-                        console.log('📝 업체 정보 업데이트 중...');
-                        console.log('🔑 세션 ID:', sessionId);
-                        console.log('📤 업데이트 요청 데이터:', {
-                            companyId,
-                            id_card_photo: idCardUrl
-                        });
-                        
-                        const updateResponse = await axios.put(`/api/companies/${companyId}`, {
-                            id_card_photo: idCardUrl
-                        }, {
-                            headers: {
-                                'X-Session-ID': sessionId
-                            }
-                        });
-                        
-                        console.log('📋 업데이트 응답 상태:', updateResponse.status);
-                        console.log('📋 업데이트 응답 데이터:', updateResponse.data);
-                        console.log('📋 업데이트 응답 전체:', updateResponse);
-                        
-                        if (updateResponse.data.success) {
-                            console.log('✅ 업체 정보 업데이트 완료');
-                            alert('✅ 신분증이 성공적으로 업로드되었습니다!');
+                        try {
+                            const base64Image = event.target.result;
                             
-                            // 모달 닫고 목록 새로고침
-                            closeDetailModal();
-                            await loadCompanies();
-                        } else {
-                            throw new Error(updateResponse.data.error || '업데이트 실패');
+                            console.log('📦 Base64 변환 완료, R2 업로드 중...');
+                            
+                            // R2에 업로드
+                            const uploadResponse = await axios.post('/api/upload/id-card', {
+                                image: base64Image
+                            });
+                            
+                            if (!uploadResponse.data.success) {
+                                throw new Error('R2 업로드 실패');
+                            }
+                            
+                            const idCardUrl = uploadResponse.data.url;
+                            console.log('✅ R2 업로드 성공:', idCardUrl);
+                            
+                            // 업체 정보 업데이트
+                            console.log('📝 업체 정보 업데이트 중...');
+                            console.log('🔑 세션 ID:', sessionId);
+                            console.log('📤 업데이트 요청 데이터:', {
+                                companyId,
+                                id_card_photo: idCardUrl
+                            });
+                            
+                            const updateResponse = await axios.put(`/api/companies/${companyId}`, {
+                                id_card_photo: idCardUrl
+                            }, {
+                                headers: {
+                                    'X-Session-ID': sessionId
+                                }
+                            });
+                            
+                            console.log('📋 업데이트 응답 상태:', updateResponse.status);
+                            console.log('📋 업데이트 응답 데이터:', updateResponse.data);
+                            console.log('📋 업데이트 응답 전체:', updateResponse);
+                            
+                            if (updateResponse.data.success) {
+                                console.log('✅ 업체 정보 업데이트 완료');
+                                alert('✅ 신분증이 성공적으로 업로드되었습니다!');
+                                
+                                // 모달 닫고 목록 새로고침
+                                closeDetailModal();
+                                await loadCompanies();
+                            } else {
+                                throw new Error(updateResponse.data.error || '업데이트 실패');
+                            }
+                        } catch (readerError) {
+                            console.error('❌ reader.onload 내부 에러:', readerError);
+                            console.error('❌ 에러 응답:', readerError.response);
+                            console.error('❌ 에러 응답 데이터:', readerError.response?.data);
+                            
+                            if (readerError.response?.status === 401) {
+                                alert('❌ 세션이 만료되었습니다.\n\n다시 로그인해주세요.');
+                                window.location.href = '/static/login.html';
+                            } else if (readerError.response?.status === 500) {
+                                const errorMsg = readerError.response?.data?.error || '서버 오류';
+                                const errorDetails = readerError.response?.data?.details || '알 수 없음';
+                                const errorType = readerError.response?.data?.type || '';
+                                alert(`❌ 서버 오류 (500)\n\n에러: ${errorMsg}\n\n상세: ${errorDetails}\n\n타입: ${errorType}\n\n콘솔에서 자세한 정보를 확인하세요.`);
+                            } else {
+                                alert(`❌ 업로드 실패\n\n${readerError.response?.data?.error || readerError.message}`);
+                            }
                         }
-                        
                     };
                     
                     reader.onerror = function() {
