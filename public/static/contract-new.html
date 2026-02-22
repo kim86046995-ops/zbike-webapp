@@ -2254,76 +2254,111 @@
         // 공유 링크 생성 및 전송
         async function createShareLinkAndSend(method) {
             try {
-                // 관리자가 촬영한 신분증이 있으면 계약 데이터에 추가
-                if (adminIdPhotoData) {
-                    pendingContractData.admin_id_card_photo = adminIdPhotoData;
+                console.log('📤 계약서 저장 및 전송 시작');
+                
+                // 세션 ID 확인
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('❌ 로그인이 필요합니다.');
+                    window.location.href = '/static/login.html';
+                    return;
                 }
                 
-                // 공유 링크 생성
-                const response = await axios.post('/api/contract-share/create', {
-                    contract_type: 'individual',
-                    contract_data: JSON.stringify(pendingContractData),
-                    customer_name: pendingContractData.customer_name,
-                    customer_phone: pendingContractData.customer_phone
+                // 1. DB에 계약서 저장 (상태: pending)
+                console.log('💾 계약서를 DB에 저장합니다 (상태: pending)');
+                const contractResponse = await axios.post('/api/contracts', {
+                    ...pendingContractData,
+                    status: 'pending'  // 서명 대기 상태
+                }, {
+                    headers: { 'X-Session-ID': sessionId }
                 });
-
-                const shareToken = response.data.share_token;
-                const shareUrl = window.location.origin + response.data.share_url;
-
-                // 전송 방법에 따라 처리
+                
+                const contractId = contractResponse.data.id;
+                const contractNumber = contractResponse.data.contract_number;
+                
+                console.log(`✅ 계약서 저장 완료 (ID: ${contractId}, 번호: ${contractNumber})`);
+                
+                // 2. 공유 링크 생성 (계약 ID 포함)
+                const shareUrl = `${window.location.origin}/contract-sign?contract_id=${contractId}`;
+                console.log('🔗 공유 링크:', shareUrl);
+                
+                // 3. SMS 전송
                 if (method === 'sms') {
-                    // SMS 전송
-                    const smsResult = await axios.post('/api/send-sms', {
-                        phone: pendingContractData.customer_phone,
-                        share_url: shareUrl,
-                        customer_name: pendingContractData.customer_name,
-                        contract_type: 'individual'
-                    });
-                    
-                    // 시뮬레이션 모드 체크
-                    if (smsResult.data.simulation) {
-                        try {
-                            await navigator.clipboard.writeText(shareUrl);
-                            alert(`⚠️ SMS 시뮬레이션 모드\n\n✅ 링크가 클립보드에 복사되었습니다!\n\n실제 문자는 전송되지 않았습니다.\nCoolSMS API 키를 설정하면 실제 전송됩니다.\n\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}\n\n📖 README.md의 'SMS 설정 가이드'를 참고하세요.`);
-                        } catch (err) {
-                            alert(`⚠️ SMS 시뮬레이션 모드\n\n실제 문자는 전송되지 않았습니다.\nCoolSMS API 키를 설정하면 실제 전송됩니다.\n\n고객: ${pendingContractData.customer_name}\n링크: ${shareUrl}\n\n(자동 복사 실패 - 링크를 수동으로 복사해주세요)\n\n📖 README.md의 'SMS 설정 가이드'를 참고하세요.`);
-                        }
-                    } else {
-                        try {
-                            await navigator.clipboard.writeText(shareUrl);
-                            alert(`✅ SMS가 전송되었습니다!\n\n📋 링크가 클립보드에 복사되었습니다!\n\n고객: ${pendingContractData.customer_name}\n전화번호: ${pendingContractData.customer_phone}\n링크: ${shareUrl}`);
-                        } catch (err) {
-                            alert(`✅ SMS가 전송되었습니다!\n\n고객: ${pendingContractData.customer_name}\n전화번호: ${pendingContractData.customer_phone}\n링크: ${shareUrl}`);
-                        }
-                    }
-                } else if (method === 'kakao') {
-                    // 카카오톡 전송 (현재는 링크 복사)
-                    const message = `Z-BIKE 전자계약서\n\n${pendingContractData.customer_name}님, 계약서 작성을 위해 아래 링크를 클릭해주세요.\n\n${shareUrl}`;
-                    await navigator.clipboard.writeText(message);
-                    alert(`카카오톡 전송용 메시지가 복사되었습니다!\n\n고객: ${pendingContractData.customer_name}\n\n메시지:\n${message}\n\n카카오톡으로 붙여넣기 하여 전송해주세요.`);
-                } else {
-                    // 저장만 - 링크 복사
                     try {
-                        await navigator.clipboard.writeText(shareUrl);
-                        alert(`✅ 계약서 링크가 클립보드에 복사되었습니다!\n\n링크: ${shareUrl}\n\n고객에게 직접 전달해주세요.`);
-                    } catch (err) {
-                        // 복사 실패 시 fallback
-                        const message = `Z-BIKE 전자계약서\n\n계약서 작성 링크: ${shareUrl}`;
-                        alert(`계약서 공유 링크가 생성되었습니다!\n\n${message}\n\n(자동 복사 실패 - 링크를 수동으로 복사해주세요)`);
+                        const smsResult = await axios.post('/api/send-sms', {
+                            phone: pendingContractData.customer_phone,
+                            share_url: shareUrl,
+                            customer_name: pendingContractData.customer_name,
+                            contract_type: 'individual'
+                        }, {
+                            headers: { 'X-Session-ID': sessionId }
+                        });
+                        
+                        // 링크를 클립보드에 복사
+                        let clipboardSuccess = false;
+                        try {
+                            await navigator.clipboard.writeText(shareUrl);
+                            clipboardSuccess = true;
+                        } catch (err) {
+                            console.warn('클립보드 복사 실패:', err);
+                        }
+                        
+                        // 시뮬레이션 모드 체크
+                        if (smsResult.data.simulation) {
+                            alert(
+                                `⚠️ SMS 시뮬레이션 모드\n\n` +
+                                `✅ 계약서가 저장되었습니다!\n` +
+                                `계약번호: ${contractNumber}\n` +
+                                `상태: 서명 대기 (pending)\n\n` +
+                                (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
+                                `실제 문자는 전송되지 않았습니다.\n` +
+                                `네이버 클라우드 SMS API 키를 설정하면 실제 전송됩니다.\n\n` +
+                                `고객: ${pendingContractData.customer_name}\n` +
+                                `전화번호: ${pendingContractData.customer_phone}\n` +
+                                `링크: ${shareUrl}\n\n` +
+                                `💡 계약서는 목록에서 확인할 수 있습니다.`
+                            );
+                        } else {
+                            alert(
+                                `✅ 계약서가 저장되고 SMS가 전송되었습니다!\n\n` +
+                                `계약번호: ${contractNumber}\n` +
+                                `상태: 서명 대기 (pending)\n\n` +
+                                (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
+                                `고객: ${pendingContractData.customer_name}\n` +
+                                `전화번호: ${pendingContractData.customer_phone}\n` +
+                                `링크: ${shareUrl}\n\n` +
+                                `📱 고객이 링크에 접속하여 서명을 완료하면\n` +
+                                `계약서 상태가 'active'로 변경됩니다.`
+                            );
+                        }
+                    } catch (smsError) {
+                        console.error('SMS 전송 실패:', smsError);
+                        // SMS 실패해도 계약서는 이미 저장됨
+                        alert(
+                            `⚠️ SMS 전송에 실패했습니다.\n\n` +
+                            `하지만 계약서는 저장되었습니다!\n` +
+                            `계약번호: ${contractNumber}\n` +
+                            `상태: 서명 대기 (pending)\n\n` +
+                            `링크: ${shareUrl}\n\n` +
+                            `위 링크를 고객에게 직접 전달해주세요.`
+                        );
+                        try {
+                            await navigator.clipboard.writeText(shareUrl);
+                            alert('✅ 링크가 클립보드에 복사되었습니다!');
+                        } catch (err) {
+                            console.warn('클립보드 복사 실패:', err);
+                        }
                     }
                 }
-
-                // 모달 닫기
-                hideSendModal();
-
+                
                 // 계약서 목록으로 이동
                 setTimeout(() => {
-                    window.location.href = '/contracts';
-                }, 2000);
-
+                    window.location.href = '/static/contracts-list.html';
+                }, 3000);
+                
             } catch (error) {
-                console.error('Error creating share link:', error);
-                alert('공유 링크 생성에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                console.error('계약서 저장 실패:', error);
+                alert('계약서 저장에 실패했습니다:\n\n' + (error.response?.data?.error || error.message));
             }
         }
         

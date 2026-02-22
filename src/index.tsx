@@ -2127,6 +2127,73 @@ app.get('/api/contracts/:id', authMiddleware, async (c) => {
   return c.json(result)
 })
 
+// 계약서 조회 (서명용 - 인증 없음)
+app.get('/api/contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare(`
+    SELECT 
+      c.*,
+      m.vehicle_name, m.plate_number, m.chassis_number, m.model_year, 
+      m.mileage, m.insurance_company, m.insurance_start_date, m.insurance_end_date,
+      m.driving_range as motorcycle_driving_range,
+      m.owner_name, m.insurance_fee, m.vehicle_price, m.daily_rental_fee,
+      cu.name as customer_name, cu.resident_number, cu.phone as customer_phone,
+      cu.address as customer_address, cu.postcode as customer_postcode, 
+      cu.detail_address as customer_detail_address, cu.license_type
+    FROM contracts c
+    JOIN motorcycles m ON c.motorcycle_id = m.id
+    LEFT JOIN customers cu ON c.customer_id = cu.id
+    WHERE c.id = ?
+  `).bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  // 이미 서명된 계약서인지 확인
+  if (result.status === 'active' && result.signature_data) {
+    return c.json({ ...result, already_signed: true })
+  }
+  
+  return c.json(result)
+})
+
+// 계약서 서명 제출 (인증 없음)
+app.put('/api/contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { signature_data, id_card_photo } = await c.req.json()
+  
+  // 계약서 조회
+  const contract = await DB.prepare(`
+    SELECT * FROM contracts WHERE id = ?
+  `).bind(id).first() as any
+  
+  if (!contract) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  if (contract.status === 'active' && contract.signature_data) {
+    return c.json({ error: '이미 서명된 계약서입니다' }, 400)
+  }
+  
+  // 서명 추가 및 상태 업데이트
+  await DB.prepare(`
+    UPDATE contracts 
+    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    WHERE id = ?
+  `).bind(signature_data, id_card_photo || '', id).run()
+  
+  // 오토바이 상태 업데이트
+  await DB.prepare(`
+    UPDATE motorcycles SET status = 'rented' WHERE id = ?
+  `).bind(contract.motorcycle_id).run()
+  
+  return c.json({ success: true, message: '계약서 서명이 완료되었습니다' })
+})
+
 // 계약서 완료 처리
 // 계약 완료 처리 (인증 필요)
 app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
@@ -3292,6 +3359,73 @@ app.get('/api/business-contracts/:id', authMiddleware, async (c) => {
   }
 })
 
+// 업체 계약서 조회 (서명용 - 인증 없음)
+app.get('/api/business-contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare(`
+    SELECT 
+      bc.*,
+      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage
+    FROM business_contracts bc
+    JOIN motorcycles m ON bc.motorcycle_id = m.id
+    WHERE bc.id = ?
+  `).bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  // 이미 서명된 계약서인지 확인
+  if (result.status === 'active' && result.signature_data) {
+    return c.json({ ...result, already_signed: true })
+  }
+  
+  return c.json(result)
+})
+
+// 업체 계약서 서명 제출 (인증 없음)
+app.put('/api/business-contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { signature_data } = await c.req.json()
+  
+  // 계약서 조회
+  const contract = await DB.prepare(`
+    SELECT * FROM business_contracts WHERE id = ?
+  `).bind(id).first() as any
+  
+  if (!contract) {
+    return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  if (contract.status === 'active' && contract.signature_data) {
+    return c.json({ error: '이미 서명된 계약서입니다' }, 400)
+  }
+  
+  // 업체 테이블에서 신분증 가져오기
+  const companyData = await DB.prepare(`
+    SELECT id_card_photo FROM companies WHERE company_code = ?
+  `).bind(contract.company_code).first() as any
+  
+  const idCardPhoto = companyData?.id_card_photo || contract.id_card_photo || ''
+  
+  // 서명 추가 및 상태 업데이트
+  await DB.prepare(`
+    UPDATE business_contracts 
+    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    WHERE id = ?
+  `).bind(signature_data, idCardPhoto, id).run()
+  
+  // 오토바이 상태 업데이트
+  await DB.prepare(`
+    UPDATE motorcycles SET status = 'rented' WHERE id = ?
+  `).bind(contract.motorcycle_id).run()
+  
+  return c.json({ success: true, message: '업체 계약서 서명이 완료되었습니다' })
+})
+
 // 업체 계약서 완료 처리
 // 업체 계약 완료 처리 (인증 필요)
 app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
@@ -3927,6 +4061,54 @@ app.get('/api/loan-contracts/:id', authMiddleware, async (c) => {
   }
   
   return c.json(result)
+})
+
+// 차용증 조회 (서명용 - 인증 없음)
+app.get('/api/loan-contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  // 이미 서명된 차용증인지 확인
+  if (result.status === 'active' && result.signature_data) {
+    return c.json({ ...result, already_signed: true })
+  }
+  
+  return c.json(result)
+})
+
+// 차용증 서명 제출 (인증 없음)
+app.put('/api/loan-contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { signature_data, id_card_photo } = await c.req.json()
+  
+  // 차용증 조회
+  const loan = await DB.prepare(`
+    SELECT * FROM loan_contracts WHERE id = ?
+  `).bind(id).first() as any
+  
+  if (!loan) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  if (loan.status === 'active' && loan.signature_data) {
+    return c.json({ error: '이미 서명된 차용증입니다' }, 400)
+  }
+  
+  // 서명 추가 및 상태 업데이트
+  await DB.prepare(`
+    UPDATE loan_contracts 
+    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    WHERE id = ?
+  `).bind(signature_data, id_card_photo || '', id).run()
+  
+  return c.json({ success: true, message: '차용증 서명이 완료되었습니다' })
 })
 
 // 차용증 생성
