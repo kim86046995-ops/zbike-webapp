@@ -244,16 +244,16 @@
         let signaturePad = null;
         let currentStream = null;
         let idCardPhoto = '';
-        let shareToken = '';
+        let contractId = '';
         let contractData = null;
         let companySettings = null;
 
-        // URL에서 토큰 가져오기
+        // URL에서 계약 ID 가져오기
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            shareToken = urlParams.get('token');
+            contractId = urlParams.get('contract_id');
             
-            if (!shareToken) {
+            if (!contractId) {
                 showExpired();
                 return;
             }
@@ -285,7 +285,7 @@
         // 계약서 불러오기
         async function loadContract() {
             try {
-                const response = await axios.get(`/api/contract-share/${shareToken}`);
+                const response = await axios.get(`/api/contracts/${contractId}/sign`);
                 contractData = response.data;
                 
                 if (contractData.status === 'signed') {
@@ -1164,7 +1164,7 @@
             }
             
             try {
-                await axios.post(`/api/contract-share/${shareToken}/sign`, {
+                await axios.put(`/api/contracts/${contractId}/sign`, {
                     signature_data: signatureData,
                     id_card_photo: idCardPhoto
                 });
