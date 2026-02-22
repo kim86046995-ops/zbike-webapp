@@ -795,8 +795,8 @@
 
                 <!-- 제출 버튼 -->
                 <div class="flex gap-4">
-                    <button type="submit" class="flex-1 bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition">
-                        <i class="fas fa-paper-plane mr-2"></i>계약서 작성 완료 및 고객에게 전송
+                    <button type="button" onclick="saveContractToDatabase()" class="flex-1 bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-save mr-2"></i>계약서 저장
                     </button>
                     <a href="/dashboard" class="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg hover:bg-gray-400 transition text-center">
                         취소
@@ -2136,8 +2136,12 @@
                 customer_phone: customerPhone
             };
 
-            // 바로 SMS 전송
-            await createShareLinkAndSend('sms');
+            // 모달에 고객 정보 표시
+            document.getElementById('modal-customer-name').textContent = customerName;
+            document.getElementById('modal-customer-phone').textContent = customerPhone;
+
+            // 전송 모달 표시
+            document.getElementById('sendModal').classList.remove('hidden');
         });
 
         // 모달 닫기
