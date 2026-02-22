@@ -132,6 +132,16 @@
                             <label class="block text-sm font-bold mb-2">상호 *</label>
                             <input type="text" id="companyName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                         </div>
+                        <!-- 업체 코드 -->
+                        <div>
+                            <label class="block text-sm font-bold mb-2">
+                                <i class="fas fa-barcode mr-1 text-purple-600"></i>
+                                업체 코드
+                            </label>
+                            <input type="text" id="companyCode" readonly 
+                                class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-600"
+                                placeholder="업체 선택 시 자동 입력">
+                        </div>
                         <!-- 사업자번호 -->
                         <div>
                             <label class="block text-sm font-bold mb-2">사업자번호 *</label>
@@ -855,6 +865,7 @@
             
             // 1. 업체 및 대표자 정보 자동 입력
             document.getElementById('companyName').value = selectedCompany.company_name; // 상호
+            document.getElementById('companyCode').value = selectedCompany.business_number; // 업체 코드 (business_number)
             document.getElementById('businessNumber').value = selectedCompany.business_number; // 사업자번호
             document.getElementById('representative').value = selectedCompany.representative; // 대표자 이름
             
@@ -1530,6 +1541,9 @@
             // 3. 업체 및 대표자 정보 초기화
             const companyName = document.getElementById('companyName');
             if (companyName) companyName.value = '';
+            
+            const companyCode = document.getElementById('companyCode');
+            if (companyCode) companyCode.value = '';
             
             const businessNumber = document.getElementById('businessNumber');
             if (businessNumber) businessNumber.value = '';
