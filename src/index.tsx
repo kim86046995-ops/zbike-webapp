@@ -589,7 +589,7 @@ app.patch('/api/admin/users/:username/status', async (c) => {
   }
   
   // 상태 업데이트
-  await DB.prepare('UPDATE users SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?')
+  await DB.prepare('UPDATE users SET status = ?, updated_at = datetime("now") WHERE username = ?')
     .bind(status, username)
     .run()
   
@@ -785,7 +785,7 @@ app.post('/api/auth/reset-password', async (c) => {
   }
   
   // 비밀번호 업데이트
-  await DB.prepare('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+  await DB.prepare('UPDATE users SET password = ?, updated_at = datetime("now") WHERE id = ?')
     .bind(new_password, (resetToken as any).user_id).run()
   
   // 토큰 사용 처리
@@ -1129,7 +1129,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
         certificate_photo = ?,
         monthly_fee = ?, contract_type_text = ?, deposit = ?,
         contract_start_date = ?, contract_end_date = ?,
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = datetime("now")
       WHERE id = ?
     `).bind(
       mergedData.plate_number,
@@ -1174,7 +1174,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
           insurance_start_date = ?,
           insurance_end_date = ?,
           insurance_age_limit = ?,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = datetime("now")
         WHERE motorcycle_id = ? AND status = 'active'
       `).bind(
         mergedData.insurance_company,
@@ -1191,7 +1191,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
           insurance_start_date = ?,
           insurance_end_date = ?,
           driving_range = ?,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = datetime("now")
         WHERE motorcycle_id = ? AND status = 'active'
       `).bind(
         mergedData.insurance_start_date,
@@ -1327,7 +1327,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     // 폐지 처리: 상태와 폐지 사유 저장
     await DB.prepare(`
       UPDATE motorcycles 
-      SET status = ?, usage_notes = ?, updated_at = CURRENT_TIMESTAMP 
+      SET status = ?, usage_notes = ?, updated_at = datetime("now") 
       WHERE id = ?
     `).bind(status, usage_notes, id).run()
   } else if (status === 'available') {
@@ -1342,7 +1342,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
           contract_start_date = NULL,
           contract_end_date = NULL,
           owner_name = '',
-          updated_at = CURRENT_TIMESTAMP 
+          updated_at = datetime("now") 
       WHERE id = ?
     `).bind(status, id).run()
     console.log(`✅ Contract info cleared for motorcycle #${id} (basic info and insurance info preserved)`)
@@ -1350,7 +1350,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     // 일반 상태 변경
     await DB.prepare(`
       UPDATE motorcycles 
-      SET status = ?, updated_at = CURRENT_TIMESTAMP 
+      SET status = ?, updated_at = datetime("now") 
       WHERE id = ?
     `).bind(status, id).run()
   }
@@ -1603,7 +1603,7 @@ app.put('/api/customers/:id', authMiddleware, async (c) => {
   await DB.prepare(`
     UPDATE customers SET
       name = ?, resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?,
-      updated_at = CURRENT_TIMESTAMP
+      updated_at = datetime("now")
     WHERE id = ?
   `).bind(
     data.name,
@@ -1812,7 +1812,7 @@ END`)
 //     UPDATE companies SET
 //       name = ?, company_code = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
 //       signature_data = ?, id_card_photo = ?,
-//       updated_at = CURRENT_TIMESTAMP
+//       updated_at = datetime("now")
 //     WHERE id = ?
 //   `).bind(
 //     data.name,
@@ -2149,14 +2149,14 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
   // 계약서 상태를 완료로 변경
   await DB.prepare(`
     UPDATE contracts 
-    SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+    SET status = 'completed', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(id).run()
   
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
     UPDATE motorcycles 
-    SET status = 'available', updated_at = CURRENT_TIMESTAMP 
+    SET status = 'available', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
   
@@ -2208,7 +2208,7 @@ app.post('/api/contracts', async (c) => {
         address = ?, 
         detail_address = ?,
         license_type = ?,
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = datetime("now")
       WHERE id = ?
     `).bind(
       data.customer_name, 
@@ -2252,7 +2252,7 @@ app.post('/api/contracts', async (c) => {
           SET status = 'cancelled', 
               end_date = ?,
               cancelled_at = ?,
-              updated_at = CURRENT_TIMESTAMP 
+              updated_at = datetime("now") 
           WHERE id = ?
         `).bind(today, today, contractData.id).run()
         
@@ -2301,7 +2301,7 @@ app.post('/api/contracts', async (c) => {
       // 기존 계약을 'cancelled' 상태로 변경하고 종료일을 오늘로 설정
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'cancelled', end_date = ?, cancelled_at = ?, updated_at = CURRENT_TIMESTAMP 
+        SET status = 'cancelled', end_date = ?, cancelled_at = ?, updated_at = datetime("now") 
         WHERE id = ?
       `).bind(today, today, oldContract.id).run()
       
@@ -2341,7 +2341,7 @@ app.post('/api/contracts', async (c) => {
       
       await DB.prepare(`
         UPDATE business_contracts 
-        SET status = 'cancelled', end_date = ?, updated_at = CURRENT_TIMESTAMP 
+        SET status = 'cancelled', end_date = ?, updated_at = datetime("now") 
         WHERE id = ?
       `).bind(today, oldContract.id).run()
       
@@ -2420,7 +2420,7 @@ app.post('/api/public/contracts', async (c) => {
       // 고객 정보 업데이트 (전화번호 포함)
       await DB.prepare(`
         UPDATE customers 
-        SET name = ?, phone = ?, resident_number = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?, updated_at = CURRENT_TIMESTAMP
+        SET name = ?, phone = ?, resident_number = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?, updated_at = datetime("now")
         WHERE id = ?
       `).bind(
         data.customer_name, 
@@ -2469,7 +2469,7 @@ app.post('/api/public/contracts', async (c) => {
       for (const contract of existingContracts.results) {
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          SET status = 'completed', updated_at = datetime("now") 
           WHERE id = ?
         `).bind((contract as any).id).run()
       }
@@ -2545,7 +2545,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
           address = ?, 
           detail_address = ?,
           license_type = ?,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = datetime("now")
         WHERE id = ?
       `).bind(
         data.customer_name, 
@@ -2617,7 +2617,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
             UPDATE contracts 
             SET status = 'cancelled', 
                 end_date = date('now'), 
-                updated_at = CURRENT_TIMESTAMP 
+                updated_at = datetime("now") 
             WHERE id = ?
           `).bind(contractData.id).run()
           
@@ -2644,7 +2644,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       for (const contract of existingContracts.results) {
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          SET status = 'completed', updated_at = datetime("now") 
           WHERE id = ?
         `).bind((contract as any).id).run()
         console.log(`✅ [Admin] Completed personal contract: ${(contract as any).contract_number}`)
@@ -2662,7 +2662,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       for (const contract of existingBusinessContracts.results) {
         await DB.prepare(`
           UPDATE business_contracts 
-          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          SET status = 'completed', updated_at = datetime("now") 
           WHERE id = ?
         `).bind((contract as any).id).run()
         console.log(`✅ [Admin] Completed business contract: ${(contract as any).contract_number}`)
@@ -2738,7 +2738,7 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   if (status === 'completed' || status === 'cancelled') {
     endDate = today
     const dateField = status === 'cancelled' ? 'cancelled_at' : 'completed_at'
-    await DB.prepare(`UPDATE contracts SET status = ?, end_date = ?, ${dateField} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    await DB.prepare(`UPDATE contracts SET status = ?, end_date = ?, ${dateField} = ?, updated_at = datetime("now") WHERE id = ?`)
       .bind(status, today, today, id).run()
     console.log(`📅 Contract #${id} ${status} - end_date and ${dateField} set to ${today}`)
     
@@ -2761,7 +2761,7 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
       status === 'cancelled' ? '수동 해지' : '계약 완료'
     )
   } else {
-    await DB.prepare('UPDATE contracts SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    await DB.prepare('UPDATE contracts SET status = ?, updated_at = datetime("now") WHERE id = ?')
       .bind(status, id).run()
       
     // 이력 기록: 상태 변경
@@ -2801,7 +2801,7 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
           contract_start_date = NULL,
           contract_end_date = NULL,
           owner_name = '',
-          updated_at = CURRENT_TIMESTAMP 
+          updated_at = datetime("now") 
       WHERE id = ?
     `).bind(motorcycleId).run()
     
@@ -2846,7 +2846,7 @@ app.put('/api/contracts/:id/insurance', authMiddleware, async (c) => {
           insurance_start_date = ?,
           insurance_end_date = ?,
           insurance_age_limit = ?,
-          updated_at = CURRENT_TIMESTAMP 
+          updated_at = datetime("now") 
       WHERE id = ?
     `).bind(
       data.insurance_company,
@@ -2888,7 +2888,7 @@ app.delete('/api/contracts/:id', authMiddleware, async (c) => {
     }
     
     // 소프트 삭제 (deleted_at에 현재 시간 설정)
-    await DB.prepare('UPDATE contracts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(id).run()
+    await DB.prepare('UPDATE contracts SET deleted_at = datetime("now") WHERE id = ?').bind(id).run()
     
     return c.json({ message: '계약서가 삭제되었습니다. 사용 이력에서는 계속 조회할 수 있습니다.' })
   } catch (error) {
@@ -3041,7 +3041,7 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
         SET company_name = ?, company_code = ?, representative_name = ?,
             phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
             manager_phone1 = ?, manager_phone2 = ?,
-            updated_at = CURRENT_TIMESTAMP
+            updated_at = datetime("now")
         WHERE id = ?
       `).bind(
         data.company_name,
@@ -3272,14 +3272,14 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
   // 계약서 상태를 완료로 변경
   await DB.prepare(`
     UPDATE business_contracts 
-    SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+    SET status = 'completed', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(id).run()
   
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
     UPDATE motorcycles 
-    SET status = 'available', updated_at = CURRENT_TIMESTAMP 
+    SET status = 'available', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
   
@@ -3309,7 +3309,7 @@ app.delete('/api/business-contracts/:id', authMiddleware, async (c) => {
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
     UPDATE motorcycles 
-    SET status = 'available', updated_at = CURRENT_TIMESTAMP 
+    SET status = 'available', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
   
@@ -3902,7 +3902,7 @@ app.post('/api/loan-contracts', authMiddleware, async (c) => {
           postcode = ?,
           address = ?, 
           detail_address = ?,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = datetime("now")
         WHERE id = ?
       `).bind(
         data.borrower_name, 
@@ -4054,7 +4054,7 @@ app.patch('/api/loan-contracts/:id/status', async (c) => {
   const id = c.req.param('id')
   const { status } = await c.req.json()
   
-  await DB.prepare('UPDATE loan_contracts SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+  await DB.prepare('UPDATE loan_contracts SET status = ?, updated_at = datetime("now") WHERE id = ?')
     .bind(status, id).run()
   
   return c.json({ message: '상태가 변경되었습니다' })
@@ -4088,7 +4088,7 @@ app.post('/api/loan-contracts/:id/deduction', authMiddleware, async (c) => {
   const newStatus = newRemainingAmount === 0 ? 'completed' : loan.status
   await DB.prepare(`
     UPDATE loan_contracts 
-    SET remaining_amount = ?, total_deducted = ?, last_deduction_date = DATE('now'), status = ?, updated_at = CURRENT_TIMESTAMP
+    SET remaining_amount = ?, total_deducted = ?, last_deduction_date = DATE('now'), status = ?, updated_at = datetime("now")
     WHERE id = ?
   `).bind(newRemainingAmount, newTotalDeducted, newStatus, id).run()
   
@@ -4810,7 +4810,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
       for (const contract of existingContracts.results) {
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          SET status = 'completed', updated_at = datetime("now") 
           WHERE id = ?
         `).bind((contract as any).id).run()
         console.log(`✅ [TempRent] Completed personal contract: ${(contract as any).contract_number}`)
@@ -4828,7 +4828,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
       for (const contract of existingBusinessContracts.results) {
         await DB.prepare(`
           UPDATE business_contracts 
-          SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
+          SET status = 'completed', updated_at = datetime("now") 
           WHERE id = ?
         `).bind((contract as any).id).run()
         console.log(`✅ [TempRent] Completed business contract: ${(contract as any).contract_number}`)
@@ -6014,7 +6014,7 @@ app.delete('/api/companies/:id', async (c) => {
     // Soft delete - status를 'inactive'로 변경
     await env.DB.prepare(`
       UPDATE companies 
-      SET status = 'inactive', updated_at = CURRENT_TIMESTAMP
+      SET status = 'inactive', updated_at = datetime("now")
       WHERE id = ?
     `).bind(id).run()
 
