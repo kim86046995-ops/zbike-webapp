@@ -1421,28 +1421,19 @@
             }
 
             try {
-                // 관리자가 작성한 계약 데이터를 삭제 (서명, 신분증 제외)
-                const contractDataForShare = { ...contractData };
-                delete contractDataForShare.signature_data;  // 관리자 서명은 제외
-                delete contractDataForShare.id_card_photo;   // 관리자가 업로드한 신분증 제외
-                
-                console.log('🌐 API 호출: POST /api/contract-share/create');
-                console.log('공유할 계약 데이터:', contractDataForShare);
-                
-                // 공유 링크 생성
-                const response = await axios.post('/api/contract-share/create', {
-                    contract_type: 'business',
-                    contract_data: contractDataForShare,
-                    customer_name: contractData.representative,  // 대표자 이름
-                    customer_phone: contractData.representative_phone  // 대표자 전화번호
-                }, {
+                // 1. DB에 계약서 저장 (상태: pending)
+                console.log('💾 계약서를 DB에 저장합니다 (상태: pending)');
+                const contractResponse = await axios.post('/api/business-contracts', contractData, {
                     headers: { 'X-Session-ID': sessionId }
                 });
                 
-                console.log('✅ 공유 링크 생성 완료:', response.data);
+                const contractId = contractResponse.data.id;
+                const contractNumber = contractResponse.data.contract_number;
                 
-                const shareToken = response.data.share_token;
-                const shareUrl = window.location.origin + response.data.share_url;
+                console.log(`✅ 계약서 저장 완료 (ID: ${contractId}, 번호: ${contractNumber})`);
+                
+                // 2. 공유 링크 생성 (계약 ID 포함)
+                const shareUrl = `${window.location.origin}/static/business-contract-sign.html?contract_id=${contractId}`;
                 
                 console.log('📱 공유 링크:', shareUrl);
                 
@@ -1473,25 +1464,30 @@
                     if (smsResult.data.simulation) {
                         alert(
                             `⚠️ SMS 시뮬레이션 모드\n\n` +
-                            (clipboardSuccess ? `✅ 링크가 클립보드에 복사되었습니다!\n\n` : '') +
+                            `✅ 계약서가 저장되었습니다!\n` +
+                            `계약번호: ${contractNumber}\n` +
+                            `상태: 서명 대기 (pending)\n\n` +
+                            (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
                             `실제 문자는 전송되지 않았습니다.\n` +
                             `네이버 클라우드 SMS API 키를 설정하면 실제 전송됩니다.\n\n` +
                             `업체명: ${contractData.company_name}\n` +
                             `대표자: ${contractData.representative}\n` +
                             `전화번호: ${contractData.representative_phone}\n` +
                             `링크: ${shareUrl}\n\n` +
-                            `📖 업체 대표에게 링크를 직접 전달해주세요.`
+                            `💡 계약서는 목록에서 확인할 수 있습니다.`
                         );
                     } else {
                         alert(
-                            `✅ 업체 계약서 링크가 전송되었습니다!\n\n` +
+                            `✅ 계약서가 저장되고 SMS가 전송되었습니다!\n\n` +
+                            `계약번호: ${contractNumber}\n` +
+                            `상태: 서명 대기 (pending)\n\n` +
                             (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
                             `업체명: ${contractData.company_name}\n` +
                             `대표자: ${contractData.representative}\n` +
                             `전화번호: ${contractData.representative_phone}\n` +
                             `링크: ${shareUrl}\n\n` +
-                            `📱 업체 대표가 링크에 접속하여 동의 및 서명을 완료하면\n` +
-                            `계약서 목록에 자동 저장됩니다.`
+                            `📱 업체 대표가 링크에 접속하여 서명을 완료하면\n` +
+                            `계약서 상태가 'active'로 변경됩니다.`
                         );
                     }
                 } catch (smsError) {
