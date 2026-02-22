@@ -5333,6 +5333,10 @@ app.get('/dashboard', (c) => {
                         <i class="fas fa-receipt text-3xl text-red-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">차용증 목록</p>
                     </a>
+                    <a href="/static/companies-list.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업체 목록</p>
+                    </a>
                 </div>
             </div>
         </div>
