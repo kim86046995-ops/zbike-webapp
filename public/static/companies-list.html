@@ -141,9 +141,9 @@
             emptyState.classList.add('hidden');
 
             listContainer.innerHTML = companies.map(company => `
-                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition cursor-pointer" onclick="showDetail(${company.id})">
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
                     <div class="flex items-start justify-between">
-                        <div class="flex-1">
+                        <div class="flex-1 cursor-pointer" onclick="showDetail(${company.id})">
                             <div class="flex items-center gap-3 mb-3">
                                 <h3 class="text-xl font-bold text-gray-800">${company.company_name}</h3>
                                 <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
@@ -178,8 +178,17 @@
                             ` : ''}
                         </div>
                         
-                        <div class="text-gray-400 hover:text-blue-600 transition">
-                            <i class="fas fa-chevron-right text-xl"></i>
+                        <div class="flex items-center gap-2">
+                            <button onclick="event.stopPropagation(); showDetail(${company.id})" 
+                                class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition" 
+                                title="상세보기">
+                                <i class="fas fa-eye text-xl"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteCompany(${company.id}, '${company.company_name}')" 
+                                class="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition" 
+                                title="삭제">
+                                <i class="fas fa-trash-alt text-xl"></i>
+                            </button>
                         </div>
                     </div>
                     
@@ -344,6 +353,35 @@
                 closeDetailModal();
             }
         });
+
+        // 업체 삭제
+        async function deleteCompany(id, companyName) {
+            if (!confirm(`정말 "${companyName}" 업체를 삭제하시겠습니까?\n\n삭제된 업체 정보는 복구할 수 없습니다.`)) {
+                return;
+            }
+
+            try {
+                console.log('🗑️ 업체 삭제 요청:', id, companyName);
+                const response = await axios.delete(`/api/companies/${id}`);
+                
+                console.log('✅ 업체 삭제 완료:', response.data);
+                alert(`"${response.data.company_name}" 업체가 성공적으로 삭제되었습니다.`);
+                
+                // 목록 새로고침
+                await loadCompanies();
+            } catch (error) {
+                console.error('❌ 업체 삭제 실패:', error);
+                
+                let errorMessage = '업체 삭제 중 오류가 발생했습니다.';
+                if (error.response) {
+                    errorMessage = error.response.data.error || errorMessage;
+                } else if (error.request) {
+                    errorMessage = '서버와 통신할 수 없습니다. 네트워크 연결을 확인해주세요.';
+                }
+                
+                alert(errorMessage);
+            }
+        }
     </script>
 </body>
 </html>

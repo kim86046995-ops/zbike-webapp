@@ -305,35 +305,59 @@
                     id_card_photo: idCardPhotoBase64
                 };
                 
-                console.log('📝 업체 등록 요청:', formData);
+                console.log('📝 업체 등록 요청:', {
+                    company_name: formData.company_name,
+                    business_number: formData.business_number,
+                    representative: formData.representative,
+                    id_card_photo_length: formData.id_card_photo.length
+                });
                 
                 try {
+                    console.log('🚀 POST /api/companies 호출 중...');
                     const response = await axios.post('/api/companies', formData);
-                    console.log('✅ 등록 성공:', response.data);
+                    console.log('✅ 서버 응답:', response.status, response.data);
                     
-                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n사업자번호: ' + formData.business_number);
+                    alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n사업자번호: ' + formData.business_number + '\n업체 ID: ' + response.data.id);
                     
                     // 업체 목록 페이지로 자동 이동
+                    console.log('🔄 업체 목록 페이지로 이동 중...');
                     window.location.href = '/static/companies-list.html';
                 } catch (error) {
-                    console.error('❌ 등록 실패:', error);
+                    console.error('❌ 등록 실패 상세:', {
+                        message: error.message,
+                        response: error.response,
+                        status: error.response?.status,
+                        data: error.response?.data
+                    });
                     
                     let errorMessage = '등록 중 오류가 발생했습니다.';
+                    let errorDetails = '';
                     
                     if (error.response) {
                         // 서버에서 응답이 온 경우
-                        if (error.response.status === 400) {
-                            errorMessage = error.response.data?.error || '이미 등록된 사업자번호입니다.';
-                        } else if (error.response.status === 500) {
-                            errorMessage = '서버 오류가 발생했습니다.\n\n다른 사업자번호로 시도해주세요.\n(이미 등록된 번호일 수 있습니다)';
+                        const status = error.response.status;
+                        const serverError = error.response.data?.error;
+                        
+                        console.log('🔍 에러 분석:', { status, serverError });
+                        
+                        if (status === 400) {
+                            errorMessage = serverError || '이미 등록된 사업자번호입니다.';
+                            errorDetails = '\n\n💡 다른 사업자번호로 시도해주세요.';
+                        } else if (status === 500) {
+                            errorMessage = serverError || '서버 오류가 발생했습니다.';
+                            errorDetails = '\n\n💡 가능한 원인:\n- 이미 등록된 사업자번호\n- 데이터베이스 오류\n- 잘못된 데이터 형식\n\n다른 사업자번호로 시도해주세요.';
                         } else {
-                            errorMessage = error.response.data?.error || error.message;
+                            errorMessage = serverError || error.message;
+                            errorDetails = '\n\n상태 코드: ' + status;
                         }
+                    } else if (error.request) {
+                        errorMessage = '서버와 통신할 수 없습니다.';
+                        errorDetails = '\n\n💡 네트워크 연결을 확인해주세요.';
                     } else {
-                        errorMessage = '네트워크 오류: ' + error.message;
+                        errorMessage = error.message;
                     }
                     
-                    alert('❌ ' + errorMessage);
+                    alert('❌ ' + errorMessage + errorDetails);
                 }
             };
             reader.readAsDataURL(idCardFile);
