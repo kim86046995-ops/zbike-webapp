@@ -3721,6 +3721,13 @@ app.post('/api/contract-share/:token/sign', async (c) => {
       const sequence = String((countResult?.count || 0) + 1).padStart(4, '0')
       const contractNumber = `B-${today}-${sequence}`
       
+      // 업체 테이블에서 신분증 가져오기
+      const companyData = await DB.prepare(`
+        SELECT id_card_photo FROM companies WHERE company_code = ?
+      `).bind(contractInfo.company_code).first() as any
+      
+      const companyIdCardPhoto = companyData?.id_card_photo || id_card_photo || ''
+      
       await DB.prepare(`
         INSERT INTO business_contracts (
           contract_number, motorcycle_id,
@@ -3730,8 +3737,8 @@ app.post('/api/contract-share/:token/sign', async (c) => {
           contract_start_date, contract_end_date,
           insurance_start_date, insurance_end_date,
           driving_range, daily_amount, deposit, special_terms,
-          business_license_photo, id_card_photo, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+          business_license_photo, id_card_photo, signature_data, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
       `).bind(
         contractNumber,
         contractInfo.motorcycle_id,
@@ -3754,7 +3761,8 @@ app.post('/api/contract-share/:token/sign', async (c) => {
         contractInfo.deposit || 0,
         contractInfo.special_terms || '',
         contractInfo.business_license_photo || '',
-        id_card_photo
+        companyIdCardPhoto,  // 업체 테이블에서 가져온 신분증
+        signature_data  // 업체 대표 서명
       ).run()
       
       // 오토바이 상태 업데이트
