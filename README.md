@@ -7,10 +7,10 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (캐시 자동 삭제)**: https://b3e45fd0.zbike-webapp.pages.dev
+- **최신 배포 (v4 - 완전 수정)**: https://8267db73.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
-- **업체 목록**: https://b3e45fd0.zbike-webapp.pages.dev/static/companies-list.html
-- **업체 등록**: https://b3e45fd0.zbike-webapp.pages.dev/static/company-register.html
+- **업체 목록**: https://8267db73.zbike-webapp.pages.dev/static/companies-list.html
+- **업체 등록**: https://8267db73.zbike-webapp.pages.dev/static/company-register.html
 
 ## ✨ 주요 기능
 
