@@ -7,7 +7,7 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포**: https://156168a8.zbike-webapp.pages.dev
+- **최신 배포**: https://45ecf959.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **업체 목록**: https://zbike-webapp.pages.dev/static/companies-list.html
 - **업체 등록**: https://zbike-webapp.pages.dev/static/company-register.html
