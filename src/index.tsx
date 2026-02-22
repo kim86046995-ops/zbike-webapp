@@ -6106,7 +6106,7 @@ app.put('/api/companies/:id', async (c) => {
       updateValues.push(data.signature_data)
     }
 
-    updateFields.push('updated_at = CURRENT_TIMESTAMP')
+    updateFields.push('updated_at = datetime(\'now\')')
     updateValues.push(id)
 
     const sql = `
@@ -6240,7 +6240,7 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
         // URL 업데이트
         await DB.prepare(`
           UPDATE companies 
-          SET id_card_photo = ?, updated_at = CURRENT_TIMESTAMP
+          SET id_card_photo = ?, updated_at = datetime('now')
           WHERE id = ?
         `).bind(newUrl, company.id).run()
         
