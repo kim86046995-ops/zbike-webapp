@@ -3,1136 +3,346 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>업체 등록 목록</title>
+    <title>업체 목록 - Z-BIKE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-    <style>
-        @media print {
-            @page {
-                size: A4;
-                margin: 10mm;
-            }
-            body {
-                background: white;
-            }
-            .print-hidden {
-                display: none !important;
-            }
-            #detailModal {
-                position: static;
-                background: white;
-            }
-            #detailModal > div {
-                box-shadow: none;
-                max-height: none;
-                overflow: visible;
-            }
-            .resident-number-masked {
-                display: none;
-            }
-            .resident-number-full {
-                display: inline !important;
-            }
-        }
-        @media screen {
-            .resident-number-full {
-                display: none;
-            }
-        }
-    </style>
 </head>
 <body class="bg-gray-50">
-    <!-- 헤더 -->
-    <header class="bg-pink-600 text-white shadow-md sticky top-0 z-10 print-hidden">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex items-center gap-4">
-                <button id="backBtn" class="hover:bg-pink-700 p-2 rounded-lg transition-colors">
-                    <i class="fas fa-arrow-left text-2xl"></i>
+    <div class="min-h-screen py-8 px-4">
+        <div class="max-w-7xl mx-auto">
+            <!-- 헤더 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-building text-blue-600 mr-3"></i>
+                            업체 목록
+                        </h1>
+                        <p class="text-gray-600 mt-2">등록된 업체 정보를 확인하고 관리합니다.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="location.href='/static/company-register.html'" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold whitespace-nowrap">
+                            <i class="fas fa-plus mr-2"></i>
+                            업체 추가
+                        </button>
+                        <button type="button" onclick="history.back()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold whitespace-nowrap">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            뒤로가기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 검색 및 필터 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <input type="text" id="searchInput" placeholder="업체명, 사업자번호, 대표자명으로 검색..." 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            onkeyup="searchCompanies()">
+                    </div>
+                    <button onclick="loadCompanies()" 
+                        class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        새로고침
+                    </button>
+                </div>
+            </div>
+
+            <!-- 업체 목록 -->
+            <div id="companiesList" class="space-y-4">
+                <!-- 로딩 중 -->
+                <div class="text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                    <p class="text-gray-600">업체 목록을 불러오는 중...</p>
+                </div>
+            </div>
+
+            <!-- 빈 목록 -->
+            <div id="emptyState" class="hidden bg-white rounded-lg shadow-md p-12 text-center">
+                <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">등록된 업체가 없습니다</h3>
+                <p class="text-gray-600 mb-6">업체를 추가하여 계약 관리를 시작하세요.</p>
+                <button onclick="location.href='/static/company-register.html'" 
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                    <i class="fas fa-plus mr-2"></i>
+                    첫 번째 업체 등록하기
                 </button>
-                <h1 class="text-2xl font-bold">
-                    <i class="fas fa-building-circle-check mr-2"></i>업체 등록 목록
-                </h1>
-            </div>
-        </div>
-    </header>
-
-    <!-- 메인 콘텐츠 -->
-    <div class="container mx-auto px-4 py-6">
-        <!-- 업체 정보 등록 섹션 (목록 페이지에서는 숨김) -->
-        <div class="hidden bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">
-                <i class="fas fa-building mr-2 text-pink-600"></i>업체 정보 등록
-            </h2>
-            <form id="companyForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">업체명 *</label>
-                        <input type="text" id="companyName" required placeholder="예: 대성모터스" 
-                            class="w-full px-4 py-2 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">사업자번호 *</label>
-                        <input type="text" id="companyBusinessNumber" required placeholder="123-45-67890" 
-                            class="w-full px-4 py-2 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">대표자 *</label>
-                        <input type="text" id="companyRepresentative" required placeholder="홍길동" 
-                            class="w-full px-4 py-2 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">대표자 주민등록번호 *</label>
-                        <input type="text" id="companyResidentNumber" required placeholder="000000-0000000" maxlength="14"
-                            class="w-full px-4 py-2 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">전화번호 *</label>
-                        <input type="tel" id="companyPhone" required placeholder="02-1234-5678" 
-                            class="w-full px-4 py-2 border rounded-lg">
-                    </div>
-                </div>
-
-                <div class="flex gap-2">
-                    <input type="text" id="companyPostcode" required readonly placeholder="우편번호" 
-                        class="flex-1 px-4 py-2 border rounded-lg bg-gray-50">
-                    <button type="button" id="searchBtn" 
-                        class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
-                        <i class="fas fa-search mr-1"></i>검색
-                    </button>
-                </div>
-
-                <input type="text" id="companyAddress" required readonly placeholder="주소" 
-                    class="w-full px-4 py-2 border rounded-lg bg-gray-50">
-                <input type="text" id="companyDetailAddress" placeholder="상세주소" 
-                    class="w-full px-4 py-2 border rounded-lg">
-
-                <!-- 대표자 서명 -->
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">대표자 서명 *</label>
-                    <div class="border rounded-lg p-4 bg-gray-50">
-                        <div class="text-center mb-2">
-                            <canvas id="signaturePreview" width="300" height="100" 
-                                class="border bg-white mx-auto cursor-pointer"
-                                style="max-width: 100%;"></canvas>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" id="openSignatureBtn" 
-                                class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
-                                <i class="fas fa-signature mr-1"></i>서명하기
-                            </button>
-                            <button type="button" id="clearSignatureBtn" 
-                                class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm">
-                                <i class="fas fa-eraser mr-1"></i>지우기
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 업체 계약 약관 -->
-                <div class="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-                    <h3 class="font-bold text-lg mb-3 text-center">5. 업체 계약 약관</h3>
-                    
-                    <div class="border rounded-lg p-4 bg-white mb-4 contract-terms" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
-                        <!-- 사업자 정보 표기 -->
-                        <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
-                            <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">공급자 (사업자) 정보</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="font-size: 1.1rem;">
-                                <p><strong>상호:</strong> 대성</p>
-                                <p><strong>사업자등록번호:</strong> 487-39-01128</p>
-                                <p><strong>대표자:</strong> 김상춘</p>
-                            </div>
-                        </div>
-                        
-                        <p class="font-bold text-base text-purple-800 mb-3">
-                            <i class="fas fa-building mr-2"></i>업체 리스/렌트 계약서
-                        </p>
-                        
-                        <p class="text-gray-600">
-                            본 계약은 대여인(사업자)과 수요업체 간의 오토바이 리스/렌트 형태의 계약입니다.
-                        </p>
-
-                        <p class="font-bold mt-4 mb-2 text-purple-700">
-                            <i class="fas fa-star mr-1 text-yellow-500"></i>특별 안내
-                        </p>
-                        <div class="ml-4 space-y-1 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                            <p class="font-bold text-yellow-800">
-                                <i class="fas fa-info-circle mr-1"></i>업체 계약 간소화 제도
-                            </p>
-                            <p class="text-gray-700">
-                                대표자가 최초 1회 계약 체결 시 업체 정보, 대표자 정보, 서류를 등록하시면, 
-                                <span class="font-bold text-purple-700">이후 추가 오토바이 출고 시에는 별도의 계약서 작성 없이 자동으로 모든 계약서 서식이 완성</span>됩니다.
-                            </p>
-                            <p class="text-gray-700 mt-2">
-                                ✓ 최초 등록 정보 재사용<br>
-                                ✓ 간편한 추가 출고 절차<br>
-                                ✓ 동일한 약관 및 조건 적용
-                            </p>
-                        </div>
-
-                        <p class="font-bold mt-4 mb-2">제1조 (목적 및 계약 내용)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 본 계약은 업체 배달대행 목적의 리스/렌트 계약입니다.</p>
-                            <p>② 계약 타입: 위 기재된 계약 타입</p>
-                            <p>③ 계약 기간: 위 기재된 계약 기간</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제2조 (인도 및 관리)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 계약 시작일에 오토바이를 업체에 인도하며, 업체(임차인)는 선량한 관리자의 주의로 관리해야 합니다.</p>
-                            <p>② 업체(임차인)는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 오토바이는 업체(임차인)의 배달대행 업무에만 사용할 수 있습니다.</p>
-                            <p>② 업체(임차인)는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
-                            <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 업체(임차인)는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
-                            <p>② 일차감 금액: 위 기재된 일차감금액</p>
-                            <p>③ 보증금: 위 기재된 보증금</p>
-                            <p>④ 차감 금액은 업체(임차인)의 일당 정산 시 대여인이 지정한 계좌로 입금해야 합니다.</p>
-                            <p>⑤ 모든 정산은 임대인과 업체(임차인)의 합의한 납부방식이 우선한다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 업체(임차인)의 일당, 입금 금액, 누적 입금 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
-                            <p>② 업체(임차인)는 언제든 본인의 입금 내역 및 납부 현황을 조회할 수 있습니다.</p>
-                            <p>③ 입금 내역에 이의가 있는 경우, 업체(임차인)는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 오토바이에 대한 자동차보험(유상운송보험)에 가입하여야 합니다.</p>
-                            <p>② 사고 발생 시 업체(임차인)는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
-                            <p>③ 업체(임차인)의 고의 또는 과실로 발생한 사고의 자기부담금은 업체(임차인)가 부담합니다.</p>
-                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체(임차인)가 전액 배상합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체(임차인)가 전액 부담합니다.</p>
-                            <p>② 정비 및 수리가 필요한 경우, 업체(임차인)는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 대여인은 다음 각 호의 경우 계약을 즉시 해지할 수 있습니다:</p>
-                            <p class="ml-4">- 리스/렌트비가 일주일 이상 밀린 경우</p>
-                            <p class="ml-4">- 음주운전 등 중대한 법규 위반이 있는 경우</p>
-                            <p class="ml-4">- 업체(임차인)가 허위 정보를 제공한 경우</p>
-                            <p>② 해지 시 업체(임차인)는 즉시 오토바이를 반환하며, 미납 대여료 및 손해액은 보증금에서 공제됩니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 업체(임차인)는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
-                            <p>② 중도 해지 시, 위약금(일차감금액의 50일분)은 보증금에서 공제 후 반환합니다.</p>
-                            <p>③ 리스 계약의 경우, 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부해야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제10조 (렌트 종료 시 반환)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 렌트 종료 시 업체(임차인)는 오토바이를 즉시 반환해야 합니다.</p>
-                            <p>② 오토바이에 손상이 있는 경우, 수리비는 보증금에서 공제됩니다.</p>
-                            <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료됩니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제11조 (추가 오토바이 출고)</p>
-                        <div class="ml-4 space-y-1 bg-purple-50 p-3 rounded border border-purple-200">
-                            <p class="font-bold text-purple-800">① 간소화된 계약 절차</p>
-                            <p>대표자가 최초 계약 체결 시 등록한 업체 정보, 대표자 정보 및 제출 서류는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
-                            <p class="font-bold text-purple-800 mt-2">② 자동 계약서 생성</p>
-                            <p>추가 오토바이 출고 시, 업체(임차인)는 오토바이 선택 및 계약 조건(기간, 금액 등)만 입력하면 모든 계약서 서식이 자동으로 완성됩니다.</p>
-                            <p class="font-bold text-purple-800 mt-2">③ 동일한 약관 적용</p>
-                            <p>추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체(임차인)는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
-                            <p class="font-bold text-purple-800 mt-2">④ 정보 변경</p>
-                            <p>업체 정보 또는 대표자 정보가 변경된 경우, 업체(임차인)는 즉시 대여인에게 서면으로 통지하고 변경된 서류를 제출해야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 업체(임차인)의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
-                            <p>③ 특약사항에 기재된 사항이 있는 경우 우선 적용됩니다.</p>
-                            <p>④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
-                        </div>
-
-                        <p class="mt-4 text-center text-gray-600">
-                            위 내용을 충분히 이해하고 계약서에 기재된 내용에 동의합니다.
-                        </p>
-                    </div>
-
-                    <!-- 약관 동의 체크박스 -->
-                    <div class="flex items-start p-4 bg-yellow-50 border-2 border-yellow-400 rounded">
-                        <input type="checkbox" id="agreeTerms" 
-                            class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                        <label for="agreeTerms" class="ml-3 text-base font-bold text-gray-800">
-                            위 계약 약관을 모두 확인하였으며 이에 동의합니다 <span class="text-red-600">*</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- 신분증 사진 -->
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">대표자 신분증 *</label>
-                    <div class="border rounded-lg p-4 bg-gray-50">
-                        <div class="text-center mb-2">
-                            <img id="idCardPreview" class="hidden border bg-white mx-auto" 
-                                style="max-width: 100%; max-height: 200px;" />
-                            <div id="idCardPlaceholder" class="text-gray-400 py-8">
-                                <i class="fas fa-id-card text-4xl mb-2"></i>
-                                <div>신분증 사진을 등록해주세요</div>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" id="captureIdBtn" 
-                                class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm">
-                                <i class="fas fa-camera mr-1"></i>촬영
-                            </button>
-                            <button type="button" id="uploadIdBtn" 
-                                class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm">
-                                <i class="fas fa-upload mr-1"></i>업로드
-                            </button>
-                            <button type="button" id="clearIdBtn" 
-                                class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm">
-                                <i class="fas fa-trash mr-1"></i>삭제
-                            </button>
-                        </div>
-                        <input type="file" id="idCardFileInput" accept="image/*" class="hidden" />
-                    </div>
-                </div>
-
-                <div class="flex gap-2">
-                    <button type="button" id="clearBtn" 
-                        class="flex-1 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-                        초기화
-                    </button>
-                    <button type="submit" 
-                        class="flex-1 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
-                        저장
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- 업체 목록 섹션 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">
-                <i class="fas fa-list mr-2 text-pink-600"></i>등록된 업체
-            </h2>
-            <div id="loadingState" class="text-center py-8 text-gray-500">
-                <i class="fas fa-spinner fa-spin mr-2"></i>업체 목록을 불러오는 중...
-            </div>
-            <div id="emptyState" class="hidden text-center py-8 text-gray-500">
-                등록된 업체(임차인)가 없습니다.
-            </div>
-            <div id="companyList"></div>
-        </div>
-    </div>
-
-    <!-- 서명 모달 -->
-    <div id="signatureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full">
-            <div class="border-b px-6 py-4 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">
-                    <i class="fas fa-signature mr-2 text-blue-600"></i>서명 입력
-                </h3>
-                <button onclick="closeSignatureModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div class="mb-4 text-sm text-gray-600">
-                    마우스나 손가락으로 아래 영역에 서명해주세요.
-                </div>
-                <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
-                    <canvas id="signatureCanvas" width="800" height="300" 
-                        class="bg-white cursor-crosshair" style="width: 100%; height: auto;"></canvas>
-                </div>
-                <div class="flex gap-2 mt-4">
-                    <button onclick="clearSignature()" 
-                        class="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-                        <i class="fas fa-eraser mr-2"></i>지우기
-                    </button>
-                    <button onclick="saveSignature()" 
-                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold">
-                        <i class="fas fa-check mr-2"></i>서명 완료
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 카메라 모달 -->
-    <div id="cameraModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
-            <div class="border-b px-6 py-4 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">
-                    <i class="fas fa-camera mr-2 text-green-600"></i>신분증 촬영
-                </h3>
-                <button onclick="closeCameraModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div class="mb-4">
-                    <video id="cameraVideo" autoplay playsinline class="w-full border rounded-lg bg-black"></video>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="closeCameraModal()" 
-                        class="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-                        <i class="fas fa-times mr-2"></i>취소
-                    </button>
-                    <button onclick="capturePhoto()" 
-                        class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold">
-                        <i class="fas fa-camera mr-2"></i>촬영
-                    </button>
-                </div>
             </div>
         </div>
     </div>
 
     <!-- 상세보기 모달 -->
     <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center print-hidden">
-                <h3 class="text-2xl font-bold text-gray-800">
-                    <i class="fas fa-building mr-2 text-pink-600"></i>업체 상세정보
-                </h3>
-                <div class="flex gap-2">
-                    <button onclick="printDetail()" class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg">
-                        <i class="fas fa-print mr-1"></i>인쇄
-                    </button>
-                    <button onclick="closeDetailModal()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-                        <i class="fas fa-times mr-1"></i>닫기
-                    </button>
-                </div>
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-building text-blue-600 mr-2"></i>
+                    업체 상세 정보
+                </h2>
+                <button onclick="closeDetailModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
             </div>
-            <div id="detailContent" class="p-6 space-y-4"></div>
+            <div id="detailContent" class="p-6">
+                <!-- 상세 정보가 여기에 표시됩니다 -->
+            </div>
         </div>
     </div>
 
     <script>
-        let companies = [];
-        let signatureData = null;
-        let idCardData = null;
-        let isDrawing = false;
-        let signatureCanvas = null;
-        let signatureCtx = null;
-        let cameraStream = null;
-        
-        function log(msg) {
-            console.log(msg);
-        }
+        let allCompanies = [];
 
-        // 우편번호 검색
-        function searchAddress() {
-            log('🔍 searchAddress 호출');
-            
-            if (typeof daum === 'undefined' || typeof daum.Postcode === 'undefined') {
-                alert('Daum API가 로드되지 않았습니다.');
-                return;
-            }
-            
-            new daum.Postcode({
-                oncomplete: function(data) {
-                    document.getElementById('companyPostcode').value = data.zonecode;
-                    document.getElementById('companyAddress').value = data.address;
-                    document.getElementById('companyDetailAddress').focus();
-                }
-            }).open();
-        }
+        // 페이지 로드 시 업체 목록 불러오기
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCompanies();
+        });
 
-        // 폼 초기화
-        function clearForm() {
-            document.getElementById('companyForm').reset();
-            signatureData = null;
-            idCardData = null;
-            
-            // 서명 미리보기 초기화
-            const signaturePreview = document.getElementById('signaturePreview');
-            const previewCtx = signaturePreview.getContext('2d');
-            previewCtx.clearRect(0, 0, signaturePreview.width, signaturePreview.height);
-            
-            // 신분증 미리보기 초기화
-            document.getElementById('idCardPreview').classList.add('hidden');
-            document.getElementById('idCardPlaceholder').classList.remove('hidden');
-        }
-
-        // 서명 모달 열기
-        function openSignatureModal() {
-            document.getElementById('signatureModal').classList.remove('hidden');
-            
-            // 캔버스 초기화
-            signatureCanvas = document.getElementById('signatureCanvas');
-            signatureCtx = signatureCanvas.getContext('2d');
-            signatureCtx.fillStyle = 'white';
-            signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-            signatureCtx.strokeStyle = '#000';
-            signatureCtx.lineWidth = 2;
-            signatureCtx.lineCap = 'round';
-            
-            // 기존 서명이 있으면 로드
-            if (signatureData) {
-                const img = new Image();
-                img.onload = function() {
-                    signatureCtx.drawImage(img, 0, 0);
-                };
-                img.src = signatureData;
-            }
-            
-            // 이벤트 리스너 추가
-            signatureCanvas.addEventListener('mousedown', startDrawing);
-            signatureCanvas.addEventListener('mousemove', draw);
-            signatureCanvas.addEventListener('mouseup', stopDrawing);
-            signatureCanvas.addEventListener('mouseout', stopDrawing);
-            
-            // 터치 이벤트
-            signatureCanvas.addEventListener('touchstart', handleTouchStart);
-            signatureCanvas.addEventListener('touchmove', handleTouchMove);
-            signatureCanvas.addEventListener('touchend', stopDrawing);
-        }
-
-        // 서명 모달 닫기
-        function closeSignatureModal() {
-            document.getElementById('signatureModal').classList.add('hidden');
-            
-            // 이벤트 리스너 제거
-            if (signatureCanvas) {
-                signatureCanvas.removeEventListener('mousedown', startDrawing);
-                signatureCanvas.removeEventListener('mousemove', draw);
-                signatureCanvas.removeEventListener('mouseup', stopDrawing);
-                signatureCanvas.removeEventListener('mouseout', stopDrawing);
-                signatureCanvas.removeEventListener('touchstart', handleTouchStart);
-                signatureCanvas.removeEventListener('touchmove', handleTouchMove);
-                signatureCanvas.removeEventListener('touchend', stopDrawing);
-            }
-        }
-
-        // 그리기 시작
-        function startDrawing(e) {
-            isDrawing = true;
-            const rect = signatureCanvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (signatureCanvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (signatureCanvas.height / rect.height);
-            signatureCtx.beginPath();
-            signatureCtx.moveTo(x, y);
-        }
-
-        // 그리기
-        function draw(e) {
-            if (!isDrawing) return;
-            const rect = signatureCanvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (signatureCanvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (signatureCanvas.height / rect.height);
-            signatureCtx.lineTo(x, y);
-            signatureCtx.stroke();
-        }
-
-        // 그리기 중지
-        function stopDrawing() {
-            isDrawing = false;
-        }
-
-        // 터치 시작
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            signatureCanvas.dispatchEvent(mouseEvent);
-        }
-
-        // 터치 이동
-        function handleTouchMove(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            signatureCanvas.dispatchEvent(mouseEvent);
-        }
-
-        // 서명 지우기
-        function clearSignature() {
-            signatureCtx.fillStyle = 'white';
-            signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-        }
-
-        // 서명 저장
-        function saveSignature() {
-            // JPEG로 변환 (품질 0.6, 배경 흰색)
-            signatureData = signatureCanvas.toDataURL('image/jpeg', 0.6);
-            
-            // 미리보기에 표시
-            const signaturePreview = document.getElementById('signaturePreview');
-            const previewCtx = signaturePreview.getContext('2d');
-            const img = new Image();
-            img.onload = function() {
-                previewCtx.clearRect(0, 0, signaturePreview.width, signaturePreview.height);
-                previewCtx.drawImage(img, 0, 0, signaturePreview.width, signaturePreview.height);
-            };
-            img.src = signatureData;
-            
-            closeSignatureModal();
-            log('✅ 서명 저장됨: ' + Math.round(signatureData.length / 1024) + ' KB');
-        }
-
-        // 서명 미리보기 지우기
-        function clearSignaturePreview() {
-            signatureData = null;
-            const signaturePreview = document.getElementById('signaturePreview');
-            const previewCtx = signaturePreview.getContext('2d');
-            previewCtx.clearRect(0, 0, signaturePreview.width, signaturePreview.height);
-        }
-
-        // 카메라 시작
-        async function startCamera() {
-            try {
-                document.getElementById('cameraModal').classList.remove('hidden');
-                const video = document.getElementById('cameraVideo');
-                cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
-                video.srcObject = cameraStream;
-            } catch (error) {
-                log('❌ 카메라 오류: ' + error.message);
-                alert('카메라 접근 권한이 필요합니다.');
-                closeCameraModal();
-            }
-        }
-
-        // 카메라 모달 닫기
-        function closeCameraModal() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-            document.getElementById('cameraModal').classList.add('hidden');
-        }
-
-        // 사진 촬영
-        function capturePhoto() {
-            const video = document.getElementById('cameraVideo');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            
-            // JPEG로 변환 (품질 0.7)
-            const imageData = canvas.toDataURL('image/jpeg', 0.7);
-            setIdCardImage(imageData);
-            closeCameraModal();
-        }
-
-        // 파일 업로드
-        function handleIdCardUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                // 이미지 리사이즈 및 JPEG 변환
-                resizeImage(event.target.result, 1200, 1200, 0.7, function(resized) {
-                    setIdCardImage(resized);
-                });
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // 이미지 리사이즈
-        function resizeImage(dataUrl, maxWidth, maxHeight, quality, callback) {
-            const img = new Image();
-            img.onload = function() {
-                let width = img.width;
-                let height = img.height;
-                
-                if (width > maxWidth || height > maxHeight) {
-                    const ratio = Math.min(maxWidth / width, maxHeight / height);
-                    width = width * ratio;
-                    height = height * ratio;
-                }
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                callback(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.src = dataUrl;
-        }
-
-        // 신분증 이미지 설정
-        function setIdCardImage(imageData) {
-            idCardData = imageData;
-            
-            document.getElementById('idCardPreview').src = imageData;
-            document.getElementById('idCardPreview').classList.remove('hidden');
-            document.getElementById('idCardPlaceholder').classList.add('hidden');
-            
-            log('✅ 신분증 사진 등록됨: ' + Math.round(imageData.length / 1024) + ' KB');
-        }
-
-        // 신분증 삭제
-        function clearIdCard() {
-            idCardData = null;
-            document.getElementById('idCardPreview').classList.add('hidden');
-            document.getElementById('idCardPlaceholder').classList.remove('hidden');
-            document.getElementById('idCardFileInput').value = '';
-        }
-
-        // 업체 목록 로드
+        // 업체 목록 불러오기
         async function loadCompanies() {
-            log('📋 업체 목록 로드 시작');
-            
-            const sessionId = localStorage.getItem('sessionId');
-            if (!sessionId) {
-                alert('로그인이 필요합니다.');
-                window.location.href = '/static/login.html';
-                return;
-            }
-            
             try {
-                const response = await axios.get('/api/companies', {
-                    headers: { 'X-Session-ID': sessionId }
-                });
+                console.log('📋 업체 목록 로딩 중...');
+                const response = await axios.get('/api/companies');
+                allCompanies = response.data;
                 
-                companies = response.data;
-                log('✅ 업체 수: ' + companies.length);
-                displayCompanies();
+                console.log('✅ 업체 목록 로드 완료:', allCompanies.length, '개');
+                displayCompanies(allCompanies);
             } catch (error) {
-                log('❌ 로드 실패: ' + error.message);
-                alert('업체 목록을 불러오는데 실패했습니다.');
+                console.error('❌ 업체 목록 로드 실패:', error);
+                document.getElementById('companiesList').innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <i class="fas fa-exclamation-circle text-red-500 text-3xl mb-3"></i>
+                        <p class="text-red-700 font-semibold">업체 목록을 불러오는데 실패했습니다.</p>
+                        <p class="text-red-600 text-sm mt-2">${error.message}</p>
+                        <button onclick="loadCompanies()" 
+                            class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                            다시 시도
+                        </button>
+                    </div>
+                `;
             }
         }
 
         // 업체 목록 표시
-        function displayCompanies() {
-            const loadingState = document.getElementById('loadingState');
+        function displayCompanies(companies) {
+            const listContainer = document.getElementById('companiesList');
             const emptyState = document.getElementById('emptyState');
-            const companyList = document.getElementById('companyList');
-            
-            loadingState.classList.add('hidden');
-            
+
             if (companies.length === 0) {
+                listContainer.classList.add('hidden');
                 emptyState.classList.remove('hidden');
                 return;
             }
-            
+
+            listContainer.classList.remove('hidden');
             emptyState.classList.add('hidden');
-            
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-            const isSuperAdmin = currentUser.role === 'super_admin';
-            
-            const html = companies.map(company => `
-                <div class="border-b py-4 flex justify-between items-center">
-                    <div class="flex-1">
-                        <div class="font-bold text-lg">${company.name}</div>
-                        <div class="text-sm text-gray-600">
-                            사업자번호: ${company.business_number} | 대표자: ${company.representative} | 전화번호: ${company.phone}
+
+            listContainer.innerHTML = companies.map(company => `
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition cursor-pointer" onclick="showDetail(${company.id})">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-3">
+                                <h3 class="text-xl font-bold text-gray-800">${company.company_name}</h3>
+                                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    ${company.status === 'active' ? '활성' : '비활성'}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div class="flex items-center text-gray-600">
+                                    <i class="fas fa-id-card mr-2 text-blue-600 w-4"></i>
+                                    <span class="font-semibold mr-2">사업자번호:</span>
+                                    <span>${company.business_number}</span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i class="fas fa-user mr-2 text-blue-600 w-4"></i>
+                                    <span class="font-semibold mr-2">대표자:</span>
+                                    <span>${company.representative}</span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i class="fas fa-phone mr-2 text-blue-600 w-4"></i>
+                                    <span class="font-semibold mr-2">전화:</span>
+                                    <span>${company.representative_phone}</span>
+                                </div>
+                            </div>
+
+                            ${company.representative_address ? `
+                                <div class="mt-3 flex items-start text-gray-600 text-sm">
+                                    <i class="fas fa-map-marker-alt mr-2 text-blue-600 w-4 mt-1"></i>
+                                    <span>${company.representative_address}${company.representative_detail_address ? ' ' + company.representative_detail_address : ''}</span>
+                                </div>
+                            ` : ''}
                         </div>
-                        <div class="text-sm text-gray-500">${company.address || ''} ${company.detail_address || ''}</div>
+                        
+                        <div class="text-gray-400 hover:text-blue-600 transition">
+                            <i class="fas fa-chevron-right text-xl"></i>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="showDetail(${company.id})" 
-                            class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm">
-                            상세
-                        </button>
-                        ${isSuperAdmin ? `
-                        <button onclick="deleteCompany(${company.id}, '${company.name}')" 
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
-                            삭제
-                        </button>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                        <span>
+                            <i class="far fa-calendar mr-1"></i>
+                            등록일: ${new Date(company.created_at).toLocaleDateString('ko-KR')}
+                        </span>
+                        ${company.id_card_photo ? `
+                            <span class="text-green-600">
+                                <i class="fas fa-id-card mr-1"></i>
+                                신분증 등록됨
+                            </span>
                         ` : ''}
                     </div>
                 </div>
             `).join('');
-            
-            companyList.innerHTML = html;
         }
 
-        // 업체 저장
-        async function saveCompany(e) {
-            e.preventDefault();
-            log('💾 업체 저장 시작');
+        // 검색 기능
+        function searchCompanies() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             
-            const sessionId = localStorage.getItem('sessionId');
-            if (!sessionId) {
-                alert('로그인이 필요합니다.');
-                window.location.href = '/static/login.html';
+            if (searchTerm === '') {
+                displayCompanies(allCompanies);
                 return;
             }
-            
-            const data = {
-                name: document.getElementById('companyName').value.trim(),
-                business_number: document.getElementById('companyBusinessNumber').value.trim(),
-                representative: document.getElementById('companyRepresentative').value.trim(),
-                representative_resident_number: document.getElementById('companyResidentNumber').value.trim(),
-                phone: document.getElementById('companyPhone').value.trim(),
-                postcode: document.getElementById('companyPostcode').value.trim(),
-                address: document.getElementById('companyAddress').value.trim(),
-                detail_address: document.getElementById('companyDetailAddress').value.trim() || '',
-                signature_data: signatureData,
-                id_card_photo: idCardData,
-                terms_agreed: true // 약관 동의 여부
-            };
-            
-            if (!document.getElementById('companyPostcode').value) {
-                alert('우편번호를 검색하세요.');
-                return;
-            }
-            
-            if (!document.getElementById('agreeTerms').checked) {
-                alert('약관에 동의해주세요.');
-                return;
-            }
-            
-            if (!signatureData) {
-                alert('대표자 서명을 입력해주세요.');
-                return;
-            }
-            
-            if (!idCardData) {
-                alert('대표자 신분증을 등록해주세요.');
-                return;
-            }
-            
-            try {
-                await axios.post('/api/companies', data, {
-                    headers: { 
-                        'X-Session-ID': sessionId,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                log('✅ 저장 성공');
-                alert('✅ 업체 정보가 저장되었습니다.');
-                
-                // 업체 등록 목록 페이지로 이동
-                window.location.href = '/static/companies-list.html';
-            } catch (error) {
-                log('❌ 저장 실패: ' + error.message);
-                alert('❌ 저장 실패: ' + error.message);
-            }
+
+            const filtered = allCompanies.filter(company => 
+                company.company_name.toLowerCase().includes(searchTerm) ||
+                company.business_number.includes(searchTerm) ||
+                company.representative.toLowerCase().includes(searchTerm) ||
+                (company.representative_phone && company.representative_phone.includes(searchTerm))
+            );
+
+            displayCompanies(filtered);
         }
 
         // 상세보기
-        function showDetail(id) {
-            const company = companies.find(c => c.id === id);
-            if (!company) return;
-            
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-            const isSuperAdmin = currentUser.role === 'super_admin';
-            
-            const maskResidentNumber = (num) => {
-                if (!num || num.length < 14) return num;
-                return num.substring(0, 8) + '******';
-            };
-            
-            const fullResidentNumber = company.representative_resident_number || '';
-            const maskedResidentNumber = maskResidentNumber(fullResidentNumber);
-            
-            const content = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="border-b pb-2">
-                            <div class="text-sm text-gray-600 mb-1">업체명</div>
-                            <div class="text-lg font-bold">${company.name}</div>
-                        </div>
-                        <div class="border-b pb-2">
-                            <div class="text-sm text-gray-600 mb-1">사업자번호</div>
-                            <div class="text-lg">${company.business_number}</div>
-                        </div>
-                        <div class="border-b pb-2">
-                            <div class="text-sm text-gray-600 mb-1">대표자</div>
-                            <div class="text-lg">${company.representative}</div>
-                        </div>
-                        <div class="border-b pb-2">
-                            <div class="text-sm text-gray-600 mb-1">대표자 주민등록번호</div>
-                            <div class="text-lg">
-                                <span class="resident-number-masked">${maskedResidentNumber}</span>
-                                ${isSuperAdmin ? `<span class="resident-number-full">${fullResidentNumber}</span>` : ''}
-                            </div>
-                            ${!isSuperAdmin ? '<div class="text-xs text-red-500 mt-1">* 개인정보 보호를 위해 마스킹 처리되었습니다.</div>' : ''}
-                            ${isSuperAdmin ? '<div class="text-xs text-blue-500 mt-1 print-hidden">* 슈퍼관리자: 인쇄 시 전체 번호가 표시됩니다.</div>' : ''}
-                        </div>
-                        <div class="border-b pb-2">
-                            <div class="text-sm text-gray-600 mb-1">전화번호</div>
-                            <div class="text-lg">${company.phone}</div>
-                        </div>
-                        <div class="border-b pb-2">
-                            <div class="text-sm text-gray-600 mb-1">등록일</div>
-                            <div class="text-lg">${new Date(company.created_at).toLocaleDateString('ko-KR')}</div>
-                        </div>
-                    </div>
-                    <div class="border-b pb-2">
-                        <div class="text-sm text-gray-600 mb-1">우편번호</div>
-                        <div class="text-lg">${company.postcode || ''}</div>
-                    </div>
-                    <div class="border-b pb-2">
-                        <div class="text-sm text-gray-600 mb-1">주소</div>
-                        <div class="text-lg">${company.address || ''}</div>
-                    </div>
-                    <div class="border-b pb-2">
-                        <div class="text-sm text-gray-600 mb-1">상세주소</div>
-                        <div class="text-lg">${company.detail_address || '-'}</div>
-                    </div>
-                    
-                    <!-- 업체 계약 약관 전체 내용 -->
-                    <div class="mt-6 border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-                        <h3 class="font-bold text-lg mb-3 text-center">5. 업체 계약 약관</h3>
-                        
-                        <div class="border rounded-lg p-4 bg-white contract-terms" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
-                            <!-- 사업자 정보 표기 -->
-                            <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
-                                <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">공급자 (사업자) 정보</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="font-size: 1.1rem;">
-                                    <p><strong>상호:</strong> 대성</p>
-                                    <p><strong>사업자등록번호:</strong> 487-39-01128</p>
-                                    <p><strong>대표자:</strong> 김상춘</p>
+        async function showDetail(id) {
+            try {
+                const response = await axios.get(`/api/companies/${id}`);
+                const company = response.data;
+
+                document.getElementById('detailContent').innerHTML = `
+                    <div class="space-y-6">
+                        <!-- 업체 기본 정보 -->
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                                <i class="fas fa-briefcase text-blue-600 mr-2"></i>
+                                업체 기본 정보
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">업체명</label>
+                                    <p class="text-gray-800">${company.company_name}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">사업자번호</label>
+                                    <p class="text-gray-800">${company.business_number}</p>
                                 </div>
                             </div>
-                            
-                            <p class="font-bold text-base text-purple-800 mb-3">
-                                <i class="fas fa-building mr-2"></i>업체 리스/렌트 계약서
-                            </p>
-                            
-                            <p class="text-gray-600">
-                                본 계약은 대여인(사업자)과 수요업체 간의 오토바이 리스/렌트 형태의 계약입니다.
-                            </p>
+                        </div>
 
-                            <p class="font-bold mt-4 mb-2 text-purple-700">
-                                <i class="fas fa-star mr-1 text-yellow-500"></i>특별 안내
-                            </p>
-                            <div class="ml-4 space-y-1 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                                <p class="font-bold text-yellow-800">
-                                    <i class="fas fa-info-circle mr-1"></i>업체 계약 간소화 제도
-                                </p>
-                                <p class="text-gray-700">
-                                    대표자가 최초 1회 계약 체결 시 업체 정보, 대표자 정보, 서류를 등록하시면, 
-                                    <span class="font-bold text-purple-700">이후 추가 오토바이 출고 시에는 별도의 계약서 작성 없이 자동으로 모든 계약서 서식이 완성</span>됩니다.
-                                </p>
-                                <p class="text-gray-700 mt-2">
-                                    ✓ 최초 등록 정보 재사용<br>
-                                    ✓ 간편한 추가 출고 절차<br>
-                                    ✓ 동일한 약관 및 조건 적용
-                                </p>
+                        <!-- 대표자 정보 -->
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                                <i class="fas fa-user text-blue-600 mr-2"></i>
+                                대표자 정보
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">대표자 이름</label>
+                                    <p class="text-gray-800">${company.representative}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">전화번호</label>
+                                    <p class="text-gray-800">${company.representative_phone}</p>
+                                </div>
+                                ${company.representative_resident_number ? `
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-600 mb-1">주민등록번호</label>
+                                        <p class="text-gray-800">${company.representative_resident_number}</p>
+                                    </div>
+                                ` : ''}
                             </div>
+                        </div>
 
-                            <p class="font-bold mt-4 mb-2">제1조 (목적 및 계약 내용)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 본 계약은 업체 배달대행 목적의 리스/렌트 계약입니다.</p>
-                                <p>② 계약 타입: 위 기재된 계약 타입</p>
-                                <p>③ 계약 기간: 위 기재된 계약 기간</p>
+                        <!-- 대표자 주소 -->
+                        ${company.representative_address ? `
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                                    <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
+                                    대표자 주소
+                                </h3>
+                                <div class="space-y-2">
+                                    ${company.representative_postcode ? `
+                                        <p class="text-sm text-gray-600">우편번호: ${company.representative_postcode}</p>
+                                    ` : ''}
+                                    <p class="text-gray-800">${company.representative_address}</p>
+                                    ${company.representative_detail_address ? `
+                                        <p class="text-gray-600">${company.representative_detail_address}</p>
+                                    ` : ''}
+                                </div>
                             </div>
+                        ` : ''}
 
-                            <p class="font-bold mt-3 mb-2">제2조 (인도 및 관리)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 대여인은 계약 시작일에 오토바이를 업체에 인도하며, 업체(임차인)는 선량한 관리자의 주의로 관리해야 합니다.</p>
-                                <p>② 업체(임차인)는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
+                        <!-- 신분증 -->
+                        ${company.id_card_photo ? `
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                                    <i class="fas fa-id-card text-blue-600 mr-2"></i>
+                                    대표자 신분증
+                                </h3>
+                                <img src="${company.id_card_photo}" alt="신분증" class="max-w-full rounded-lg shadow-md">
                             </div>
+                        ` : ''}
 
-                            <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 오토바이는 업체(임차인)의 배달대행 업무에만 사용할 수 있습니다.</p>
-                                <p>② 업체(임차인)는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
-                                <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
+                        <!-- 등록 정보 -->
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                등록 정보
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">등록일</label>
+                                    <p class="text-gray-800">${new Date(company.created_at).toLocaleString('ko-KR')}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">수정일</label>
+                                    <p class="text-gray-800">${new Date(company.updated_at).toLocaleString('ko-KR')}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-600 mb-1">상태</label>
+                                    <p class="text-gray-800">
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                                            ${company.status === 'active' ? '활성' : '비활성'}
+                                        </span>
+                                    </p>
+                                </div>
                             </div>
-
-                            <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 업체(임차인)는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
-                                <p>② 일차감 금액: 위 기재된 일차감금액</p>
-                                <p>③ 보증금: 위 기재된 보증금</p>
-                                <p>④ 차감 금액은 업체(임차인)의 일당 정산 시 대여인이 지정한 계좌로 입금해야 합니다.</p>
-                                <p>⑤ 모든 정산은 임대인과 업체(임차인)의 합의한 납부방식이 우선한다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 대여인은 업체(임차인)의 일당, 입금 금액, 누적 입금 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
-                                <p>② 업체(임차인)는 언제든 본인의 입금 내역 및 납부 현황을 조회할 수 있습니다.</p>
-                                <p>③ 입금 내역에 이의가 있는 경우, 업체(임차인)는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 대여인은 오토바이에 대한 자동차보험(유상운송보험)에 가입하여야 합니다.</p>
-                                <p>② 사고 발생 시 업체(임차인)는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
-                                <p>③ 업체(임차인)의 고의 또는 과실로 발생한 사고의 자기부담금은 업체(임차인)가 부담합니다.</p>
-                                <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체(임차인)가 전액 배상합니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체(임차인)가 전액 부담합니다.</p>
-                                <p>② 정비 및 수리가 필요한 경우, 업체(임차인)는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 대여인은 다음 각 호의 경우 계약을 즉시 해지할 수 있습니다:</p>
-                                <p class="ml-4">- 리스/렌트비가 일주일 이상 밀린 경우</p>
-                                <p class="ml-4">- 음주운전 등 중대한 법규 위반이 있는 경우</p>
-                                <p class="ml-4">- 업체(임차인)가 허위 정보를 제공한 경우</p>
-                                <p>② 해지 시 업체(임차인)는 즉시 오토바이를 반환하며, 미납 대여료 및 손해액은 보증금에서 공제됩니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 업체(임차인)는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
-                                <p>② 중도 해지 시, 위약금(일차감금액의 50일분)은 보증금에서 공제 후 반환합니다.</p>
-                                <p>③ 리스 계약의 경우, 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부해야 합니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제10조 (렌트 종료 시 반환)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 렌트 종료 시 업체(임차인)는 오토바이를 즉시 반환해야 합니다.</p>
-                                <p>② 오토바이에 손상이 있는 경우, 수리비는 보증금에서 공제됩니다.</p>
-                                <p>③ 보증금 정산은 반환일로부터 7영업일 이내에 완료됩니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제11조 (추가 오토바이 출고)</p>
-                            <div class="ml-4 space-y-1 bg-purple-50 p-3 rounded border border-purple-200">
-                                <p class="font-bold text-purple-800">① 간소화된 계약 절차</p>
-                                <p>대표자가 최초 계약 체결 시 등록한 업체 정보, 대표자 정보 및 제출 서류는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
-                                <p class="font-bold text-purple-800 mt-2">② 자동 계약서 생성</p>
-                                <p>추가 오토바이 출고 시, 업체(임차인)는 오토바이 선택 및 계약 조건(기간, 금액 등)만 입력하면 모든 계약서 서식이 자동으로 완성됩니다.</p>
-                                <p class="font-bold text-purple-800 mt-2">③ 동일한 약관 적용</p>
-                                <p>추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체(임차인)는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
-                                <p class="font-bold text-purple-800 mt-2">④ 정보 변경</p>
-                                <p>업체 정보 또는 대표자 정보가 변경된 경우, 업체(임차인)는 즉시 대여인에게 서면으로 통지하고 변경된 서류를 제출해야 합니다.</p>
-                            </div>
-
-                            <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
-                            <div class="ml-4 space-y-1">
-                                <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                                <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 업체(임차인)의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
-                                <p>③ 특약사항에 기재된 사항이 있는 경우 우선 적용됩니다.</p>
-                            <p>④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
-                            </div>
-
-                            <p class="mt-4 text-center text-gray-600">
-                                위 내용을 충분히 이해하고 계약서에 기재된 내용에 동의합니다.
-                            </p>
                         </div>
                     </div>
-                    
-                    <!-- 약관 동의 여부 -->
-                    <div class="border-b pb-2 mt-6">
-                        <div class="text-sm text-gray-600 mb-1">약관 동의 여부</div>
-                        <div class="text-lg">
-                            ${company.terms_agreed ? 
-                                '<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i>동의함</span>' : 
-                                '<span class="text-red-600"><i class="fas fa-times-circle mr-1"></i>미동의</span>'}
-                        </div>
-                    </div>
-                    
-                    ${company.signature_data ? `
-                    <div class="border-b pb-2">
-                        <div class="text-sm text-gray-600 mb-1">대표자 서명</div>
-                        <div class="border rounded-lg p-2 bg-white inline-block">
-                            <img src="${company.signature_data}" class="border bg-white" style="max-height: 100px;" />
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${company.id_card_photo ? `
-                    <div class="border-b pb-2">
-                        <div class="text-sm text-gray-600 mb-1">대표자 신분증</div>
-                        <div class="border rounded-lg p-2 bg-white inline-block">
-                            <img src="${company.id_card_photo}" class="border bg-white cursor-pointer" 
-                                style="max-height: 250px;" 
-                                onclick="window.open('${company.id_card_photo}', '_blank')" />
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1">* 클릭하면 크게 볼 수 있습니다.</div>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            document.getElementById('detailContent').innerHTML = content;
-            document.getElementById('detailModal').classList.remove('hidden');
+                `;
+
+                document.getElementById('detailModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('❌ 업체 상세 정보 로드 실패:', error);
+                alert('업체 정보를 불러오는데 실패했습니다.');
+            }
         }
-        
+
         // 모달 닫기
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
         }
-        
-        // 인쇄
-        function printDetail() {
-            window.print();
-        }
 
-        // 업체 삭제 (슈퍼관리자만)
-        async function deleteCompany(id, name) {
-            if (!confirm(`⚠️ 경고: "${name}" 업체를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 다음 항목들이 모두 삭제됩니다:\n• 업체 정보\n• 해당 업체(임차인)의 모든 계약서\n• 관련된 모든 데이터`)) return;
-            
-            const sessionId = localStorage.getItem('sessionId');
-            
-            try {
-                await axios.delete(`/api/companies/${id}`, {
-                    headers: { 'X-Session-ID': sessionId }
-                });
-                
-                log('✅ 삭제 성공');
-                alert('✅ 업체 및 관련 계약서가 완전히 삭제되었습니다.');
-                await loadCompanies();
-            } catch (error) {
-                log('❌ 삭제 실패: ' + error.message);
-                alert('❌ 삭제 실패: ' + (error.response?.data?.error || error.message));
+        // 모달 외부 클릭시 닫기
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
             }
-        }
-
-        // 페이지 로드 시
-        document.addEventListener('DOMContentLoaded', function() {
-            log('✅ DOMContentLoaded');
-            log('Daum API: ' + (typeof daum !== 'undefined' ? '✅' : '❌'));
-            
-            // 뒤로가기 버튼
-            document.getElementById('backBtn').addEventListener('click', function() {
-                // history.back()이 작동하지 않으면 메인 페이지로 이동
-                if (document.referrer) {
-                    window.location.href = document.referrer;
-                } else {
-                    window.location.href = '/';
-                }
-            });
-            
-            // 이벤트 리스너 연결
-            document.getElementById('searchBtn').addEventListener('click', searchAddress);
-            document.getElementById('clearBtn').addEventListener('click', clearForm);
-            document.getElementById('companyForm').addEventListener('submit', saveCompany);
-            
-            // 서명 관련
-            document.getElementById('openSignatureBtn').addEventListener('click', openSignatureModal);
-            document.getElementById('clearSignatureBtn').addEventListener('click', clearSignaturePreview);
-            
-            // 신분증 관련
-            document.getElementById('captureIdBtn').addEventListener('click', startCamera);
-            document.getElementById('uploadIdBtn').addEventListener('click', function() {
-                document.getElementById('idCardFileInput').click();
-            });
-            document.getElementById('idCardFileInput').addEventListener('change', handleIdCardUpload);
-            document.getElementById('clearIdBtn').addEventListener('click', clearIdCard);
-            
-            // 업체 목록 로드
-            loadCompanies();
         });
     </script>
 </body>
