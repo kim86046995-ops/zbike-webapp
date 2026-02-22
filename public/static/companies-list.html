@@ -517,12 +517,18 @@
                             }
                         });
                         
-                        console.log('✅ 업체 정보 업데이트 완료');
-                        alert('✅ 신분증이 성공적으로 업로드되었습니다!');
+                        console.log('📋 업데이트 응답:', updateResponse.data);
                         
-                        // 모달 닫고 목록 새로고침
-                        closeDetailModal();
-                        await loadCompanies();
+                        if (updateResponse.data.success) {
+                            console.log('✅ 업체 정보 업데이트 완료');
+                            alert('✅ 신분증이 성공적으로 업로드되었습니다!');
+                            
+                            // 모달 닫고 목록 새로고침
+                            closeDetailModal();
+                            await loadCompanies();
+                        } else {
+                            throw new Error(updateResponse.data.error || '업데이트 실패');
+                        }
                         
                     };
                     
@@ -535,10 +541,16 @@
                     
                 } catch (error) {
                     console.error('❌ 신분증 업로드 실패:', error);
+                    console.error('❌ 에러 응답:', error.response?.data);
+                    console.error('❌ 에러 상태:', error.response?.status);
                     
                     if (error.response?.status === 401) {
                         alert('❌ 세션이 만료되었습니다.\n\n다시 로그인해주세요.');
                         window.location.href = '/static/login.html';
+                    } else if (error.response?.status === 500) {
+                        const errorMsg = error.response?.data?.error || '서버 오류';
+                        const errorDetails = error.response?.data?.details || '';
+                        alert(`❌ 서버 오류가 발생했습니다.\n\n${errorMsg}\n${errorDetails}`);
                     } else {
                         alert(`❌ 신분증 업로드 중 오류가 발생했습니다.\n\n${error.response?.data?.error || error.message}`);
                     }
