@@ -240,7 +240,9 @@
             try {
                 console.log('🔍 업체 상세 정보 로드 중... ID:', id);
                 const response = await axios.get(`/api/companies/${id}`);
-                const company = response.data;
+                console.log('📋 전체 응답:', response.data);
+                // ✅ 수정: response.data.company로 접근
+                const company = response.data.company;
                 console.log('📋 업체 상세 데이터:', company);
                 console.log('📋 전체 JSON:', JSON.stringify(company, null, 2));
                 
