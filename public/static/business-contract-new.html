@@ -121,7 +121,7 @@
                         </h2>
                         <button 
                             type="button" 
-                            onclick="showCompanySelectModal()"
+                            id="btnCompanySelect"
                             class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
                             <i class="fas fa-list mr-2"></i>업체 선택
                         </button>
@@ -181,7 +181,7 @@
                         2. 오토바이 선택
                     </h2>
                     <div>
-                        <button type="button" onclick="showMotorcycleModal()" class="w-full bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 font-bold text-lg transition-colors">
+                        <button type="button" id="btnMotorcycleSelect" class="w-full bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 font-bold text-lg transition-colors">
                             <i class="fas fa-list mr-2"></i>
                             <span id="selectedMotorcycleText">오토바이 선택하기 (클릭)</span>
                         </button>
@@ -192,7 +192,7 @@
                                     <div>
                                         <p class="text-xl font-bold text-purple-800" id="selectedMotorcycleName"></p>
                                     </div>
-                                    <button type="button" onclick="showMotorcycleModal()" class="text-purple-600 hover:text-purple-700">
+                                    <button type="button" id="btnMotorcycleEdit" class="text-purple-600 hover:text-purple-700">
                                         <i class="fas fa-edit text-2xl"></i>
                                     </button>
                                 </div>
@@ -665,9 +665,34 @@
 
         // 페이지 로드 시 실행
         window.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ DOMContentLoaded - 페이지 로드 완료');
+            
             loadMotorcycles();
             loadCompanies(); // 업체 목록 로드
             initBusinessSignatureCanvas(); // 서명 캔버스 초기화
+            
+            // 버튼 이벤트 리스너 바인딩
+            const btnCompanySelect = document.getElementById('btnCompanySelect');
+            if (btnCompanySelect) {
+                console.log('✅ 업체 선택 버튼 바인딩 완료');
+                btnCompanySelect.addEventListener('click', showCompanySelectModal);
+            } else {
+                console.error('❌ 업체 선택 버튼을 찾을 수 없습니다!');
+            }
+            
+            const btnMotorcycleSelect = document.getElementById('btnMotorcycleSelect');
+            if (btnMotorcycleSelect) {
+                console.log('✅ 오토바이 선택 버튼 바인딩 완료');
+                btnMotorcycleSelect.addEventListener('click', showMotorcycleModal);
+            } else {
+                console.error('❌ 오토바이 선택 버튼을 찾을 수 없습니다!');
+            }
+            
+            const btnMotorcycleEdit = document.getElementById('btnMotorcycleEdit');
+            if (btnMotorcycleEdit) {
+                console.log('✅ 오토바이 수정 버튼 바인딩 완료');
+                btnMotorcycleEdit.addEventListener('click', showMotorcycleModal);
+            }
             
             // 오늘 날짜를 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
@@ -687,6 +712,8 @@
             
             // 서명일 표시
             document.getElementById('businessSignDate').textContent = dateTimeString;
+            
+            console.log('✅ 페이지 초기화 완료');
         });
 
         // 대표자 주소 검색
@@ -1542,9 +1569,6 @@
             // 3. 업체 및 대표자 정보 초기화
             const companyName = document.getElementById('companyName');
             if (companyName) companyName.value = '';
-            
-            const companyCode = document.getElementById('companyCode');
-            if (companyCode) companyCode.value = '';
             
             const companyCode = document.getElementById('companyCode');
             if (companyCode) companyCode.value = '';
