@@ -6184,25 +6184,33 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
   const DB = c.env.DB || c.env.db
   
   try {
+    console.log('🔍 마이그레이션 API 호출됨')
+    
     // 세션 체크
     const sessionId = c.req.header('X-Session-ID')
+    console.log('🔑 세션 ID:', sessionId ? '있음' : '없음')
     
     if (!sessionId) {
+      console.error('❌ 세션 ID 없음')
       return c.json({ error: '인증이 필요합니다' }, 401)
     }
     
     // 세션 검증
+    console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
       SELECT * FROM sessions WHERE session_id = ? AND expires_at > datetime('now')
     `).bind(sessionId).first()
     
     if (!session) {
+      console.error('❌ 유효하지 않은 세션')
       return c.json({ error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
     }
     
+    console.log('✅ 세션 인증 성공:', session.username)
     console.log('🔄 신분증 URL 마이그레이션 시작...')
     
     // 구버전 URL을 사용하는 업체 조회
+    console.log('🔍 마이그레이션 대상 조회 중...')
     const companies = await DB.prepare(`
       SELECT id, company_name, id_card_photo 
       FROM companies 
@@ -6249,10 +6257,15 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
       updated: updatedCount
     })
   } catch (error) {
-    console.error('❌ 마이그레이션 실패:', error)
+    console.error('❌ 마이그레이션 실패 (상세):', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return c.json({ 
       error: '마이그레이션 중 오류가 발생했습니다.',
-      details: error.message 
+      details: error.message,
+      type: error.name
     }, 500)
   }
 })
