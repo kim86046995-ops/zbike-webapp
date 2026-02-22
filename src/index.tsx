@@ -3167,8 +3167,8 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     data.representative,
     data.business_contract_type || 'rent',  // 리스/렌트 타입 (기본값: rent)
     '배달대행',  // business_category 기본값
-    data.business_phone,
-    data.business_address,
+    data.business_phone || data.representative_phone || '',  // 기본값: 대표자 전화번호
+    data.business_address || data.representative_address || '',  // 기본값: 대표자 주소
     data.representative_resident_number,
     data.representative_phone,
     data.representative_address,
