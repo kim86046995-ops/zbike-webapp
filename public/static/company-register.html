@@ -236,35 +236,37 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
-        // 사업자번호 자동 하이픈 추가
-        document.getElementById('businessNumber').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^0-9]/g, '');
-            if (value.length > 3 && value.length <= 5) {
-                value = value.slice(0, 3) + '-' + value.slice(3);
-            } else if (value.length > 5) {
-                value = value.slice(0, 3) + '-' + value.slice(3, 5) + '-' + value.slice(5, 10);
-            }
-            e.target.value = value;
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            // 사업자번호 자동 하이픈 추가
+            document.getElementById('businessNumber').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length > 3 && value.length <= 5) {
+                    value = value.slice(0, 3) + '-' + value.slice(3);
+                } else if (value.length > 5) {
+                    value = value.slice(0, 3) + '-' + value.slice(3, 5) + '-' + value.slice(5, 10);
+                }
+                e.target.value = value;
+            });
 
-        // 전화번호 자동 하이픈 추가
-        document.getElementById('representativePhone').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^0-9]/g, '');
-            if (value.length > 3 && value.length <= 7) {
-                value = value.slice(0, 3) + '-' + value.slice(3);
-            } else if (value.length > 7) {
-                value = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
-            }
-            e.target.value = value;
-        });
+            // 전화번호 자동 하이픈 추가
+            document.getElementById('representativePhone').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length > 3 && value.length <= 7) {
+                    value = value.slice(0, 3) + '-' + value.slice(3);
+                } else if (value.length > 7) {
+                    value = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+                }
+                e.target.value = value;
+            });
 
-        // 주민번호 자동 하이픈 추가
-        document.getElementById('representativeResidentNumber').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^0-9]/g, '');
-            if (value.length > 6) {
-                value = value.slice(0, 6) + '-' + value.slice(6, 13);
-            }
-            e.target.value = value;
+            // 주민번호 자동 하이픈 추가
+            document.getElementById('representativeResidentNumber').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length > 6) {
+                    value = value.slice(0, 6) + '-' + value.slice(6, 13);
+                }
+                e.target.value = value;
+            });
         });
 
         // 사업장 주소 검색
