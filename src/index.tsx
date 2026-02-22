@@ -2418,6 +2418,9 @@ app.post('/api/contracts', async (c) => {
   
   const kstNow = getKSTDateTime()
   
+  // status를 pending으로 저장 (서명 전 상태)
+  const statusToSave = data.signature_data ? 'active' : 'pending'
+  
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
@@ -2435,7 +2438,7 @@ app.post('/api/contracts', async (c) => {
     data.signature_data || '',
     data.id_card_photo || '',
     contractNumber,
-    'active',
+    statusToSave,
     kstNow,
     kstNow
   ).run()
@@ -2461,11 +2464,13 @@ app.post('/api/contracts', async (c) => {
     '새 계약 생성'
   )
   
-  // 오토바이 상태 업데이트
-  await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
-    .bind('rented', data.motorcycle_id).run()
+  // 오토바이 상태 업데이트 (active 상태일 때만)
+  if (statusToSave === 'active') {
+    await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+      .bind('rented', data.motorcycle_id).run()
+  }
   
-  return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, ...data }, 201)
+  return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, status: statusToSave, ...data }, 201)
 })
 
 // 관리자 계약서 저장 (인증 필요, 고객에게 전송하지 않음)
@@ -3228,6 +3233,9 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     }
   }
   
+  // status를 pending으로 저장 (서명 전 상태)
+  const statusToSave = data.signature_data ? 'active' : 'pending'
+  
   const result = await DB.prepare(`
     INSERT INTO business_contracts (
       motorcycle_id, contract_number,
@@ -3263,16 +3271,18 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     data.special_terms || '',
     data.signature_data || '',
     data.id_card_photo || '',
-    'active'
+    statusToSave
   ).run()
   
-  // 오토바이 상태를 'rented'로 변경
-  await DB.prepare(
-    `UPDATE motorcycles SET status = 'rented' WHERE id = ?`
-  ).bind(data.motorcycle_id).run()
+  // 오토바이 상태를 'rented'로 변경 (active 상태일 때만)
+  if (statusToSave === 'active') {
+    await DB.prepare(
+      `UPDATE motorcycles SET status = 'rented' WHERE id = ?`
+    ).bind(data.motorcycle_id).run()
+  }
   
   console.log('✅ [Business Contract] 계약서 생성 완료:', contractNumber)
-  return c.json({ id: result.meta.last_row_id, contract_number: contractNumber }, 201)
+  return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, status: statusToSave }, 201)
   
   } catch (error: any) {
     console.error('❌ [Business Contract] 에러 발생:', {
@@ -4195,6 +4205,9 @@ app.post('/api/loan-contracts', authMiddleware, async (c) => {
       ? `(${data.postcode}) ${data.address} ${data.detail_address || ''}`.trim()
       : data.borrower_address || data.address || '';
     
+    // status를 pending으로 저장 (서명 전 상태)
+    const statusToSave = data.borrower_signature ? 'active' : 'pending'
+    
     const result = await DB.prepare(`
       INSERT INTO loan_contracts (
         loan_number, borrower_name, borrower_resident_number, borrower_phone, borrower_address,
@@ -4221,10 +4234,10 @@ app.post('/api/loan-contracts', authMiddleware, async (c) => {
       data.borrower_signature || '',
       data.lender_signature || '',
       data.borrower_id_card_photo || '',
-      'active'
+      statusToSave
     ).run()
     
-    return c.json({ id: result.meta.last_row_id, loan_number: loanNumber, customer_id: customerId, ...data }, 201)
+    return c.json({ id: result.meta.last_row_id, loan_number: loanNumber, customer_id: customerId, status: statusToSave, ...data }, 201)
   } catch (error) {
     console.error('Loan contract creation error:', error)
     return c.json({ error: '차용증 저장에 실패했습니다', details: error.message }, 500)

@@ -984,22 +984,20 @@
                     return;
                 }
                 
-                console.log('📤 공유 링크 생성 시작');
-                
-                // 공유 링크 생성
-                const response = await axios.post('/api/contract-share/create', {
-                    contract_type: 'loan',
-                    contract_data: loanData,
-                    customer_name: loanData.borrower_name,
-                    customer_phone: loanData.borrower_phone
-                }, {
+                // 1. DB에 차용증 저장 (상태: pending)
+                console.log('💾 차용증을 DB에 저장합니다 (상태: pending)');
+                const loanResponse = await axios.post('/api/loan-contracts', loanData, {
                     headers: { 'X-Session-ID': sessionId }
                 });
                 
-                const shareToken = response.data.share_token;
-                const shareUrl = window.location.origin + response.data.share_url;
+                const loanId = loanResponse.data.id;
+                const loanNumber = loanResponse.data.loan_number;
                 
-                console.log('✅ 공유 링크 생성 완료:', shareUrl);
+                console.log(`✅ 차용증 저장 완료 (ID: ${loanId}, 번호: ${loanNumber})`);
+                
+                // 2. 공유 링크 생성 (차용증 ID 포함)
+                const shareUrl = `${window.location.origin}/static/loan-sign.html?loan_id=${loanId}`;
+                console.log('🔗 공유 링크:', shareUrl);
                 
                 // SMS 전송
                 try {
@@ -1025,30 +1023,37 @@
                     if (smsResult.data.simulation) {
                         alert(
                             `⚠️ SMS 시뮬레이션 모드\n\n` +
-                            (clipboardSuccess ? `✅ 링크가 클립보드에 복사되었습니다!\n\n` : '') +
+                            `✅ 차용증이 저장되었습니다!\n` +
+                            `차용증 번호: ${loanNumber}\n` +
+                            `상태: 서명 대기 (pending)\n\n` +
+                            (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
                             `실제 문자는 전송되지 않았습니다.\n` +
                             `네이버 클라우드 SMS API 키를 설정하면 실제 전송됩니다.\n\n` +
                             `차용인: ${loanData.borrower_name}\n` +
                             `전화번호: ${loanData.borrower_phone}\n` +
                             `링크: ${shareUrl}\n\n` +
-                            `💡 고객에게 링크를 직접 전달해주세요.`
+                            `💡 차용증은 목록에서 확인할 수 있습니다.`
                         );
                     } else {
                         alert(
-                            `✅ 차용증 링크가 전송되었습니다!\n\n` +
+                            `✅ 차용증이 저장되고 SMS가 전송되었습니다!\n\n` +
+                            `차용증 번호: ${loanNumber}\n` +
+                            `상태: 서명 대기 (pending)\n\n` +
                             (clipboardSuccess ? `📋 링크가 클립보드에 복사되었습니다!\n\n` : '') +
                             `차용인: ${loanData.borrower_name}\n` +
                             `전화번호: ${loanData.borrower_phone}\n` +
                             `링크: ${shareUrl}\n\n` +
-                            `📱 고객이 링크에 접속하여 동의 및 서명을 완료하면\n` +
-                            `차용증 목록에 자동 저장됩니다.`
+                            `📱 고객이 링크에 접속하여 서명을 완료하면\n` +
+                            `차용증 상태가 'active'로 변경됩니다.`
                         );
                     }
                 } catch (smsError) {
                     console.error('SMS 전송 실패:', smsError);
                     alert(
                         `⚠️ SMS 전송에 실패했습니다.\n\n` +
-                        `하지만 공유 링크는 생성되었습니다!\n\n` +
+                        `하지만 차용증은 저장되었습니다!\n` +
+                        `차용증 번호: ${loanNumber}\n` +
+                        `상태: 서명 대기 (pending)\n\n` +
                         `링크: ${shareUrl}\n\n` +
                         `위 링크를 고객에게 직접 전달해주세요.`
                     );

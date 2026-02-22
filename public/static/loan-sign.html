@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
-    <title>Z-BIKE 업체 전자계약서</title>
+    <title>Z-BIKE 전자계약서</title>
     
     <!-- Open Graph / 카카오톡/문자 공유 미리보기 -->
-    <meta property="og:title" content="🏍️ Z-BIKE 업체 전자계약서">
+    <meta property="og:title" content="🏍️ Z-BIKE 전자계약서">
     <meta property="og:description" content="오토바이 리스/렌트 전자계약서 📝 간편하고 안전한 계약 체결">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Z-BIKE">
@@ -34,7 +34,7 @@
             <!-- 헤더 -->
             <div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white text-center">
-                    <h1 id="pageTitle" class="text-3xl font-bold mb-2">Z-BIKE 업체 오토바이 대여 계약서</h1>
+                    <h1 id="pageTitle" class="text-3xl font-bold mb-2">Z-BIKE 오토바이 대여 계약서</h1>
                     <p class="text-indigo-100">Electronic Motorcycle Rental Contract</p>
                 </div>
                 <div class="p-6 text-center border-b">
@@ -138,7 +138,48 @@
                     </div>
                 </div>
 
-                <!-- ⚠️ 업체는 이미 신분증이 등록되어 있으므로 신분증 촬영 섹션 제거 -->
+                <!-- 신분증 촬영 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="bg-gray-200 px-6 py-4 border-b-2 border-gray-300">
+                        <h2 class="text-xl font-bold text-gray-800">신분증 사본 제출</h2>
+                    </div>
+                    <div class="p-6">
+                    
+                    <!-- 카메라 미리보기 (숨김 상태) -->
+                    <div id="cameraSection" class="hidden mb-4">
+                        <video id="video" width="640" height="480" autoplay class="w-full rounded-lg border-2 border-gray-300"></video>
+                        <div class="mt-2 flex gap-2">
+                            <button type="button" onclick="capturePhoto()" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                                <i class="fas fa-camera mr-2"></i>촬영하기
+                            </button>
+                            <button type="button" onclick="stopCamera()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                                <i class="fas fa-times mr-2"></i>카메라 끄기
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 업로드 버튼 -->
+                    <div id="captureButtons">
+                        <label class="block w-full">
+                            <input type="file" id="fileUpload" accept="image/*" class="hidden" onchange="uploadFile(event)">
+                            <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                <i class="fas fa-upload mr-2"></i>파일 업로드
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- 미리보기 -->
+                    <div id="previewSection" class="hidden mt-4">
+                        <p class="text-sm text-gray-600 mb-2">촬영된 신분증:</p>
+                        <div class="relative inline-block">
+                            <img id="preview" class="max-w-full h-auto rounded-lg border-2 border-gray-300" style="max-height: 500px; object-fit: contain;">
+                            <button type="button" onclick="deletePhoto()" class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
 
                 <!-- 제출 버튼 -->
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-8 text-center">
@@ -203,16 +244,16 @@
         let signaturePad = null;
         let currentStream = null;
         let idCardPhoto = '';
-        let contractId = '';
+        let loanId = '';
         let contractData = null;
         let companySettings = null;
 
-        // URL에서 계약 ID 가져오기
+        // URL에서 차용증 ID 가져오기
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            contractId = urlParams.get('contract_id');
+            loanId = urlParams.get('loan_id');
             
-            if (!contractId) {
+            if (!loanId) {
                 showExpired();
                 return;
             }
@@ -241,13 +282,13 @@
             }
         }
 
-        // 계약서 불러오기
+        // 차용증 불러오기
         async function loadContract() {
             try {
-                const response = await axios.get(`/api/business-contracts/${contractId}/sign`);
+                const response = await axios.get(`/api/loan-contracts/${loanId}/sign`);
                 contractData = response.data;
                 
-                if (contractData.status === 'active' && contractData.signature_data) {
+                if (contractData.status === 'active' && contractData.borrower_signature) {
                     showCompleted();
                     return;
                 }
@@ -259,7 +300,7 @@
                 
                 displayContract(contractData);
             } catch (error) {
-                console.error('계약서 로드 실패:', error);
+                console.error('차용증 로드 실패:', error);
                 showExpired();
             }
         }
@@ -293,7 +334,7 @@
             
             // 계약 정보 표시
             const contractInfo = document.getElementById('contractInfo');
-            const info = data;  // DB에서 직접 가져온 데이터 사용
+            const info = JSON.parse(data.contract_data);
             
             let infoHTML = '';
             
@@ -1116,11 +1157,16 @@
             
             const signatureData = canvas.toDataURL('image/png');
             
-            // ⚠️ 업체는 이미 신분증이 등록되어 있으므로 신분증 확인 생략
+            // 신분증 확인
+            if (!idCardPhoto) {
+                alert('신분증을 촬영하거나 업로드해주세요.');
+                return;
+            }
             
             try {
-                await axios.put(`/api/business-contracts/${contractId}/sign`, {
-                    signature_data: signatureData
+                await axios.put(`/api/loan-contracts/${loanId}/sign`, {
+                    signature_data: signatureData,
+                    id_card_photo: idCardPhoto
                 });
                 
                 showCompleted();
