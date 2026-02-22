@@ -5732,9 +5732,6 @@ app.post('/api/companies', async (c) => {
         representative,
         representative_resident_number,
         representative_phone,
-        business_postcode,
-        business_address,
-        business_detail_address,
         representative_postcode,
         representative_address,
         representative_detail_address,
@@ -5742,16 +5739,13 @@ app.post('/api/companies', async (c) => {
         status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `).bind(
       data.company_name,
       data.company_code,
       data.representative,
       data.representative_resident_number || null,
       data.representative_phone,
-      data.business_postcode || null,
-      data.business_address || null,
-      data.business_detail_address || null,
       data.representative_postcode || null,
       data.representative_address || null,
       data.representative_detail_address || null,
