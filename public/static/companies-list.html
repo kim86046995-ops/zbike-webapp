@@ -243,6 +243,15 @@
                 const company = response.data;
                 console.log('📋 업체 상세 데이터:', company);
                 console.log('📋 전체 JSON:', JSON.stringify(company, null, 2));
+                
+                // 각 필드 체크
+                console.log('🔍 필드 체크:');
+                console.log('  - id:', company.id, typeof company.id);
+                console.log('  - company_name:', company.company_name, typeof company.company_name);
+                console.log('  - company_code:', company.company_code, typeof company.company_code);
+                console.log('  - representative:', company.representative, typeof company.representative);
+                console.log('  - representative_phone:', company.representative_phone, typeof company.representative_phone);
+                console.log('  - id_card_photo:', company.id_card_photo, typeof company.id_card_photo);
 
                 document.getElementById('detailContent').innerHTML = `
                     <div class="space-y-6">
@@ -262,10 +271,6 @@
                                 업체 기본 정보
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-600 mb-1">ID</label>
-                                    <p class="text-gray-800">${company.id || 'N/A'}</p>
-                                </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체명</label>
                                     <p class="text-gray-800 font-bold">${company.company_name || 'N/A'}</p>
