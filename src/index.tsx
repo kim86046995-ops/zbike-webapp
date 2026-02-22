@@ -3257,25 +3257,39 @@ app.get('/api/business-contracts', async (c) => {
 // 업체 계약서 상세 조회
 // 업체 계약서 상세 조회 (인증 필요)
 app.get('/api/business-contracts/:id', authMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const id = c.req.param('id')
-  
-  const result = await DB.prepare(`
-    SELECT 
-      bc.*,
-      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage,
-      co.terms_agreed
-    FROM business_contracts bc
-    JOIN motorcycles m ON bc.motorcycle_id = m.id
-    LEFT JOIN companies co ON bc.company_code = co.company_code
-    WHERE bc.id = ?
-  `).bind(id).first()
-  
-  if (!result) {
-    return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+  try {
+    const DB = c.env.DB || c.env.db
+    const id = c.req.param('id')
+    
+    console.log('🔍 [Business Contract Detail] 조회 시작:', id)
+    
+    const result = await DB.prepare(`
+      SELECT 
+        bc.*,
+        m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage
+      FROM business_contracts bc
+      JOIN motorcycles m ON bc.motorcycle_id = m.id
+      WHERE bc.id = ?
+    `).bind(id).first()
+    
+    if (!result) {
+      console.error('❌ [Business Contract Detail] 계약서를 찾을 수 없음:', id)
+      return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+    }
+    
+    console.log('✅ [Business Contract Detail] 조회 성공')
+    return c.json(result)
+    
+  } catch (error: any) {
+    console.error('❌ [Business Contract Detail] 에러:', {
+      message: error.message,
+      stack: error.stack
+    })
+    return c.json({ 
+      error: '계약서 조회 중 오류가 발생했습니다',
+      details: error.message
+    }, 500)
   }
-  
-  return c.json(result)
 })
 
 // 업체 계약서 완료 처리
