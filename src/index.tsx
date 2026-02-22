@@ -6114,6 +6114,12 @@ app.put('/api/companies/:id', async (c) => {
       updateValues.push(data.signature_data)
     }
 
+    // 업데이트할 필드가 없으면 에러
+    if (updateFields.length === 0 && !data.id_card_photo) {
+      console.error('❌ 업데이트할 필드가 없음')
+      return c.json({ error: '업데이트할 정보가 없습니다' }, 400)
+    }
+
     updateFields.push('updated_at = datetime(\'now\')')
     updateValues.push(id)
 
@@ -6125,10 +6131,21 @@ app.put('/api/companies/:id', async (c) => {
     
     console.log('🗄️ SQL 쿼리:', sql)
     console.log('🗄️ SQL 파라미터:', updateValues)
+    console.log('🗄️ updateFields 개수:', updateFields.length)
 
     console.log('🔄 DB 쿼리 실행 중...')
-    const result = await DB.prepare(sql).bind(...updateValues).run()
-    console.log('✅ DB 쿼리 실행 완료:', result)
+    
+    try {
+      const result = await DB.prepare(sql).bind(...updateValues).run()
+      console.log('✅ DB 쿼리 실행 완료:', result)
+    } catch (dbError) {
+      console.error('❌ DB 쿼리 실행 실패:', {
+        message: dbError.message,
+        sql,
+        params: updateValues
+      })
+      throw dbError
+    }
 
     console.log('✅ 업체 수정 완료:', companyName)
     return c.json({ 
