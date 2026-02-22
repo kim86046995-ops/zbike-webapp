@@ -1811,37 +1811,38 @@ app.put('/api/companies/:id', authMiddleware, async (c) => {
   return c.json({ id, ...data })
 })
 
-// 업체 삭제 (슈퍼관리자 전용) - 관련 데이터 완전 삭제
-app.delete('/api/companies/:id', superAdminMiddleware, async (c) => {
-  const DB = c.env.DB || c.env.db
-  const id = c.req.param('id')
-  
-  // 1. 업체 정보 조회 (삭제 전에 company_name과 business_number 가져오기)
-  const company = await DB.prepare(`
-    SELECT name, business_number FROM companies WHERE id = ?
-  `).bind(id).first()
-  
-  if (!company) {
-    return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
-  }
-  
-  // 2. 관련 업체 계약서 삭제 (company_name과 business_number로 매칭)
-  await DB.prepare(`
-    DELETE FROM business_contracts 
-    WHERE company_name = ? AND business_number = ?
-  `).bind(company.name, company.business_number).run()
-  
-  // 3. 업체 정보 삭제
-  await DB.prepare(`
-    DELETE FROM companies WHERE id = ?
-  `).bind(id).run()
-  
-  return c.json({ 
-    message: '업체 및 관련 계약서가 완전히 삭제되었습니다', 
-    id,
-    company_name: company.name 
-  })
-})
+// [주석 처리] 업체 삭제 (슈퍼관리자 전용) - 관련 데이터 완전 삭제
+// 현재 일반 사용자용 Soft Delete 엔드포인트를 사용 중 (라인 5913)
+// app.delete('/api/companies/:id', superAdminMiddleware, async (c) => {
+//   const DB = c.env.DB || c.env.db
+//   const id = c.req.param('id')
+//   
+//   // 1. 업체 정보 조회 (삭제 전에 company_name과 business_number 가져오기)
+//   const company = await DB.prepare(`
+//     SELECT name, business_number FROM companies WHERE id = ?
+//   `).bind(id).first()
+//   
+//   if (!company) {
+//     return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
+//   }
+//   
+//   // 2. 관련 업체 계약서 삭제 (company_name과 business_number로 매칭)
+//   await DB.prepare(`
+//     DELETE FROM business_contracts 
+//     WHERE company_name = ? AND business_number = ?
+//   `).bind(company.name, company.business_number).run()
+//   
+//   // 3. 업체 정보 삭제
+//   await DB.prepare(`
+//     DELETE FROM companies WHERE id = ?
+//   `).bind(id).run()
+//   
+//   return c.json({ 
+//     message: '업체 및 관련 계약서가 완전히 삭제되었습니다', 
+//     id,
+//     company_name: company.name 
+//   })
+// })
 
 // ============================================
 // 계약서 API
@@ -5906,6 +5907,41 @@ app.get('/api/companies/:id', async (c) => {
   } catch (error) {
     console.error('❌ 업체 상세 조회 실패:', error)
     return c.json({ error: '업체 상세 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 업체 삭제 (soft delete - status를 'inactive'로 변경)
+app.delete('/api/companies/:id', async (c) => {
+  try {
+    const { env } = c
+    const id = c.req.param('id')
+
+    // 업체 존재 여부 확인
+    const company = await env.DB.prepare(`
+      SELECT id, company_name FROM companies WHERE id = ?
+    `).bind(id).first()
+
+    if (!company) {
+      return c.json({ error: '업체를 찾을 수 없습니다' }, 404)
+    }
+
+    // Soft delete - status를 'inactive'로 변경
+    await env.DB.prepare(`
+      UPDATE companies 
+      SET status = 'inactive', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(id).run()
+
+    console.log('🗑️ 업체 삭제 완료:', company.company_name, `(ID: ${id})`)
+    return c.json({ 
+      success: true, 
+      message: '업체가 성공적으로 삭제되었습니다.',
+      id: parseInt(id),
+      company_name: company.company_name
+    })
+  } catch (error) {
+    console.error('❌ 업체 삭제 실패:', error)
+    return c.json({ error: '업체 삭제 중 오류가 발생했습니다.' }, 500)
   }
 })
 
