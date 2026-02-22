@@ -890,6 +890,9 @@
             console.log('✅ 업체 선택됨:', selectedCompany.company_name);
             console.log('📋 서명 데이터:', selectedCompany.signature_data ? '있음' : '없음');
             console.log('🪪 신분증 데이터:', selectedCompany.id_card_photo ? '있음' : '없음');
+            if (selectedCompany.id_card_photo) {
+                console.log('🪪 신분증 URL:', selectedCompany.id_card_photo);
+            }
             
             // 1. 업체 및 대표자 정보 자동 입력
             document.getElementById('companyName').value = selectedCompany.company_name; // 상호
@@ -936,11 +939,37 @@
             // 3. 신분증 자동 입력
             if (selectedCompany.id_card_photo) {
                 console.log('🪪 업체의 저장된 신분증을 불러옵니다...');
+                console.log('🪪 신분증 URL 길이:', selectedCompany.id_card_photo.length);
+                console.log('🪪 신분증 URL 시작:', selectedCompany.id_card_photo.substring(0, 50));
+                
+                const idCardPhotoInput = document.getElementById('idCardPhoto');
+                const idCardImage = document.getElementById('idCardImage');
+                const idCardPreview = document.getElementById('idCardPreview');
+                
+                if (!idCardPhotoInput || !idCardImage || !idCardPreview) {
+                    console.error('❌ 신분증 요소를 찾을 수 없습니다!');
+                    console.error('idCardPhoto:', idCardPhotoInput ? '있음' : '없음');
+                    console.error('idCardImage:', idCardImage ? '있음' : '없음');
+                    console.error('idCardPreview:', idCardPreview ? '있음' : '없음');
+                    return;
+                }
+                
                 // hidden input에 데이터 저장
-                document.getElementById('idCardPhoto').value = selectedCompany.id_card_photo;
+                idCardPhotoInput.value = selectedCompany.id_card_photo;
+                console.log('✅ hidden input에 URL 저장 완료');
+                
                 // 이미지 미리보기 표시
-                document.getElementById('idCardImage').src = selectedCompany.id_card_photo;
-                document.getElementById('idCardPreview').classList.remove('hidden');
+                idCardImage.src = selectedCompany.id_card_photo;
+                idCardImage.onerror = function() {
+                    console.error('❌ 신분증 이미지 로드 실패:', selectedCompany.id_card_photo);
+                };
+                idCardImage.onload = function() {
+                    console.log('✅ 신분증 이미지 로드 성공');
+                };
+                
+                idCardPreview.classList.remove('hidden');
+                console.log('✅ 신분증 미리보기 표시');
+                
                 // placeholder 숨기기 (있는 경우)
                 const placeholder = document.querySelector('#idCardPreview').previousElementSibling;
                 if (placeholder && placeholder.classList.contains('text-gray-400')) {
@@ -948,6 +977,7 @@
                 }
                 console.log('✅ 신분증 자동 입력 완료');
             } else {
+                console.log('⚠️ 업체에 저장된 신분증이 없습니다.');
                 // 신분증이 없으면 초기화
                 document.getElementById('idCardPhoto').value = '';
                 document.getElementById('idCardPreview').classList.add('hidden');
