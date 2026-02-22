@@ -2233,6 +2233,7 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
 // 계약서 생성 (인증 필요)
 // 계약서 생성 (공개 API - 고객 포털용)
 app.post('/api/contracts', authMiddleware, async (c) => {
+  try {
   const DB = c.env.DB || c.env.db
   const data = await c.req.json()
   
@@ -2471,6 +2472,14 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   }
   
   return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, status: statusToSave, ...data }, 201)
+  } catch (error: any) {
+    console.error('❌ 계약서 생성 오류:', {
+      message: error.message,
+      stack: error.stack,
+      data: error
+    })
+    return c.json({ error: '계약서 생성 중 오류가 발생했습니다', details: error.message }, 500)
+  }
 })
 
 // 관리자 계약서 저장 (인증 필요, 고객에게 전송하지 않음)
