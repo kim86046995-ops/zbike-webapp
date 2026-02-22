@@ -7,11 +7,11 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v6.1 - 업체 계약서 수정)**: https://3f0efbcb.zbike-webapp.pages.dev
+- **최신 배포 (v6.2 - 업체/오토바이 자동입력 수정)**: https://d426a013.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
-- **업체 목록**: https://3f0efbcb.zbike-webapp.pages.dev/static/companies-list.html
-- **업체 등록**: https://3f0efbcb.zbike-webapp.pages.dev/static/company-register.html
-- **업체 계약서**: https://3f0efbcb.zbike-webapp.pages.dev/static/business-contract-new.html
+- **업체 목록**: https://d426a013.zbike-webapp.pages.dev/static/companies-list.html
+- **업체 등록**: https://d426a013.zbike-webapp.pages.dev/static/company-register.html
+- **업체 계약서**: https://d426a013.zbike-webapp.pages.dev/static/business-contract-new.html
 
 ## ✨ 주요 기능
 
