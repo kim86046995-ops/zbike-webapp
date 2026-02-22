@@ -6122,11 +6122,13 @@ app.put('/api/companies/:id', async (c) => {
     const result = await DB.prepare(sql).bind(...updateValues).run()
     console.log('✅ DB 쿼리 실행 완료:', result)
 
-    console.log('✅ 업체 수정 완료:', company.company_name, `(ID: ${id})`)
+    const companyName = company?.company_name || `업체 ID ${id}`
+    console.log('✅ 업체 수정 완료:', companyName)
     return c.json({ 
       success: true, 
       message: '업체 정보가 성공적으로 수정되었습니다.',
-      id: parseInt(id)
+      id: parseInt(id),
+      company_name: companyName
     })
   } catch (error) {
     console.error('❌ 업체 수정 실패 (상세):', {
