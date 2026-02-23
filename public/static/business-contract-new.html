@@ -1428,30 +1428,35 @@
                 const signatureData = canvas.toDataURL('image/png');
 
                 // 6. 대표자 주소 조합
-                const representativeFullAddress = `[${document.getElementById('representativePostcode').value}] ${document.getElementById('representativeAddress').value} ${document.getElementById('representativeDetailAddress').value}`.trim();
+                const getElementValue = (id, defaultValue = '') => {
+                    const element = document.getElementById(id);
+                    return element ? element.value : defaultValue;
+                };
+
+                const representativeFullAddress = `[${getElementValue('representativePostcode')}] ${getElementValue('representativeAddress')} ${getElementValue('representativeDetailAddress')}`.trim();
 
                 // 7. 계약 데이터 구성
                 const contractData = {
                     contract_type: 'business',
-                    business_contract_type: document.getElementById('contractType').value,
+                    business_contract_type: getElementValue('contractType'),
                     motorcycle_id: selectedMotorcycleId,
-                    company_name: document.getElementById('companyName').value,
-                    company_code: document.getElementById('companyCode').value,
-                    business_number: document.getElementById('businessNumber')?.value || document.getElementById('companyCode').value,
-                    representative: document.getElementById('representative').value,
-                    representative_resident_number: document.getElementById('representativeResidentNumber').value,
-                    representative_phone: document.getElementById('representativePhone').value,
+                    company_name: getElementValue('companyName'),
+                    company_code: getElementValue('companyCode'),
+                    business_number: getElementValue('businessNumber') || getElementValue('companyCode'),
+                    representative: getElementValue('representative'),
+                    representative_resident_number: getElementValue('representativeResidentNumber'),
+                    representative_phone: getElementValue('representativePhone'),
                     representative_address: representativeFullAddress,
-                    business_type: document.getElementById('businessType').value,
-                    business_category: document.getElementById('businessCategory').value,
-                    contract_start_date: document.getElementById('contractStartDate').value,
-                    contract_end_date: document.getElementById('contractEndDate').value,
-                    insurance_start_date: document.getElementById('insuranceStartDate').value,
-                    insurance_end_date: document.getElementById('insuranceEndDate').value,
-                    license_type: document.getElementById('licenseType').value,
-                    daily_amount: parseInt(document.getElementById('dailyAmount').value.replace(/,/g, '')),
-                    deposit: parseInt(document.getElementById('deposit').value.replace(/,/g, '')),
-                    special_terms: document.getElementById('specialTerms').value,
+                    business_type: getElementValue('businessType'),
+                    business_category: getElementValue('businessCategory'),
+                    contract_start_date: getElementValue('contractStartDate'),
+                    contract_end_date: getElementValue('contractEndDate'),
+                    insurance_start_date: getElementValue('insuranceStartDate'),
+                    insurance_end_date: getElementValue('insuranceEndDate'),
+                    license_type: getElementValue('licenseType'),
+                    daily_amount: parseInt(getElementValue('dailyAmount', '0').replace(/,/g, '')) || 0,
+                    deposit: parseInt(getElementValue('deposit', '0').replace(/,/g, '')) || 0,
+                    special_terms: getElementValue('specialTerms'),
                     status: 'active',  // 즉시 완료
                     signature_data: signatureData
                 };
