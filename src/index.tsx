@@ -1550,7 +1550,7 @@ app.post('/api/customers', async (c) => {
   try {
     const data = await c.req.json()
     
-    console.log('📥 고객 등록 요청:', data)
+    console.log('📥 고객 등록 요청 전체 데이터:', JSON.stringify(data, null, 2))
     
     // 전화번호 중복 체크
     if (data.phone) {
@@ -1567,6 +1567,16 @@ app.post('/api/customers', async (c) => {
       }
     }
     
+    console.log('📝 INSERT 할 데이터:', {
+      name: data.name,
+      resident_number: data.resident_number,
+      phone: data.phone,
+      postcode: data.postcode || '',
+      address: data.address,
+      detail_address: data.detail_address || '',
+      license_type: data.license_type
+    })
+    
     const result = await DB.prepare(`
       INSERT INTO customers (name, resident_number, phone, postcode, address, detail_address, license_type)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -1582,6 +1592,10 @@ app.post('/api/customers', async (c) => {
     
     const customerId = result.meta.last_row_id
     console.log('✅ 고객 등록 성공:', customerId, data.name)
+    
+    // 등록된 데이터 다시 조회해서 확인
+    const insertedCustomer = await DB.prepare('SELECT * FROM customers WHERE id = ?').bind(customerId).first()
+    console.log('✅ 등록된 고객 데이터 확인:', JSON.stringify(insertedCustomer, null, 2))
     
     return c.json({ id: customerId, ...data }, 201)
   } catch (error) {
