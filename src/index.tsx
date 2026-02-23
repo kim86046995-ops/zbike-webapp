@@ -4868,13 +4868,16 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
         
         if (!customer) {
           const result = await DB.prepare(`
-            INSERT INTO customers (name, phone, resident_number, address, created_at)
-            VALUES (?, ?, ?, ?, datetime('now'))
+            INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
           `).bind(
             contract.customer_name || '미입력',
             contract.customer_phone,
             contract.resident_number || '',
-            contract.address || ''
+            contract.postcode || '',
+            contract.address || '',
+            contract.detail_address || '',
+            contract.license_type || '2종소형'
           ).run()
           customerId = result.meta.last_row_id
         } else {
@@ -5027,9 +5030,17 @@ app.post('/api/temp-rent-contracts', async (c) => {
       
       if (!customer) {
         const result = await DB.prepare(`
-          INSERT INTO customers (name, phone, resident_number, created_at)
-          VALUES (?, ?, ?, datetime('now'))
-        `).bind(data.customer_name, data.phone, data.resident_number || '').run()
+          INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+          data.customer_name, 
+          data.phone, 
+          data.resident_number || '',
+          data.postcode || '',
+          data.address || '',
+          data.detail_address || '',
+          data.license_type || '2종소형'
+        ).run()
         customerId = result.meta.last_row_id
       } else {
         customerId = customer.id
