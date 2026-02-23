@@ -1002,9 +1002,14 @@
                 }
 
                 // 4. 필수 필드 확인
-                const loanAmount = parseInt(unformatNumber(document.getElementById('loanAmount').value));
-                const dailyDeduction = parseInt(document.getElementById('dailyDeduction').value);
-                const loanPeriod = parseInt(document.getElementById('loanPeriod').value);
+                const getElementValue = (id, defaultValue = '') => {
+                    const element = document.getElementById(id);
+                    return element ? element.value : defaultValue;
+                };
+
+                const loanAmount = parseInt(unformatNumber(getElementValue('loanAmount', '0'))) || 0;
+                const dailyDeduction = parseInt(getElementValue('dailyDeduction', '0')) || 0;
+                const loanPeriod = parseInt(getElementValue('loanPeriod', '0')) || 0;
                 
                 if (!loanAmount || !dailyDeduction || !loanPeriod) {
                     alert('❌ 차용금액, 일차감금액, 대여기간을 모두 입력해주세요');
@@ -1023,27 +1028,27 @@
                 const signatureData = canvas.toDataURL('image/png');
 
                 // 7. 주소 합치기
-                const postcode = document.getElementById('postcode').value;
-                const address = document.getElementById('address').value;
-                const detailAddress = document.getElementById('detailAddress').value;
+                const postcode = getElementValue('postcode');
+                const address = getElementValue('address');
+                const detailAddress = getElementValue('detailAddress');
                 const fullAddress = postcode && address 
                     ? `(${postcode}) ${address} ${detailAddress}`.trim()
-                    : document.getElementById('borrowerAddress').value;
+                    : getElementValue('borrowerAddress');
 
                 // 8. 차용증 데이터 구성
                 const loanData = {
-                    borrower_name: document.getElementById('borrowerName').value,
-                    borrower_resident_number: document.getElementById('residentNumber').value,
-                    borrower_phone: document.getElementById('borrowerPhone').value,
+                    borrower_name: getElementValue('borrowerName'),
+                    borrower_resident_number: getElementValue('residentNumber'),
+                    borrower_phone: getElementValue('borrowerPhone'),
                     borrower_address: fullAddress,
                     loan_amount: loanAmount,
-                    loan_date: document.getElementById('loanDate').value,
+                    loan_date: getElementValue('loanDate'),
                     loan_period: loanPeriod,
-                    repayment_date: document.getElementById('repaymentDate').value,
-                    interest_rate: parseFloat(document.getElementById('interestRate').value),
+                    repayment_date: getElementValue('repaymentDate'),
+                    interest_rate: parseFloat(getElementValue('interestRate', '20')) || 20,
                     daily_deduction: dailyDeduction,
-                    account_number: document.getElementById('accountNumber').value,
-                    special_terms: document.getElementById('specialTerms').value,
+                    account_number: getElementValue('accountNumber'),
+                    special_terms: getElementValue('specialTerms'),
                     status: 'active',  // 즉시 완료
                     borrower_signature: signatureData,
                     borrower_id_card_photo: loanIdCardPhotoData
