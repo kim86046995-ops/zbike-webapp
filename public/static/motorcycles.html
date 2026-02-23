@@ -1864,11 +1864,17 @@
                     alert('✅ 보험 정보가 수정되었습니다');
                 }
                 
-                // 목록 새로고침
+                // 목록 새로고침 (await 완료 대기)
                 await loadMotorcycles();
                 
-                // 상세보기 다시 열기
-                showDetail(id);
+                // 상세보기 다시 열기 (에러가 발생해도 계속 진행)
+                try {
+                    if (typeof showDetail === 'function') {
+                        showDetail(id);
+                    }
+                } catch (detailError) {
+                    console.warn('⚠️ 상세보기 열기 실패 (무시):', detailError);
+                }
             } catch (error) {
                 console.error('❌ 보험 정보 저장 실패:', error);
                 alert('❌ 보험 정보 저장에 실패했습니다\n\n' + (error.response?.data?.error || error.message));
