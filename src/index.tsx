@@ -812,7 +812,7 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
     SELECT 
       m.*,
       COALESCE(c.id, bc.id) as contract_id,
-      COALESCE(c.contract_type, bc.contract_type) as contract_type,
+      COALESCE(c.contract_type, 'business') as contract_type,
       COALESCE(c.status, bc.status) as contract_status,
       COALESCE(cu.name, comp.company_name) as customer_name,
       COALESCE(c.start_date, bc.start_date) as start_date,
