@@ -1746,19 +1746,19 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     
     // 8. 트리거 재생성 - UPDATE 방지
     batchQueries.push(
-      DB.prepare(`CREATE TRIGGER prevent_history_update
+      DB.prepare(`CREATE TRIGGER IF NOT EXISTS prevent_history_update
 BEFORE UPDATE ON contract_history
 BEGIN
-  SELECT RAISE(ABORT, '❌ 계약 이력은 수정할 수 없습니다. 이력은 영구적으로 보호됩니다.');
+  SELECT RAISE(ABORT, 'Contract history cannot be modified');
 END`)
     )
     
     // 9. 트리거 재생성 - DELETE 방지
     batchQueries.push(
-      DB.prepare(`CREATE TRIGGER prevent_history_delete
+      DB.prepare(`CREATE TRIGGER IF NOT EXISTS prevent_history_delete
 BEFORE DELETE ON contract_history
 BEGIN
-  SELECT RAISE(ABORT, '❌ 계약 이력은 삭제할 수 없습니다. 이력은 영구적으로 보호됩니다.');
+  SELECT RAISE(ABORT, 'Contract history cannot be deleted');
 END`)
     )
     
