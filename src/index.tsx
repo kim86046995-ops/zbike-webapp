@@ -1708,6 +1708,11 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     // 순차적으로 삭제 실행 (외래 키 순서로 삭제)
     console.log('🔄 순차 삭제 시작...')
     
+    // 0. contract_history 트리거 임시 삭제 (삭제 방지 트리거 제거)
+    await DB.prepare('DROP TRIGGER IF EXISTS prevent_history_update').run()
+    await DB.prepare('DROP TRIGGER IF EXISTS prevent_history_delete').run()
+    console.log('✅ contract_history 트리거 임시 삭제')
+    
     // 1. contract_history 삭제 (외래 키: contract_id, customer_id)
     let historyDeleted = 0
     if (contractIds.length > 0) {
@@ -1744,6 +1749,20 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
       .bind(id)
       .run()
     const customerDeleteResult = customerResult.meta?.changes || 0
+    
+    // 5. contract_history 트리거 재생성
+    await DB.prepare(`CREATE TRIGGER IF NOT EXISTS prevent_history_update
+BEFORE UPDATE ON contract_history
+BEGIN
+  SELECT RAISE(ABORT, '계약 이력은 수정할 수 없습니다. 이력은 영구적으로 보호됩니다.');
+END`).run()
+    
+    await DB.prepare(`CREATE TRIGGER IF NOT EXISTS prevent_history_delete
+BEFORE DELETE ON contract_history
+BEGIN
+  SELECT RAISE(ABORT, '계약 이력은 삭제할 수 없습니다. 이력은 영구적으로 보호됩니다.');
+END`).run()
+    console.log('✅ contract_history 트리거 재생성 완료')
     
     console.log('✅ 순차 삭제 완료')
     console.log('📊 삭제 결과:', {
