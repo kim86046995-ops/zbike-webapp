@@ -1123,8 +1123,8 @@
                     const contractDatesEl = document.getElementById(`contract-dates-${motorcycleId}`);
                     if (contractDatesEl) {
                         contractDatesEl.innerHTML = `
-                            <span>${activeContract.start_date}</span>
-                            <span>${activeContract.end_date}</span>
+                            <span>${activeContract.start_date || '-'}</span>
+                            <span>${activeContract.end_date || '-'}</span>
                         `;
                     }
                 }
