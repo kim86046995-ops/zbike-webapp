@@ -2132,6 +2132,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
+        SUM(CASE WHEN status = 'rented' THEN 1 ELSE 0 END) as rented,
         SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
         SUM(CASE WHEN status = 'scrapped' THEN 1 ELSE 0 END) as scrapped
       FROM motorcycles
@@ -2184,8 +2185,9 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       motorcycles: {
         total: motorcycleStats.total || 0,
         available: motorcycleStats.available || 0,
-        rented: totalActiveContracts,  // 사용중 = 진행중 계약서 개수
-        maintenance: (motorcycleStats.maintenance || 0) + (motorcycleStats.scrapped || 0)  // 수리중/폐지 합계
+        rented: motorcycleStats.rented || 0,  // 사용중 = motorcycles.status='rented'
+        maintenance: motorcycleStats.maintenance || 0,  // 정비중
+        scrapped: motorcycleStats.scrapped || 0  // 폐지
       },
       customers: (customerCount as any)?.count || 0,
       contracts: {
@@ -5908,13 +5910,13 @@ app.get('/dashboard', (c) => {
                     </div>
                 </div>
 
-                <!-- 수리중/폐지 -->
+                <!-- 정비/폐지 -->
                 <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('maintenance_scrapped')">
                     <div class="flex items-center justify-between mb-4">
                         <div class="text-4xl"><i class="fas fa-tools"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">수리중/폐지</div>
+                            <div class="text-sm opacity-90">정비/폐지</div>
                             <div id="maintenanceCount" class="text-3xl font-bold">0</div>
                         </div>
                     </div>
@@ -6095,14 +6097,15 @@ app.get('/dashboard', (c) => {
             function updateStatsDisplay(data) {
                 // 오토바이 통계
                 const total = data.motorcycles.total;
-                const rented = data.motorcycles.rented;  // 진행중 계약서 개수
+                const rented = data.motorcycles.rented;  // 사용중 오토바이
                 const available = data.motorcycles.available;  // 휴차중
-                const maintenance = data.motorcycles.maintenance;  // 수리중/폐지 합계
+                const maintenance = data.motorcycles.maintenance || 0;  // 정비중
+                const scrapped = data.motorcycles.scrapped || 0;  // 폐지
                 
                 document.getElementById('totalCount').textContent = total;
                 document.getElementById('rentedCount').textContent = rented;
                 document.getElementById('availableCount').textContent = available;
-                document.getElementById('maintenanceCount').textContent = maintenance;
+                document.getElementById('maintenanceCount').textContent = maintenance + scrapped;  // 정비/폐지 합계
                 
                 // 고객 및 차용증 통계
                 document.getElementById('totalCustomers').textContent = data.customers;
