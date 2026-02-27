@@ -1367,8 +1367,8 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   
   // 상태 업데이트
   if (status === 'scrapped') {
-    // 폐지 처리: 차량이름, 차대번호, 연식, 검사정보만 남기고 전부 초기화
-    console.log(`🗑️ Scrapping motorcycle #${id} - clearing all info except basic vehicle data`)
+    // 폐지 처리: 차량 기본정보는 유지, 보험정보와 계약정보만 초기화
+    console.log(`🗑️ Scrapping motorcycle #${id} - clearing insurance and contract info`)
     
     // 현재 정보 조회 (이력 기록용)
     const fullInfo = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
@@ -1377,8 +1377,6 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       UPDATE motorcycles 
       SET status = 'scrapped',
           usage_notes = ?,
-          -- ❌ 차량번호 초기화
-          plate_number = '',
           -- ❌ 보험정보 초기화
           insurance_company = '',
           insurance_start_date = '',
@@ -1391,19 +1389,16 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
           deposit = 0,
           contract_start_date = '',
           contract_end_date = '',
-          -- ❌ 기타정보 초기화
-          mileage = 0,
-          vehicle_price = 0,
-          daily_rental_fee = 0,
-          driving_range = '',
-          certificate_photo = '',
-          -- ✅ 유지되는 정보: vehicle_name, chassis_number, model_year, 
-          --    inspection_start_date, inspection_end_date
+          -- ✅ 유지되는 정보: 
+          --    차량번호(plate_number), 차량이름(vehicle_name), 차대번호(chassis_number),
+          --    연식(model_year), 키로수(mileage), 검사시작일, 검사종료일,
+          --    차량가격(vehicle_price), 등록증사진(certificate_photo)
+          --    일대여료(daily_rental_fee), 운전범위(driving_range)
           updated_at = datetime("now") 
       WHERE id = ?
     `).bind(usage_notes || '폐지', id).run()
     
-    console.log(`✅ Motorcycle #${id} scrapped - only vehicle name, chassis, year, inspection dates preserved`)
+    console.log(`✅ Motorcycle #${id} scrapped - vehicle info preserved, insurance and contract info cleared`)
     
     // 이력 기록: 폐지 처리
     await DB.prepare(`
@@ -1413,7 +1408,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     `).bind(
       id, 'scrapped', '폐지 처리', 
       `${(fullInfo as any)?.vehicle_name} (${(fullInfo as any)?.plate_number})`, 
-      '정보 초기화 (차량이름/차대번호/연식/검사일만 유지)', 
+      '보험정보/계약정보 초기화 (차량 기본정보는 유지)', 
       userId,
       `폐지 사유: ${usage_notes || '폐지'}`
     ).run()
