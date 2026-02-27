@@ -1,11 +1,18 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from '@hono/node-server/serve-static'
+import { createSMSService, SMSTemplates } from './services/sms'
 
 type Bindings = {
   DB: D1Database;
   db: D1Database;
   R2_ID_CARDS: R2Bucket;
+  SMS_ENABLED?: string;
+  SMS_API_KEY?: string;
+  SMS_USER_ID?: string;
+  SMS_SENDER_PHONE?: string;
+  SMS_TEST_MODE?: string;
+  ADMIN_PHONE?: string;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -2788,6 +2795,49 @@ app.post('/api/contracts', authMiddleware, async (c) => {
       .bind('rented', data.motorcycle_id).run()
   }
   
+  // ⭐ SMS 전송 (부가 기능 - 실패해도 계약서 저장에 영향 없음)
+  try {
+    const smsService = createSMSService(c.env)
+    
+    // 오토바이 정보 조회 (번호판 정보)
+    const motorcycle = await DB.prepare('SELECT plate_number FROM motorcycles WHERE id = ?')
+      .bind(data.motorcycle_id).first() as any
+    
+    // 계약 유형 한글 변환
+    const contractTypeKo = data.contract_type === 'individual' ? '리스' : 
+                          data.contract_type === 'rent' ? '렌트' :
+                          data.contract_type === 'temp_rent' ? '임시렌트' : '계약'
+    
+    // 고객에게 SMS 전송
+    if (data.customer_phone) {
+      const customerMessage = SMSTemplates.contractCreated(
+        data.customer_name,
+        contractNumber,
+        motorcycle?.plate_number || ''
+      )
+      
+      smsService.send(data.customer_phone, customerMessage).catch(err => {
+        console.error('📱 고객 SMS 전송 실패 (무시):', err)
+      })
+    }
+    
+    // 관리자에게 SMS 전송
+    if (c.env.ADMIN_PHONE) {
+      const adminMessage = SMSTemplates.adminContractCreated(
+        data.customer_name,
+        motorcycle?.plate_number || '',
+        contractTypeKo
+      )
+      
+      smsService.send(c.env.ADMIN_PHONE, adminMessage).catch(err => {
+        console.error('📱 관리자 SMS 전송 실패 (무시):', err)
+      })
+    }
+  } catch (smsError) {
+    // SMS 전송 실패는 로그만 남기고 계속 진행
+    console.error('📱 SMS 전송 과정에서 예외 발생 (무시):', smsError)
+  }
+  
   return c.json({ id: result.meta.last_row_id, contract_number: contractNumber, status: statusToSave, ...data }, 201)
   } catch (error: any) {
     console.error('❌ 계약서 생성 오류:', {
@@ -3204,6 +3254,45 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
     `).bind(motorcycleId).run()
     
     console.log(`✅ Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic and insurance info preserved)`)
+    
+    // ⭐ SMS 전송 (계약 해지 알림)
+    try {
+      const smsService = createSMSService(c.env)
+      
+      // 오토바이 정보 조회
+      const motorcycle = await DB.prepare('SELECT plate_number FROM motorcycles WHERE id = ?')
+        .bind(motorcycleId).first() as any
+      
+      // 고객 정보 조회
+      const customer = await DB.prepare('SELECT name, phone FROM customers WHERE id = ?')
+        .bind(oldContract.customer_id).first() as any
+      
+      // 고객에게 SMS 전송
+      if (customer?.phone) {
+        const customerMessage = SMSTemplates.contractCancelled(
+          customer.name,
+          motorcycle?.plate_number || ''
+        )
+        
+        smsService.send(customer.phone, customerMessage).catch(err => {
+          console.error('📱 고객 SMS 전송 실패 (무시):', err)
+        })
+      }
+      
+      // 관리자에게 SMS 전송
+      if (c.env.ADMIN_PHONE) {
+        const adminMessage = SMSTemplates.adminContractCancelled(
+          customer?.name || '',
+          motorcycle?.plate_number || ''
+        )
+        
+        smsService.send(c.env.ADMIN_PHONE, adminMessage).catch(err => {
+          console.error('📱 관리자 SMS 전송 실패 (무시):', err)
+        })
+      }
+    } catch (smsError) {
+      console.error('📱 SMS 전송 과정에서 예외 발생 (무시):', smsError)
+    }
   }
   
   return c.json({ 
@@ -7072,6 +7161,81 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
       type: error.name
     }, 500)
   }
+})
+
+// ============================================
+// SMS 관리 API (슈퍼관리자 전용)
+// ============================================
+
+// SMS 잔액 조회
+app.get('/api/sms/balance', superAdminMiddleware, async (c) => {
+  try {
+    const smsService = createSMSService(c.env)
+    const result = await smsService.getBalance()
+    
+    if (result.success) {
+      return c.json({
+        success: true,
+        balance: result.balance,
+        message: `SMS 잔액: ${result.balance}건`
+      })
+    } else {
+      return c.json({
+        success: false,
+        error: result.error
+      }, 400)
+    }
+  } catch (error: any) {
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// SMS 테스트 전송
+app.post('/api/sms/test', superAdminMiddleware, async (c) => {
+  try {
+    const { phone, message } = await c.req.json()
+    
+    if (!phone || !message) {
+      return c.json({
+        success: false,
+        error: '전화번호와 메시지를 입력하세요'
+      }, 400)
+    }
+    
+    const smsService = createSMSService(c.env)
+    const result = await smsService.send(phone, message)
+    
+    return c.json({
+      success: result.success,
+      message: result.message || result.error,
+      code: result.code
+    })
+  } catch (error: any) {
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// SMS 설정 상태 조회
+app.get('/api/sms/status', superAdminMiddleware, async (c) => {
+  const config = {
+    enabled: c.env.SMS_ENABLED === 'true',
+    testMode: c.env.SMS_TEST_MODE === 'true',
+    senderPhone: c.env.SMS_SENDER_PHONE || '설정 안 됨',
+    adminPhone: c.env.ADMIN_PHONE || '설정 안 됨',
+    apiKeyConfigured: !!(c.env.SMS_API_KEY),
+    userIdConfigured: !!(c.env.SMS_USER_ID)
+  }
+  
+  return c.json({
+    success: true,
+    config
+  })
 })
 
 export default app

@@ -21,6 +21,7 @@
   ],
   // SMS 환경변수 타입 정의 (TypeScript 타입 생성용)
   "vars": {
-    "SMS_ENABLED": "true"
+    "SMS_ENABLED": "false",
+    "SMS_TEST_MODE": "true"
   }
 }
