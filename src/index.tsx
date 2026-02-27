@@ -4403,31 +4403,46 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
   const message = customMessage || defaultMessage
   const phoneNumber = to || phone
   
-  // 알리고 SMS (EC2 서버 경유) - 최우선 순위
-  if (c.env.SMS_ENABLED === 'true' && c.env.SMS_AWS_LAMBDA_URL) {
+  // 알리고 SMS 직접 호출 (정비관리 방식)
+  if (c.env.ALIGO_API_KEY && c.env.ALIGO_USER_ID && c.env.ALIGO_SENDER) {
     try {
-      console.log('📱 알리고 SMS 전송 시작 (EC2 서버 경유)')
+      console.log('📱 알리고 SMS 전송 시작 (직접 호출)')
       console.log('수신번호:', phoneNumber)
       console.log('메시지 길이:', message.length, '자')
       
-      const smsServerUrl = c.env.SMS_AWS_LAMBDA_URL
+      // 알리고 API 파라미터 구성
+      const params = new URLSearchParams({
+        key: c.env.ALIGO_API_KEY,
+        user_id: c.env.ALIGO_USER_ID,
+        sender: c.env.ALIGO_SENDER,
+        receiver: phoneNumber.replace(/[^0-9]/g, ''),
+        msg: message,
+        msg_type: message.length > 90 ? 'LMS' : 'SMS',
+        title: message.length > 90 ? '[Z-BIKE 전자계약서]' : ''
+      })
       
-      const response = await fetch(smsServerUrl, {
+      console.log('📤 알리고 API 호출:', {
+        url: 'https://apis.aligo.in/send/',
+        receiver: phoneNumber,
+        msg_type: params.get('msg_type'),
+        msg_length: message.length
+      })
+      
+      // 알리고 API 호출
+      const response = await fetch('https://apis.aligo.in/send/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: JSON.stringify({
-          phone: phoneNumber,
-          message: message
-        })
+        body: params.toString()
       })
       
       const result = await response.json()
       
       console.log('📊 알리고 SMS 응답:', result)
       
-      if (result.success) {
+      // 알리고 API 응답 처리
+      if (result.result_code === '1' || result.result_code === 1) {
         console.log('✅ 알리고 SMS 전송 성공')
         return c.json({ 
           success: true, 
@@ -4440,7 +4455,7 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
         console.error('❌ 알리고 SMS 전송 실패:', result.message)
         return c.json({ 
           success: false, 
-          message: 'SMS 전송에 실패했습니다: ' + result.message,
+          message: `SMS 전송 실패: ${result.message}`,
           error: result
         }, 500)
       }
@@ -4455,16 +4470,18 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     }
   }
   
-  // SMS_ENABLED가 false이거나 SMS_AWS_LAMBDA_URL이 없으면 시뮬레이션 모드
+  // 알리고 설정이 없으면 시뮬레이션 모드
   console.log('=== SMS 전송 시뮬레이션 ===')
-  console.log('SMS_ENABLED:', c.env.SMS_ENABLED)
-  console.log('SMS_AWS_LAMBDA_URL:', c.env.SMS_AWS_LAMBDA_URL ? '설정됨' : '미설정')
+  console.log('ALIGO_API_KEY:', c.env.ALIGO_API_KEY ? '설정됨' : '미설정')
+  console.log('ALIGO_USER_ID:', c.env.ALIGO_USER_ID ? '설정됨' : '미설정')
+  console.log('ALIGO_SENDER:', c.env.ALIGO_SENDER ? '설정됨' : '미설정')
   console.log('수신번호:', phoneNumber)
   console.log('메시지:', message)
   console.log('=========================')
-  console.log('실제 SMS를 보내려면 환경변수를 설정하세요:')
-  console.log('- SMS_ENABLED=true')
-  console.log('- SMS_AWS_LAMBDA_URL=http://13.209.230.136:3001/sms')
+  console.log('실제 SMS를 보내려면 알리고 환경변수를 설정하세요:')
+  console.log('- ALIGO_API_KEY')
+  console.log('- ALIGO_USER_ID')
+  console.log('- ALIGO_SENDER')
   
   return c.json({ 
     success: true, 
@@ -4472,7 +4489,7 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     simulation: true,
     phone: phoneNumber,
     messageLength: message.length,
-    note: '실제 SMS를 보내려면 알리고 SMS 서버를 설정하세요'
+    note: '실제 SMS를 보내려면 알리고 API 키를 설정하세요'
   })
 })
 
