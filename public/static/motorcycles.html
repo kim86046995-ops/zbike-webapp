@@ -475,15 +475,30 @@
         let sessionId = localStorage.getItem('sessionId');
         let currentUser = null; // 현재 로그인한 사용자 정보
 
-        // 날짜 형식 포맷팅 함수 (YYYYMMDD -> YYYY-MM-DD)
+        // 날짜 형식 포맷팅 함수 (YYYYMMDD -> YYYY-MM-DD, timestamp도 처리)
         function formatDate(dateStr) {
             if (!dateStr) return '-';
+            
+            // ISO 타임스탬프 형식인 경우 (YYYY-MM-DDTHH:mm:ss 또는 YYYY-MM-DD HH:mm:ss)
+            if (typeof dateStr === 'string' && (dateStr.includes('T') || dateStr.includes(' ') && dateStr.length > 10)) {
+                try {
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString().split('T')[0];
+                    }
+                } catch (e) {
+                    console.warn('날짜 파싱 오류:', dateStr, e);
+                }
+            }
+            
             // 이미 형식이 올바른 경우 (YYYY-MM-DD)
-            if (dateStr.includes('-')) return dateStr;
+            if (dateStr.includes('-') && dateStr.length === 10) return dateStr;
+            
             // YYYYMMDD 형식을 YYYY-MM-DD로 변환
-            if (dateStr.length === 8) {
+            if (dateStr.length === 8 && /^\d{8}$/.test(dateStr)) {
                 return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
             }
+            
             return dateStr;
         }
 
@@ -1293,10 +1308,10 @@
                                                 <p><strong>선납금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
                                                 <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
                                                 ${contract.status === 'cancelled' && contract.cancelled_at ? `
-                                                    <p class="text-red-600 font-bold"><strong>해지일:</strong> ${new Date(contract.cancelled_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ')}</p>
+                                                    <p class="text-red-600 font-bold col-span-2"><strong>해지일:</strong> ${formatDate(contract.cancelled_at)}</p>
                                                 ` : ''}
                                                 ${contract.status === 'completed' && contract.completed_at ? `
-                                                    <p class="text-gray-600 font-bold"><strong>완료일:</strong> ${new Date(contract.completed_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ')}</p>
+                                                    <p class="text-gray-600 font-bold col-span-2"><strong>완료일:</strong> ${formatDate(contract.completed_at)}</p>
                                                 ` : ''}
                                             </div>
                                         </div>
