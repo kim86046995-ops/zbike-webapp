@@ -1289,24 +1289,59 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
 app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
+  const user = c.get('user')
+  const userId = user?.id || null
   
   try {
-    // 1. 관련 계약 이력 삭제 (contract_history)
-    await DB.prepare('DELETE FROM contract_history WHERE motorcycle_id = ?').bind(id).run()
+    // 오토바이 정보 조회
+    const motorcycle = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
+    if (!motorcycle) {
+      return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+    }
     
-    // 2. 관련 개인 계약 삭제 (contracts)
+    // ✅ 이력 보존 원칙: motorcycle_history는 절대 삭제하지 않음!
+    // 삭제 이력만 추가
+    await DB.prepare(`
+      INSERT INTO motorcycle_history 
+      (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id, 'delete', '오토바이 삭제', 
+      (motorcycle as any).vehicle_name, '', userId,
+      `오토바이 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
+    ).run()
+    
+    // ⚠️ 절대원칙: motorcycle_history는 삭제하지 않음!
+    // 1년 후 자동 삭제를 위해 deleted_at 필드를 사용하거나, 
+    // 이력 테이블은 영구 보존
+    
+    // 관련 계약 이력 (contract_history)는 보존!
+    // - 이력은 절대 삭제하지 않음
+    
+    // 관련 계약 삭제 (contracts, business_contracts)
     await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
-    
-    // 3. 관련 업체 계약 삭제 (business_contracts)
     await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
     
-    // 4. 마지막으로 오토바이 삭제
-    await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
+    // 오토바이 본체만 삭제 (이력은 보존)
+    // 또는 soft delete로 deleted_at 설정
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET deleted_at = datetime('now'), 
+          status = 'deleted',
+          updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(id).run()
     
-    return c.json({ message: '삭제되었습니다' })
+    // 하드 삭제를 원하면 아래 코드 사용:
+    // await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
+    
+    return c.json({ 
+      message: '오토바이가 삭제되었습니다. 이력은 영구 보존됩니다.',
+      note: '오토바이 이력(motorcycle_history)은 삭제되지 않으며 영구 보관됩니다.'
+    })
   } catch (error) {
     console.error('오토바이 삭제 실패:', error)
-    return c.json({ error: '삭제에 실패했습니다: ' + error.message }, 500)
+    return c.json({ error: '삭제에 실패했습니다: ' + (error as any).message }, 500)
   }
 })
 
@@ -1315,11 +1350,19 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { status, usage_notes } = await c.req.json()
+  const user = c.get('user')
+  const userId = user?.id || null
   
   // 상태 검증
   const validStatuses = ['available', 'rented', 'maintenance', 'scrapped']
   if (!validStatuses.includes(status)) {
     return c.json({ error: '유효하지 않은 상태입니다' }, 400)
+  }
+  
+  // 기존 데이터 조회 (이력 기록용)
+  const existing = await DB.prepare('SELECT status, usage_notes FROM motorcycles WHERE id = ?').bind(id).first()
+  if (!existing) {
+    return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
   }
   
   // 상태 업데이트
@@ -1330,6 +1373,29 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       SET status = ?, usage_notes = ?, updated_at = datetime("now") 
       WHERE id = ?
     `).bind(status, usage_notes, id).run()
+    
+    // 이력 기록: 상태 변경
+    if (existing.status !== status) {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history 
+        (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, 'update', '상태', existing.status, status, userId,
+        `상태 변경: ${existing.status} → ${status} (폐지)`
+      ).run()
+    }
+    // 이력 기록: 사용메모 변경
+    if (existing.usage_notes !== usage_notes) {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history 
+        (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, 'update', '사용메모', existing.usage_notes || '', usage_notes, userId,
+        `폐지 사유 기록: ${usage_notes}`
+      ).run()
+    }
   } else if (status === 'available') {
     // 해지 처리: 기본정보와 보험정보는 유지, 계약정보만 초기화
     console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info only (keeping basic and insurance info)`)
@@ -1346,6 +1412,18 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       WHERE id = ?
     `).bind(status, id).run()
     console.log(`✅ Contract info cleared for motorcycle #${id} (basic info and insurance info preserved)`)
+    
+    // 이력 기록: 상태 변경
+    if (existing.status !== status) {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history 
+        (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, 'update', '상태', existing.status, status, userId,
+        `상태 변경: ${existing.status} → ${status} (계약 해지)`
+      ).run()
+    }
   } else {
     // 일반 상태 변경
     await DB.prepare(`
@@ -1353,6 +1431,18 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       SET status = ?, updated_at = datetime("now") 
       WHERE id = ?
     `).bind(status, id).run()
+    
+    // 이력 기록: 상태 변경
+    if (existing.status !== status) {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history 
+        (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, 'update', '상태', existing.status, status, userId,
+        `상태 변경: ${existing.status} → ${status}`
+      ).run()
+    }
   }
   
   return c.json({ 
