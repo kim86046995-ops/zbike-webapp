@@ -4399,130 +4399,54 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
   const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
   
   // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
-  const message = customMessage || `[오토바이 계약서]\n\n${customer_name}님, 계약서를 검토하시고 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
+  const defaultMessage = `[Z-BIKE 전자계약서]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
+  const message = customMessage || defaultMessage
   const phoneNumber = to || phone
   
-  // 네이버 클라우드 SMS API 사용 (환경변수 확인)
-  if (c.env.SMS_ENABLED === 'true' && c.env.NCLOUD_ACCESS_KEY && c.env.NCLOUD_SECRET_KEY) {
+  // 알리고 SMS (EC2 서버 경유) - 최우선 순위
+  if (c.env.SMS_ENABLED === 'true' && c.env.SMS_AWS_LAMBDA_URL) {
     try {
-      const serviceId = c.env.NCLOUD_SMS_SERVICE_ID || 'ncp:sms:kr:366591744199:zbike-sms'
-      const accessKey = c.env.NCLOUD_ACCESS_KEY
-      const secretKey = c.env.NCLOUD_SECRET_KEY
-      const from = c.env.NCLOUD_SMS_FROM || '01086046995'
+      console.log('📱 알리고 SMS 전송 시작 (EC2 서버 경유)')
+      console.log('수신번호:', phoneNumber)
+      console.log('메시지 길이:', message.length, '자')
       
-      // Service ID에서 프로젝트 이름 추출 (마지막 부분만)
-      const projectName = serviceId.split(':').pop()
+      const smsServerUrl = c.env.SMS_AWS_LAMBDA_URL
       
-      console.log('📱 SMS 전송 요청:', { 
-        to: phoneNumber, 
-        messageLength: message.length,
-        serviceId,
-        projectName 
-      })
-      
-      // 네이버 클라우드 API 시그니처 생성
-      const timestamp = Date.now().toString()
-      const method = 'POST'
-      // 프로젝트명만 사용 (기존 방식)
-      const url = `/sms/v2/services/${projectName}/messages`
-      
-      // HMAC SHA256 시그니처 생성 (네이버 클라우드 공식 형식)
-      // Format: {method} {url}\n{timestamp}\n{accessKey}
-      const message2sign = `${method} ${url}\n${timestamp}\n${accessKey}`
-      
-      // Web Crypto API 사용 (Cloudflare Workers 호환)
-      const encoder = new TextEncoder()
-      const keyData = encoder.encode(secretKey)
-      const messageData = encoder.encode(message2sign)
-      
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      )
-      
-      const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
-      const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      
-      // SMS 전송 요청
-      const smsUrl = `https://sens.apigw.ntruss.com${url}`
-      const requestBody = {
-        type: 'SMS',
-        contentType: 'COMM',
-        countryCode: '82',
-        from: from,
-        content: message,
-        messages: [{ to: phoneNumber }]
-      }
-      
-      console.log('🌐 네이버 클라우드 SMS API 호출:', smsUrl)
-      console.log('📝 요청 헤더:', {
-        'Content-Type': 'application/json; charset=utf-8',
-        'x-ncp-apigw-timestamp': timestamp,
-        'x-ncp-iam-access-key': accessKey.substring(0, 20) + '...',
-        'x-ncp-apigw-signature-v2': signatureBase64.substring(0, 20) + '...'
-      })
-      console.log('📝 요청 본문:', requestBody)
-      console.log('🔑 시그니처 원본:', message2sign)
-      
-      const response = await fetch(smsUrl, {
+      const response = await fetch(smsServerUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'x-ncp-apigw-timestamp': timestamp,
-          'x-ncp-iam-access-key': accessKey,
-          'x-ncp-apigw-signature-v2': signatureBase64
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          phone: phoneNumber,
+          message: message
+        })
       })
       
-      const responseData = await response.json()
+      const result = await response.json()
       
-      console.log('📊 네이버 클라우드 응답 상태:', response.status)
-      console.log('📊 네이버 클라우드 응답 데이터:', JSON.stringify(responseData, null, 2))
+      console.log('📊 알리고 SMS 응답:', result)
       
-      if (!response.ok) {
-        console.error('❌ SMS 전송 실패 (상세):', {
-          status: response.status,
-          statusText: response.statusText,
-          responseData,
-          requestUrl: smsUrl,
-          requestHeaders: {
-            timestamp,
-            accessKey,
-            signatureLength: signatureBase64.length
-          },
-          requestBody,
-          message2sign
+      if (result.success) {
+        console.log('✅ 알리고 SMS 전송 성공')
+        return c.json({ 
+          success: true, 
+          message: 'SMS가 성공적으로 전송되었습니다',
+          phone: phoneNumber,
+          provider: 'aligo',
+          data: result
         })
+      } else {
+        console.error('❌ 알리고 SMS 전송 실패:', result.message)
         return c.json({ 
           success: false, 
-          message: 'SMS 전송에 실패했습니다',
-          error: responseData,
-          debug: {
-            url: smsUrl,
-            projectName,
-            serviceId,
-            timestamp,
-            accessKey: accessKey.substring(0, 20) + '...',
-            from
-          }
-        }, response.status)
+          message: 'SMS 전송에 실패했습니다: ' + result.message,
+          error: result
+        }, 500)
       }
       
-      console.log('✅ SMS 전송 성공:', responseData)
-      
-      return c.json({ 
-        success: true, 
-        message: 'SMS가 성공적으로 전송되었습니다',
-        phone: phoneNumber,
-        data: responseData 
-      })
-      
     } catch (error) {
-      console.error('❌ SMS 전송 오류:', error)
+      console.error('❌ 알리고 SMS 전송 오류:', error)
       return c.json({ 
         success: false, 
         message: 'SMS 전송 중 오류가 발생했습니다',
@@ -4531,76 +4455,24 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     }
   }
   
-  // CoolSMS API 연동 예시 (환경변수에 API 키가 있을 때만 실제 전송)
-  if (c.env.COOLSMS_API_KEY && c.env.COOLSMS_API_SECRET && c.env.COOLSMS_SENDER) {
-    try {
-      // CoolSMS API v4 사용
-      const apiKey = c.env.COOLSMS_API_KEY
-      const apiSecret = c.env.COOLSMS_API_SECRET
-      const sender = c.env.COOLSMS_SENDER
-      
-      // 인증 토큰 생성 (HMAC)
-      const timestamp = Date.now().toString()
-      const salt = Math.random().toString(36).substring(2, 15)
-      
-      // CoolSMS API 호출
-      const response = await fetch('https://api.coolsms.co.kr/messages/v4/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `HMAC-SHA256 apiKey=${apiKey}, date=${timestamp}, salt=${salt}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: {
-            to: phone.replace(/-/g, ''), // 하이픈 제거
-            from: sender.replace(/-/g, ''),
-            text: message
-          }
-        })
-      })
-      
-      const result = await response.json()
-      
-      if (response.ok) {
-        console.log('SMS 전송 성공:', result)
-        return c.json({ 
-          success: true, 
-          message: 'SMS가 전송되었습니다',
-          phone,
-          messageLength: message.length
-        })
-      } else {
-        console.error('SMS 전송 실패:', result)
-        return c.json({ 
-          success: false, 
-          message: 'SMS 전송에 실패했습니다',
-          error: result
-        }, 500)
-      }
-    } catch (error) {
-      console.error('SMS API 오류:', error)
-      return c.json({ 
-        success: false, 
-        message: 'SMS API 호출 중 오류가 발생했습니다'
-      }, 500)
-    }
-  }
-  
-  // API 키가 없으면 시뮬레이션 모드
+  // SMS_ENABLED가 false이거나 SMS_AWS_LAMBDA_URL이 없으면 시뮬레이션 모드
   console.log('=== SMS 전송 시뮬레이션 ===')
-  console.log('수신번호:', phone)
+  console.log('SMS_ENABLED:', c.env.SMS_ENABLED)
+  console.log('SMS_AWS_LAMBDA_URL:', c.env.SMS_AWS_LAMBDA_URL ? '설정됨' : '미설정')
+  console.log('수신번호:', phoneNumber)
   console.log('메시지:', message)
   console.log('=========================')
-  console.log('실제 SMS를 보내려면 CoolSMS API 키를 환경변수에 설정하세요.')
-  console.log('환경변수: COOLSMS_API_KEY, COOLSMS_API_SECRET, COOLSMS_SENDER')
+  console.log('실제 SMS를 보내려면 환경변수를 설정하세요:')
+  console.log('- SMS_ENABLED=true')
+  console.log('- SMS_AWS_LAMBDA_URL=http://13.209.230.136:3001/sms')
   
   return c.json({ 
     success: true, 
     message: 'SMS가 전송되었습니다 (시뮬레이션)',
     simulation: true,
-    phone,
+    phone: phoneNumber,
     messageLength: message.length,
-    note: '실제 SMS를 보내려면 CoolSMS API 키를 설정하세요'
+    note: '실제 SMS를 보내려면 알리고 SMS 서버를 설정하세요'
   })
 })
 
