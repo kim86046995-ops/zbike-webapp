@@ -2614,17 +2614,7 @@
             try {
                 console.log('📤 계약서 저장 및 전송 시작');
                 
-                // 약관 동의 체크 확인
-                const agreeTerms = document.getElementById('agreeTermsAdmin');
-                if (!agreeTerms || !agreeTerms.checked) {
-                    alert('❌ 약관을 확인하고 동의해주세요.\n\n약관 동의 체크박스는 6. 계약서 약관 섹션 하단에 있습니다.');
-                    // 약관 섹션으로 스크롤
-                    const termsSection = document.querySelector('#agreeTermsAdmin');
-                    if (termsSection) {
-                        termsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    return;
-                }
+                // 약관 동의는 고객이 나중에 함 (SMS 전송 시에는 불필요)
                 
                 // 세션 ID 확인
                 const sessionId = localStorage.getItem('sessionId');
