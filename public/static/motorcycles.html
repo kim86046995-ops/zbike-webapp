@@ -475,6 +475,18 @@
         let sessionId = localStorage.getItem('sessionId');
         let currentUser = null; // 현재 로그인한 사용자 정보
 
+        // 날짜 형식 포맷팅 함수 (YYYYMMDD -> YYYY-MM-DD)
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            // 이미 형식이 올바른 경우 (YYYY-MM-DD)
+            if (dateStr.includes('-')) return dateStr;
+            // YYYYMMDD 형식을 YYYY-MM-DD로 변환
+            if (dateStr.length === 8) {
+                return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
+            }
+            return dateStr;
+        }
+
         // 카메라 권한 체크
         async function checkCameraPermission() {
             try {
@@ -1276,7 +1288,7 @@
                                                 </div>
                                             </div>
                                             <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                                <p><strong>계약기간:</strong> ${contract.start_date && contract.end_date ? `${contract.start_date} ~ ${contract.end_date}` : '-'}</p>
+                                                <p><strong>계약기간:</strong> ${contract.start_date && contract.end_date ? `${formatDate(contract.start_date)} ~ ${formatDate(contract.end_date)}` : '-'}</p>
                                                 <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
                                                 <p><strong>선납금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
                                                 <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
@@ -2103,7 +2115,7 @@
                                 <p><strong>주민번호:</strong> ${h.resident_number || '-'}</p>
                             </div>
                             <div>
-                                <p class="mb-1"><strong>계약기간:</strong> ${h.start_date && h.end_date ? `${h.start_date} ~ ${h.end_date}` : '-'}</p>
+                                <p class="mb-1"><strong>계약기간:</strong> ${h.start_date && h.end_date ? `${formatDate(h.start_date)} ~ ${formatDate(h.end_date)}` : '-'}</p>
                                 <p class="mb-1"><strong>일대여료:</strong> ${Number(h.monthly_fee).toLocaleString()}원</p>
                                 <p><strong>선납금:</strong> ${Number(h.deposit || 0).toLocaleString()}원</p>
                             </div>
