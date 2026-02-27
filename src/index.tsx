@@ -2185,7 +2185,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       motorcycles: {
         total: motorcycleStats.total || 0,
         available: motorcycleStats.available || 0,
-        rented: motorcycleStats.rented || 0,  // 사용중 = motorcycles.status='rented'
+        rented: totalActiveContracts,  // 사용중 = 모든 활성 계약 개수 (개인+업체)
         maintenance: motorcycleStats.maintenance || 0,  // 정비중
         scrapped: motorcycleStats.scrapped || 0  // 폐지
       },
@@ -6097,7 +6097,7 @@ app.get('/dashboard', (c) => {
             function updateStatsDisplay(data) {
                 // 오토바이 통계
                 const total = data.motorcycles.total;
-                const rented = data.motorcycles.rented;  // 사용중 오토바이
+                const rented = data.motorcycles.rented;  // 사용중 = 활성 계약 개수
                 const available = data.motorcycles.available;  // 휴차중
                 const maintenance = data.motorcycles.maintenance || 0;  // 정비중
                 const scrapped = data.motorcycles.scrapped || 0;  // 폐지
