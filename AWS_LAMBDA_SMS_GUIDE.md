@@ -194,9 +194,9 @@ function callAligoAPI(path, params) {
 3. **코드 업로드**
    - 위의 `index.mjs` 코드 복사/붙여넣기
 4. **환경변수 설정**
-   - `ALIGO_API_KEY` = 알리고 API Key
-   - `ALIGO_USER_ID` = 알리고 사용자 ID
-   - `ALIGO_SENDER` = 발신 전화번호 (010-1234-5678)
+   - `ALIGO_API_KEY` = `pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9`
+   - `ALIGO_USER_ID` = `pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9` (동일)
+   - `ALIGO_SENDER` = `01086046995`
 5. **타임아웃 설정**
    - 30초로 변경 (기본 3초는 부족)
 
@@ -211,24 +211,26 @@ aws lambda create-function \
   --handler index.handler \
   --zip-file fileb://function.zip \
   --timeout 30 \
-  --environment Variables="{ALIGO_API_KEY=your_key,ALIGO_USER_ID=your_id,ALIGO_SENDER=010-1234-5678}"
+  --environment Variables="{ALIGO_API_KEY=pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9,ALIGO_USER_ID=pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9,ALIGO_SENDER=01086046995}"
 ```
 
 ---
 
 ## 3단계: NAT Gateway 설정 (고정 IP)
 
+### ✅ 이미 설정된 고정 IP: `13.209.230.136`
+
 ### Lambda를 VPC에 배치하고 NAT Gateway 사용
 
 1. **VPC 생성** (이미 있으면 생략)
 2. **NAT Gateway 생성**
-   - Elastic IP 할당 (고정 IP)
+   - Elastic IP 할당: **13.209.230.136** (이미 할당됨)
    - Public Subnet에 배치
 3. **Lambda VPC 설정**
    - Private Subnet에 Lambda 배치
    - NAT Gateway를 통해 외부 통신
 4. **알리고에 고정 IP 등록**
-   - NAT Gateway의 Elastic IP를 알리고에 등록
+   - NAT Gateway의 Elastic IP를 알리고에 등록: **13.209.230.136** ✅ 완료
 
 ---
 

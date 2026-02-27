@@ -1,0 +1,13 @@
+{
+  "name": "zbike-sms-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda function for Aligo SMS relay",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "zip": "zip -r function.zip index.mjs package.json"
+  },
+  "keywords": ["lambda", "sms", "aligo"],
+  "author": "zbike",
+  "license": "MIT"
+}
