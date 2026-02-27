@@ -91,13 +91,13 @@ export const handler = async (event) => {
       messageLength: message.length
     });
     
-    // 알리고 API 호출
+    // 알리고 API 호출 (한글 메시지는 인코딩 필요)
     const result = await callAligoAPI('/send/', {
       key: API_KEY,
       user_id: USER_ID,
       sender: normalizedSender,
       receiver: normalizedPhone,
-      msg: message,
+      msg: message, // callAligoAPI 함수에서 자동으로 인코딩됨
       msg_type: message.length > 90 ? 'LMS' : 'SMS',
       title: message.length > 90 ? '지바이크 알림' : ''
     });
@@ -140,10 +140,21 @@ export const handler = async (event) => {
 
 /**
  * 알리고 API 호출 함수
+ * 한글 메시지는 자동으로 URL 인코딩됩니다.
  */
 function callAligoAPI(path, params) {
   return new Promise((resolve, reject) => {
-    const postData = querystring.stringify(params);
+    // 한글 메시지 처리: msg 필드만 encodeURI로 인코딩
+    const formatParam = ([key, value]) => {
+      if (key === 'msg' || key === 'title') {
+        return `${key}=${encodeURI(value)}`;
+      }
+      return `${key}=${value}`;
+    };
+    
+    const postData = Object.entries(params)
+      .map(formatParam)
+      .join('&');
     
     console.log('📡 알리고 API 요청:', { path, params: { ...params, key: '***' } });
     
