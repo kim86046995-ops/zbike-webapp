@@ -1718,65 +1718,6 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
     }, 500)
   }
 })
-    
-    if (!scrappedMotorcycles.results || scrappedMotorcycles.results.length === 0) {
-      return c.json({ 
-        message: '폐지된 오토바이가 없습니다',
-        updated_count: 0
-      })
-    }
-    
-    console.log(`📋 Found ${scrappedMotorcycles.results.length} scrapped motorcycles`)
-    
-    // 2. 각 오토바이에 새 규칙 적용 (7개 필드만 유지, 나머지 초기화)
-    await DB.prepare(`
-      UPDATE motorcycles 
-      SET -- ❌ 보험정보 초기화
-          insurance_company = '',
-          insurance_start_date = '',
-          insurance_end_date = '',
-          insurance_fee = 0,
-          -- ❌ 계약정보 초기화
-          owner_name = '',
-          monthly_fee = 0,
-          contract_type_text = '',
-          deposit = 0,
-          contract_start_date = '',
-          contract_end_date = '',
-          -- ❌ 기타정보 초기화
-          vehicle_price = 0,
-          daily_rental_fee = 0,
-          driving_range = '',
-          certificate_photo = '',
-          -- ✅ 유지되는 정보 (스크린샷 기준 7개):
-          --    1. plate_number (차량번호)
-          --    2. vehicle_name (차량이름)
-          --    3. model_year (연식)
-          --    4. chassis_number (차대번호)
-          --    5. mileage (키로수)
-          --    6. inspection_start_date (검사 시작일)
-          --    7. inspection_end_date (검사 종료일)
-          updated_at = datetime("now")
-      WHERE status = 'scrapped'
-    `).run()
-    
-    console.log(`✅ Applied new scrap rules to ${scrappedMotorcycles.results.length} motorcycles`)
-    
-    return c.json({
-      message: `폐지된 오토바이 ${scrappedMotorcycles.results.length}대에 새 규칙이 적용되었습니다`,
-      updated_count: scrappedMotorcycles.results.length,
-      preserved_fields: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일'],
-      cleared_fields: ['보험정보', '계약정보', '차량가격', '일대여료', '운전범위', '등록증사진']
-    })
-    
-  } catch (error: any) {
-    console.error('❌ Apply scrap rules error:', error)
-    return c.json({ 
-      error: '폐지 규칙 적용 중 오류가 발생했습니다',
-      details: error.message
-    }, 500)
-  }
-})
 
 // 오토바이별 계약 이력 조회
 // 오토바이별 계약 이력 조회 (인증 필요 - 민감한 고객 정보 포함)
