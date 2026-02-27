@@ -2,10 +2,21 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v7.51 - 차용증 주소 필드 수정)**: https://4347a899.zbike-webapp.pages.dev
+- **최신 배포 (v8.0 - SMS 연동 완료)**: https://c85b2f59.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
+- **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.0 (2026-02-27)** - 알리고 SMS 연동 완료 🎉
+- ✅ **EC2 SMS 서버 구축**: Node.js Express 서버 (http://13.209.230.136:3001/sms)
+- ✅ **알리고 SMS API 연동**: 고정 IP (13.209.230.136) 기반 인증
+- ✅ **PM2 프로세스 관리**: 자동 재시작 및 서버 부팅 시 자동 실행
+- ✅ **Cloudflare Pages Secrets**: SMS 환경변수 안전한 관리
+- ✅ **SMS 잔액**: 11,855건
+- ✅ **발신번호**: 01086046995
+- ✅ **API 정보**: User ID (sangchyn11), API Key (pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9)
+
 **v7.51 (2026-02-23)** - 차용증 작성 시 고객 주소 정보 업데이트 수정
 - ✅ **문제**: 차용증 작성 시 고객 테이블에 주소 정보(`postcode`, `address`, `detail_address`)가 업데이트되지 않는 문제
 - ✅ **원인**: 프론트엔드에서 `borrower_address` (합쳐진 주소)만 전송하고, 개별 주소 필드를 전송하지 않음
@@ -487,11 +498,20 @@ npm run deploy:prod
   - 고객이 링크로 접속하여 서명
   - 서명 완료 시 자동 계약 생성
 
-### 6. SMS 문자 전송 🆕
-- ✅ CoolSMS API 연동 준비 완료
-- ✅ 계약서 공유 링크 문자 발송
-- ✅ 시뮬레이션 모드 지원 (테스트용)
-- ⚙️ 실제 SMS 전송 (API 키 설정 필요)
+### 6. SMS 문자 전송 🎉 완료!
+- ✅ **알리고 SMS API 연동 완료**
+  - EC2 고정 IP 기반 인증 (13.209.230.136)
+  - Node.js Express 서버 (http://13.209.230.136:3001/sms)
+  - PM2 프로세스 관리 (자동 재시작)
+  - Lightsail 방화벽 포트 3001 오픈
+- ✅ **Cloudflare Pages 연동 완료**
+  - Environment Secrets로 안전한 관리
+  - SMS_ENABLED=true (활성화)
+  - SMS_TEST_MODE=false (실제 전송)
+  - SMS_AWS_LAMBDA_URL=http://13.209.230.136:3001/sms
+- ✅ **SMS 잔액**: 11,855건
+- ✅ **발신번호**: 01086046995
+- ✅ **계약서 공유 링크 문자 발송 지원**
 
 ### 7. 계약서 서명 기능 🎨
 - ✅ **서명 확대 모달**
@@ -527,54 +547,68 @@ npm run deploy:prod
   - 계약서 목록과 대시보드 동기화
   - 감사 추적을 위한 완벽한 기록 보존
 
-## ⚙️ SMS 설정 가이드
+## ⚙️ SMS 설정 가이드 (알리고)
 
-### CoolSMS 가입 및 설정
+### ✅ 알리고 SMS 연동 완료 (2026-02-27)
 
-1. **CoolSMS 가입**
-   - https://www.coolsms.co.kr/ 접속
-   - 회원가입 및 로그인
+**시스템 아키텍처:**
+```
+Cloudflare Pages → AWS EC2 (13.209.230.136:3001) → 알리고 SMS API
+```
 
-2. **발신번호 등록**
-   - 대시보드 > 발신번호 관리
-   - 사업자 등록증 또는 신분증 제출
-   - 발신번호 승인 (1-2영업일)
+**EC2 SMS 서버 정보:**
+- **서버 URL**: http://13.209.230.136:3001/sms
+- **고정 IP**: 13.209.230.136 (알리고 화이트리스트 등록)
+- **프로세스 관리**: PM2 (자동 재시작, 부팅 시 자동 실행)
+- **방화벽**: Lightsail 포트 3001 오픈
+- **서버 파일**: `/home/bitnami/lambda/server.js`
 
-3. **API Key 발급**
-   - 대시보드 > API Key 관리
-   - API Key 및 API Secret 생성
-   - 테스트 크레딧 받기 (신규 가입 시 2,000원 제공)
+**알리고 API 설정:**
+- **User ID**: sangchyn11
+- **API Key**: pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9
+- **발신번호**: 01086046995
+- **SMS 잔액**: 11,855건
+- **등록일**: 2026-02-25
 
-4. **환경변수 설정**
-   
-   `.dev.vars` 파일에 다음 정보 입력:
-   ```env
-   # CoolSMS API 설정
-   COOLSMS_API_KEY=your_api_key_here
-   COOLSMS_API_SECRET=your_api_secret_here
-   COOLSMS_SENDER=010-1234-5678
-   ```
-
-5. **프로덕션 배포 시 환경변수 설정**
-   ```bash
-   npx wrangler secret put COOLSMS_API_KEY
-   npx wrangler secret put COOLSMS_API_SECRET
-   npx wrangler secret put COOLSMS_SENDER
-   ```
-
-### SMS 요금 안내
-- 일반 SMS (90바이트): 약 15원
-- LMS (장문, 2000바이트): 약 45원
-- 계약서 링크 전송 시 LMS 사용 권장
+**Cloudflare Pages Secrets:**
+```bash
+SMS_ENABLED=true
+SMS_TEST_MODE=false
+SMS_AWS_LAMBDA_URL=http://13.209.230.136:3001/sms
+ADMIN_PHONE=01086046995
+```
 
 ### SMS 전송 플로우
 1. 관리자가 계약서 작성 완료
 2. "고객에게 전송" 버튼 클릭
-3. SMS 또는 카카오톡 선택
+3. Cloudflare Pages → EC2 SMS 서버 → 알리고 API
 4. 고객 휴대폰 번호로 링크 전송
 5. 고객이 링크 클릭하여 계약서 검토
 6. 전자서명 및 신분증 업로드
 7. 제출 시 자동으로 계약서 생성
+
+### EC2 서버 관리 명령어
+```bash
+# PM2 서버 상태 확인
+pm2 list
+
+# 로그 확인
+pm2 logs zbike-sms --nostream
+
+# 서버 재시작
+pm2 restart zbike-sms
+
+# 서버 중지
+pm2 stop zbike-sms
+
+# 서버 시작
+pm2 start zbike-sms
+
+# SMS 잔액 확인
+curl -X POST http://13.209.230.136:3001/sms \
+  -H "Content-Type: application/json" \
+  -d '{"action":"balance"}'
+```
 
 ## 🔜 향후 개선 사항
 - ✅ **PDF 다운로드 기능** (html2pdf.js 라이브러리 사용 - 완료!)
@@ -593,13 +627,14 @@ MIT License
 오토바이 리스/렌트 업체 관리자
 
 ## 📅 최종 업데이트
-2026-02-23 v7.51 - 차용증 작성 시 고객 주소 정보 업데이트 수정
-- ✅ business_number 컬럼을 company_code로 변경 (데이터베이스 마이그레이션)
-- ✅ 모든 백엔드 API에서 business_number → company_code 변경
-- ✅ 모든 프론트엔드 HTML에서 businessNumber → companyCode 변경
-- ✅ 페이지 로드 시 업체 코드 자동 생성 및 표시
-- ✅ 업체 계약서에 업체 코드 필드 자동 입력
-- ✅ '사업자번호' 용어 완전 제거, '업체 코드'로 통일
+2026-02-27 v8.0 - 알리고 SMS 연동 완료 🎉
+- ✅ EC2 Node.js SMS 서버 구축 (http://13.209.230.136:3001/sms)
+- ✅ 알리고 SMS API 연동 (고정 IP 13.209.230.136)
+- ✅ PM2 프로세스 관리 (자동 재시작, 부팅 시 자동 실행)
+- ✅ Cloudflare Pages Secrets 설정 완료
+- ✅ SMS 잔액 11,855건, 발신번호 01086046995
+- ✅ Lightsail 방화벽 포트 3001 오픈
+- ✅ 실제 SMS 전송 테스트 완료
 # Force rebuild Sat Feb  7 13:37:07 UTC 2026
 # Deploy Sat Feb  7 22:59:47 UTC 2026
 Last updated: Sun Feb  8 00:46:30 UTC 2026
