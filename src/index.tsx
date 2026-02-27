@@ -811,17 +811,21 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
   let query = `
     SELECT 
       m.*,
-      c.id as contract_id,
-      c.contract_type,
-      c.status as contract_status,
-      cu.name as customer_name,
-      c.start_date,
-      c.end_date
+      COALESCE(c.id, bc.id) as contract_id,
+      COALESCE(c.contract_type, bc.contract_type) as contract_type,
+      COALESCE(c.status, bc.status) as contract_status,
+      COALESCE(cu.name, comp.company_name) as customer_name,
+      COALESCE(c.start_date, bc.start_date) as start_date,
+      COALESCE(c.end_date, bc.end_date) as end_date
     FROM motorcycles m
     LEFT JOIN contracts c ON m.id = c.motorcycle_id 
       AND c.status = 'active'
       AND date(c.end_date) >= date('now')
     LEFT JOIN customers cu ON c.customer_id = cu.id
+    LEFT JOIN business_contracts bc ON m.id = bc.motorcycle_id
+      AND bc.status = 'active'
+      AND date(bc.end_date) >= date('now')
+    LEFT JOIN companies comp ON bc.company_id = comp.id
   `
   
   if (status) {

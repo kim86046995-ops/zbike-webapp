@@ -364,7 +364,7 @@
                     <select id="statusFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
                         <option value="">전체</option>
                         <option value="active">계약중</option>
-                        <option value="completed">완료</option>
+                        <option value="completed">계약종료</option>
                         <option value="cancelled">계약종료</option>
                     </select>
                 </div>
@@ -694,11 +694,11 @@
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
                     'completed': 'bg-red-600 text-white',
-                    'cancelled': 'bg-gray-100 text-gray-800'
+                    'cancelled': 'bg-red-600 text-white'
                 };
                 const statusTexts = {
                     'active': '계약중',
-                    'completed': '완료',
+                    'completed': '계약종료',
                     'cancelled': '계약종료'
                 };
 
@@ -941,7 +941,7 @@
             }
             
             const typeTexts = { 'lease': '리스', 'individual': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
-            const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
+            const statusTexts = { 'active': '계약중', 'completed': '계약종료', 'cancelled': '계약종료' };
             
             const html = `
                 <div class="space-y-6" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
@@ -949,7 +949,7 @@
                     <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
                         <h1 class="text-3xl font-bold mb-2">오토바이${typeTexts[c.contract_type] || c.contract_type}계약서</h1>
                         <p class="text-lg">계약번호: ${c.contract_number}</p>
-                        <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : c.status === 'completed' ? 'text-blue-600' : 'text-red-600'}">${statusTexts[c.status] || c.status}</span></p>
+                        <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : 'text-red-600'}">${statusTexts[c.status] || c.status}</span></p>
                     </div>
 
                     <!-- 사업자 정보 -->
