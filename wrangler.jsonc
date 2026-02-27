@@ -18,10 +18,7 @@
       "binding": "R2_ID_CARDS",
       "bucket_name": "zbike-id-cards"
     }
-  ],
-  // SMS 환경변수 타입 정의 (TypeScript 타입 생성용)
-  "vars": {
-    "SMS_ENABLED": "false",
-    "SMS_TEST_MODE": "true"
-  }
+  ]
+  // SMS 환경변수는 Cloudflare Pages Secrets로 관리됩니다
+  // SMS_ENABLED, SMS_TEST_MODE, SMS_AWS_LAMBDA_URL, ADMIN_PHONE
 }
