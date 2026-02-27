@@ -8,9 +8,8 @@ type Bindings = {
   db: D1Database;
   R2_ID_CARDS: R2Bucket;
   SMS_ENABLED?: string;
-  SMS_API_KEY?: string;
-  SMS_USER_ID?: string;
-  SMS_SENDER_PHONE?: string;
+  SMS_AWS_LAMBDA_URL?: string;
+  SMS_AWS_API_KEY?: string;
   SMS_TEST_MODE?: string;
   ADMIN_PHONE?: string;
 }
@@ -7226,15 +7225,15 @@ app.get('/api/sms/status', superAdminMiddleware, async (c) => {
   const config = {
     enabled: c.env.SMS_ENABLED === 'true',
     testMode: c.env.SMS_TEST_MODE === 'true',
-    senderPhone: c.env.SMS_SENDER_PHONE || '설정 안 됨',
-    adminPhone: c.env.ADMIN_PHONE || '설정 안 됨',
-    apiKeyConfigured: !!(c.env.SMS_API_KEY),
-    userIdConfigured: !!(c.env.SMS_USER_ID)
+    awsLambdaUrl: c.env.SMS_AWS_LAMBDA_URL || '설정 안 됨',
+    awsApiKeyConfigured: !!(c.env.SMS_AWS_API_KEY),
+    adminPhone: c.env.ADMIN_PHONE || '설정 안 됨'
   }
   
   return c.json({
     success: true,
-    config
+    config,
+    note: 'AWS Lambda를 통해 알리고 SMS를 전송합니다'
   })
 })
 

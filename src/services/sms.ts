@@ -1,18 +1,22 @@
 /**
- * 알리고(Aligo) SMS 서비스
+ * 알리고(Aligo) SMS 서비스 (AWS Lambda 경유)
+ * 
+ * 알리고는 고정 IP 화이트리스트를 사용하므로
+ * AWS Lambda (NAT Gateway)를 통해 SMS를 전송합니다.
+ * 
+ * 아키텍처:
+ * Cloudflare Workers → AWS Lambda → Aligo API
  * 
  * 특징:
  * - 완전히 독립적인 모듈 (기존 코드 영향 없음)
  * - SMS 전송 실패해도 계약서 저장에 영향 없음
  * - 환경변수로 활성화/비활성화 제어
- * - 발신번호 교체 가능 (환경변수만 변경)
  */
 
 export interface SMSConfig {
   enabled: boolean
-  apiKey: string
-  userId: string
-  senderPhone: string
+  awsLambdaUrl: string
+  awsApiKey?: string
   testMode?: boolean
 }
 
@@ -25,14 +29,13 @@ export interface SMSResult {
 
 export class AligoSMSService {
   private config: SMSConfig
-  private baseUrl = 'https://apis.aligo.in/send/'
 
   constructor(config: SMSConfig) {
     this.config = config
   }
 
   /**
-   * SMS 전송
+   * SMS 전송 (AWS Lambda 경유)
    * @param phone 수신 전화번호 (하이픈 포함 가능)
    * @param message 메시지 내용 (최대 2000자)
    * @returns 전송 결과
@@ -44,6 +47,15 @@ export class AligoSMSService {
       return {
         success: false,
         message: 'SMS 기능이 비활성화되어 있습니다'
+      }
+    }
+
+    // Lambda URL 미설정
+    if (!this.config.awsLambdaUrl) {
+      console.error('📱 [SMS] AWS Lambda URL이 설정되지 않았습니다')
+      return {
+        success: false,
+        error: 'AWS Lambda URL이 설정되지 않았습니다'
       }
     }
 
@@ -59,62 +71,54 @@ export class AligoSMSService {
     }
 
     try {
-      // 전화번호 정규화 (하이픈 제거)
-      const normalizedPhone = phone.replace(/[^0-9]/g, '')
-
-      // 알리고 API 요청
-      const formData = new URLSearchParams({
-        key: this.config.apiKey,
-        user_id: this.config.userId,
-        sender: this.config.senderPhone.replace(/[^0-9]/g, ''),
-        receiver: normalizedPhone,
-        msg: message,
-        msg_type: 'SMS', // SMS (단문), LMS (장문), MMS (이미지)
-        title: '' // LMS/MMS 제목 (SMS는 불필요)
-      })
-
-      console.log('📱 [SMS] 전송 시도:', {
+      console.log('📱 [SMS] AWS Lambda 호출:', {
         to: phone,
         messageLength: message.length
       })
 
-      const response = await fetch(this.baseUrl, {
+      // AWS Lambda 호출
+      const response = await fetch(this.config.awsLambdaUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json',
+          ...(this.config.awsApiKey && { 'x-api-key': this.config.awsApiKey })
         },
-        body: formData.toString()
+        body: JSON.stringify({
+          phone,
+          message,
+          action: 'send'
+        })
       })
+
+      if (!response.ok) {
+        throw new Error(`Lambda 호출 실패: ${response.status} ${response.statusText}`)
+      }
 
       const result = await response.json() as any
 
-      // 알리고 응답 코드
-      // 1: 성공
-      // -1: 전송 실패
-      if (result.result_code === '1') {
+      if (result.success) {
         console.log('✅ [SMS] 전송 성공:', {
           to: phone,
-          messageId: result.msg_id
+          messageId: result.messageId
         })
         return {
           success: true,
           message: '전송 성공',
-          code: parseInt(result.result_code)
+          code: result.code
         }
       } else {
         console.error('❌ [SMS] 전송 실패:', {
           to: phone,
-          code: result.result_code,
-          message: result.message
+          error: result.error || result.message
         })
         return {
           success: false,
-          error: result.message || '알 수 없는 오류',
-          code: parseInt(result.result_code)
+          error: result.error || result.message || '알 수 없는 오류',
+          code: result.code
         }
       }
     } catch (error: any) {
-      console.error('❌ [SMS] 전송 예외:', {
+      console.error('❌ [SMS] Lambda 호출 예외:', {
         to: phone,
         error: error.message
       })
@@ -146,38 +150,44 @@ export class AligoSMSService {
   }
 
   /**
-   * 잔액 조회
+   * 잔액 조회 (AWS Lambda 경유)
    */
   async getBalance(): Promise<{ success: boolean; balance?: number; error?: string }> {
     if (!this.config.enabled) {
       return { success: false, error: 'SMS 기능이 비활성화되어 있습니다' }
     }
 
-    try {
-      const formData = new URLSearchParams({
-        key: this.config.apiKey,
-        user_id: this.config.userId
-      })
+    if (!this.config.awsLambdaUrl) {
+      return { success: false, error: 'AWS Lambda URL이 설정되지 않았습니다' }
+    }
 
-      const response = await fetch('https://apis.aligo.in/remain/', {
+    try {
+      const response = await fetch(this.config.awsLambdaUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json',
+          ...(this.config.awsApiKey && { 'x-api-key': this.config.awsApiKey })
         },
-        body: formData.toString()
+        body: JSON.stringify({
+          action: 'balance'
+        })
       })
+
+      if (!response.ok) {
+        throw new Error(`Lambda 호출 실패: ${response.status}`)
+      }
 
       const result = await response.json() as any
 
-      if (result.result_code === '1') {
+      if (result.success) {
         return {
           success: true,
-          balance: parseInt(result.SMS_CNT || '0')
+          balance: result.balance
         }
       } else {
         return {
           success: false,
-          error: result.message || '잔액 조회 실패'
+          error: result.error || result.message || '잔액 조회 실패'
         }
       }
     } catch (error: any) {
@@ -195,9 +205,8 @@ export class AligoSMSService {
 export function createSMSService(env: any): AligoSMSService {
   const config: SMSConfig = {
     enabled: env.SMS_ENABLED === 'true',
-    apiKey: env.SMS_API_KEY || '',
-    userId: env.SMS_USER_ID || '',
-    senderPhone: env.SMS_SENDER_PHONE || '',
+    awsLambdaUrl: env.SMS_AWS_LAMBDA_URL || '',
+    awsApiKey: env.SMS_AWS_API_KEY || '',
     testMode: env.SMS_TEST_MODE === 'true'
   }
 
