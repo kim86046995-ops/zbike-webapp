@@ -1195,10 +1195,11 @@
                 // 폐지된 경우 이력에서 폐지 전 번호판 찾기
                 let previousPlateNumber = '';
                 if (motorcycle.status === 'scrapped' && detailedHistory.length > 0) {
+                    // '폐지 처리' 또는 'plate_number' 변경 이력에서 찾기
                     const scrapHistory = detailedHistory.find(h => 
-                        h.change_type === 'scrapped' && h.field_name === 'plate_number'
+                        h.change_type === 'scrapped' && (h.field_name === '폐지 처리' || h.field_name === 'plate_number')
                     );
-                    if (scrapHistory && scrapHistory.old_value) {
+                    if (scrapHistory && scrapHistory.old_value && scrapHistory.old_value !== '-') {
                         previousPlateNumber = scrapHistory.old_value;
                     }
                 }
@@ -1275,7 +1276,7 @@
                                                 </div>
                                             </div>
                                             <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                                <p><strong>계약기간:</strong> ${contract.start_date} ~ ${contract.end_date}</p>
+                                                <p><strong>계약기간:</strong> ${contract.start_date && contract.end_date ? `${contract.start_date} ~ ${contract.end_date}` : '-'}</p>
                                                 <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
                                                 <p><strong>선납금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
                                                 <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
@@ -2102,7 +2103,7 @@
                                 <p><strong>주민번호:</strong> ${h.resident_number || '-'}</p>
                             </div>
                             <div>
-                                <p class="mb-1"><strong>계약기간:</strong> ${h.start_date} ~ ${h.end_date}</p>
+                                <p class="mb-1"><strong>계약기간:</strong> ${h.start_date && h.end_date ? `${h.start_date} ~ ${h.end_date}` : '-'}</p>
                                 <p class="mb-1"><strong>일대여료:</strong> ${Number(h.monthly_fee).toLocaleString()}원</p>
                                 <p><strong>선납금:</strong> ${Number(h.deposit || 0).toLocaleString()}원</p>
                             </div>

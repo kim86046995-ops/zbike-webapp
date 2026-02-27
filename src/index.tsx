@@ -1622,6 +1622,112 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
     
     console.log(`📋 Found ${scrappedMotorcycles.results.length} scrapped motorcycles`)
     
+    // 2. 각 오토바이의 폐지 이력 업데이트
+    let historyUpdatedCount = 0
+    const scrapDate = new Date().toISOString().split('T')[0]
+    
+    for (const m of scrappedMotorcycles.results) {
+      // 기존 폐지 이력 조회
+      const existingHistory = await DB.prepare(`
+        SELECT id, old_value, notes 
+        FROM motorcycle_history 
+        WHERE motorcycle_id = ? AND change_type = 'scrapped' AND field_name = '폐지 처리'
+        ORDER BY change_date DESC
+        LIMIT 1
+      `).bind((m as any).id).first()
+      
+      if (existingHistory) {
+        // 이력이 있으면 업데이트
+        await DB.prepare(`
+          UPDATE motorcycle_history 
+          SET old_value = ?,
+              new_value = '-',
+              notes = ?
+          WHERE id = ?
+        `).bind(
+          (m as any).plate_number,  // 현재 번호판으로 업데이트
+          `해지날짜: ${scrapDate}\n${(existingHistory as any).notes || '폐지'}`,
+          (existingHistory as any).id
+        ).run()
+        historyUpdatedCount++
+      } else {
+        // 이력이 없으면 새로 생성
+        await DB.prepare(`
+          INSERT INTO motorcycle_history 
+          (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+          VALUES (?, 'scrapped', '폐지 처리', ?, '-', ?, ?)
+        `).bind(
+          (m as any).id,
+          (m as any).plate_number,
+          user?.id || null,
+          `해지날짜: ${scrapDate}\n폐지`
+        ).run()
+        historyUpdatedCount++
+      }
+    }
+    
+    // 3. 각 오토바이에 새 규칙 적용 (7개 필드만 유지, 나머지 초기화)
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET -- ❌ 보험정보 초기화
+          insurance_company = '',
+          insurance_start_date = '',
+          insurance_end_date = '',
+          insurance_fee = 0,
+          -- ❌ 계약정보 초기화
+          owner_name = '',
+          monthly_fee = 0,
+          contract_type_text = '',
+          deposit = 0,
+          contract_start_date = '',
+          contract_end_date = '',
+          -- ❌ 기타정보 초기화
+          vehicle_price = 0,
+          daily_rental_fee = 0,
+          driving_range = '',
+          certificate_photo = '',
+          -- ✅ 유지되는 정보 (스크린샷 기준 7개):
+          --    1. plate_number (차량번호)
+          --    2. vehicle_name (차량이름)
+          --    3. model_year (연식)
+          --    4. chassis_number (차대번호)
+          --    5. mileage (키로수)
+          --    6. inspection_start_date (검사 시작일)
+          --    7. inspection_end_date (검사 종료일)
+          updated_at = datetime("now")
+      WHERE status = 'scrapped'
+    `).run()
+    
+    console.log(`✅ Applied new scrap rules to ${scrappedMotorcycles.results.length} motorcycles`)
+    console.log(`✅ Updated ${historyUpdatedCount} history records`)
+    
+    return c.json({
+      message: `폐지된 오토바이 ${scrappedMotorcycles.results.length}대에 새 규칙이 적용되었습니다`,
+      updated_count: scrappedMotorcycles.results.length,
+      history_updated_count: historyUpdatedCount,
+      preserved_fields: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일'],
+      cleared_fields: ['보험정보', '계약정보', '차량가격', '일대여료', '운전범위', '등록증사진'],
+      history_updates: ['폐지 전 번호판 보존', '계약기간 "-" 자동 입력', '해지날짜 자동 입력']
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Apply scrap rules error:', error)
+    return c.json({ 
+      error: '폐지 규칙 적용 중 오류가 발생했습니다',
+      details: error.message
+    }, 500)
+  }
+})
+    
+    if (!scrappedMotorcycles.results || scrappedMotorcycles.results.length === 0) {
+      return c.json({ 
+        message: '폐지된 오토바이가 없습니다',
+        updated_count: 0
+      })
+    }
+    
+    console.log(`📋 Found ${scrappedMotorcycles.results.length} scrapped motorcycles`)
+    
     // 2. 각 오토바이에 새 규칙 적용 (7개 필드만 유지, 나머지 초기화)
     await DB.prepare(`
       UPDATE motorcycles 
