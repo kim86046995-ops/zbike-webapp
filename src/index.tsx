@@ -1366,36 +1366,57 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   }
   
   // 상태 업데이트
-  if (status === 'scrapped' && usage_notes) {
-    // 폐지 처리: 상태와 폐지 사유 저장
+  if (status === 'scrapped') {
+    // 폐지 처리: 차량이름, 차대번호, 연식, 검사정보만 남기고 전부 초기화
+    console.log(`🗑️ Scrapping motorcycle #${id} - clearing all info except basic vehicle data`)
+    
+    // 현재 정보 조회 (이력 기록용)
+    const fullInfo = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
+    
     await DB.prepare(`
       UPDATE motorcycles 
-      SET status = ?, usage_notes = ?, updated_at = datetime("now") 
+      SET status = 'scrapped',
+          usage_notes = ?,
+          -- ❌ 차량번호 초기화
+          plate_number = '',
+          -- ❌ 보험정보 초기화
+          insurance_company = '',
+          insurance_start_date = '',
+          insurance_end_date = '',
+          insurance_fee = 0,
+          -- ❌ 계약정보 초기화
+          owner_name = '',
+          monthly_fee = 0,
+          contract_type_text = '',
+          deposit = 0,
+          contract_start_date = '',
+          contract_end_date = '',
+          -- ❌ 기타정보 초기화
+          mileage = 0,
+          vehicle_price = 0,
+          daily_rental_fee = 0,
+          driving_range = '',
+          certificate_photo = '',
+          -- ✅ 유지되는 정보: vehicle_name, chassis_number, model_year, 
+          --    inspection_start_date, inspection_end_date
+          updated_at = datetime("now") 
       WHERE id = ?
-    `).bind(status, usage_notes, id).run()
+    `).bind(usage_notes || '폐지', id).run()
     
-    // 이력 기록: 상태 변경
-    if (existing.status !== status) {
-      await DB.prepare(`
-        INSERT INTO motorcycle_history 
-        (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id, 'update', '상태', existing.status, status, userId,
-        `상태 변경: ${existing.status} → ${status} (폐지)`
-      ).run()
-    }
-    // 이력 기록: 사용메모 변경
-    if (existing.usage_notes !== usage_notes) {
-      await DB.prepare(`
-        INSERT INTO motorcycle_history 
-        (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id, 'update', '사용메모', existing.usage_notes || '', usage_notes, userId,
-        `폐지 사유 기록: ${usage_notes}`
-      ).run()
-    }
+    console.log(`✅ Motorcycle #${id} scrapped - only vehicle name, chassis, year, inspection dates preserved`)
+    
+    // 이력 기록: 폐지 처리
+    await DB.prepare(`
+      INSERT INTO motorcycle_history 
+      (motorcycle_id, change_type, field_name, old_value, new_value, changed_by, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id, 'scrapped', '폐지 처리', 
+      `${(fullInfo as any)?.vehicle_name} (${(fullInfo as any)?.plate_number})`, 
+      '정보 초기화 (차량이름/차대번호/연식/검사일만 유지)', 
+      userId,
+      `폐지 사유: ${usage_notes || '폐지'}`
+    ).run()
   } else if (status === 'available') {
     // 해지 처리: 기본정보와 보험정보는 유지, 계약정보만 초기화
     console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info only (keeping basic and insurance info)`)
@@ -1457,6 +1478,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     const DB = c.env.DB || c.env.db
     const id = c.req.param('id')
     const sessionUser = c.get('user')
+    const { scrap_reason } = await c.req.json()
     
     console.log(`🗑️ Scrapping motorcycle #${id}`)
     
@@ -1471,7 +1493,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     console.log(`📋 Previous plate_number: ${motorcycle.plate_number}`)
     
-    // 2. 폐지 전 번호판 이력 저장 (motorcycle_history 테이블이 있는 경우)
+    // 2. 폐지 전 전체 정보 이력 저장
     try {
       await DB.prepare(`
         INSERT INTO motorcycle_history (
@@ -1483,29 +1505,67 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           changed_by, 
           change_date,
           notes
-        ) VALUES (?, 'scrapped', 'plate_number', ?, '', ?, datetime('now'), '폐지 전 번호판 정보')
-      `).bind(id, motorcycle.plate_number, sessionUser?.id || null).run()
+        ) VALUES (?, 'scrapped', '폐지 처리', ?, ?, ?, datetime('now'), ?)
+      `).bind(
+        id, 
+        `${motorcycle.vehicle_name} (${motorcycle.plate_number})`, 
+        '정보 초기화 (차량이름/차대번호/연식/검사일만 유지)', 
+        sessionUser?.id || null,
+        scrap_reason || '폐지'
+      ).run()
       
       console.log(`✅ 폐지 이력 저장 완료: ${motorcycle.plate_number} → (폐지)`)
     } catch (historyErr) {
       console.warn(`⚠️ Failed to save history (table may not exist):`, historyErr)
     }
     
-    // 3. 가장 단순한 방법: status만 변경
-    await DB.prepare(`UPDATE motorcycles SET status = 'scrapped' WHERE id = ?`).bind(id).run()
+    // 3. 폐지 처리: 차량이름, 차대번호, 연식, 검사정보만 남기고 전부 초기화
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET status = 'scrapped',
+          usage_notes = ?,
+          -- ❌ 차량번호 초기화
+          plate_number = '',
+          -- ❌ 보험정보 초기화
+          insurance_company = '',
+          insurance_start_date = '',
+          insurance_end_date = '',
+          insurance_fee = 0,
+          -- ❌ 계약정보 초기화
+          owner_name = '',
+          monthly_fee = 0,
+          contract_type_text = '',
+          deposit = 0,
+          contract_start_date = '',
+          contract_end_date = '',
+          -- ❌ 기타정보 초기화
+          mileage = 0,
+          vehicle_price = 0,
+          daily_rental_fee = 0,
+          driving_range = '',
+          certificate_photo = '',
+          -- ✅ 유지되는 정보: vehicle_name, chassis_number, model_year, 
+          --    inspection_start_date, inspection_end_date
+          updated_at = datetime("now")
+      WHERE id = ?
+    `).bind(scrap_reason || '폐지', id).run()
     
-    console.log(`✅ Motorcycle #${id} status changed to scrapped`)
+    console.log(`✅ Motorcycle #${id} scrapped - only vehicle name, chassis, year, inspection dates preserved`)
     
     return c.json({ 
-      message: '폐지 처리되었습니다. 계약 이력은 보존되었습니다.',
+      message: '폐지 처리되었습니다. 차량이름, 차대번호, 연식, 검사정보만 보존되었습니다.',
       motorcycle: {
         id: motorcycle.id,
         vehicle_name: motorcycle.vehicle_name,
         chassis_number: motorcycle.chassis_number,
         model_year: motorcycle.model_year,
+        inspection_start_date: motorcycle.inspection_start_date,
+        inspection_end_date: motorcycle.inspection_end_date,
         previous_plate_number: motorcycle.plate_number,
         status: 'scrapped'
-      }
+      },
+      preserved_info: ['차량이름', '차대번호', '연식', '검사시작일', '검사종료일'],
+      cleared_info: ['차량번호', '보험정보', '계약정보', '키로수', '차량가격', '운전범위']
     })
   } catch (error: any) {
     console.error('❌ Scrap motorcycle error:', error)
