@@ -1705,8 +1705,12 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     const contractIds = contractsToDelete.results.map((c: any) => c.id)
     console.log('📝 삭제할 계약서 ID (취소된 계약):', contractIds)
     
-    // 순차적으로 삭제 실행 (트리거 문제 회피)
+    // 순차적으로 삭제 실행 (외래 키 제약 조건 비활성화)
     console.log('🔄 순차 삭제 시작...')
+    
+    // 0. 외래 키 제약 조건 비활성화
+    await DB.prepare('PRAGMA foreign_keys = OFF').run()
+    console.log('✅ 외래 키 제약 조건 비활성화')
     
     // 1. contract_history 삭제
     let historyDeleted = 0
@@ -1737,6 +1741,10 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
       .bind(id)
       .run()
     const customerDeleteResult = customerResult.meta?.changes || 0
+    
+    // 5. 외래 키 제약 조건 재활성화
+    await DB.prepare('PRAGMA foreign_keys = ON').run()
+    console.log('✅ 외래 키 제약 조건 재활성화')
     
     console.log('✅ 순차 삭제 완료')
     console.log('📊 삭제 결과:', {
