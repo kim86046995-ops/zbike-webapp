@@ -1376,6 +1376,9 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     // 현재 정보 조회 (이력 기록용)
     const fullInfo = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
     
+    // 현재 날짜 (해지날짜)
+    const scrapDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = 'scrapped',
@@ -1418,10 +1421,10 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, 'scrapped', '폐지 처리', 
-      `${(fullInfo as any)?.vehicle_name} (${(fullInfo as any)?.plate_number})`, 
-      '보험/계약/기타 정보 전부 초기화 (7개 기본정보만 유지)', 
+      `${(fullInfo as any)?.plate_number}`,  // 폐지 전 번호판
+      '-',  // 계약기간 없음
       userId,
-      `폐지 사유: ${usage_notes || '폐지'}`
+      `해지날짜: ${scrapDate}\n폐지 사유: ${usage_notes || '폐지'}`
     ).run()
   } else if (status === 'available') {
     // 해지 처리: 기본정보와 보험정보는 유지, 계약정보만 초기화
@@ -1499,6 +1502,9 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     console.log(`📋 Previous plate_number: ${motorcycle.plate_number}`)
     
+    // 현재 날짜 (해지날짜)
+    const scrapDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    
     // 2. 폐지 전 전체 정보 이력 저장
     try {
       await DB.prepare(`
@@ -1514,10 +1520,10 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         ) VALUES (?, 'scrapped', '폐지 처리', ?, ?, ?, datetime('now'), ?)
       `).bind(
         id, 
-        `${motorcycle.vehicle_name} (${motorcycle.plate_number})`, 
-        '정보 초기화 (차량이름/차대번호/연식/검사일만 유지)', 
+        `${motorcycle.plate_number}`,  // 폐지 전 번호판
+        '-',  // 계약기간 없음
         sessionUser?.id || null,
-        scrap_reason || '폐지'
+        `해지날짜: ${scrapDate}\n폐지 사유: ${scrap_reason || '폐지'}`
       ).run()
       
       console.log(`✅ 폐지 이력 저장 완료: ${motorcycle.plate_number} → (폐지)`)
