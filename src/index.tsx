@@ -1705,86 +1705,40 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     const contractIds = contractsToDelete.results.map((c: any) => c.id)
     console.log('📝 삭제할 계약서 ID (취소된 계약):', contractIds)
     
-    // D1 batch API를 사용하여 한 트랜잭션으로 실행
-    console.log('🔄 Batch 삭제 시작...')
+    // 순차적으로 삭제 실행 (트리거 문제 회피)
+    console.log('🔄 순차 삭제 시작...')
     
-    const batchQueries: any[] = []
-    
-    // 1. 외래 키 제약 조건 비활성화
-    batchQueries.push(DB.prepare('PRAGMA foreign_keys = OFF'))
-    
-    // 2. UPDATE 트리거 임시 삭제
-    batchQueries.push(DB.prepare('DROP TRIGGER IF EXISTS prevent_history_update'))
-    
-    // 3. DELETE 트리거 임시 삭제  
-    batchQueries.push(DB.prepare('DROP TRIGGER IF EXISTS prevent_history_delete'))
-    
-    // 4. contract_history 삭제 (각 계약서 ID마다 개별 쿼리)
+    // 1. contract_history 삭제
+    let historyDeleted = 0
     if (contractIds.length > 0) {
       console.log('📝 계약 이력을 삭제합니다:', contractIds)
       for (const contractId of contractIds) {
-        batchQueries.push(
-          DB.prepare('DELETE FROM contract_history WHERE contract_id = ?').bind(contractId)
-        )
+        const result = await DB.prepare('DELETE FROM contract_history WHERE contract_id = ?')
+          .bind(contractId)
+          .run()
+        historyDeleted += result.meta?.changes || 0
       }
     }
     
-    // 5. 차용 계약서 삭제 (주민번호로 연결)
-    batchQueries.push(
-      DB.prepare('DELETE FROM loan_contracts WHERE borrower_resident_number = ?').bind(customer.resident_number)
-    )
+    // 2. 차용 계약서 삭제
+    const loanResult = await DB.prepare('DELETE FROM loan_contracts WHERE borrower_resident_number = ?')
+      .bind(customer.resident_number)
+      .run()
+    const loanDeleteResult = loanResult.meta?.changes || 0
     
-    // 6. 개인 계약서 삭제 (customer_id로 연결)
-    batchQueries.push(
-      DB.prepare('DELETE FROM contracts WHERE customer_id = ?').bind(id)
-    )
+    // 3. 개인 계약서 삭제
+    const contractResult = await DB.prepare('DELETE FROM contracts WHERE customer_id = ?')
+      .bind(id)
+      .run()
+    const contractsDeleteResult = contractResult.meta?.changes || 0
     
-    // 7. 계약자 삭제
-    batchQueries.push(
-      DB.prepare('DELETE FROM customers WHERE id = ?').bind(id)
-    )
+    // 4. 계약자 삭제
+    const customerResult = await DB.prepare('DELETE FROM customers WHERE id = ?')
+      .bind(id)
+      .run()
+    const customerDeleteResult = customerResult.meta?.changes || 0
     
-    // 8. 트리거 재생성 - UPDATE 방지
-    batchQueries.push(
-      DB.prepare(`CREATE TRIGGER IF NOT EXISTS prevent_history_update
-BEFORE UPDATE ON contract_history
-BEGIN
-  SELECT RAISE(ABORT, 'Contract history cannot be modified');
-END`)
-    )
-    
-    // 9. 트리거 재생성 - DELETE 방지
-    batchQueries.push(
-      DB.prepare(`CREATE TRIGGER IF NOT EXISTS prevent_history_delete
-BEFORE DELETE ON contract_history
-BEGIN
-  SELECT RAISE(ABORT, 'Contract history cannot be deleted');
-END`)
-    )
-    
-    // 10. 외래 키 제약 조건 활성화
-    batchQueries.push(
-      DB.prepare('PRAGMA foreign_keys = ON')
-    )
-    
-    console.log('📦 총 쿼리 수:', batchQueries.length)
-    const results = await DB.batch(batchQueries)
-    console.log('✅ Batch 삭제 완료')
-    
-    // 삭제된 레코드 수 계산
-    let historyDeleted = 0
-    if (contractIds.length > 0) {
-      // 트리거 삭제 3개 + contract_history 삭제 N개
-      for (let i = 3; i < 3 + contractIds.length; i++) {
-        historyDeleted += results[i]?.meta?.changes || 0
-      }
-    }
-    
-    const baseIndex = 3 + contractIds.length
-    const loanDeleteResult = results[baseIndex]?.meta?.changes || 0
-    const contractsDeleteResult = results[baseIndex + 1]?.meta?.changes || 0
-    const customerDeleteResult = results[baseIndex + 2]?.meta?.changes || 0
-    
+    console.log('✅ 순차 삭제 완료')
     console.log('📊 삭제 결과:', {
       history_deleted: historyDeleted,
       loan_contracts: loanDeleteResult,
