@@ -1367,8 +1367,8 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   
   // 상태 업데이트
   if (status === 'scrapped') {
-    // 폐지 처리: 차량 기본정보는 유지, 보험정보와 계약정보만 초기화
-    console.log(`🗑️ Scrapping motorcycle #${id} - clearing insurance and contract info`)
+    // 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
+    console.log(`🗑️ Scrapping motorcycle #${id} - keeping only 7 basic fields`)
     
     // 현재 정보 조회 (이력 기록용)
     const fullInfo = await DB.prepare('SELECT * FROM motorcycles WHERE id = ?').bind(id).first()
@@ -1389,16 +1389,24 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
           deposit = 0,
           contract_start_date = '',
           contract_end_date = '',
-          -- ✅ 유지되는 정보: 
-          --    차량번호(plate_number), 차량이름(vehicle_name), 차대번호(chassis_number),
-          --    연식(model_year), 키로수(mileage), 검사시작일, 검사종료일,
-          --    차량가격(vehicle_price), 등록증사진(certificate_photo)
-          --    일대여료(daily_rental_fee), 운전범위(driving_range)
+          -- ❌ 기타 정보 초기화
+          vehicle_price = 0,
+          daily_rental_fee = 0,
+          driving_range = '',
+          certificate_photo = '',
+          -- ✅ 유지되는 정보 (스크린샷 기준 7개만): 
+          --    1. 차량번호 (plate_number)
+          --    2. 차량이름 (vehicle_name)
+          --    3. 연식 (model_year)
+          --    4. 차대번호 (chassis_number)
+          --    5. 키로수 (mileage)
+          --    6. 검사 시작일 (inspection_start_date)
+          --    7. 검사 종료일 (inspection_end_date)
           updated_at = datetime("now") 
       WHERE id = ?
     `).bind(usage_notes || '폐지', id).run()
     
-    console.log(`✅ Motorcycle #${id} scrapped - vehicle info preserved, insurance and contract info cleared`)
+    console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved, all else cleared`)
     
     // 이력 기록: 폐지 처리
     await DB.prepare(`
@@ -1408,7 +1416,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     `).bind(
       id, 'scrapped', '폐지 처리', 
       `${(fullInfo as any)?.vehicle_name} (${(fullInfo as any)?.plate_number})`, 
-      '보험정보/계약정보 초기화 (차량 기본정보는 유지)', 
+      '보험/계약/기타 정보 전부 초기화 (7개 기본정보만 유지)', 
       userId,
       `폐지 사유: ${usage_notes || '폐지'}`
     ).run()
@@ -1514,13 +1522,11 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
       console.warn(`⚠️ Failed to save history (table may not exist):`, historyErr)
     }
     
-    // 3. 폐지 처리: 차량이름, 차대번호, 연식, 검사정보만 남기고 전부 초기화
+    // 3. 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = 'scrapped',
           usage_notes = ?,
-          -- ❌ 차량번호 초기화
-          plate_number = '',
           -- ❌ 보험정보 초기화
           insurance_company = '',
           insurance_start_date = '',
@@ -1534,38 +1540,124 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           contract_start_date = '',
           contract_end_date = '',
           -- ❌ 기타정보 초기화
-          mileage = 0,
           vehicle_price = 0,
           daily_rental_fee = 0,
           driving_range = '',
           certificate_photo = '',
-          -- ✅ 유지되는 정보: vehicle_name, chassis_number, model_year, 
-          --    inspection_start_date, inspection_end_date
+          -- ✅ 유지되는 정보 (스크린샷 기준 7개):
+          --    1. plate_number (차량번호)
+          --    2. vehicle_name (차량이름)
+          --    3. model_year (연식)
+          --    4. chassis_number (차대번호)
+          --    5. mileage (키로수)
+          --    6. inspection_start_date (검사 시작일)
+          --    7. inspection_end_date (검사 종료일)
           updated_at = datetime("now")
       WHERE id = ?
     `).bind(scrap_reason || '폐지', id).run()
     
-    console.log(`✅ Motorcycle #${id} scrapped - only vehicle name, chassis, year, inspection dates preserved`)
+    console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved (screenshot spec)`)
     
     return c.json({ 
-      message: '폐지 처리되었습니다. 차량이름, 차대번호, 연식, 검사정보만 보존되었습니다.',
+      message: '폐지 처리되었습니다. 차량번호, 차량이름, 연식, 차대번호, 키로수, 검사일만 보존되었습니다.',
       motorcycle: {
         id: motorcycle.id,
+        plate_number: motorcycle.plate_number,
         vehicle_name: motorcycle.vehicle_name,
         chassis_number: motorcycle.chassis_number,
         model_year: motorcycle.model_year,
+        mileage: motorcycle.mileage,
         inspection_start_date: motorcycle.inspection_start_date,
         inspection_end_date: motorcycle.inspection_end_date,
-        previous_plate_number: motorcycle.plate_number,
         status: 'scrapped'
       },
-      preserved_info: ['차량이름', '차대번호', '연식', '검사시작일', '검사종료일'],
-      cleared_info: ['차량번호', '보험정보', '계약정보', '키로수', '차량가격', '운전범위']
+      preserved_info: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일'],
+      cleared_info: ['보험정보', '계약정보', '차량가격', '일대여료', '운전범위', '등록증사진']
     })
   } catch (error: any) {
     console.error('❌ Scrap motorcycle error:', error)
     return c.json({ 
       error: '폐지 처리 중 오류가 발생했습니다',
+      details: error.message
+    }, 500)
+  }
+})
+
+// 기존 폐지된 오토바이에 새 폐지 규칙 일괄 적용
+app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
+  try {
+    const DB = c.env.DB || c.env.db
+    const user = c.get('user')
+    
+    // 관리자 권한 체크
+    if (user?.role !== 'super_admin' && user?.id !== 1) {
+      return c.json({ error: '권한이 없습니다' }, 403)
+    }
+    
+    console.log(`🔧 Applying new scrap rules to all scrapped motorcycles...`)
+    
+    // 1. 모든 폐지된 오토바이 조회
+    const scrappedMotorcycles = await DB.prepare(`
+      SELECT id, plate_number, vehicle_name, chassis_number, model_year, mileage,
+             inspection_start_date, inspection_end_date
+      FROM motorcycles 
+      WHERE status = 'scrapped'
+    `).all()
+    
+    if (!scrappedMotorcycles.results || scrappedMotorcycles.results.length === 0) {
+      return c.json({ 
+        message: '폐지된 오토바이가 없습니다',
+        updated_count: 0
+      })
+    }
+    
+    console.log(`📋 Found ${scrappedMotorcycles.results.length} scrapped motorcycles`)
+    
+    // 2. 각 오토바이에 새 규칙 적용 (7개 필드만 유지, 나머지 초기화)
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET -- ❌ 보험정보 초기화
+          insurance_company = '',
+          insurance_start_date = '',
+          insurance_end_date = '',
+          insurance_fee = 0,
+          -- ❌ 계약정보 초기화
+          owner_name = '',
+          monthly_fee = 0,
+          contract_type_text = '',
+          deposit = 0,
+          contract_start_date = '',
+          contract_end_date = '',
+          -- ❌ 기타정보 초기화
+          vehicle_price = 0,
+          daily_rental_fee = 0,
+          driving_range = '',
+          certificate_photo = '',
+          -- ✅ 유지되는 정보 (스크린샷 기준 7개):
+          --    1. plate_number (차량번호)
+          --    2. vehicle_name (차량이름)
+          --    3. model_year (연식)
+          --    4. chassis_number (차대번호)
+          --    5. mileage (키로수)
+          --    6. inspection_start_date (검사 시작일)
+          --    7. inspection_end_date (검사 종료일)
+          updated_at = datetime("now")
+      WHERE status = 'scrapped'
+    `).run()
+    
+    console.log(`✅ Applied new scrap rules to ${scrappedMotorcycles.results.length} motorcycles`)
+    
+    return c.json({
+      message: `폐지된 오토바이 ${scrappedMotorcycles.results.length}대에 새 규칙이 적용되었습니다`,
+      updated_count: scrappedMotorcycles.results.length,
+      preserved_fields: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일'],
+      cleared_fields: ['보험정보', '계약정보', '차량가격', '일대여료', '운전범위', '등록증사진']
+    })
+    
+  } catch (error: any) {
+    console.error('❌ Apply scrap rules error:', error)
+    return c.json({ 
+      error: '폐지 규칙 적용 중 오류가 발생했습니다',
       details: error.message
     }, 500)
   }
