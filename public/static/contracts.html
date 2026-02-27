@@ -677,6 +677,11 @@
                     // 임시렌트 (최우선 처리)
                     displayType = 'temp_rent';
                     displayTypeText = '임시렌트';
+                    // 약식 계약 여부 확인 (전화번호가 없거나 주민번호가 없으면 약식)
+                    const isSimplified = !c.customer_phone || c.customer_phone === '' || !c.resident_number || c.resident_number === '';
+                    if (isSimplified) {
+                        displayTypeText = '임시렌트 (약식)';
+                    }
                 } else if (c.contract_type === 'business') {
                     // 업체 계약서: business_type에 따라 리스/렌트 구분
                     displayType = c.business_type || 'rent';

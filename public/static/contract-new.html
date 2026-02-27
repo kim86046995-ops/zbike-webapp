@@ -2927,7 +2927,7 @@
         
         async function submitTempRentContract() {
             try {
-                console.log('📤 임시렌트 계약서 저장 시작');
+                console.log('📤 임시렌트 약식 계약서 저장 시작');
                 
                 // 오토바이 선택 확인
                 if (!selectedMotorcycleId) {
@@ -2935,23 +2935,32 @@
                     return;
                 }
                 
-                // 계약 데이터 생성 (서명 및 신분증 제외)
+                // 고객 이름 확인 (이름만 필수)
+                const customerName = document.getElementById('tempCustomerName').value.trim();
+                if (!customerName) {
+                    alert('고객 이름을 입력해주세요.');
+                    document.getElementById('tempCustomerName').focus();
+                    return;
+                }
+                
+                // 계약 데이터 생성 (이름만 필수, 나머지는 선택)
                 const contractData = {
                     contract_type: 'temp_rent',
                     motorcycle_id: selectedMotorcycleId,
-                    customer_name: document.getElementById('tempCustomerName').value || '미입력',
-                    phone: document.getElementById('tempPhone').value || '',
-                    resident_number: document.getElementById('tempResidentNumber').value || '',
-                    postcode: document.getElementById('tempPostcode').value || '',
-                    address: document.getElementById('tempAddress').value || '',
-                    detail_address: document.getElementById('tempDetailAddress').value || '',
+                    customer_name: customerName,
+                    phone: document.getElementById('tempPhone').value.trim() || '',
+                    resident_number: document.getElementById('tempResidentNumber').value.trim() || '',
+                    postcode: document.getElementById('tempPostcode').value.trim() || '',
+                    address: document.getElementById('tempAddress').value.trim() || '',
+                    detail_address: document.getElementById('tempDetailAddress').value.trim() || '',
                     license_type: document.getElementById('tempLicenseType').value || '2종소형',
                     start_date: document.getElementById('tempStartDate').value || new Date().toISOString().split('T')[0],
                     end_date: document.getElementById('tempEndDate').value || new Date().toISOString().split('T')[0],
                     daily_fee: unformatNumber(document.getElementById('tempDailyFee').value || '0'),
-                    special_terms: document.getElementById('tempSpecialTerms').value || '',
+                    special_terms: document.getElementById('tempSpecialTerms').value.trim() || '',
                     signature: null,  // 임시렌트는 서명 불필요
                     admin_id_card_photo: null,  // 임시렌트는 신분증 불필요
+                    is_simplified: true,  // 약식 계약 플래그
                     status: 'active',
                     created_at: new Date().toISOString()
                 };
@@ -2962,9 +2971,9 @@
                 console.log('🌐 API 호출: POST /api/temp-rent-contracts');
                 const response = await axios.post('/api/temp-rent-contracts', contractData);
                 
-                console.log('✅ 임시렌트 계약서 생성 완료:', response.data);
+                console.log('✅ 임시렌트 약식 계약서 생성 완료:', response.data);
                 
-                alert(`✅ 임시렌트 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}`);
+                alert(`✅ 임시렌트 약식 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}\n고객: ${customerName}`);
                 
                 // 계약서 목록으로 이동
                 window.location.href = '/static/contracts.html';
