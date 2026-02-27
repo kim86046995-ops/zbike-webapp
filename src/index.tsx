@@ -1705,17 +1705,13 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
     const contractIds = contractsToDelete.results.map((c: any) => c.id)
     console.log('📝 삭제할 계약서 ID (취소된 계약):', contractIds)
     
-    // 순차적으로 삭제 실행 (외래 키 제약 조건 비활성화)
+    // 순차적으로 삭제 실행 (외래 키 순서로 삭제)
     console.log('🔄 순차 삭제 시작...')
     
-    // 0. 외래 키 제약 조건 비활성화
-    await DB.prepare('PRAGMA foreign_keys = OFF').run()
-    console.log('✅ 외래 키 제약 조건 비활성화')
-    
-    // 1. contract_history 삭제
+    // 1. contract_history 삭제 (외래 키: contract_id, customer_id)
     let historyDeleted = 0
     if (contractIds.length > 0) {
-      console.log('📝 계약 이력을 삭제합니다:', contractIds)
+      console.log('📝 계약 이력을 삭제합니다 (contract_id):', contractIds)
       for (const contractId of contractIds) {
         const result = await DB.prepare('DELETE FROM contract_history WHERE contract_id = ?')
           .bind(contractId)
@@ -1723,6 +1719,13 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
         historyDeleted += result.meta?.changes || 0
       }
     }
+    
+    // 1-2. contract_history에서 customer_id로도 삭제
+    const historyByCustomer = await DB.prepare('DELETE FROM contract_history WHERE customer_id = ?')
+      .bind(id)
+      .run()
+    historyDeleted += historyByCustomer.meta?.changes || 0
+    console.log('📝 고객 ID로 계약 이력 삭제:', historyByCustomer.meta?.changes || 0)
     
     // 2. 차용 계약서 삭제
     const loanResult = await DB.prepare('DELETE FROM loan_contracts WHERE borrower_resident_number = ?')
@@ -1741,10 +1744,6 @@ app.delete('/api/customers/:id', authMiddleware, async (c) => {
       .bind(id)
       .run()
     const customerDeleteResult = customerResult.meta?.changes || 0
-    
-    // 5. 외래 키 제약 조건 재활성화
-    await DB.prepare('PRAGMA foreign_keys = ON').run()
-    console.log('✅ 외래 키 제약 조건 재활성화')
     
     console.log('✅ 순차 삭제 완료')
     console.log('📊 삭제 결과:', {
