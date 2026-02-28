@@ -4,6 +4,19 @@ import https from 'https';
 const app = express();
 app.use(express.json());
 
+// CORS 헤더 추가 (모든 도메인 허용)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 const API_KEY = 'pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9';
 const USER_ID = 'sangchyn11';
 const SENDER = '01086046995';

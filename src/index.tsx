@@ -4395,30 +4395,25 @@ app.get('/api/contract-shares', authMiddleware, async (c) => {
 // SMS 전송 API (계약서 공유 링크 전송)
 // SMS 전송 (인증 필요)
 app.post('/api/send-sms', authMiddleware, async (c) => {
-  const body = await c.req.json()
-  const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
-  
-  // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
-  const defaultMessage = `[Z-BIKE 전자계약서]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
-  const message = customMessage || defaultMessage
-  const phoneNumber = to || phone
-  
-  console.log('📱 SMS 전송 요청:', {
-    phone: phoneNumber,
-    messageLength: message.length,
-    customer_name
-  })
-  
-  // 방법 1: EC2 SMS 서버 사용 (고정 IP로 알리고 호출)
-  // Cloudflare Workers에서 HTTP 호출 가능 (서버 간 통신)
-  const EC2_SMS_URL = 'http://13.209.230.136:3001/sms'
-  
   try {
-    console.log('📤 EC2 SMS 서버 호출:', EC2_SMS_URL)
-    console.log('📤 전송 데이터:', {
-      phone: phoneNumber.replace(/[^0-9]/g, ''),
-      messageLength: message.length
+    const body = await c.req.json()
+    const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
+    
+    // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
+    const defaultMessage = `[Z-BIKE 전자계약서]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
+    const message = customMessage || defaultMessage
+    const phoneNumber = to || phone
+    
+    console.log('📱 SMS 전송 요청:', {
+      phone: phoneNumber,
+      messageLength: message.length,
+      customer_name
     })
+    
+    // EC2 SMS 서버 사용 (고정 IP로 알리고 호출)
+    const EC2_SMS_URL = 'http://13.209.230.136:3001/sms'
+    
+    console.log('📤 EC2 SMS 서버 호출:', EC2_SMS_URL)
     
     const response = await fetch(EC2_SMS_URL, {
       method: 'POST',
@@ -4431,12 +4426,21 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       })
     })
     
-    console.log('📥 EC2 응답 상태:', response.status, response.statusText)
+    console.log('📥 EC2 응답 상태:', response.status)
     
     if (!response.ok) {
       const errorText = await response.text()
       console.error('❌ EC2 응답 에러:', errorText)
-      throw new Error(`EC2 SMS 서버 응답 오류: ${response.status} - ${errorText}`)
+      
+      return c.json({ 
+        success: false, 
+        message: `EC2 서버 오류: ${response.status}`,
+        debug: {
+          status: response.status,
+          error: errorText,
+          url: EC2_SMS_URL
+        }
+      }, 500)
     }
     
     const result = await response.json()
@@ -4453,72 +4457,25 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
         data: result
       })
     } else {
-      console.error('❌ SMS 전송 실패:', result.message || result.error)
+      console.error('❌ SMS 전송 실패:', result.message)
       return c.json({ 
         success: false, 
         message: `SMS 전송 실패: ${result.message || result.error}`,
-        error: result
+        debug: result
       }, 500)
     }
     
   } catch (error) {
-    console.error('❌ EC2 SMS 서버 오류:', error)
-    
-    // EC2 서버 실패 시 fallback: 알리고 직접 호출 시도 (IP 제한으로 실패할 수 있음)
-    if (c.env.ALIGO_API_KEY && c.env.ALIGO_USER_ID && c.env.ALIGO_SENDER) {
-      try {
-        console.log('📱 알리고 API 직접 호출 시도 (Fallback)')
-        
-        const params = new URLSearchParams({
-          key: c.env.ALIGO_API_KEY,
-          user_id: c.env.ALIGO_USER_ID,
-          sender: c.env.ALIGO_SENDER,
-          receiver: phoneNumber.replace(/[^0-9]/g, ''),
-          msg: message,
-          msg_type: message.length > 90 ? 'LMS' : 'SMS',
-          title: message.length > 90 ? '[Z-BIKE 전자계약서]' : ''
-        })
-        
-        const aligoResponse = await fetch('https://apis.aligo.in/send/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: params.toString()
-        })
-        
-        const aligoResult = await aligoResponse.json()
-        
-        console.log('📊 알리고 직접 호출 응답:', aligoResult)
-        
-        if (aligoResult.result_code === '1' || aligoResult.result_code === 1) {
-          console.log('✅ 알리고 직접 호출 성공')
-          return c.json({ 
-            success: true, 
-            message: 'SMS가 성공적으로 전송되었습니다',
-            phone: phoneNumber,
-            provider: 'aligo-direct',
-            data: aligoResult
-          })
-        } else {
-          console.error('❌ 알리고 직접 호출 실패:', aligoResult.message)
-          throw new Error(aligoResult.message)
-        }
-        
-      } catch (aligoError) {
-        console.error('❌ 알리고 직접 호출 오류:', aligoError)
-        return c.json({ 
-          success: false, 
-          message: `SMS 전송 중 오류 발생: ${error.message}`,
-          error: error.message 
-        }, 500)
-      }
-    }
+    console.error('❌ SMS 전송 오류:', error)
     
     return c.json({ 
       success: false, 
-      message: `SMS 전송 중 오류가 발생했습니다: ${error.message}`,
-      error: error.message 
+      message: `SMS 전송 중 오류 발생: ${error.message}`,
+      debug: {
+        error: error.message,
+        type: error.name,
+        stack: error.stack
+      }
     }, 500)
   }
 })

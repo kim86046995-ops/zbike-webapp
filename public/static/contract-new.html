@@ -1139,8 +1139,9 @@
         }
 
         function unformatNumber(value) {
-            // 콤마 제거하고 숫자만 반환
-            return value.replace(/,/g, '');
+            // 콤마 제거하고 숫자로 반환
+            const numStr = value.replace(/,/g, '');
+            return parseInt(numStr) || 0;
         }
 
         function setupNumberInput(inputId) {
