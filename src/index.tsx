@@ -4432,7 +4432,7 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     
     // Cloudflare Tunnel을 통한 EC2 SMS 서버 경유
     // Cloudflare Workers → Cloudflare Tunnel → AWS EC2
-    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://shaw-focus-technology-sending.trycloudflare.com/api/sms/send-direct'
+    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://campus-ing-blocking-mother.trycloudflare.com/api/sms/send-direct'
     
     console.log('📤 EC2 SMS 서버 경유 (Cloudflare Tunnel):', SMS_AWS_LAMBDA_URL)
     
