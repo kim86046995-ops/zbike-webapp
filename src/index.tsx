@@ -4455,7 +4455,12 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
           'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody),
-        signal: controller.signal
+        signal: controller.signal,
+        // Cloudflare Workers specific options
+        cf: {
+          cacheTtl: 0,
+          cacheEverything: false
+        }
       })
       
       clearTimeout(timeoutId)
