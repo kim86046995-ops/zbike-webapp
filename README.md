@@ -2,11 +2,18 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.12 - 자동 로그인 기능)**: https://330dcd12.zbike-webapp.pages.dev
+- **최신 배포 (v8.13 - 대시보드 자동 리다이렉트)**: https://e9bad833.zbike-webapp.pages.dev
+- **대시보드**: https://e9bad833.zbike-webapp.pages.dev/dashboard
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.13 (2026-02-28)** - 대시보드 자동 리다이렉트 🎉
+- ✅ **자동 로그인 후 대시보드로 이동**: `/static/contracts.html` → `/dashboard`
+- ✅ **로그인 성공 후 대시보드로 이동**: 로그인 후 운영 현황 대시보드로 자동 이동
+- ✅ **대시보드 기능**: 총 바이크/사용중/휴차중/정비·폐지 통계, 바이크 목록 필터링
+- ✅ **빠른 접근 메뉴**: 오토바이 등록, 계약서 작성, 차용증 작성, 각종 목록 바로가기
 
 **v8.12 (2026-02-28)** - 자동 로그인 기능 추가 🎉
 - ✅ **자동 로그인**: 한 번 로그인하면 로그아웃 전까지 자동 로그인 유지
