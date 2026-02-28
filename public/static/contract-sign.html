@@ -312,9 +312,13 @@
                 
                 // 이미 서명이 완료된 경우 서명 영역 숨기기
                 if (contractData.status === 'active' && contractData.signature_data) {
-                    document.getElementById('signatureSection').classList.add('hidden');
-                    document.getElementById('idCardSection').classList.add('hidden');
-                    document.getElementById('submitBtn').classList.add('hidden');
+                    const signatureSection = document.getElementById('signatureSection');
+                    const idCardSection = document.getElementById('idCardSection');
+                    const submitBtn = document.getElementById('submitBtn');
+                    
+                    if (signatureSection) signatureSection.classList.add('hidden');
+                    if (idCardSection) idCardSection.classList.add('hidden');
+                    if (submitBtn) submitBtn.classList.add('hidden');
                     
                     // 완료 메시지 표시
                     const completedMessage = document.createElement('div');
