@@ -263,35 +263,32 @@
                 return;
             }
             
-            // 업체 정보 먼저 로드
-            await loadCompanySettings();
+            // 차용증 정보 로드 (회사 정보 포함)
             loadContract();
             initSignaturePad();
         });
 
         // 업체 정보 로드
-        async function loadCompanySettings() {
-            try {
-                const response = await axios.get('/api/company-settings');
-                companySettings = response.data;
-            } catch (error) {
-                console.error('업체 정보 로드 실패:', error);
-                // 기본값 설정
-                companySettings = {
-                    company_name: 'Z-BIKE',
-                    company_code: '123-45-67890',
-                    representative: '대표자',
-                    address: '서울시',
-                    phone: '02-1234-5678'
-                };
-            }
-        }
 
         // 차용증 불러오기
         async function loadContract() {
             try {
                 const response = await axios.get(`/api/loan-contracts/${loanId}/sign`);
                 contractData = response.data;
+                
+                // 회사 정보 추출
+                if (contractData.company_settings) {
+                    companySettings = contractData.company_settings;
+                } else {
+                    // 기본값 설정
+                    companySettings = {
+                        company_name: 'Z-BIKE',
+                        company_code: '123-45-67890',
+                        representative: '대표자',
+                        address: '서울시',
+                        phone: '000-0000-0000'
+                    };
+                }
                 
                 if (contractData.status === 'active' && contractData.borrower_signature) {
                     showCompleted();

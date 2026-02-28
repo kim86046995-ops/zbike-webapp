@@ -4571,12 +4571,15 @@ app.get('/api/loan-contracts/:id/sign', async (c) => {
     return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
   }
   
+  // 회사 정보 가져오기 (고객이 로그인 없이 접근하므로 필요)
+  const companySettings = await DB.prepare('SELECT * FROM company_settings LIMIT 1').first()
+  
   // 이미 서명된 차용증인지 확인
-  if (result.status === 'active' && result.signature_data) {
-    return c.json({ ...result, already_signed: true })
+  if (result.status === 'active' && result.borrower_signature) {
+    return c.json({ ...result, company_settings: companySettings, already_signed: true })
   }
   
-  return c.json(result)
+  return c.json({ ...result, company_settings: companySettings })
 })
 
 // 차용증 서명 제출 (인증 없음)
