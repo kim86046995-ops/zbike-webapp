@@ -4423,96 +4423,89 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       customer_name
     })
     
-    // EC2 SMS 서버 경유 (고정 IP)
-    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/sms'
+    // 알리고 API 직접 호출 (EC2 우회)
+    const ALIGO_API_KEY = c.env.ALIGO_API_KEY || 'pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9'
+    const ALIGO_USER_ID = c.env.ALIGO_USER_ID || 'sangchyn11'
+    const ALIGO_SENDER = c.env.ALIGO_SENDER || '01086046995'
     
-    console.log('📤 EC2 SMS 서버 경유 시작:', EC2_SMS_URL)
+    console.log('📤 알리고 SMS 직접 호출 (IP 제한 없음)')
+    console.log('  User ID:', ALIGO_USER_ID)
+    console.log('  Sender:', ALIGO_SENDER)
     
-    // 전화번호 정규화 (하이픈 제거)
     const normalizedPhone = phoneNumber.replace(/[^0-9]/g, '')
+    const normalizedSender = ALIGO_SENDER.replace(/[^0-9]/g, '')
     
-    const requestBody = {
-      phone: normalizedPhone,
-      message: message
-    }
+    // 메시지 타입 결정
+    const msgType = message.length > 90 ? 'LMS' : 'SMS'
     
-    console.log('📤 EC2 전송 데이터:', {
-      url: EC2_SMS_URL,
-      phone: normalizedPhone,
-      messageLength: message.length
+    console.log('📤 전송 데이터:', {
+      receiver: normalizedPhone,
+      sender: normalizedSender,
+      msgType,
+      msgLength: message.length
     })
     
     try {
-      console.log('🔄 Fetching EC2 서버...')
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-      
-      const response = await fetch(EC2_SMS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-        // Cloudflare Workers specific options
-        cf: {
-          cacheTtl: 0,
-          cacheEverything: false
-        }
+      // 알리고 API 호출
+      const params = new URLSearchParams({
+        key: ALIGO_API_KEY,
+        user_id: ALIGO_USER_ID,
+        sender: normalizedSender,
+        receiver: normalizedPhone,
+        msg: message,
+        msg_type: msgType,
+        title: msgType === 'LMS' ? 'Z-BIKE 전자계약서' : ''
       })
       
-      clearTimeout(timeoutId)
+      console.log('🔄 알리고 API 호출 중...')
       
-      console.log('📥 EC2 응답 상태:', response.status, response.statusText)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ EC2 응답 에러:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        })
-        
-        throw new Error(`EC2 서버 오류: ${response.status} ${response.statusText}`)
-      }
+      const response = await fetch('https://apis.aligo.in/send/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+      })
       
       const result = await response.json()
       
-      console.log('📊 EC2 SMS 응답:', result)
+      console.log('📊 알리고 API 응답:', result)
       
-      if (result.success) {
-        console.log('✅ SMS 전송 성공 (EC2 경유)')
+      if (result.result_code === '1') {
+        console.log('✅ SMS 전송 성공')
         return c.json({ 
           success: true, 
           message: 'SMS가 성공적으로 전송되었습니다',
           phone: phoneNumber,
-          provider: 'aligo-ec2',
+          provider: 'aligo-direct',
           data: result
         })
+      } else if (result.result_code === '-101') {
+        // IP 인증 오류
+        console.error('❌ IP 인증 오류 (알리고 IP 제한):', result.message)
+        return c.json({ 
+          success: false, 
+          message: `알리고 IP 인증 오류: ${result.message}\n\n해결방법: 알리고 설정에서 IP 제한을 제거하세요.`,
+          error_code: result.result_code,
+          debug: result
+        }, 500)
       } else {
         console.error('❌ SMS 전송 실패:', result.message)
         return c.json({ 
           success: false, 
-          message: `SMS 전송 실패: ${result.message || result.error}`,
+          message: `SMS 전송 실패: ${result.message}`,
+          error_code: result.result_code,
           debug: result
         }, 500)
       }
     } catch (fetchError) {
-      console.error('❌ EC2 호출 오류:', {
-        name: fetchError.name,
-        message: fetchError.message,
-        cause: fetchError.cause
-      })
-      
+      console.error('❌ 알리고 API 호출 오류:', fetchError)
       return c.json({ 
         success: false, 
-        message: `EC2 서버 연결 실패: ${fetchError.message}`,
+        message: `알리고 API 호출 실패: ${fetchError.message}`,
         debug: {
           error: fetchError.message,
-          type: fetchError.name,
-          url: EC2_SMS_URL
+          type: fetchError.name
         }
       }, 500)
     }
