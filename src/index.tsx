@@ -4848,6 +4848,24 @@ app.get('/api/loan-contracts/:id/deductions', authMiddleware, async (c) => {
   return c.json(result.results)
 })
 
+// 차용증 삭제 (인증 필요)
+app.delete('/api/loan-contracts/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  // 차용증 존재 확인
+  const loan = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first()
+  
+  if (!loan) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  // 차용증 삭제
+  await DB.prepare('DELETE FROM loan_contracts WHERE id = ?').bind(id).run()
+  
+  return c.json({ success: true, message: '차용증이 삭제되었습니다' })
+})
+
 // ============================================
 // 프론트엔드 페이지 라우트
 // ============================================
