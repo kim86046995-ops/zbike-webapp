@@ -2757,7 +2757,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
       monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status, 
       insurance_company, insurance_start_date, insurance_end_date, insurance_age_limit, driving_range,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
     data.motorcycle_id,
