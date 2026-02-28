@@ -2,11 +2,16 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.3 - 업체 계약서 약관 동의 수정)**: https://d0c2fcfc.zbike-webapp.pages.dev
+- **최신 배포 (v8.4 - 업체 계약서 리다이렉트 수정)**: https://c9c1d123.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.4 (2026-02-28)** - 업체 계약서 리다이렉트 수정 🎉
+- ✅ **문제 해결**: SMS 전송 후 404 에러 발생 (`/static/contracts-list.html` 파일 없음)
+- ✅ **수정 후**: SMS 전송 후 홈페이지(`/`)로 리다이렉트
+- ✅ **사용자 경험**: 3초 후 자동으로 홈페이지로 이동
 
 **v8.3 (2026-02-28)** - 업체 계약서 약관 동의 수정 🎉
 - ✅ **문제 해결**: 관리자가 SMS 전송 시 약관 동의 체크 요구 제거
