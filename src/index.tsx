@@ -4426,10 +4426,11 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       customer_name
     })
     
-    // 정비관리 시스템과 동일한 방식: EC2 SMS 서버 경유
-    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/api/sms/send-direct'
+    // Cloudflare Tunnel을 통한 EC2 SMS 서버 경유
+    // Cloudflare Workers → Cloudflare Tunnel → AWS EC2
+    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://shaw-focus-technology-sending.trycloudflare.com/api/sms/send-direct'
     
-    console.log('📤 EC2 SMS 서버 경유:', SMS_AWS_LAMBDA_URL)
+    console.log('📤 EC2 SMS 서버 경유 (Cloudflare Tunnel):', SMS_AWS_LAMBDA_URL)
     
     const requestBody = {
       receiver: formattedPhone,
