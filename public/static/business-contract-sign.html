@@ -1113,16 +1113,12 @@
             
             const signatureData = canvas.toDataURL('image/png');
             
-            // 신분증 확인
-            if (!idCardPhoto) {
-                alert('신분증을 촬영하거나 업로드해주세요.');
-                return;
-            }
+            // ✅ 업체는 업체 목록에 등록된 신분증을 자동으로 사용합니다
+            // 신분증 체크 생략
             
             try {
                 await axios.put(`/api/business-contracts/${contractId}/sign`, {
-                    signature_data: signatureData,
-                    id_card_photo: idCardPhoto
+                    signature_data: signatureData
                 });
                 
                 showCompleted();

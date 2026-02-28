@@ -3855,11 +3855,14 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
 app.put('/api/business-contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { signature_data, id_card_photo } = await c.req.json()
+  const { signature_data } = await c.req.json()
   
-  // 계약서 조회
+  // 계약서 조회 (업체 정보와 함께)
   const contract = await DB.prepare(`
-    SELECT * FROM business_contracts WHERE id = ?
+    SELECT bc.*, comp.id_card_photo as company_id_card
+    FROM business_contracts bc
+    LEFT JOIN companies comp ON bc.company_code = comp.company_code
+    WHERE bc.id = ?
   `).bind(id).first() as any
   
   if (!contract) {
@@ -3870,12 +3873,15 @@ app.put('/api/business-contracts/:id/sign', async (c) => {
     return c.json({ error: '이미 서명된 계약서입니다' }, 400)
   }
   
+  // 업체에 등록된 신분증 사용 (없으면 빈 문자열)
+  const idCardPhoto = contract.company_id_card || contract.id_card_photo || ''
+  
   // 서명 추가 및 상태 업데이트
   await DB.prepare(`
     UPDATE business_contracts 
     SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
     WHERE id = ?
-  `).bind(signature_data, id_card_photo || '', id).run()
+  `).bind(signature_data, idCardPhoto, id).run()
   
   // 오토바이 상태 업데이트
   await DB.prepare(`
