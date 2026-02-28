@@ -4403,94 +4403,116 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
   const message = customMessage || defaultMessage
   const phoneNumber = to || phone
   
-  // 알리고 SMS 직접 호출 (정비관리 방식)
-  if (c.env.ALIGO_API_KEY && c.env.ALIGO_USER_ID && c.env.ALIGO_SENDER) {
-    try {
-      console.log('📱 알리고 SMS 전송 시작 (직접 호출)')
-      console.log('수신번호:', phoneNumber)
-      console.log('메시지 길이:', message.length, '자')
-      
-      // 알리고 API 파라미터 구성
-      const params = new URLSearchParams({
-        key: c.env.ALIGO_API_KEY,
-        user_id: c.env.ALIGO_USER_ID,
-        sender: c.env.ALIGO_SENDER,
-        receiver: phoneNumber.replace(/[^0-9]/g, ''),
-        msg: message,
-        msg_type: message.length > 90 ? 'LMS' : 'SMS',
-        title: message.length > 90 ? '[Z-BIKE 전자계약서]' : ''
-      })
-      
-      console.log('📤 알리고 API 호출:', {
-        url: 'https://apis.aligo.in/send/',
-        receiver: phoneNumber,
-        msg_type: params.get('msg_type'),
-        msg_length: message.length
-      })
-      
-      // 알리고 API 호출
-      const response = await fetch('https://apis.aligo.in/send/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: params.toString()
-      })
-      
-      const result = await response.json()
-      
-      console.log('📊 알리고 SMS 응답:', result)
-      
-      // 알리고 API 응답 처리
-      if (result.result_code === '1' || result.result_code === 1) {
-        console.log('✅ 알리고 SMS 전송 성공')
-        return c.json({ 
-          success: true, 
-          message: 'SMS가 성공적으로 전송되었습니다',
-          phone: phoneNumber,
-          provider: 'aligo',
-          data: result
-        })
-      } else {
-        console.error('❌ 알리고 SMS 전송 실패:', result.message)
-        return c.json({ 
-          success: false, 
-          message: `SMS 전송 실패: ${result.message}`,
-          error: result
-        }, 500)
-      }
-      
-    } catch (error) {
-      console.error('❌ 알리고 SMS 전송 오류:', error)
-      return c.json({ 
-        success: false, 
-        message: 'SMS 전송 중 오류가 발생했습니다',
-        error: error.message 
-      }, 500)
-    }
-  }
-  
-  // 알리고 설정이 없으면 시뮬레이션 모드
-  console.log('=== SMS 전송 시뮬레이션 ===')
-  console.log('ALIGO_API_KEY:', c.env.ALIGO_API_KEY ? '설정됨' : '미설정')
-  console.log('ALIGO_USER_ID:', c.env.ALIGO_USER_ID ? '설정됨' : '미설정')
-  console.log('ALIGO_SENDER:', c.env.ALIGO_SENDER ? '설정됨' : '미설정')
-  console.log('수신번호:', phoneNumber)
-  console.log('메시지:', message)
-  console.log('=========================')
-  console.log('실제 SMS를 보내려면 알리고 환경변수를 설정하세요:')
-  console.log('- ALIGO_API_KEY')
-  console.log('- ALIGO_USER_ID')
-  console.log('- ALIGO_SENDER')
-  
-  return c.json({ 
-    success: true, 
-    message: 'SMS가 전송되었습니다 (시뮬레이션)',
-    simulation: true,
+  console.log('📱 SMS 전송 요청:', {
     phone: phoneNumber,
     messageLength: message.length,
-    note: '실제 SMS를 보내려면 알리고 API 키를 설정하세요'
+    customer_name
   })
+  
+  // 방법 1: EC2 SMS 서버 사용 (고정 IP로 알리고 호출)
+  // Cloudflare Workers에서 HTTP 호출 가능 (서버 간 통신)
+  const EC2_SMS_URL = 'http://13.209.230.136:3001/sms'
+  
+  try {
+    console.log('📤 EC2 SMS 서버 호출:', EC2_SMS_URL)
+    
+    const response = await fetch(EC2_SMS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        phone: phoneNumber.replace(/[^0-9]/g, ''),
+        message: message
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`EC2 SMS 서버 응답 오류: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    
+    console.log('📊 EC2 SMS 응답:', result)
+    
+    if (result.success) {
+      console.log('✅ SMS 전송 성공')
+      return c.json({ 
+        success: true, 
+        message: 'SMS가 성공적으로 전송되었습니다',
+        phone: phoneNumber,
+        provider: 'aligo-ec2',
+        data: result
+      })
+    } else {
+      console.error('❌ SMS 전송 실패:', result.message || result.error)
+      return c.json({ 
+        success: false, 
+        message: `SMS 전송 실패: ${result.message || result.error}`,
+        error: result
+      }, 500)
+    }
+    
+  } catch (error) {
+    console.error('❌ EC2 SMS 서버 오류:', error)
+    
+    // EC2 서버 실패 시 fallback: 알리고 직접 호출 시도 (IP 제한으로 실패할 수 있음)
+    if (c.env.ALIGO_API_KEY && c.env.ALIGO_USER_ID && c.env.ALIGO_SENDER) {
+      try {
+        console.log('📱 알리고 API 직접 호출 시도 (Fallback)')
+        
+        const params = new URLSearchParams({
+          key: c.env.ALIGO_API_KEY,
+          user_id: c.env.ALIGO_USER_ID,
+          sender: c.env.ALIGO_SENDER,
+          receiver: phoneNumber.replace(/[^0-9]/g, ''),
+          msg: message,
+          msg_type: message.length > 90 ? 'LMS' : 'SMS',
+          title: message.length > 90 ? '[Z-BIKE 전자계약서]' : ''
+        })
+        
+        const aligoResponse = await fetch('https://apis.aligo.in/send/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString()
+        })
+        
+        const aligoResult = await aligoResponse.json()
+        
+        console.log('📊 알리고 직접 호출 응답:', aligoResult)
+        
+        if (aligoResult.result_code === '1' || aligoResult.result_code === 1) {
+          console.log('✅ 알리고 직접 호출 성공')
+          return c.json({ 
+            success: true, 
+            message: 'SMS가 성공적으로 전송되었습니다',
+            phone: phoneNumber,
+            provider: 'aligo-direct',
+            data: aligoResult
+          })
+        } else {
+          console.error('❌ 알리고 직접 호출 실패:', aligoResult.message)
+          throw new Error(aligoResult.message)
+        }
+        
+      } catch (aligoError) {
+        console.error('❌ 알리고 직접 호출 오류:', aligoError)
+        return c.json({ 
+          success: false, 
+          message: `SMS 전송 중 오류 발생: ${error.message}`,
+          error: error.message 
+        }, 500)
+      }
+    }
+    
+    return c.json({ 
+      success: false, 
+      message: `SMS 전송 중 오류가 발생했습니다: ${error.message}`,
+      error: error.message 
+    }, 500)
+  }
 })
 
 // 차용증 상세 조회
