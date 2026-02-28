@@ -3383,8 +3383,14 @@ app.delete('/api/contracts/:id', authMiddleware, async (c) => {
     
     const contractData = contract as any
     
-    // 소프트 삭제 (deleted_at에 현재 시간 설정)
-    await DB.prepare('UPDATE contracts SET deleted_at = datetime("now") WHERE id = ?').bind(id).run()
+    // 소프트 삭제 + 상태를 cancelled로 변경
+    await DB.prepare(`
+      UPDATE contracts 
+      SET deleted_at = datetime("now"), 
+          status = 'cancelled', 
+          cancelled_at = datetime("now")
+      WHERE id = ?
+    `).bind(id).run()
     
     // 오토바이 상태를 available로 변경
     if (contractData.motorcycle_id) {
