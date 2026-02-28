@@ -125,9 +125,9 @@
                         <h2 class="text-xl font-bold text-gray-800">임차인 서명</h2>
                     </div>
                     <div class="p-6">
-                        <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요 (터치하면 확대됩니다)</p>
-                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white" onclick="openSignatureModal()" style="cursor: pointer;">
-                            <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
+                        <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스를 터치하면 확대하여 서명할 수 있습니다</p>
+                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white" style="cursor: pointer;">
+                            <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-pointer bg-white"></canvas>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
                             <button type="button" onclick="clearSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
@@ -889,77 +889,16 @@
             const canvas = document.getElementById('signatureCanvas');
             const ctx = canvas.getContext('2d');
             
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
-            
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-            
-            // 터치 이벤트
+            // 터치 또는 클릭 시 확대 모달 열기
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                lastX = touch.clientX - rect.left;
-                lastY = touch.clientY - rect.top;
-                isDrawing = true;
-            });
+                openSignatureModal();
+            }, { passive: false });
             
-            canvas.addEventListener('touchmove', (e) => {
+            canvas.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                if (!isDrawing) return;
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-                
-                lastX = x;
-                lastY = y;
+                openSignatureModal();
             });
-            
-            canvas.addEventListener('touchend', () => {
-                isDrawing = false;
-            });
-            
-            function startDrawing(e) {
-                isDrawing = true;
-                const rect = canvas.getBoundingClientRect();
-                lastX = e.clientX - rect.left;
-                lastY = e.clientY - rect.top;
-            }
-            
-            function draw(e) {
-                if (!isDrawing) return;
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-                
-                lastX = x;
-                lastY = y;
-            }
-            
-            function stopDrawing() {
-                isDrawing = false;
-            }
         }
 
         // 서명 지우기
