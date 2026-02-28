@@ -4415,6 +4415,10 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
   
   try {
     console.log('📤 EC2 SMS 서버 호출:', EC2_SMS_URL)
+    console.log('📤 전송 데이터:', {
+      phone: phoneNumber.replace(/[^0-9]/g, ''),
+      messageLength: message.length
+    })
     
     const response = await fetch(EC2_SMS_URL, {
       method: 'POST',
@@ -4427,8 +4431,12 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       })
     })
     
+    console.log('📥 EC2 응답 상태:', response.status, response.statusText)
+    
     if (!response.ok) {
-      throw new Error(`EC2 SMS 서버 응답 오류: ${response.status}`)
+      const errorText = await response.text()
+      console.error('❌ EC2 응답 에러:', errorText)
+      throw new Error(`EC2 SMS 서버 응답 오류: ${response.status} - ${errorText}`)
     }
     
     const result = await response.json()
