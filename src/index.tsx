@@ -4423,68 +4423,78 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       customer_name
     })
     
-    // EC2 SMS 서버 사용 (고정 IP로 알리고 호출)
-    const EC2_SMS_URL = 'http://13.209.230.136:3001/sms'
+    // 알리고 API 정보
+    const ALIGO_API_KEY = c.env.ALIGO_API_KEY || 'pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9'
+    const ALIGO_USER_ID = c.env.ALIGO_USER_ID || 'sangchyn11'
+    const ALIGO_SENDER = c.env.ALIGO_SENDER || '01086046995'
     
-    console.log('📤 EC2 SMS 서버 호출:', EC2_SMS_URL)
+    console.log('📤 알리고 SMS 직접 전송 시작')
+    console.log('  User ID:', ALIGO_USER_ID)
+    console.log('  Sender:', ALIGO_SENDER)
     
-    const requestBody = {
-      phone: phoneNumber.replace(/[^0-9]/g, ''),
-      message: message
-    }
+    const normalizedPhone = phoneNumber.replace(/[^0-9]/g, '')
+    const normalizedSender = ALIGO_SENDER.replace(/[^0-9]/g, '')
     
-    console.log('📤 전송 데이터:', JSON.stringify(requestBody))
+    // 메시지 타입 결정 (90자 초과 시 LMS)
+    const msgType = message.length > 90 ? 'LMS' : 'SMS'
     
-    let response
+    // 알리고 API 파라미터
+    const params = new URLSearchParams({
+      key: ALIGO_API_KEY,
+      user_id: ALIGO_USER_ID,
+      sender: normalizedSender,
+      receiver: normalizedPhone,
+      msg: message,
+      msg_type: msgType,
+      title: msgType === 'LMS' ? 'Z-BIKE 전자계약서' : ''
+    })
+    
+    console.log('📤 전송 파라미터:', {
+      receiver: normalizedPhone,
+      sender: normalizedSender,
+      msgType,
+      msgLength: message.length
+    })
+    
     try {
-      response = await fetch(EC2_SMS_URL, {
+      const response = await fetch('https://apis.aligo.in/send/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: JSON.stringify(requestBody)
+        body: params.toString()
       })
       
-      console.log('📥 EC2 응답 상태:', response.status)
+      const result = await response.json()
+      
+      console.log('📊 알리고 API 응답:', result)
+      
+      if (result.result_code === '1') {
+        console.log('✅ SMS 전송 성공')
+        return c.json({ 
+          success: true, 
+          message: 'SMS가 성공적으로 전송되었습니다',
+          phone: phoneNumber,
+          provider: 'aligo',
+          data: result
+        })
+      } else {
+        console.error('❌ SMS 전송 실패:', result.message)
+        return c.json({ 
+          success: false, 
+          message: `SMS 전송 실패: ${result.message}`,
+          debug: result
+        }, 500)
+      }
     } catch (fetchError) {
-      console.error('❌ Fetch 오류:', fetchError)
-      throw new Error(`EC2 서버 연결 실패: ${fetchError.message}`)
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ EC2 응답 에러:', errorText)
-      
+      console.error('❌ 알리고 API 호출 오류:', fetchError)
       return c.json({ 
         success: false, 
-        message: `EC2 서버 오류: ${response.status}`,
+        message: `알리고 API 호출 실패: ${fetchError.message}`,
         debug: {
-          status: response.status,
-          error: errorText,
-          url: EC2_SMS_URL
+          error: fetchError.message,
+          type: fetchError.name
         }
-      }, 500)
-    }
-    
-    const result = await response.json()
-    
-    console.log('📊 EC2 SMS 응답:', result)
-    
-    if (result.success) {
-      console.log('✅ SMS 전송 성공')
-      return c.json({ 
-        success: true, 
-        message: 'SMS가 성공적으로 전송되었습니다',
-        phone: phoneNumber,
-        provider: 'aligo-ec2',
-        data: result
-      })
-    } else {
-      console.error('❌ SMS 전송 실패:', result.message)
-      return c.json({ 
-        success: false, 
-        message: `SMS 전송 실패: ${result.message || result.error}`,
-        debug: result
       }, 500)
     }
     
