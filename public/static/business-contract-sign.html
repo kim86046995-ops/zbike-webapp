@@ -428,16 +428,6 @@
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">대표자 주소</td>
                                             <td class="px-3 py-2">${data.representative_address}</td>
                                         </tr>` : ''}
-                                        ${data.business_type ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">업종</td>
-                                            <td class="px-3 py-2">${data.business_type}</td>
-                                        </tr>` : ''}
-                                        ${data.business_category ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">업태</td>
-                                            <td class="px-3 py-2">${data.business_category}</td>
-                                        </tr>` : ''}
                                         ${data.business_phone ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">업체 연락처</td>
@@ -575,6 +565,18 @@
                                         <col style="width: 75%;">
                                     </colgroup>
                                     <tbody>
+                                        ${data.business_contract_type ? `
+                                        <tr class="border-b">
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">계약 종류</td>
+                                            <td class="px-3 py-2 font-bold text-purple-600">${(() => {
+                                                const typeMap = {
+                                                    'lease': '리스',
+                                                    'rent': '렌트',
+                                                    'temp_rent': '임시렌트'
+                                                };
+                                                return typeMap[data.business_contract_type] || data.business_contract_type;
+                                            })()}</td>
+                                        </tr>` : ''}
                                         ${data.contract_start_date ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">계약 시작일</td>
