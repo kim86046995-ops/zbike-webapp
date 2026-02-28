@@ -707,11 +707,19 @@
                     'completed': 'bg-red-600 text-white',
                     'cancelled': 'bg-red-600 text-white'
                 };
-                const statusTexts = {
-                    'active': '계약중',
-                    'completed': '계약종료',
-                    'cancelled': '계약종료'
-                };
+                
+                // 서명 여부에 따라 상태 텍스트 결정
+                let statusText = '';
+                if (c.status === 'active') {
+                    // 서명 데이터가 없으면 "서명대기", 있으면 "계약중"
+                    statusText = (!c.signature_data || c.signature_data === '') ? '서명대기' : '계약중';
+                } else if (c.status === 'completed') {
+                    statusText = '계약종료';
+                } else if (c.status === 'cancelled') {
+                    statusText = '계약종료';
+                } else {
+                    statusText = '진행중';  // 기본값
+                }
 
                 // 완료 버튼 표시 여부 (진행중 계약서만)
                 const showCompleteButton = c.status === 'active';
@@ -727,14 +735,9 @@
                                     <span class="px-2 py-0.5 rounded-full text-xs font-bold ${c.status === 'completed' ? 'bg-gray-100 text-gray-800' : typeColors[displayType]}">
                                         ${displayTypeText || '렌트'}
                                     </span>
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[c.status]}">
-                                        ${statusTexts[c.status] || '진행중'}
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${statusText === '서명대기' ? 'bg-blue-100 text-blue-800' : statusColors[c.status]}">
+                                        ${statusText}
                                     </span>
-                                    ${c.status === 'active' && (!c.signature_data || c.signature_data === '') ? `
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-                                        서명대기
-                                    </span>
-                                    ` : ''}
                                 </div>
                             </div>
                             <div class="flex gap-1">
