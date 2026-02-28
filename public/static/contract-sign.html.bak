@@ -265,19 +265,11 @@
             initSignaturePad();
         });
 
-        // 업체 정보 로드 (Public API 사용 - 인증 불필요)
+        // 업체 정보 로드
         async function loadCompanySettings() {
             try {
-                const response = await axios.get('/api/company-settings/public');
-                companySettings = {
-                    company_name: response.data.company_name || 'Z-BIKE',
-                    company_code: response.data.company_code || '123-45-67890',
-                    representative: response.data.representative_name || '대표자',
-                    address: response.data.address || '서울시',
-                    phone: response.data.phone || '02-1234-5678',
-                    manager_phone: response.data.phone || '02-1234-5678'
-                };
-                console.log('✅ 업체 정보 로드 성공:', companySettings);
+                const response = await axios.get('/api/company-settings');
+                companySettings = response.data;
             } catch (error) {
                 console.error('업체 정보 로드 실패:', error);
                 // 기본값 설정
@@ -286,8 +278,7 @@
                     company_code: '123-45-67890',
                     representative: '대표자',
                     address: '서울시',
-                    phone: '02-1234-5678',
-                    manager_phone: '02-1234-5678'
+                    phone: '02-1234-5678'
                 };
             }
         }
@@ -312,7 +303,7 @@
                     completedMessage.className = 'bg-green-50 border border-green-200 rounded-lg p-6 text-center mt-6';
                     completedMessage.innerHTML = `
                         <i class="fas fa-check-circle text-4xl text-green-600 mb-3"></i>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">✅ 계약이 완료되었습니다</h3>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">✅ 서명이 완료된 계약서입니다</h3>
                         <p class="text-gray-600">계약 내용을 확인하실 수 있습니다.</p>
                     `;
                     document.getElementById('contractContent').appendChild(completedMessage);
@@ -665,7 +656,7 @@
                                         </tr>` : ''}
                                         ${data.monthly_fee ? `
                                         <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">렌트 대여료</td>
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">월 대여료</td>
                                             <td class="px-3 py-2 font-bold text-blue-600">${parseInt(data.monthly_fee).toLocaleString()}원</td>
                                         </tr>` : ''}
                                         ${info.daily_fee ? `
@@ -726,7 +717,7 @@
                 'motorcycle_id': '오토바이',
                 'start_date': '시작일',
                 'end_date': '종료일',
-                'monthly_fee': '렌트 대여료',
+                'monthly_fee': '월 대여료',
                 'deposit': '선납금',
                 'daily_amount': '일 금액',
                 'loan_amount': '차용 금액',
