@@ -34,8 +34,8 @@
             <!-- 헤더 -->
             <div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white text-center">
-                    <h1 id="pageTitle" class="text-3xl font-bold mb-2">Z-BIKE 오토바이 대여 계약서</h1>
-                    <p class="text-indigo-100">Electronic Motorcycle Rental Contract</p>
+                    <h1 id="pageTitle" class="text-3xl font-bold mb-2">Z-BIKE 차용증 계약서</h1>
+                    <p class="text-indigo-100">Money Loan Contract</p>
                 </div>
                 <div class="p-6 text-center border-b">
                     <p class="text-gray-700 text-lg">아래 계약 내용을 확인하시고 전자서명해주세요</p>
@@ -65,7 +65,7 @@
                     <!-- 업체 정보 (자동 로드) -->
                     <div id="companyInfoSection" class="p-6 bg-gray-50 border-b-2 border-gray-200">
                         <div class="text-center mb-4">
-                            <h3 class="text-lg font-bold text-gray-800 mb-2">[ 임대인 (업체) ]</h3>
+                            <h3 id="creditorLabel" class="text-lg font-bold text-gray-800 mb-2">[ 채권자 (회사) ]</h3>
                         </div>
                         <div id="companyInfo" class="grid grid-cols-2 gap-4 max-w-2xl mx-auto text-sm">
                             <div class="flex justify-between">
@@ -315,9 +315,9 @@
             // 업체 정보 표시
             if (companySettings) {
                 document.getElementById('company-name').textContent = companySettings.company_name || 'Z-BIKE';
-                document.getElementById('business-number').textContent = companySettings.company_code || '-';
-                document.getElementById('representative').textContent = companySettings.representative || '-';
-                document.getElementById('company-phone').textContent = companySettings.manager_phone || companySettings.phone || '-';
+                document.getElementById('business-number').textContent = companySettings.business_number || '-';
+                document.getElementById('representative').textContent = companySettings.representative_name || '-';
+                document.getElementById('company-phone').textContent = companySettings.manager_phone1 || companySettings.phone || '-';
                 document.getElementById('company-address').textContent = companySettings.address || '-';
             }
             
@@ -326,12 +326,24 @@
             const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
             document.getElementById('signDate').textContent = dateStr;
             
-            // 계약 타입에 따라 페이지 제목 변경
+            // 차용증 계약서 제목 및 영문 변경
             const pageTitle = document.getElementById('pageTitle');
-            if (data.contract_type === 'loan') {
-                pageTitle.textContent = 'Z-BIKE 대여금 계약서';
+            const englishSubtitle = pageTitle.nextElementSibling;
+            const creditorLabel = document.getElementById('creditorLabel');
+            
+            // 차용증인 경우
+            if (!data.contract_type || data.borrower_name) {
+                pageTitle.textContent = 'Z-BIKE 차용증 계약서';
+                englishSubtitle.textContent = 'Money Loan Contract';
+                if (creditorLabel) {
+                    creditorLabel.textContent = '[ 채권자 (회사) ]';
+                }
             } else {
                 pageTitle.textContent = 'Z-BIKE 오토바이 대여 계약서';
+                englishSubtitle.textContent = 'Electronic Motorcycle Rental Contract';
+                if (creditorLabel) {
+                    creditorLabel.textContent = '[ 임대인 (업체) ]';
+                }
             }
             
             // 계약 정보 표시
@@ -362,15 +374,15 @@
                                         </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">사업자등록번호</td>
-                                            <td class="px-3 py-2">${companySettings.company_code}</td>
+                                            <td class="px-3 py-2">${companySettings.business_number}</td>
                                         </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">대표자</td>
-                                            <td class="px-3 py-2">${companySettings.representative}</td>
+                                            <td class="px-3 py-2">${companySettings.representative_name}</td>
                                         </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">연락처</td>
-                                            <td class="px-3 py-2">${companySettings.manager_phone || companySettings.phone}</td>
+                                            <td class="px-3 py-2">${companySettings.manager_phone1 || companySettings.phone}</td>
                                         </tr>
                                         <tr>
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">주소</td>
@@ -518,7 +530,7 @@
                 // 차용증 약관
                 return `
                     <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
-                        <h3 class="font-bold text-lg mb-3">대주 정보</h3>
+                        <h3 class="font-bold text-lg mb-3">채권자 정보</h3>
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
                             <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
@@ -537,12 +549,12 @@
                     <div class="space-y-4">
                         <div>
                             <h4 class="font-bold mb-2">제1조 (목적)</h4>
-                            <p class="text-gray-700">본 약관은 대주와 차주 간의 금전 대여에 관한 권리와 의무를 명확히 하여 원활한 거래를 도모함을 목적으로 합니다.</p>
+                            <p class="text-gray-700">본 약관은 채권자와 차주 간의 금전 대여에 관한 권리와 의무를 명확히 하여 원활한 거래를 도모함을 목적으로 합니다.</p>
                         </div>
                         
                         <div>
                             <h4 class="font-bold mb-2">제2조 (대여금의 지급)</h4>
-                            <p class="text-gray-700">대주는 차주에게 계약서에 명시된 금액을 대여하며, 지급 방법은 현금 또는 계좌이체로 합니다.</p>
+                            <p class="text-gray-700">채권자는 차주에게 계약서에 명시된 금액을 대여하며, 지급 방법은 현금 또는 계좌이체로 합니다.</p>
                         </div>
                         
                         <div>
@@ -557,7 +569,7 @@
                         
                         <div>
                             <h4 class="font-bold mb-2">제5조 (기한의 이익 상실)</h4>
-                            <p class="text-gray-700">차주가 약정 상환을 2회 이상 연체하거나 허위 정보를 제공한 경우, 대주는 기한의 이익을 상실시키고 즉시 전액 상환을 청구할 수 있습니다.</p>
+                            <p class="text-gray-700">차주가 약정 상환을 2회 이상 연체하거나 허위 정보를 제공한 경우, 채권자는 기한의 이익을 상실시키고 즉시 전액 상환을 청구할 수 있습니다.</p>
                         </div>
                         
                         <div>
