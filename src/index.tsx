@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from '@hono/node-server/serve-static'
+import { serveStatic } from 'hono/cloudflare-workers'
 import { createSMSService, SMSTemplates } from './services/sms'
 
 type Bindings = {
@@ -63,13 +63,8 @@ app.use('*', async (c, next) => {
   c.res.headers.set('Expires', '0')
 })
 
-// 정적 HTML 파일 직접 서빙
-app.get('/static/:filename', serveStatic({ root: './public' }))
-
-// 나머지 정적 파일
-app.use('/static/*', serveStatic({ 
-  root: './public'
-}))
+// 정적 파일 서빙 (Cloudflare Pages는 public/ 폴더를 자동으로 매핑)
+app.use('/static/*', serveStatic())
 
 // ============================================
 // 인증 헬퍼 함수
