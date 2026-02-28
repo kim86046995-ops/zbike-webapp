@@ -346,12 +346,14 @@
                 let statusText = '';
                 let statusColor = statusColors[actualStatus];
                 if (actualStatus === 'active') {
-                    // 서명 데이터가 없으면 "서명대기", 있으면 "진행중"
-                    if (!loan.signature_data || loan.signature_data === '') {
+                    // borrower_signature가 없으면 "서명대기" (고객이 아직 서명 안 함)
+                    // borrower_signature가 있으면 "진행중" (계약 진행중)
+                    if (!loan.borrower_signature || loan.borrower_signature === '') {
                         statusText = '서명대기';
                         statusColor = 'bg-blue-100 text-blue-800';
                     } else {
                         statusText = '진행중';
+                        statusColor = 'bg-green-100 text-green-800';
                     }
                 } else if (actualStatus === 'completed') {
                     statusText = '상환완료';
@@ -428,12 +430,14 @@
                 let statusText = '';
                 let statusColor = statusColors[actualStatus];
                 if (actualStatus === 'active') {
-                    // 서명 데이터가 없으면 "서명대기", 있으면 "진행중"
-                    if (!loan.signature_data || loan.signature_data === '') {
+                    // borrower_signature가 없으면 "서명대기" (고객이 아직 서명 안 함)
+                    // borrower_signature가 있으면 "진행중" (계약 진행중)
+                    if (!loan.borrower_signature || loan.borrower_signature === '') {
                         statusText = '서명대기';
                         statusColor = 'bg-blue-100 text-blue-800';
                     } else {
                         statusText = '진행중';
+                        statusColor = 'bg-green-100 text-green-800';
                     }
                 } else if (actualStatus === 'completed') {
                     statusText = '상환완료';
