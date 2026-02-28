@@ -3381,8 +3381,17 @@ app.delete('/api/contracts/:id', authMiddleware, async (c) => {
       return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
     }
     
+    const contractData = contract as any
+    
     // 소프트 삭제 (deleted_at에 현재 시간 설정)
     await DB.prepare('UPDATE contracts SET deleted_at = datetime("now") WHERE id = ?').bind(id).run()
+    
+    // 오토바이 상태를 available로 변경
+    if (contractData.motorcycle_id) {
+      await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+        .bind('available', contractData.motorcycle_id).run()
+      console.log(`✅ 오토바이 상태 변경: ${contractData.motorcycle_id} → available`)
+    }
     
     return c.json({ message: '계약서가 삭제되었습니다. 사용 이력에서는 계속 조회할 수 있습니다.' })
   } catch (error) {
