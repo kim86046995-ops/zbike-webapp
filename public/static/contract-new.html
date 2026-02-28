@@ -1132,8 +1132,10 @@
         // 금액 포매팅 함수 (콤마 자동 삽입)
         // ==========================================
         function formatNumberWithComma(value) {
+            // 숫자를 문자열로 변환
+            const strValue = String(value || '');
             // 숫자가 아닌 문자 제거
-            const number = value.replace(/[^\d]/g, '');
+            const number = strValue.replace(/[^\d]/g, '');
             // 콤마 추가
             return number.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
