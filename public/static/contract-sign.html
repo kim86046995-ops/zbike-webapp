@@ -275,7 +275,8 @@
                     representative: response.data.representative_name || '대표자',
                     address: response.data.address || '서울시',
                     phone: response.data.phone || '02-1234-5678',
-                    manager_phone: response.data.phone || '02-1234-5678'
+                    manager_phone1: response.data.manager_phone1 || '',
+                    manager_phone2: response.data.manager_phone2 || ''
                 };
                 console.log('✅ 업체 정보 로드 성공:', companySettings);
             } catch (error) {
@@ -287,7 +288,8 @@
                     representative: '대표자',
                     address: '서울시',
                     phone: '02-1234-5678',
-                    manager_phone: '02-1234-5678'
+                    manager_phone1: '',
+                    manager_phone2: ''
                 };
             }
         }
@@ -333,7 +335,7 @@
                 document.getElementById('company-name').textContent = companySettings.company_name || 'Z-BIKE';
                 document.getElementById('business-number').textContent = companySettings.company_code || '-';
                 document.getElementById('representative').textContent = companySettings.representative || '-';
-                document.getElementById('company-phone').textContent = companySettings.manager_phone || companySettings.phone || '-';
+                document.getElementById('company-phone').textContent = companySettings.manager_phone1 || companySettings.phone || '-';
                 document.getElementById('company-address').textContent = companySettings.address || '-';
             }
             
@@ -741,7 +743,7 @@
             const companyCode = companySettings?.company_code || '사업자등록번호';
             const representative = companySettings?.representative || '대표자';
             const companyAddress = companySettings?.address || '주소';
-            const companyPhone = companySettings?.manager_phone || companySettings?.phone || '연락처';
+            const companyPhone = companySettings?.manager_phone1 || companySettings?.phone || '연락처';
             
             if (type === 'loan') {
                 // 차용증 약관

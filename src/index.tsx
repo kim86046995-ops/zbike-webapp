@@ -3500,7 +3500,7 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
 app.get('/api/company-settings/public', async (c) => {
   const DB = c.env.DB || c.env.db
   
-  const result = await DB.prepare('SELECT company_name, business_number, representative_name, address, phone FROM company_settings ORDER BY id DESC LIMIT 1').first()
+  const result = await DB.prepare('SELECT company_name, business_number, representative_name, address, phone, manager_phone1, manager_phone2 FROM company_settings ORDER BY id DESC LIMIT 1').first()
   
   if (!result) {
     return c.json({ 
@@ -3508,7 +3508,9 @@ app.get('/api/company-settings/public', async (c) => {
       company_code: '000-00-00000', 
       representative_name: '대표자명',
       address: '',
-      phone: ''
+      phone: '',
+      manager_phone1: '',
+      manager_phone2: ''
     })
   }
   
@@ -3518,7 +3520,9 @@ app.get('/api/company-settings/public', async (c) => {
     company_code: result.business_number,
     representative_name: result.representative_name,
     address: result.address,
-    phone: result.phone
+    phone: result.phone,
+    manager_phone1: result.manager_phone1,
+    manager_phone2: result.manager_phone2
   })
 })
 
