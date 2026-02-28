@@ -2197,9 +2197,9 @@
                 // 계약 정보
                 start_date: document.getElementById('startDate').value,
                 end_date: document.getElementById('endDate').value,
-                monthly_fee: parseInt(document.getElementById('dailyFee').value),
-                daily_fee: parseInt(document.getElementById('dailyFee').value),
-                deposit: parseInt(document.getElementById('deposit').value) || 0,
+                monthly_fee: unformatNumber(document.getElementById('dailyFee').value || '0'),
+                daily_fee: unformatNumber(document.getElementById('dailyFee').value || '0'),
+                deposit: unformatNumber(document.getElementById('deposit').value || '0'),
                 driving_range: document.getElementById('drivingRange').value,
                 insurance_age_limit: document.getElementById('drivingRange').value, // 보험운전범위
                 // 보험 정보
@@ -2559,9 +2559,9 @@
                     // 계약 정보
                     start_date: getElementValue('startDate'),
                     end_date: getElementValue('endDate'),
-                    monthly_fee: parseInt(getElementValue('dailyFee', '0')) || 0,
-                    daily_fee: parseInt(getElementValue('dailyFee', '0')) || 0,
-                    deposit: parseInt(getElementValue('deposit', '0')) || 0,
+                    monthly_fee: unformatNumber(getElementValue('dailyFee', '0')),
+                    daily_fee: unformatNumber(getElementValue('dailyFee', '0')),
+                    deposit: unformatNumber(getElementValue('deposit', '0')),
                     driving_range: getElementValue('drivingRange'),
                     insurance_age_limit: getElementValue('drivingRange'),
                     // 보험 정보
