@@ -750,7 +750,7 @@
                                 <p class="mb-1">
                                     <i class="fas fa-won-sign w-4 text-purple-600"></i> 
                                     ${c.business_contract_type === 'lease' ? '리스대여료' : c.business_contract_type === 'rent' ? '렌트대여료' : '대여료'}: 
-                                    ${Number(c.daily_amount || c.monthly_fee || 0).toLocaleString()}원
+                                    ${Number(c.monthly_fee || c.daily_amount || 0).toLocaleString()}원
                                 </p>
                                 <p><i class="fas fa-clock w-4 text-purple-600"></i> ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
                             </div>
