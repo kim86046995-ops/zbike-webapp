@@ -217,35 +217,30 @@
                 return;
             }
             
-            // 업체 정보 먼저 로드
-            await loadCompanySettings();
+            // 계약서 정보 로드 (회사 정보 포함)
             loadContract();
             initSignaturePad();
         });
-
-        // 업체 정보 로드
-        async function loadCompanySettings() {
-            try {
-                const response = await axios.get('/api/company-settings');
-                companySettings = response.data;
-            } catch (error) {
-                console.error('업체 정보 로드 실패:', error);
-                // 기본값 설정
-                companySettings = {
-                    company_name: 'Z-BIKE',
-                    company_code: '123-45-67890',
-                    representative: '대표자',
-                    address: '서울시',
-                    phone: '02-1234-5678'
-                };
-            }
-        }
 
         // 계약서 불러오기
         async function loadContract() {
             try {
                 const response = await axios.get(`/api/business-contracts/${contractId}/sign`);
                 contractData = response.data;
+                
+                // 회사 정보 추출
+                if (contractData.company_settings) {
+                    companySettings = contractData.company_settings;
+                } else {
+                    // 기본값 설정
+                    companySettings = {
+                        company_name: 'Z-BIKE',
+                        business_number: '123-45-67890',
+                        representative_name: '대표자',
+                        address: '서울시',
+                        phone: '000-0000-0000'
+                    };
+                }
                 
                 if (contractData.status === 'active' && contractData.signature_data) {
                     showCompleted();
@@ -272,9 +267,9 @@
             // 업체 정보 표시
             if (companySettings) {
                 document.getElementById('company-name').textContent = companySettings.company_name || 'Z-BIKE';
-                document.getElementById('business-number').textContent = companySettings.company_code || '-';
-                document.getElementById('representative').textContent = companySettings.representative || '-';
-                document.getElementById('company-phone').textContent = companySettings.manager_phone || companySettings.phone || '-';
+                document.getElementById('business-number').textContent = companySettings.business_number || '-';
+                document.getElementById('representative').textContent = companySettings.representative_name || '-';
+                document.getElementById('company-phone').textContent = companySettings.manager_phone1 || companySettings.phone || '-';
                 document.getElementById('company-address').textContent = companySettings.address || '-';
             }
             
@@ -1116,11 +1111,16 @@
             
             const signatureData = canvas.toDataURL('image/png');
             
-            // ⚠️ 업체는 이미 신분증이 등록되어 있으므로 신분증 확인 생략
+            // 신분증 확인
+            if (!idCardPhoto) {
+                alert('신분증을 촬영하거나 업로드해주세요.');
+                return;
+            }
             
             try {
                 await axios.put(`/api/business-contracts/${contractId}/sign`, {
-                    signature_data: signatureData
+                    signature_data: signatureData,
+                    id_card_photo: idCardPhoto
                 });
                 
                 showCompleted();

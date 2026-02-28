@@ -3839,19 +3839,22 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
     return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
   }
   
+  // 회사 정보 가져오기 (고객이 로그인 없이 접근하므로 필요)
+  const companySettings = await DB.prepare('SELECT * FROM company_settings LIMIT 1').first()
+  
   // 이미 서명된 계약서인지 확인
   if (result.status === 'active' && result.signature_data) {
-    return c.json({ ...result, already_signed: true })
+    return c.json({ ...result, company_settings: companySettings, already_signed: true })
   }
   
-  return c.json(result)
+  return c.json({ ...result, company_settings: companySettings })
 })
 
 // 업체 계약서 서명 제출 (인증 없음)
 app.put('/api/business-contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { signature_data } = await c.req.json()
+  const { signature_data, id_card_photo } = await c.req.json()
   
   // 계약서 조회
   const contract = await DB.prepare(`
@@ -3866,19 +3869,12 @@ app.put('/api/business-contracts/:id/sign', async (c) => {
     return c.json({ error: '이미 서명된 계약서입니다' }, 400)
   }
   
-  // 업체 테이블에서 신분증 가져오기
-  const companyData = await DB.prepare(`
-    SELECT id_card_photo FROM companies WHERE company_code = ?
-  `).bind(contract.company_code).first() as any
-  
-  const idCardPhoto = companyData?.id_card_photo || contract.id_card_photo || ''
-  
   // 서명 추가 및 상태 업데이트
   await DB.prepare(`
     UPDATE business_contracts 
     SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
     WHERE id = ?
-  `).bind(signature_data, idCardPhoto, id).run()
+  `).bind(signature_data, id_card_photo || '', id).run()
   
   // 오토바이 상태 업데이트
   await DB.prepare(`
@@ -4438,7 +4434,14 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
     
     // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
-    const defaultMessage = `[Z-BIKE 전자계약서]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
+    let contractTypeLabel = '전자계약서'
+    if (contract_type === 'business') {
+      contractTypeLabel = '업체 계약서'
+    } else if (contract_type === 'loan') {
+      contractTypeLabel = '차용증 계약서'
+    }
+    
+    const defaultMessage = `[Z-BIKE ${contractTypeLabel}]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
     const message = customMessage || defaultMessage
     const phoneNumber = to || phone
     
