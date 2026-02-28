@@ -2,11 +2,16 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.10 - 업체 계약서 서명란 터치 개선)**: https://e1beadb1.zbike-webapp.pages.dev
+- **최신 배포 (v8.11 - 업체 계약서 리다이렉트 수정)**: https://92399de1.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.11 (2026-02-28)** - 업체 계약서 리다이렉트 수정 🎉
+- ✅ **SMS 전송 후 리다이렉트**: 홈(`/`) → **계약서 목록**(`/static/contracts.html`)
+- ✅ **관리자 직접 저장 후 리다이렉트**: 홈(`/`) → **계약서 목록**(`/static/contracts.html`)
+- ✅ **이희준 고객 전화번호 삭제**: 고객 목록 및 모든 계약서에서 전화번호 제거
 
 **v8.10 (2026-02-28)** - 업체 계약서 서명란 터치 개선 🎉
 - ✅ **서명란 전체 터치 가능**: 캔버스 어디든 한 번만 터치하면 확대 모달 열림
