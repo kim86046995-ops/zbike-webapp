@@ -4424,7 +4424,8 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     })
     
     // EC2 SMS 서버 경유 (고정 IP)
-    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/sms'
+    // DNS 호스트명 사용 (Cloudflare Workers와의 호환성)
+    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://ec2-13-209-230-136.ap-northeast-2.compute.amazonaws.com:3001/sms'
     
     console.log('📤 EC2 SMS 서버 경유 시작:', EC2_SMS_URL)
     
