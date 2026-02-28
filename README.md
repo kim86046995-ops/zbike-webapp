@@ -2,11 +2,22 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.5 - 업체 계약서 정보 표시 개선)**: https://3a554fab.zbike-webapp.pages.dev
+- **최신 배포 (v8.6 - 업체 계약서 계약 종류 추가)**: https://0fdada3c.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.6 (2026-02-28)** - 업체 계약서 계약 종류 추가 🎉
+- ✅ **업체 정보**: 업종, 업태 삭제
+  - ❌ 삭제: 업종 (`business_type`)
+  - ❌ 삭제: 업태 (`business_category`)
+- ✅ **계약 조건**: 계약 종류 추가 (최상단 표시)
+  - ✅ 추가: **계약 종류** (`business_contract_type`)
+  - 리스 (`lease`) → "리스"
+  - 렌트 (`rent`) → "렌트"
+  - 임시렌트 (`temp_rent`) → "임시렌트"
+- ✅ **표시 순서**: 계약 종류 → 계약 시작일 → 계약 종료일 → 일 차감액 → 보증금
 
 **v8.5 (2026-02-28)** - 업체 계약서 정보 표시 개선 🎉
 - ✅ **"임차인 정보" → "업체 정보"** 변경
