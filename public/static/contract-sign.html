@@ -264,9 +264,9 @@
                 return;
             }
             
-            // 업체 정보 먼저 로드
+            // 업체 정보 먼저 로드한 후 계약서 로드
             await loadCompanySettings();
-            loadContract();
+            await loadContract();
             initSignaturePad();
         });
 
@@ -746,11 +746,13 @@
 
         // 약관 내용
         function getContractTerms(type) {
+            console.log('🔍 약관 생성 시 companySettings:', companySettings);
             const companyName = companySettings?.company_name || 'Z-BIKE';
             const companyCode = companySettings?.company_code || '사업자등록번호';
             const representative = companySettings?.representative || '대표자';
             const companyAddress = companySettings?.address || '주소';
             const companyPhone = companySettings?.manager_phone1 || companySettings?.phone || '연락처';
+            console.log('🔍 약관 업체 정보:', { companyName, companyCode, representative, companyAddress, companyPhone });
             
             if (type === 'loan') {
                 // 차용증 약관
