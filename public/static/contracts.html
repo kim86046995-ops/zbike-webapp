@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>계약서 목록</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -569,10 +572,11 @@
 
         async function loadContracts() {
             try {
-                // 개인 계약서와 업체 계약서를 모두 불러오기
+                // 개인 계약서와 업체 계약서를 모두 불러오기 (캐시 무효화)
+                const timestamp = new Date().getTime();
                 const [personalResponse, businessResponse] = await Promise.all([
-                    axios.get('/api/contracts'),
-                    axios.get('/api/business-contracts')
+                    axios.get(`/api/contracts?_t=${timestamp}`),
+                    axios.get(`/api/business-contracts?_t=${timestamp}`)
                 ]);
                 
                 // 개인 계약서 데이터 (원본 contract_type 유지)
