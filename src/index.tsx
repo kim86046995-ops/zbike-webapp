@@ -378,6 +378,23 @@ app.post('/api/auth/logout', async (c) => {
   return c.json({ success: true })
 })
 
+// 세션 검증 (자동 로그인용)
+app.get('/api/auth/validate', authMiddleware, async (c) => {
+  // authMiddleware를 통과했다면 세션이 유효함
+  const session = c.get('session')
+  
+  return c.json({
+    success: true,
+    valid: true,
+    user: {
+      id: session.userId,
+      username: session.username,
+      name: session.name,
+      role: session.role
+    }
+  })
+})
+
 // 디버그 API - DB 연결 확인
 app.get('/api/debug/db-test', async (c) => {
   try {

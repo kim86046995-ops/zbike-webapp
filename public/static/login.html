@@ -115,6 +115,44 @@
     </div>
     
     <script>
+        // 자동 로그인 체크 - 이미 로그인되어 있으면 리다이렉트
+        (async function checkAutoLogin() {
+            const sessionId = localStorage.getItem('sessionId');
+            const user = localStorage.getItem('user');
+            
+            if (sessionId && user) {
+                console.log('✅ 기존 세션 발견 - 자동 로그인 중...');
+                
+                // 세션 유효성 검증
+                try {
+                    const response = await fetch('/api/auth/validate', {
+                        method: 'GET',
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        console.log('✅ 세션 유효 - 리다이렉트');
+                        
+                        // redirect 파라미터가 있으면 해당 페이지로, 없으면 계약서 목록으로
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirectUrl = urlParams.get('redirect') || '/static/contracts.html';
+                        window.location.href = redirectUrl;
+                        return;
+                    } else {
+                        console.log('⚠️ 세션 만료됨 - 로그인 필요');
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('user');
+                    }
+                } catch (error) {
+                    console.error('❌ 세션 검증 실패:', error);
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                }
+            }
+        })();
+        
         // 버전 체크 및 캐시 강제 무효화
         const CURRENT_VERSION = '20260207-09f14db';
         const storedVersion = localStorage.getItem('login_version');
