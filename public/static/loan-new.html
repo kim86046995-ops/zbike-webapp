@@ -1069,6 +1069,7 @@
             e.preventDefault();
 
             // ⚠️ 서명과 신분증은 고객이 나중에 작성합니다
+            const borrowerSignatureData = ''; // 빈 값 (고객이 SMS 링크에서 작성)
 
             // 필수 필드 확인
             const loanAmount = parseInt(unformatNumber(document.getElementById('loanAmount').value));
