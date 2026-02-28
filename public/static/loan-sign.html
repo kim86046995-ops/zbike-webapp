@@ -339,18 +339,56 @@
             
             // 계약 정보 표시
             const contractInfo = document.getElementById('contractInfo');
-            const info = JSON.parse(data.contract_data);
             
             let infoHTML = '';
             
-            // 차용증일 경우
-            if (data.contract_type === 'loan') {
+            // 차용증일 경우 - data를 직접 사용 (contract_data가 아닌 컬럼 직접 저장)
+            if (!data.contract_type || data.borrower_name) { // 차용증 판별
                 infoHTML = `
                     <div class="space-y-6">
-                        <!-- 계약 당사자: 차주 정보 -->
+                        <!-- 채권자 정보 -->
                         <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
                             <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-bold text-gray-800">[ 차주 정보 ]</h3>
+                                <h3 class="text-lg font-bold text-gray-800">[ 채권자 정보 (회사) ]</h3>
+                            </div>
+                            <div class="p-4 bg-white">
+                                <table class="w-full">
+                                    <colgroup>
+                                        <col style="width: 25%;">
+                                        <col style="width: 75%;">
+                                    </colgroup>
+                                    <tbody>
+                                        ${companySettings ? `
+                                        <tr class="border-b">
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">회사명</td>
+                                            <td class="px-3 py-2 font-bold">${companySettings.company_name}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">사업자등록번호</td>
+                                            <td class="px-3 py-2">${companySettings.company_code}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">대표자</td>
+                                            <td class="px-3 py-2">${companySettings.representative}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">연락처</td>
+                                            <td class="px-3 py-2">${companySettings.manager_phone || companySettings.phone}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">주소</td>
+                                            <td class="px-3 py-2">${companySettings.address}</td>
+                                        </tr>
+                                        ` : ''}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 차용인 정보 -->
+                        <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                            <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
+                                <h3 class="text-lg font-bold text-gray-800">[ 차용인 정보 ]</h3>
                             </div>
                             <div class="p-4 bg-white">
                                 <table class="w-full">
@@ -361,21 +399,21 @@
                                     <tbody>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">성명</td>
-                                            <td class="px-3 py-2">${data.customer_name}</td>
+                                            <td class="px-3 py-2">${data.borrower_name}</td>
                                         </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">연락처</td>
-                                            <td class="px-3 py-2">${data.customer_phone}</td>
+                                            <td class="px-3 py-2">${data.borrower_phone}</td>
                                         </tr>
-                                        ${info.resident_number ? `
+                                        ${data.borrower_resident_number ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">주민등록번호</td>
-                                            <td class="px-3 py-2">${info.resident_number}</td>
+                                            <td class="px-3 py-2">${data.borrower_resident_number}</td>
                                         </tr>` : ''}
-                                        ${info.address ? `
+                                        ${data.borrower_address ? `
                                         <tr>
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">주소</td>
-                                            <td class="px-3 py-2">${info.address}</td>
+                                            <td class="px-3 py-2">${data.borrower_address}</td>
                                         </tr>` : ''}
                                     </tbody>
                                 </table>
@@ -394,25 +432,30 @@
                                         <col style="width: 75%;">
                                     </colgroup>
                                     <tbody>
-                                        ${info.loan_amount ? `
+                                        ${data.loan_amount ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">대여금액</td>
-                                            <td class="px-3 py-2 font-bold text-blue-600">${parseInt(info.loan_amount).toLocaleString()}원</td>
+                                            <td class="px-3 py-2 font-bold text-blue-600">${parseInt(data.loan_amount).toLocaleString()}원</td>
                                         </tr>` : ''}
-                                        ${info.daily_deduction ? `
+                                        ${data.daily_deduction ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">일 차감액</td>
-                                            <td class="px-3 py-2">${parseInt(info.daily_deduction).toLocaleString()}원</td>
+                                            <td class="px-3 py-2">${parseInt(data.daily_deduction).toLocaleString()}원</td>
                                         </tr>` : ''}
-                                        ${info.start_date ? `
+                                        ${data.loan_date ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">대여일</td>
-                                            <td class="px-3 py-2">${info.start_date}</td>
+                                            <td class="px-3 py-2">${data.loan_date}</td>
                                         </tr>` : ''}
-                                        ${info.end_date ? `
+                                        ${data.repayment_date ? `
+                                        <tr class="border-b">
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">상환일</td>
+                                            <td class="px-3 py-2">${data.repayment_date}</td>
+                                        </tr>` : ''}
+                                        ${data.loan_period ? `
                                         <tr>
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">만기일</td>
-                                            <td class="px-3 py-2">${info.end_date}</td>
+                                            <td class="px-3 py-2 bg-gray-100 font-semibold">대여기간</td>
+                                            <td class="px-3 py-2">${data.loan_period}일</td>
                                         </tr>` : ''}
                                     </tbody>
                                 </table>
@@ -420,255 +463,13 @@
                         </div>
 
                         <!-- 특약사항 -->
-                        ${info.special_terms ? `
+                        ${data.special_terms ? `
                         <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
                             <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
                                 <h3 class="text-lg font-bold text-gray-800">[ 특약사항 ]</h3>
                             </div>
                             <div class="p-4 bg-white">
-                                <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${info.special_terms}</p>
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-            } 
-            // 오토바이 계약서 (리스/렌트/임시렌트)
-            else {
-                infoHTML = `
-                    <div class="space-y-6">
-                        <!-- 계약 당사자: 임차인 정보 -->
-                        <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                            <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-bold text-gray-800">[ 임차인 (고객) ]</h3>
-                            </div>
-                            <div class="p-4 bg-white">
-                                <table class="w-full">
-                                    <colgroup>
-                                        <col style="width: 25%;">
-                                        <col style="width: 75%;">
-                                    </colgroup>
-                                    <tbody>
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">성명</td>
-                                            <td class="px-3 py-2">${data.customer_name}</td>
-                                        </tr>
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">연락처</td>
-                                            <td class="px-3 py-2">${data.customer_phone}</td>
-                                        </tr>
-                                        ${info.resident_number ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">주민등록번호</td>
-                                            <td class="px-3 py-2">${info.resident_number}</td>
-                                        </tr>` : ''}
-                                        ${info.address ? `
-                                        <tr>
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">주소</td>
-                                            <td class="px-3 py-2">${info.address}</td>
-                                        </tr>` : ''}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- 계약 대상: 오토바이 정보 -->
-                        <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                            <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-bold text-gray-800">[ 계약 오토바이 상세 정보 ]</h3>
-                            </div>
-                            <div class="p-4 bg-white">
-                                <!-- 기본 정보 -->
-                                <div class="mb-4">
-                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
-                                        <i class="fas fa-motorcycle mr-1 text-indigo-600"></i>기본 정보
-                                    </h4>
-                                    <table class="w-full">
-                                        <colgroup>
-                                            <col style="width: 25%;">
-                                            <col style="width: 75%;">
-                                        </colgroup>
-                                        <tbody>
-                                            ${info.motorcycle_name ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">차량명</td>
-                                                <td class="px-3 py-2 font-bold text-lg text-indigo-600">${info.motorcycle_name}</td>
-                                            </tr>` : ''}
-                                            ${info.motorcycle_plate ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">차량번호</td>
-                                                <td class="px-3 py-2 font-bold text-gray-800">${info.motorcycle_plate}</td>
-                                            </tr>` : ''}
-                                            ${info.chassis_number ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">차대번호</td>
-                                                <td class="px-3 py-2 font-mono text-sm text-gray-700">${info.chassis_number}</td>
-                                            </tr>` : ''}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- 차량 제원 -->
-                                <div class="mb-4">
-                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
-                                        <i class="fas fa-cogs mr-1 text-blue-600"></i>차량 제원
-                                    </h4>
-                                    <table class="w-full">
-                                        <colgroup>
-                                            <col style="width: 25%;">
-                                            <col style="width: 75%;">
-                                        </colgroup>
-                                        <tbody>
-                                            ${info.model_year ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">연식</td>
-                                                <td class="px-3 py-2">${info.model_year}년</td>
-                                            </tr>` : ''}
-                                            ${info.mileage !== undefined ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">주행거리</td>
-                                                <td class="px-3 py-2">${parseInt(info.mileage).toLocaleString()} km</td>
-                                            </tr>` : ''}
-                                            ${info.displacement ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">배기량</td>
-                                                <td class="px-3 py-2">${info.displacement} cc</td>
-                                            </tr>` : ''}
-                                            ${info.color ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">색상</td>
-                                                <td class="px-3 py-2">${info.color}</td>
-                                            </tr>` : ''}
-                                            ${info.fuel_type ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">연료</td>
-                                                <td class="px-3 py-2">${info.fuel_type}</td>
-                                            </tr>` : ''}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- 보험 정보 -->
-                                ${info.insurance_company || info.insurance_start_date || info.insurance_end_date ? `
-                                <div class="mb-4">
-                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
-                                        <i class="fas fa-shield-alt mr-1 text-green-600"></i>보험 정보
-                                    </h4>
-                                    <table class="w-full">
-                                        <colgroup>
-                                            <col style="width: 25%;">
-                                            <col style="width: 75%;">
-                                        </colgroup>
-                                        <tbody>
-                                            ${info.insurance_company ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험사</td>
-                                                <td class="px-3 py-2">${info.insurance_company}</td>
-                                            </tr>` : ''}
-                                            ${info.insurance_start_date ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험 시작일</td>
-                                                <td class="px-3 py-2">${info.insurance_start_date}</td>
-                                            </tr>` : ''}
-                                            ${info.insurance_end_date ? `
-                                            <tr>
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험 종료일</td>
-                                                <td class="px-3 py-2 font-semibold ${(() => {
-                                                    const endDate = new Date(info.insurance_end_date);
-                                                    const today = new Date();
-                                                    const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-                                                    return daysLeft < 30 ? 'text-red-600' : 'text-green-600';
-                                                })()}">${info.insurance_end_date}</td>
-                                            </tr>` : ''}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                ` : ''}
-
-                                <!-- 기타 정보 -->
-                                ${info.owner_name || info.driving_range ? `
-                                <div>
-                                    <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
-                                        <i class="fas fa-info-circle mr-1 text-gray-600"></i>기타 정보
-                                    </h4>
-                                    <table class="w-full">
-                                        <colgroup>
-                                            <col style="width: 25%;">
-                                            <col style="width: 75%;">
-                                        </colgroup>
-                                        <tbody>
-                                            ${info.owner_name ? `
-                                            <tr class="border-b">
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">소유자</td>
-                                                <td class="px-3 py-2">${info.owner_name}</td>
-                                            </tr>` : ''}
-                                            ${info.driving_range ? `
-                                            <tr>
-                                                <td class="px-3 py-2 bg-gray-50 font-semibold">운전가능연령</td>
-                                                <td class="px-3 py-2 font-semibold text-orange-600">${info.driving_range}</td>
-                                            </tr>` : ''}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-
-                        <!-- 계약 조건 -->
-                        <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                            <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-bold text-gray-800">[ 계약 조건 ]</h3>
-                            </div>
-                            <div class="p-4 bg-white">
-                                <table class="w-full">
-                                    <colgroup>
-                                        <col style="width: 25%;">
-                                        <col style="width: 75%;">
-                                    </colgroup>
-                                    <tbody>
-                                        ${info.start_date ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">계약 시작일</td>
-                                            <td class="px-3 py-2">${info.start_date}</td>
-                                        </tr>` : ''}
-                                        ${info.end_date ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">계약 종료일</td>
-                                            <td class="px-3 py-2">${info.end_date}</td>
-                                        </tr>` : ''}
-                                        ${info.monthly_fee ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">월 대여료</td>
-                                            <td class="px-3 py-2 font-bold text-blue-600">${parseInt(info.monthly_fee).toLocaleString()}원</td>
-                                        </tr>` : ''}
-                                        ${info.daily_fee ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">일 차감액</td>
-                                            <td class="px-3 py-2">${parseInt(info.daily_fee).toLocaleString()}원</td>
-                                        </tr>` : ''}
-                                        ${info.deposit ? `
-                                        <tr class="border-b">
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">선납금</td>
-                                            <td class="px-3 py-2 font-bold text-green-600">${parseInt(info.deposit).toLocaleString()}원</td>
-                                        </tr>` : ''}
-                                        ${info.driving_range ? `
-                                        <tr>
-                                            <td class="px-3 py-2 bg-gray-100 font-semibold">운전연령</td>
-                                            <td class="px-3 py-2">${info.driving_range}</td>
-                                        </tr>` : ''}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- 특약사항 -->
-                        ${info.special_terms ? `
-                        <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
-                            <div class="bg-gray-200 px-4 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-bold text-gray-800">[ 특약사항 ]</h3>
-                            </div>
-                            <div class="p-4 bg-white">
-                                <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${info.special_terms}</p>
+                                <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${data.special_terms}</p>
                             </div>
                         </div>
                         ` : ''}
