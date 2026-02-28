@@ -2,11 +2,24 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.6 - 업체 계약서 계약 종류 추가)**: https://0fdada3c.zbike-webapp.pages.dev
+- **최신 배포 (v8.7 - 업체 계약서 보험정보 개선)**: https://5ea42f21.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.7 (2026-02-28)** - 업체 계약서 보험정보 개선 🎉
+- ✅ **리다이렉트 수정**: 관리자 직접 저장 후 홈페이지(`/`)로 이동 (기존: `/static/contracts.html`)
+- ✅ **보험 정보 추가**: SMS 링크 계약서에 보험사 + 운전연령 표시
+  - 보험사 (`insurance_company`)
+  - 보험 시작일 (`insurance_start_date`)
+  - 보험 종료일 (`insurance_end_date`)
+  - **운전가능연령** (`driving_range`) ← 새로 추가 (주황색 강조)
+- ✅ **백엔드 수정**: `/api/business-contracts/:id/sign` API에 오토바이 정보 추가
+  - `m.driving_range` (운전연령)
+  - `m.insurance_company` (보험사)
+  - `m.insurance_start_date` (보험 시작일)
+  - `m.insurance_end_date` (보험 종료일)
 
 **v8.6 (2026-02-28)** - 업체 계약서 계약 종류 추가 🎉
 - ✅ **업체 정보**: 업종, 업태 삭제
