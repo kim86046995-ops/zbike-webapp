@@ -2,12 +2,18 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.13 - 대시보드 자동 리다이렉트)**: https://e9bad833.zbike-webapp.pages.dev
-- **대시보드**: https://e9bad833.zbike-webapp.pages.dev/dashboard
+- **최신 배포 (v8.14 - 계약서 상세 임대인 정보 정리)**: https://a3e66df8.zbike-webapp.pages.dev
+- **대시보드**: https://a3e66df8.zbike-webapp.pages.dev/dashboard
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.14 (2026-02-28)** - 계약서 상세 임대인 정보 정리 🎉
+- ✅ **임대인 정보 필드 정리**: 계약서 상세(모달)에서 "매니저" 전화번호 필드 제거
+  - ❌ 이전: 상호, 업체계약번호, 대표자, 총괄매니저, **매니저** (2개 전화번호)
+  - ✅ 수정: 상호, 업체계약번호, 대표자, **총괄매니저** (1개 전화번호만 표시)
+- ✅ **정보 간소화**: 중복되는 매니저 전화번호 제거로 화면 깔끔하게 정리
 
 **v8.13 (2026-02-28)** - 대시보드 자동 리다이렉트 🎉
 - ✅ **자동 로그인 후 대시보드로 이동**: `/static/contracts.html` → `/dashboard`
