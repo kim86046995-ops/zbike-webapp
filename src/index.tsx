@@ -3500,7 +3500,7 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
 app.get('/api/company-settings/public', async (c) => {
   const DB = c.env.DB || c.env.db
   
-  const result = await DB.prepare('SELECT company_name, company_code, representative_name, address, phone FROM company_settings ORDER BY id DESC LIMIT 1').first()
+  const result = await DB.prepare('SELECT company_name, business_number, representative_name, address, phone FROM company_settings ORDER BY id DESC LIMIT 1').first()
   
   if (!result) {
     return c.json({ 
@@ -3512,7 +3512,14 @@ app.get('/api/company-settings/public', async (c) => {
     })
   }
   
-  return c.json(result)
+  // business_number를 company_code로 매핑하여 반환 (프론트엔드 호환성)
+  return c.json({
+    company_name: result.company_name,
+    company_code: result.business_number,
+    representative_name: result.representative_name,
+    address: result.address,
+    phone: result.phone
+  })
 })
 
 // 회사 설정 조회 (인증 필요 - 관리자용)
@@ -3529,7 +3536,11 @@ app.get('/api/company-settings', authMiddleware, async (c) => {
     })
   }
   
-  return c.json(result)
+  // business_number를 company_code로 매핑하여 반환 (프론트엔드 호환성)
+  return c.json({
+    ...result,
+    company_code: result.business_number
+  })
 })
 
 // 사업자 정보 수정
@@ -3547,14 +3558,14 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
       // 업데이트
       await DB.prepare(`
         UPDATE company_settings 
-        SET company_name = ?, company_code = ?, representative_name = ?,
+        SET company_name = ?, business_number = ?, representative_name = ?,
             phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
             manager_phone1 = ?, manager_phone2 = ?,
             updated_at = datetime("now")
         WHERE id = ?
       `).bind(
         data.company_name,
-        data.company_code,
+        data.business_number || data.company_code,
         data.representative_name,
         data.phone || '',
         data.address || '',
@@ -3568,11 +3579,11 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
     } else {
       // 신규 삽입
       await DB.prepare(`
-        INSERT INTO company_settings (company_name, company_code, representative_name, phone, address, bank_name, account_number, account_holder, manager_phone1, manager_phone2)
+        INSERT INTO company_settings (company_name, business_number, representative_name, phone, address, bank_name, account_number, account_holder, manager_phone1, manager_phone2)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         data.company_name,
-        data.company_code,
+        data.business_number || data.company_code,
         data.representative_name,
         data.phone || '',
         data.address || '',

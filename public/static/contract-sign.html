@@ -271,7 +271,7 @@
                 const response = await axios.get('/api/company-settings/public');
                 companySettings = {
                     company_name: response.data.company_name || 'Z-BIKE',
-                    company_code: response.data.company_code || '123-45-67890',
+                    company_code: response.data.business_number || '123-45-67890',
                     representative: response.data.representative_name || '대표자',
                     address: response.data.address || '서울시',
                     phone: response.data.phone || '02-1234-5678',
