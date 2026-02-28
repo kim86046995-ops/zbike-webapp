@@ -4424,23 +4424,21 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     })
     
     // EC2 SMS 서버 경유 (고정 IP)
-    // 정비시스템과 동일한 엔드포인트 사용
-    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/api/sms/send-direct'
+    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/sms'
     
     console.log('📤 EC2 SMS 서버 경유 시작:', EC2_SMS_URL)
     
-    // 전화번호를 하이픈 포함 형식으로 변환 (정비시스템과 동일)
+    // 전화번호 정규화 (하이픈 제거)
     const normalizedPhone = phoneNumber.replace(/[^0-9]/g, '')
-    const formattedPhone = normalizedPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
     
     const requestBody = {
-      receiver: formattedPhone,  // 정비시스템: receiver (하이픈 포함)
+      phone: normalizedPhone,
       message: message
     }
     
     console.log('📤 EC2 전송 데이터:', {
       url: EC2_SMS_URL,
-      receiver: formattedPhone,
+      phone: normalizedPhone,
       messageLength: message.length
     })
     
