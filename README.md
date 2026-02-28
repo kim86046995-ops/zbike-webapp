@@ -2,11 +2,18 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.7 - 업체 계약서 보험정보 개선)**: https://5ea42f21.zbike-webapp.pages.dev
+- **최신 배포 (v8.8 - 업체 계약서 계약번호 표시)**: https://d62c2916.zbike-webapp.pages.dev
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.8 (2026-02-28)** - 업체 계약서 계약번호 표시 🎉
+- ✅ **업체 정보 라벨 변경**: "사업자등록번호" → "계약번호"
+  - ❌ 이전: 사업자등록번호 (`business_number`)
+  - ✅ 수정: **계약번호** (`contract_number`) - 파란색 강조
+- ✅ **표시 형식**: 계약번호는 자동 생성된 고유 번호 표시
+  - 예시: BC-20260228-0001 (Business Contract)
 
 **v8.7 (2026-02-28)** - 업체 계약서 보험정보 개선 🎉
 - ✅ **리다이렉트 수정**: 관리자 직접 저장 후 홈페이지(`/`)로 이동 (기존: `/static/contracts.html`)
