@@ -1471,11 +1471,11 @@
                 const { id: contractId, contract_number: contractNumber } = response.data;
 
                 // 9. 성공 메시지 표시
-                alert(`✅ 업체 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명이 저장되었습니다.\n\n계약서 목록 페이지로 이동합니다.`);
+                alert(`✅ 업체 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명이 저장되었습니다.\n\n홈페이지로 이동합니다.`);
 
-                // 10. 계약서 목록으로 이동
+                // 10. 홈페이지로 이동
                 setTimeout(() => {
-                    window.location.href = '/static/contracts.html';
+                    window.location.href = '/';
                 }, 2000);
 
             } catch (error) {

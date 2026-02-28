@@ -520,7 +520,7 @@
                                 </div>
 
                                 <!-- 보험 정보 -->
-                                ${data.insurance_start_date || data.insurance_end_date ? `
+                                ${data.insurance_company || data.insurance_start_date || data.insurance_end_date || data.driving_range ? `
                                 <div class="mb-4">
                                     <h4 class="text-md font-bold text-gray-700 mb-2 pb-1 border-b border-gray-300">
                                         <i class="fas fa-shield-alt mr-1 text-green-600"></i>보험 정보
@@ -531,13 +531,18 @@
                                             <col style="width: 75%;">
                                         </colgroup>
                                         <tbody>
+                                            ${data.insurance_company ? `
+                                            <tr class="border-b">
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">보험사</td>
+                                                <td class="px-3 py-2">${data.insurance_company}</td>
+                                            </tr>` : ''}
                                             ${data.insurance_start_date ? `
                                             <tr class="border-b">
                                                 <td class="px-3 py-2 bg-gray-50 font-semibold">보험 시작일</td>
                                                 <td class="px-3 py-2">${data.insurance_start_date}</td>
                                             </tr>` : ''}
                                             ${data.insurance_end_date ? `
-                                            <tr>
+                                            <tr class="border-b">
                                                 <td class="px-3 py-2 bg-gray-50 font-semibold">보험 종료일</td>
                                                 <td class="px-3 py-2 font-semibold ${(() => {
                                                     const endDate = new Date(data.insurance_end_date);
@@ -545,6 +550,11 @@
                                                     const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
                                                     return daysLeft < 30 ? 'text-red-600' : 'text-green-600';
                                                 })()}">${data.insurance_end_date}</td>
+                                            </tr>` : ''}
+                                            ${data.driving_range ? `
+                                            <tr>
+                                                <td class="px-3 py-2 bg-gray-50 font-semibold">운전가능연령</td>
+                                                <td class="px-3 py-2 font-semibold text-orange-600">${data.driving_range}</td>
                                             </tr>` : ''}
                                         </tbody>
                                     </table>

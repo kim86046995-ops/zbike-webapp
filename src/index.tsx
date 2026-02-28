@@ -3829,7 +3829,8 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
   const result = await DB.prepare(`
     SELECT 
       bc.*,
-      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage
+      m.plate_number, m.vehicle_name, m.chassis_number, m.model_year, m.mileage, m.driving_range,
+      m.insurance_company, m.insurance_start_date, m.insurance_end_date
     FROM business_contracts bc
     JOIN motorcycles m ON bc.motorcycle_id = m.id
     WHERE bc.id = ?
