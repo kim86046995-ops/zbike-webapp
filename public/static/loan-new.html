@@ -375,16 +375,6 @@
                         </div>
                     </div>
                     
-                    <!-- 약관 동의 체크박스 -->
-                    <div class="mt-6 p-4 bg-blue-50 border-2 border-blue-400 rounded-lg">
-                        <label class="flex items-start cursor-pointer">
-                            <input type="checkbox" id="agreeTermsAdmin" class="mt-1 mr-3 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <span class="text-sm font-semibold text-gray-800">
-                                <i class="fas fa-check-circle mr-1 text-blue-600"></i>
-                                위 약관을 확인했으며, 차용인에게 SMS 링크를 전송하는 것에 동의합니다.
-                            </span>
-                        </label>
-                    </div>
                     
                     <!-- 계약 생성 날짜/시간 및 작성 위치 -->
                     <div class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -965,18 +955,7 @@
             try {
                 console.log('💾 관리자 직접 저장 시작 (차용증)');
 
-                // 1. 약관 동의 체크 확인
-                const agreeTerms = document.getElementById('agreeTermsAdmin');
-                if (!agreeTerms || !agreeTerms.checked) {
-                    alert('❌ 약관을 확인하고 동의해주세요.\n\n약관 동의 체크박스는 3. 차용증 약관 섹션 하단에 있습니다.');
-                    const termsSection = document.querySelector('#agreeTermsAdmin');
-                    if (termsSection) {
-                        termsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    return;
-                }
-
-                // 2. 서명 확인
+                // 1. 서명 확인
                 const canvas = document.getElementById('borrowerSignatureCanvas');
                 const ctx = canvas.getContext('2d');
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -1089,23 +1068,7 @@
         document.getElementById('loanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // 약관 동의 체크 확인
-            const agreeTerms = document.getElementById('agreeTermsAdmin');
-            if (!agreeTerms || !agreeTerms.checked) {
-                alert('❌ 약관을 확인하고 동의해주세요.\n\n약관 동의 체크박스는 3. 차용증 약관 섹션 하단에 있습니다.');
-                // 약관 섹션으로 스크롤
-                const termsSection = document.querySelector('#agreeTermsAdmin');
-                if (termsSection) {
-                    termsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                return;
-            }
-
-            // ⚠️ 서명도 고객이 나중에 합니다
-
-            // 서명 확인 및 최적화 (주석 처리)
-            // 서명은 고객이 나중에 작성합니다
-            const borrowerSignatureData = ''; // 빈 값
+            // ⚠️ 서명과 신분증은 고객이 나중에 작성합니다
 
             // 필수 필드 확인
             const loanAmount = parseInt(unformatNumber(document.getElementById('loanAmount').value));
