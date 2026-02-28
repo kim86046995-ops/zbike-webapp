@@ -342,7 +342,16 @@
             
             // 계약 정보 표시
             const contractInfo = document.getElementById('contractInfo');
-            const info = JSON.parse(data.contract_data);
+            
+            // contract_data 안전하게 파싱 (없거나 비어있으면 빈 객체 사용)
+            let info = {};
+            try {
+                if (data.contract_data && data.contract_data.trim() !== '') {
+                    info = JSON.parse(data.contract_data);
+                }
+            } catch (e) {
+                console.warn('contract_data 파싱 실패, 빈 객체 사용:', e);
+            }
             
             let infoHTML = '';
             
