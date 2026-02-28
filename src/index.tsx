@@ -4439,14 +4439,20 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     console.log('📤 전송 데이터:', requestBody)
     
     try {
+      console.log('🔄 Fetching EC2 server...')
+      
       // 정비관리 시스템과 동일한 방식으로 fetch
       const response = await fetch(SMS_AWS_LAMBDA_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Cloudflare-Workers'
         },
         body: JSON.stringify(requestBody)
       })
+      
+      console.log('✅ Fetch completed:', response.status)
       
       console.log('📥 EC2 응답 상태:', response.status, response.statusText)
       
