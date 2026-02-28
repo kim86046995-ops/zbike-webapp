@@ -4406,7 +4406,7 @@ app.get('/api/contract-shares', authMiddleware, async (c) => {
 })
 
 // SMS 전송 API (계약서 공유 링크 전송)
-// SMS 전송 (인증 필요)
+// SMS 전송 (인증 필요) - 정비관리 시스템 방식 (EC2 경유)
 app.post('/api/send-sms', authMiddleware, async (c) => {
   try {
     const body = await c.req.json()
@@ -4417,95 +4417,83 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     const message = customMessage || defaultMessage
     const phoneNumber = to || phone
     
+    // 하이픈이 있는 전화번호 형식으로 변환 (010-1234-5678)
+    const formattedPhone = phoneNumber.replace(/[^0-9]/g, '').replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    
     console.log('📱 SMS 전송 요청:', {
-      phone: phoneNumber,
+      phone: formattedPhone,
       messageLength: message.length,
       customer_name
     })
     
-    // 알리고 API 직접 호출 (EC2 우회)
-    const ALIGO_API_KEY = c.env.ALIGO_API_KEY || 'pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9'
-    const ALIGO_USER_ID = c.env.ALIGO_USER_ID || 'sangchyn11'
-    const ALIGO_SENDER = c.env.ALIGO_SENDER || '01086046995'
+    // 정비관리 시스템과 동일한 방식: EC2 SMS 서버 경유
+    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/api/sms/send-direct'
     
-    console.log('📤 알리고 SMS 직접 호출 (IP 제한 없음)')
-    console.log('  User ID:', ALIGO_USER_ID)
-    console.log('  Sender:', ALIGO_SENDER)
+    console.log('📤 EC2 SMS 서버 경유:', SMS_AWS_LAMBDA_URL)
     
-    const normalizedPhone = phoneNumber.replace(/[^0-9]/g, '')
-    const normalizedSender = ALIGO_SENDER.replace(/[^0-9]/g, '')
+    const requestBody = {
+      receiver: formattedPhone,
+      message: message
+    }
     
-    // 메시지 타입 결정
-    const msgType = message.length > 90 ? 'LMS' : 'SMS'
-    
-    console.log('📤 전송 데이터:', {
-      receiver: normalizedPhone,
-      sender: normalizedSender,
-      msgType,
-      msgLength: message.length
-    })
+    console.log('📤 전송 데이터:', requestBody)
     
     try {
-      // 알리고 API 호출
-      const params = new URLSearchParams({
-        key: ALIGO_API_KEY,
-        user_id: ALIGO_USER_ID,
-        sender: normalizedSender,
-        receiver: normalizedPhone,
-        msg: message,
-        msg_type: msgType,
-        title: msgType === 'LMS' ? 'Z-BIKE 전자계약서' : ''
-      })
-      
-      console.log('🔄 알리고 API 호출 중...')
-      
-      const response = await fetch('https://apis.aligo.in/send/', {
+      // 정비관리 시스템과 동일한 방식으로 fetch
+      const response = await fetch(SMS_AWS_LAMBDA_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json'
         },
-        body: params.toString()
+        body: JSON.stringify(requestBody)
       })
+      
+      console.log('📥 EC2 응답 상태:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ EC2 서버 오류:', errorText)
+        return c.json({ 
+          success: false, 
+          message: `EC2 서버 오류: ${response.status} ${response.statusText}`,
+          debug: {
+            status: response.status,
+            error: errorText,
+            url: SMS_AWS_LAMBDA_URL
+          }
+        }, 500)
+      }
       
       const result = await response.json()
       
-      console.log('📊 알리고 API 응답:', result)
+      console.log('📊 EC2 SMS 응답:', result)
       
-      if (result.result_code === '1') {
-        console.log('✅ SMS 전송 성공')
+      if (result.success) {
+        console.log('✅ SMS 전송 성공 (EC2 경유)')
         return c.json({ 
           success: true, 
           message: 'SMS가 성공적으로 전송되었습니다',
-          phone: phoneNumber,
-          provider: 'aligo-direct',
+          phone: formattedPhone,
+          provider: 'aligo-ec2',
           data: result
         })
-      } else if (result.result_code === '-101') {
-        // IP 인증 오류
-        console.error('❌ IP 인증 오류 (알리고 IP 제한):', result.message)
-        return c.json({ 
-          success: false, 
-          message: `알리고 IP 인증 오류: ${result.message}\n\n해결방법: 알리고 설정에서 IP 제한을 제거하세요.`,
-          error_code: result.result_code,
-          debug: result
-        }, 500)
       } else {
-        console.error('❌ SMS 전송 실패:', result.message)
+        console.error('❌ SMS 전송 실패:', result)
         return c.json({ 
           success: false, 
-          message: `SMS 전송 실패: ${result.message}`,
-          error_code: result.result_code,
+          message: `SMS 전송 실패: ${result.error || result.message}`,
           debug: result
         }, 500)
       }
     } catch (fetchError) {
-      console.error('❌ 알리고 API 호출 오류:', fetchError)
+      console.error('❌ EC2 서버 연결 실패:', fetchError)
       return c.json({ 
         success: false, 
-        message: `알리고 API 호출 실패: ${fetchError.message}`,
+        message: `EC2 서버 연결 실패: ${fetchError.message}`,
         debug: {
           error: fetchError.message,
-          type: fetchError.name
+          type: fetchError.name,
+          url: SMS_AWS_LAMBDA_URL
         }
       }, 500)
     }

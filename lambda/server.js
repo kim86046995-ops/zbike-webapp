@@ -149,52 +149,6 @@ app.post('/api/sms/send-direct', async (req, res) => {
     });
   }
 });
-    
-    // Send SMS
-    if (!phone || !message) {
-      return res.status(400).json({
-        success: false,
-        error: 'Phone number and message are required'
-      });
-    }
-    
-    const normalizedPhone = phone.replace(/[^0-9]/g, '');
-    const normalizedSender = SENDER.replace(/[^0-9]/g, '');
-    
-    console.log('Sending SMS:', {
-      from: normalizedSender,
-      to: normalizedPhone,
-      messageLength: message.length,
-      type: message.length > 90 ? 'LMS' : 'SMS'
-    });
-    
-    const result = await callAligoAPI('/send/', {
-      key: API_KEY,
-      user_id: USER_ID,
-      sender: normalizedSender,
-      receiver: normalizedPhone,
-      msg: message,
-      msg_type: message.length > 90 ? 'LMS' : 'SMS',
-      title: message.length > 90 ? 'zbike notification' : ''
-    });
-    
-    console.log('Aligo API response:', result);
-    
-    res.json({
-      success: result.result_code === '1',
-      message: result.message,
-      code: result.result_code,
-      messageId: result.msg_id
-    });
-    
-  } catch (error) {
-    console.error('SMS error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 function callAligoAPI(path, params) {
   return new Promise((resolve, reject) => {
