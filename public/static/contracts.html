@@ -723,6 +723,11 @@
                                     <span class="px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[c.status]}">
                                         ${statusTexts[c.status]}
                                     </span>
+                                    ${c.status === 'active' && (!c.signature_data || c.signature_data === '') ? `
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">
+                                        서명대기
+                                    </span>
+                                    ` : ''}
                                 </div>
                             </div>
                             <div class="flex gap-1">
