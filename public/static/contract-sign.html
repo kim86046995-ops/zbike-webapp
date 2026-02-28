@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
     <title>Z-BIKE 전자계약서</title>
-    <!-- Updated: 2026-02-28 09:30 -->
+    <!-- Updated: 2026-02-28 20:00 - 업체정보 수정 -->
+    
+    <!-- 캐시 방지 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
     <!-- Open Graph / 카카오톡/문자 공유 미리보기 -->
     <meta property="og:title" content="🏍️ Z-BIKE 전자계약서">
@@ -268,7 +273,9 @@
         // 업체 정보 로드 (Public API 사용 - 인증 불필요)
         async function loadCompanySettings() {
             try {
-                const response = await axios.get('/api/company-settings/public');
+                // 캐시 방지를 위한 타임스탬프 추가
+                const timestamp = new Date().getTime();
+                const response = await axios.get(`/api/company-settings/public?_t=${timestamp}`);
                 companySettings = {
                     company_name: response.data.company_name || 'Z-BIKE',
                     company_code: response.data.company_code || '123-45-67890',
