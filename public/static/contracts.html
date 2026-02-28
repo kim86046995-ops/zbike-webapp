@@ -744,11 +744,6 @@
                                 <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
                                     <i class="fas fa-eye mr-1"></i>상세
                                 </button>
-                                ${showCompleteButton ? `
-                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded hover:bg-blue-700" title="계약 완료">
-                                    <i class="fas fa-check mr-1"></i>완료
-                                </button>
-                                ` : ''}
                                 <button onclick="quickDownloadPDF('${c.contract_type}', ${c.id})" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded hover:bg-green-700" title="PDF 다운로드">
                                     <i class="fas fa-download"></i>
                                 </button>
