@@ -4424,21 +4424,23 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     })
     
     // EC2 SMS 서버 경유 (고정 IP)
-    // DNS 호스트명 사용 (Cloudflare Workers와의 호환성)
-    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://ec2-13-209-230-136.ap-northeast-2.compute.amazonaws.com:3001/sms'
+    // 정비시스템과 동일한 엔드포인트 사용
+    const EC2_SMS_URL = c.env.SMS_AWS_LAMBDA_URL || 'http://13.209.230.136:3001/api/sms/send-direct'
     
     console.log('📤 EC2 SMS 서버 경유 시작:', EC2_SMS_URL)
     
+    // 전화번호를 하이픈 포함 형식으로 변환 (정비시스템과 동일)
     const normalizedPhone = phoneNumber.replace(/[^0-9]/g, '')
+    const formattedPhone = normalizedPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
     
     const requestBody = {
-      phone: normalizedPhone,
+      receiver: formattedPhone,  // 정비시스템: receiver (하이픈 포함)
       message: message
     }
     
     console.log('📤 EC2 전송 데이터:', {
       url: EC2_SMS_URL,
-      phone: normalizedPhone,
+      receiver: formattedPhone,
       messageLength: message.length
     })
     
