@@ -2742,14 +2742,22 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   
   const kstNow = getKSTDateTime()
   
+  // 오토바이 정보 조회 (보험 정보 포함)
+  const motorcycle = await DB.prepare(`
+    SELECT insurance_company, insurance_start_date, insurance_end_date, driving_range 
+    FROM motorcycles WHERE id = ?
+  `).bind(data.motorcycle_id).first() as any
+  
   // status를 pending으로 저장 (서명 전 상태)
   const statusToSave = data.signature_data ? 'active' : 'pending'
   
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
-      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status, 
+      insurance_company, insurance_start_date, insurance_end_date, insurance_age_limit, driving_range,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
     data.motorcycle_id,
@@ -2763,6 +2771,11 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     data.id_card_photo || '',
     contractNumber,
     statusToSave,
+    motorcycle?.insurance_company || '',
+    motorcycle?.insurance_start_date || '',
+    motorcycle?.insurance_end_date || '',
+    motorcycle?.driving_range || '',
+    motorcycle?.driving_range || '',
     kstNow,
     kstNow
   ).run()
