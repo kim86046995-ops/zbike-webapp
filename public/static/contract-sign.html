@@ -131,7 +131,7 @@
                         <h2 class="text-xl font-bold text-gray-800">임차인 서명</h2>
                     </div>
                     <div class="p-6">
-                        <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스에 직접 서명해주세요 (더블 탭으로 확대)</p>
+                        <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스를 터치하면 전체 화면으로 서명할 수 있습니다</p>
                         <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
                             <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
                         </div>
@@ -979,8 +979,8 @@
             let isDrawing = false;
             let lastX = 0;
             let lastY = 0;
-            let lastTapTime = 0;
             
+            // 마우스 이벤트는 데스크톱에서만 사용 (모달 없이 직접 서명)
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
@@ -992,52 +992,37 @@
                 openSignatureModal();
             });
             
-            // 터치 이벤트
+            // 터치 이벤트 - 첫 터치에서 바로 모달 열기 (모바일)
+            let touchStartTime = 0;
+            let touchMoved = false;
+            
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                touchStartTime = new Date().getTime();
+                touchMoved = false;
                 
-                // 더블 탭 감지
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTapTime;
-                
-                if (tapLength < 300 && tapLength > 0) {
-                    // 더블 탭 → 모달 열기
-                    openSignatureModal();
-                    lastTapTime = 0;
-                    return;
-                }
-                
-                lastTapTime = currentTime;
-                
+                // 터치 시작 위치 저장 (움직임 감지용)
                 const touch = e.touches[0];
                 const rect = canvas.getBoundingClientRect();
                 lastX = touch.clientX - rect.left;
                 lastY = touch.clientY - rect.top;
-                isDrawing = true;
             });
             
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                if (!isDrawing) return;
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-                
-                lastX = x;
-                lastY = y;
+                touchMoved = true;
             });
             
-            canvas.addEventListener('touchend', () => {
-                isDrawing = false;
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                
+                const touchDuration = new Date().getTime() - touchStartTime;
+                
+                // 짧은 탭이고 움직임이 없으면 모달 열기
+                if (touchDuration < 300 && !touchMoved) {
+                    openSignatureModal();
+                    return;
+                }
             });
             
             function startDrawing(e) {
