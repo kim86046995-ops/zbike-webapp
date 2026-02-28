@@ -1500,20 +1500,8 @@
                 return;
             }
 
-            // 약관 동의 체크 확인
-            const agreeTerms = document.getElementById('agreeTermsAdmin');
-            if (!agreeTerms || !agreeTerms.checked) {
-                alert('❌ 약관을 확인하고 동의해주세요.\n\n약관 동의 체크박스는 5. 업체 계약 약관 섹션 하단에 있습니다.');
-                // 약관 섹션으로 스크롤
-                const termsSection = document.querySelector('#agreeTermsAdmin');
-                if (termsSection) {
-                    termsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                return;
-            }
-
-            // ⚠️ 관리자는 서명하지 않음 - 업체 대표가 나중에 서명합니다
-            // ⚠️ 신분증도 검증하지 않음 - 업체 선택 시 자동으로 불러온 신분증 사용
+            // ⚠️ SMS 전송 시에는 약관 동의, 서명, 신분증을 체크하지 않음
+            // ⚠️ 업체 대표가 SMS 링크를 통해 직접 동의·서명·신분증 업로드합니다
 
             // 대표자 주소 조합
             const representativeFullAddress = `[${document.getElementById('representativePostcode').value}] ${document.getElementById('representativeAddress').value} ${document.getElementById('representativeDetailAddress').value}`.trim();
