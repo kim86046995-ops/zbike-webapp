@@ -132,7 +132,7 @@
                     </div>
                     <div class="p-6">
                         <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스를 터치하면 전체 화면으로 서명할 수 있습니다</p>
-                        <div class="border-2 border-gray-400 rounded overflow-hidden bg-white">
+                        <div id="signatureWrapper" class="border-2 border-gray-400 rounded overflow-hidden bg-white cursor-pointer" style="touch-action: none;">
                             <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-crosshair bg-white"></canvas>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
@@ -978,11 +978,37 @@
         // 서명 패드 초기화
         function initSignaturePad() {
             const canvas = document.getElementById('signatureCanvas');
+            const wrapper = document.getElementById('signatureWrapper');
             const ctx = canvas.getContext('2d');
             
             let isDrawing = false;
             let lastX = 0;
             let lastY = 0;
+            
+            // wrapper에도 터치 이벤트 추가 (전체 영역 터치 가능)
+            let touchStartTime = 0;
+            let touchMoved = false;
+            
+            // wrapper 터치 이벤트 (모바일 전용)
+            wrapper.addEventListener('touchstart', (e) => {
+                touchStartTime = new Date().getTime();
+                touchMoved = false;
+            }, { passive: false });
+            
+            wrapper.addEventListener('touchmove', (e) => {
+                touchMoved = true;
+            }, { passive: false });
+            
+            wrapper.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const touchDuration = new Date().getTime() - touchStartTime;
+                
+                // 짧은 탭이고 움직임이 없으면 모달 열기 (300ms 이내)
+                if (touchDuration < 300 && !touchMoved) {
+                    openSignatureModal();
+                    return;
+                }
+            }, { passive: false });
             
             // 마우스 이벤트는 데스크톱에서만 사용 (모달 없이 직접 서명)
             canvas.addEventListener('mousedown', startDrawing);
@@ -994,39 +1020,6 @@
             canvas.addEventListener('dblclick', (e) => {
                 e.preventDefault();
                 openSignatureModal();
-            });
-            
-            // 터치 이벤트 - 첫 터치에서 바로 모달 열기 (모바일)
-            let touchStartTime = 0;
-            let touchMoved = false;
-            
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                touchStartTime = new Date().getTime();
-                touchMoved = false;
-                
-                // 터치 시작 위치 저장 (움직임 감지용)
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                lastX = touch.clientX - rect.left;
-                lastY = touch.clientY - rect.top;
-            });
-            
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                touchMoved = true;
-            });
-            
-            canvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                
-                const touchDuration = new Date().getTime() - touchStartTime;
-                
-                // 짧은 탭이고 움직임이 없으면 모달 열기
-                if (touchDuration < 300 && !touchMoved) {
-                    openSignatureModal();
-                    return;
-                }
             });
             
             function startDrawing(e) {
