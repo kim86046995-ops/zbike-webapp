@@ -4597,14 +4597,15 @@ app.put('/api/loan-contracts/:id/sign', async (c) => {
     return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
   }
   
-  if (loan.status === 'active' && loan.signature_data) {
+  // borrower_signature 필드로 체크 (차용증 테이블)
+  if (loan.status === 'active' && loan.borrower_signature) {
     return c.json({ error: '이미 서명된 차용증입니다' }, 400)
   }
   
-  // 서명 추가 및 상태 업데이트
+  // borrower_signature와 borrower_id_card_photo 필드로 저장
   await DB.prepare(`
     UPDATE loan_contracts 
-    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET borrower_signature = ?, borrower_id_card_photo = ?, status = 'active', updated_at = datetime("now")
     WHERE id = ?
   `).bind(signature_data, id_card_photo || '', id).run()
   
