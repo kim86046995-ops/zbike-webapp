@@ -586,11 +586,43 @@
             }
         });
 
-        async function loadMotorcycles() {
-            console.log('📡 API 호출 시작: /api/motorcycles');
+        // 캐시 클리어 함수
+        function clearMotorcyclesCache() {
+            sessionStorage.removeItem('motorcycles_cache');
+            sessionStorage.removeItem('motorcycles_cache_time');
+            console.log('🗑️ 오토바이 캐시 클리어');
+        }
+
+        async function loadMotorcycles(forceRefresh = false) {
+            console.log('📡 데이터 로딩 시작');
             
-            // 로딩 화면 먼저 표시 (빈 배열로 렌더링하여 로딩 메시지 제거)
             const listEl = document.getElementById('motorcycleList');
+            
+            // 강제 새로고침이면 캐시 클리어
+            if (forceRefresh) {
+                clearMotorcyclesCache();
+            }
+            
+            // 캐시된 데이터 확인 (3분 이내)
+            const cacheKey = 'motorcycles_cache';
+            const cacheTimeKey = 'motorcycles_cache_time';
+            const cachedData = sessionStorage.getItem(cacheKey);
+            const cacheTime = sessionStorage.getItem(cacheTimeKey);
+            const now = Date.now();
+            
+            // 캐시가 유효하면 즉시 표시
+            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
+                console.log('✅ 캐시된 데이터 즉시 표시');
+                motorcycles = JSON.parse(cachedData);
+                motorcycles.forEach(m => {
+                    motorcycleContracts[m.id] = m.customer_name || '';
+                });
+                filterAndSortMotorcycles();
+                // 백그라운드에서 업데이트는 생략 (필요시 새로고침)
+                return;
+            }
+            
+            // 캐시가 없으면 로딩 표시
             listEl.innerHTML = `
                 <div class="col-span-full text-center py-8 text-gray-500">
                     <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
@@ -602,7 +634,10 @@
                 const response = await axios.get('/api/motorcycles');
                 motorcycles = response.data;
                 console.log('✅ 오토바이 데이터 수신:', motorcycles.length, '대');
-                console.log('📋 첫 3대 보험 만료일:', motorcycles.slice(0, 3).map(m => `${m.plate_number}: ${m.insurance_end_date}`));
+                
+                // 캐시에 저장
+                sessionStorage.setItem(cacheKey, JSON.stringify(motorcycles));
+                sessionStorage.setItem(cacheTimeKey, now.toString());
                 
                 // 백엔드에서 이미 JOIN으로 가져온 customer_name 사용
                 motorcycles.forEach(m => {
@@ -618,10 +653,19 @@
                 console.log('✅ 카드 렌더링 완료');
             } catch (error) {
                 console.error('❌ 오토바이 목록 로딩 실패:', error);
-                console.error('❌ 에러 상세:', error.response?.data);
+                
+                // 에러 시 오래된 캐시라도 표시
+                if (cachedData) {
+                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
+                    motorcycles = JSON.parse(cachedData);
+                    motorcycles.forEach(m => {
+                        motorcycleContracts[m.id] = m.customer_name || '';
+                    });
+                    filterAndSortMotorcycles();
+                    return;
+                }
                 
                 // 사용자에게 에러 표시
-                const listEl = document.getElementById('motorcycleList');
                 listEl.innerHTML = `
                     <div class="col-span-full text-center py-12 text-red-500">
                         <i class="fas fa-exclamation-triangle text-5xl mb-3"></i>

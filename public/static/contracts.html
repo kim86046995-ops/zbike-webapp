@@ -584,13 +584,40 @@
             }
         }
 
-        async function loadContracts() {
+        // 캐시 클리어 함수
+        function clearContractsCache() {
+            sessionStorage.removeItem('contracts_cache');
+            sessionStorage.removeItem('contracts_cache_time');
+            console.log('🗑️ 계약서 캐시 클리어');
+        }
+
+        async function loadContracts(forceRefresh = false) {
             try {
-                // 개인 계약서와 업체 계약서를 모두 불러오기 (캐시 무효화)
-                const timestamp = new Date().getTime();
+                // 강제 새로고침이면 캐시 클리어
+                if (forceRefresh) {
+                    clearContractsCache();
+                }
+                
+                // 캐시 확인 (3분 이내)
+                const cacheKey = 'contracts_cache';
+                const cacheTimeKey = 'contracts_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                // 캐시가 유효하면 즉시 표시
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
+                    console.log('✅ 캐시된 계약서 데이터 즉시 표시');
+                    contracts = JSON.parse(cachedData);
+                    filteredContracts = contracts;
+                    filterContracts();
+                    return;
+                }
+                
+                // 개인 계약서와 업체 계약서를 모두 불러오기
                 const [personalResponse, businessResponse] = await Promise.all([
-                    axios.get(`/api/contracts?_t=${timestamp}`),
-                    axios.get(`/api/business-contracts?_t=${timestamp}`)
+                    axios.get('/api/contracts'),
+                    axios.get('/api/business-contracts')
                 ]);
                 
                 // 개인 계약서 데이터 (원본 contract_type 유지)
@@ -612,11 +639,26 @@
                     return new Date(b.created_at) - new Date(a.created_at);
                 });
                 
+                // 캐시에 저장
+                sessionStorage.setItem(cacheKey, JSON.stringify(contracts));
+                sessionStorage.setItem(cacheTimeKey, now.toString());
+                
                 filteredContracts = contracts;
                 console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
                 filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
             } catch (error) {
                 console.error('Error loading contracts:', error);
+                
+                // 에러 시 캐시 확인
+                const cachedData = sessionStorage.getItem('contracts_cache');
+                if (cachedData) {
+                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
+                    contracts = JSON.parse(cachedData);
+                    filteredContracts = contracts;
+                    filterContracts();
+                    return;
+                }
+                
                 document.getElementById('contractList').innerHTML = `
                     <div class="text-center py-12 text-red-500">
                         <i class="fas fa-exclamation-circle text-4xl mb-3"></i>

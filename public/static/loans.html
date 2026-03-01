@@ -253,16 +253,59 @@
             return true;
         }
 
-        async function loadData() {
+        // 캐시 클리어 함수
+        function clearLoansCache() {
+            sessionStorage.removeItem('loans_cache');
+            sessionStorage.removeItem('loans_cache_time');
+            console.log('🗑️ 차용증 캐시 클리어');
+        }
+
+        async function loadData(forceRefresh = false) {
             if (!checkAuth()) return;
             try {
+                // 강제 새로고침이면 캐시 클리어
+                if (forceRefresh) {
+                    clearLoansCache();
+                }
+                
+                // 캐시 확인 (3분 이내)
+                const cacheKey = 'loans_cache';
+                const cacheTimeKey = 'loans_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                // 캐시가 유효하면 즉시 표시
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
+                    console.log('✅ 캐시된 차용증 데이터 즉시 표시');
+                    allLoans = JSON.parse(cachedData);
+                    applyFilters();
+                    return;
+                }
+                
                 const sid = localStorage.getItem('sessionId');
                 const res = await axios.get('/api/loan-contracts', {
                     headers: { 'X-Session-ID': sid }
                 });
                 allLoans = res.data;
+                
+                // 캐시에 저장
+                sessionStorage.setItem(cacheKey, JSON.stringify(allLoans));
+                sessionStorage.setItem(cacheTimeKey, now.toString());
+                
                 applyFilters();
             } catch (err) {
+                console.error('차용증 데이터 로드 실패:', err);
+                
+                // 에러 시 캐시 확인
+                const cachedData = sessionStorage.getItem('loans_cache');
+                if (cachedData) {
+                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
+                    allLoans = JSON.parse(cachedData);
+                    applyFilters();
+                    return;
+                }
+                
                 alert('데이터 로드 실패: ' + err.message);
             }
         }
