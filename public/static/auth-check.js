@@ -1,4 +1,4 @@
-// 공통 인증 체크 및 뒤로가기 처리 스크립트
+// 공통 인증 체크 스크립트
 
 (function() {
     'use strict';
@@ -11,7 +11,7 @@
 
     if (!requiresAuth) return;
 
-    // 1. 자동 로그인 체크 (페이지 로드 시 한 번만 실행)
+    // 자동 로그인 체크 (페이지 로드 시 한 번만 실행)
     async function checkAuth() {
         const sessionId = localStorage.getItem('sessionId');
         const user = localStorage.getItem('user');
@@ -47,30 +47,6 @@
         }
     }
 
-    // 2. 브라우저 뒤로가기 버튼 대응
-    function handleBackButton() {
-        // 페이지 로드 시 히스토리 상태 추가
-        if (!window.history.state || !window.history.state.page) {
-            window.history.pushState({ page: 'current' }, '', window.location.href);
-        }
-        
-        window.addEventListener('popstate', function(event) {
-            const sessionId = localStorage.getItem('sessionId');
-            
-            if (sessionId) {
-                // 로그인 상태라면 뒤로가기를 막고 대시보드로 이동
-                console.log('🔙 뒤로가기 감지 - 대시보드로 이동');
-                event.preventDefault();
-                window.history.pushState({ page: 'current' }, '', window.location.href);
-                window.location.href = '/static/motorcycle-register';
-            } else {
-                // 로그아웃 상태라면 로그인 페이지로
-                window.location.href = '/static/login.html';
-            }
-        });
-    }
-
-    // 초기화 (페이지 로드 시 한 번만 실행)
+    // 초기화
     checkAuth();
-    handleBackButton();
 })();
