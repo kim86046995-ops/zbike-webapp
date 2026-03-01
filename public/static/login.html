@@ -125,8 +125,8 @@
     </div>
     
     <script>
-        // 자동 로그인 체크 - 이미 로그인되어 있으면 리다이렉트
-        (async function checkAutoLogin() {
+        // 자동 로그인 체크 - 이미 로그인되어 있으면 즉시 리다이렉트
+        (function checkAutoLogin() {
             // URL에 force_login 파라미터가 있으면 자동 로그인 스킵 (링크 복사 시)
             const urlParams = new URLSearchParams(window.location.search);
             const forceLogin = urlParams.get('force_login');
@@ -140,34 +140,10 @@
             const user = localStorage.getItem('user');
             
             if (sessionId && user) {
-                console.log('✅ 기존 세션 발견 - 자동 로그인 중...');
-                
-                // 세션 유효성 검증
-                try {
-                    const response = await fetch('/api/auth/validate', {
-                        method: 'GET',
-                        headers: {
-                            'X-Session-ID': sessionId
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        console.log('✅ 세션 유효 - 리다이렉트');
-                        
-                        // redirect 파라미터가 있으면 해당 페이지로, 없으면 대시보드로
-                        const redirectUrl = urlParams.get('redirect') || '/dashboard';
-                        window.location.href = redirectUrl;
-                        return;
-                    } else {
-                        console.log('⚠️ 세션 만료됨 - 로그인 필요');
-                        localStorage.removeItem('sessionId');
-                        localStorage.removeItem('user');
-                    }
-                } catch (error) {
-                    console.error('❌ 세션 검증 실패:', error);
-                    localStorage.removeItem('sessionId');
-                    localStorage.removeItem('user');
-                }
+                console.log('✅ 기존 세션 발견 - 즉시 리다이렉트');
+                // 세션 검증 없이 즉시 리다이렉트 (검증은 대시보드에서)
+                const redirectUrl = urlParams.get('redirect') || '/dashboard';
+                window.location.replace(redirectUrl);
             }
         })();
         

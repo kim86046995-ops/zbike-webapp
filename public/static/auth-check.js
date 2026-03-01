@@ -1,4 +1,4 @@
-// 공통 인증 체크 스크립트
+// 공통 인증 체크 스크립트 (빠른 버전)
 
 (function() {
     'use strict';
@@ -11,8 +11,8 @@
 
     if (!requiresAuth) return;
 
-    // 자동 로그인 체크 (페이지 로드 시 한 번만 실행)
-    async function checkAuth() {
+    // 빠른 인증 체크 (API 호출 없이 localStorage만 확인)
+    function checkAuth() {
         const sessionId = localStorage.getItem('sessionId');
         const user = localStorage.getItem('user');
 
@@ -22,29 +22,8 @@
             return false;
         }
 
-        try {
-            const response = await fetch('/api/auth/validate', {
-                method: 'GET',
-                headers: {
-                    'X-Session-ID': sessionId
-                }
-            });
-
-            if (!response.ok) {
-                console.log('⚠️ 세션 만료 - 현재 페이지 새로고침');
-                // 세션이 만료되었지만 localStorage는 그대로 유지
-                // 현재 페이지를 새로고침하여 다시 시도
-                window.location.reload();
-                return false;
-            }
-
-            console.log('✅ 세션 유효 - 페이지 접근 허용');
-            return true;
-        } catch (error) {
-            console.error('❌ 세션 검증 실패 (네트워크 오류 가능성) - 계속 진행:', error);
-            // 네트워크 오류 시 페이지 접근 허용 (오프라인 대응)
-            return true;
-        }
+        console.log('✅ 세션 확인 완료 - 페이지 접근 허용');
+        return true;
     }
 
     // 초기화

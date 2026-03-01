@@ -2232,59 +2232,69 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
   }
   
   try {
-    // 오토바이 총 대수 및 상태별 집계
-    const motorcycleStats = await DB.prepare(`
-      SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
-        SUM(CASE WHEN status = 'rented' THEN 1 ELSE 0 END) as rented,
-        SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
-        SUM(CASE WHEN status = 'scrapped' THEN 1 ELSE 0 END) as scrapped
-      FROM motorcycles
-    `).first()
-    
-    // 사용자(고객) 수 - customers 테이블의 전체 고객 수
-    const customerCount = await DB.prepare(`
-      SELECT COUNT(*) as count 
-      FROM customers
-    `).first()
-    
-    // 활성 계약 수 (진행중 상태만 카운트: 개인계약)
-    const contractStats = await DB.prepare(`
-      SELECT 
-        COUNT(*) as active_contracts,
-        SUM(CAST(monthly_fee as INTEGER)) as total_monthly_revenue,
-        SUM(CAST(deposit as INTEGER)) as total_deposits
-      FROM contracts
-      WHERE status = 'active'
-    `).first()
-    
-    // 활성 업체계약 수 (진행중 상태만)
-    const businessContractStats = await DB.prepare(`
-      SELECT COUNT(*) as active_business_contracts
-      FROM business_contracts
-      WHERE status = 'active'
-    `).first()
+    // 모든 쿼리를 병렬로 실행하여 속도 향상
+    const [
+      motorcycleStats,
+      customerCount,
+      contractStats,
+      businessContractStats,
+      loanStats,
+      tempContractStats
+    ] = await Promise.all([
+      // 오토바이 총 대수 및 상태별 집계
+      DB.prepare(`
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
+          SUM(CASE WHEN status = 'rented' THEN 1 ELSE 0 END) as rented,
+          SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
+          SUM(CASE WHEN status = 'scrapped' THEN 1 ELSE 0 END) as scrapped
+        FROM motorcycles
+      `).first(),
+      
+      // 사용자(고객) 수
+      DB.prepare(`
+        SELECT COUNT(*) as count 
+        FROM customers
+      `).first(),
+      
+      // 활성 계약 수 (개인계약)
+      DB.prepare(`
+        SELECT 
+          COUNT(*) as active_contracts,
+          SUM(CAST(monthly_fee as INTEGER)) as total_monthly_revenue,
+          SUM(CAST(deposit as INTEGER)) as total_deposits
+        FROM contracts
+        WHERE status = 'active'
+      `).first(),
+      
+      // 활성 업체계약 수
+      DB.prepare(`
+        SELECT COUNT(*) as active_business_contracts
+        FROM business_contracts
+        WHERE status = 'active'
+      `).first(),
+      
+      // 활성 차용증 수 및 총대여금
+      DB.prepare(`
+        SELECT 
+          COUNT(*) as active_loans,
+          SUM(CAST(loan_amount as INTEGER)) as total_loan_amount
+        FROM loan_contracts
+        WHERE status = 'active'
+      `).first(),
+      
+      // 임시계약 수
+      DB.prepare(`
+        SELECT COUNT(*) as active_temp_contracts
+        FROM contracts
+        WHERE status = 'active' AND contract_type = 'temp_rent'
+      `).first()
+    ]);
     
     // 전체 활성 계약 수 = 개인계약 + 업체계약
     const totalActiveContracts = ((contractStats as any)?.active_contracts || 0) + 
                                   ((businessContractStats as any)?.active_business_contracts || 0)
-    
-    // 활성 차용증 수 및 총대여금
-    const loanStats = await DB.prepare(`
-      SELECT 
-        COUNT(*) as active_loans,
-        SUM(CAST(loan_amount as INTEGER)) as total_loan_amount
-      FROM loan_contracts
-      WHERE status = 'active'
-    `).first()
-    
-    // 임시계약 수 (contract_type = 'temp_rent')
-    const tempContractStats = await DB.prepare(`
-      SELECT COUNT(*) as active_temp_contracts
-      FROM contracts
-      WHERE status = 'active' AND contract_type = 'temp_rent'
-    `).first()
     
     return c.json({
       motorcycles: {
@@ -6244,19 +6254,20 @@ app.get('/dashboard', (c) => {
             // 통계 로드
             async function loadStats() {
                 try {
-                    // 캐시된 통계가 있으면 즉시 표시
+                    // 캐시된 통계가 있으면 즉시 표시 (5분 이내)
                     const cachedStats = sessionStorage.getItem('dashboardStats');
                     const cacheTime = sessionStorage.getItem('dashboardStatsTime');
                     const now = Date.now();
                     
-                    // 캐시가 있고 30초 이내면 캐시 사용
-                    if (cachedStats && cacheTime && (now - parseInt(cacheTime)) < 30000) {
-                        console.log('✅ 캐시된 통계 사용');
+                    // 캐시가 있고 5분 이내면 즉시 표시
+                    if (cachedStats && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                        console.log('✅ 캐시된 통계 즉시 표시');
                         const data = JSON.parse(cachedStats);
                         updateStatsDisplay(data);
+                        return; // 캐시 사용 시 API 호출 생략
                     }
                     
-                    // 백그라운드에서 새로운 통계 로드
+                    // 캐시가 없거나 오래되었으면 새로 로드
                     const response = await axios.get('/api/dashboard/stats');
                     const data = response.data;
                     
@@ -6269,8 +6280,16 @@ app.get('/dashboard', (c) => {
                     console.log('✅ 최신 통계 로드 완료');
                 } catch (error) {
                     console.error('통계 로드 실패:', error);
-                    if (error.response?.status === 401) {
-                        alert('⚠️ 로그인이 필요합니다.');
+                    // 에러 시 캐시가 있으면 표시
+                    const cachedStats = sessionStorage.getItem('dashboardStats');
+                    if (cachedStats) {
+                        console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
+                        const data = JSON.parse(cachedStats);
+                        updateStatsDisplay(data);
+                    } else if (error.response?.status === 401) {
+                        localStorage.removeItem('sessionId');
+                        localStorage.removeItem('user');
+                        window.location.href = '/static/login.html';
                     }
                 }
             }
