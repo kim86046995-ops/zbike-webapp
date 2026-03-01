@@ -377,6 +377,19 @@
                 </div>
             </div>
 
+            <!-- SMS 발신 버튼 -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded border-gray-300">
+                    <label for="selectAll" class="font-medium text-gray-700">전체 선택</label>
+                    <span id="selectedCount" class="text-sm text-gray-500">(0개 선택됨)</span>
+                </div>
+                <button onclick="sendBulkSMS()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                    <i class="fas fa-paper-plane"></i>
+                    선택 항목 SMS 발신
+                </button>
+            </div>
+
             <!-- 계약서 목록 -->
             <div id="contractList" class="space-y-4">
                 <!-- 로딩 중... -->
@@ -727,20 +740,34 @@
                 return `
                     <div class="bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-all">
                         <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-800 mb-1">
-                                    ${c.contract_number}
-                                </h3>
-                                <div class="flex gap-1">
-                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold ${c.status === 'completed' ? 'bg-gray-100 text-gray-800' : typeColors[displayType]}">
-                                        ${displayTypeText || '렌트'}
+                            <div class="flex items-start gap-2">
+                                <input type="checkbox" class="contract-checkbox mt-1 w-5 h-5 rounded border-gray-300" 
+                                       data-id="${c.id}" 
+                                       data-type="${c.contract_type}"
+                                       data-phone="${c.customer_phone || c.business_phone || ''}"
+                                       data-name="${c.customer_name}"
+                                       data-number="${c.contract_number}"
+                                       onchange="updateSelectedCount()">
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800 mb-1">
+                                        ${c.contract_number}
+                                    </h3>
+                                    <div class="flex gap-1">
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold ${c.status === 'completed' ? 'bg-gray-100 text-gray-800' : typeColors[displayType]}">
+                                            ${displayTypeText || '렌트'}
                                     </span>
                                     <span class="px-2 py-0.5 rounded-full text-xs font-bold ${statusText === '서명대기' ? 'bg-blue-100 text-blue-800' : statusColors[c.status]}">
                                         ${statusText}
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex gap-1">
+                            </div>
+                            <div class="flex gap-1 flex-wrap">
+                                ${showCompleteButton ? `
+                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-orange-600 text-white px-3 py-1.5 text-sm rounded hover:bg-orange-700" title="계약 완료">
+                                    <i class="fas fa-check-circle mr-1"></i>완료
+                                </button>
+                                ` : ''}
                                 <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
                                     <i class="fas fa-eye mr-1"></i>상세
                                 </button>
@@ -2059,6 +2086,125 @@
             if (imageModal) {
                 imageModal.classList.remove('active');
                 document.body.style.overflow = '';
+            }
+        }
+
+        // 전체 선택 토글
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.contract-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+            updateSelectedCount();
+        }
+
+        // 선택된 계약서 개수 업데이트
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.contract-checkbox:checked');
+            document.getElementById('selectedCount').textContent = `(${checkboxes.length}개 선택됨)`;
+            
+            // 전체 선택 체크박스 상태 업데이트
+            const allCheckboxes = document.querySelectorAll('.contract-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            selectAll.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+        }
+
+        // 계약 완료 처리
+        async function completeContract(contractType, id) {
+            if (!confirm('이 계약을 완료 처리하시겠습니까?')) return;
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const endpoint = contractType === 'business' 
+                    ? `/api/business-contracts/${id}/complete`
+                    : `/api/contracts/${id}/complete`;
+                
+                const response = await axios.put(endpoint, {}, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                
+                if (response.data.success) {
+                    alert('✅ 계약이 완료 처리되었습니다.');
+                    loadContracts(); // 목록 새로고침
+                } else {
+                    alert('계약 완료 처리에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('계약 완료 처리 실패:', error);
+                alert('계약 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+
+        // 선택된 계약서들에 SMS 발신
+        async function sendBulkSMS() {
+            const checkboxes = document.querySelectorAll('.contract-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('SMS를 발신할 계약서를 선택해주세요.');
+                return;
+            }
+            
+            const contracts = Array.from(checkboxes).map(cb => ({
+                id: cb.dataset.id,
+                type: cb.dataset.type,
+                phone: cb.dataset.phone,
+                name: cb.dataset.name,
+                number: cb.dataset.number
+            }));
+            
+            // 전화번호가 없는 계약서 체크
+            const noPhone = contracts.filter(c => !c.phone || c.phone === '-');
+            if (noPhone.length > 0) {
+                alert(`전화번호가 없는 계약서가 ${noPhone.length}개 포함되어 있습니다.\n이 계약서들은 SMS가 발송되지 않습니다.`);
+            }
+            
+            const validContracts = contracts.filter(c => c.phone && c.phone !== '-');
+            
+            if (validContracts.length === 0) {
+                alert('전화번호가 있는 계약서가 없습니다.');
+                return;
+            }
+            
+            const confirmMsg = `${validContracts.length}개의 계약서에 SMS를 발송하시겠습니까?\n\n` +
+                validContracts.map(c => `- ${c.name} (${c.phone})`).join('\n');
+            
+            if (!confirm(confirmMsg)) return;
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const contract of validContracts) {
+                    try {
+                        const shareUrl = `${window.location.origin}/static/${contract.type === 'business' ? 'business-contract' : 'contract'}-sign.html?contract_id=${contract.id}`;
+                        
+                        await axios.post('/api/send-sms', {
+                            phone: contract.phone,
+                            customer_name: contract.name,
+                            share_url: shareUrl
+                        }, {
+                            headers: { 'X-Session-ID': sessionId }
+                        });
+                        
+                        successCount++;
+                    } catch (err) {
+                        console.error(`SMS 발송 실패 (${contract.name}):`, err);
+                        failCount++;
+                    }
+                }
+                
+                alert(`✅ SMS 발송 완료\n\n성공: ${successCount}건\n실패: ${failCount}건`);
+                
+                // 체크박스 초기화
+                document.querySelectorAll('.contract-checkbox').forEach(cb => cb.checked = false);
+                document.getElementById('selectAll').checked = false;
+                updateSelectedCount();
+                
+            } catch (error) {
+                console.error('SMS 발송 오류:', error);
+                alert('SMS 발송 중 오류가 발생했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
 
