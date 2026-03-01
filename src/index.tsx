@@ -166,8 +166,8 @@ async function authMiddleware(c: any, next: any) {
       `).bind(sessionId).first()
       
       if (session) {
-        // 세션 만료 시간 자동 연장 (30일 추가)
-        const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        // 세션 만료 시간 자동 연장 (1년)
+        const newExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         await DB.prepare(`
           UPDATE sessions 
           SET expires_at = ? 
@@ -196,8 +196,8 @@ async function authMiddleware(c: any, next: any) {
     return c.json({ error: '세션이 만료되었습니다' }, 401)
   }
   
-  // 메모리 세션도 자동 연장 (30일)
-  session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
+  // 메모리 세션도 자동 연장 (1년)
+  session.expiresAt = Date.now() + 365 * 24 * 60 * 60 * 1000
   sessionStore.set(sessionId, session)
   
   c.set('user', session.user)
@@ -380,16 +380,20 @@ app.post('/api/auth/logout', async (c) => {
 // 세션 검증 (자동 로그인용)
 app.get('/api/auth/validate', authMiddleware, async (c) => {
   // authMiddleware를 통과했다면 세션이 유효함
-  const session = c.get('session')
+  const user = c.get('user')
+  
+  if (!user) {
+    return c.json({ error: '세션 정보를 찾을 수 없습니다' }, 401)
+  }
   
   return c.json({
     success: true,
     valid: true,
     user: {
-      id: session.userId,
-      username: session.username,
-      name: session.name,
-      role: session.role
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role
     }
   })
 })
@@ -482,8 +486,8 @@ app.get('/api/auth/check', async (c) => {
     return c.json({ authenticated: false })
   }
   
-  // 메모리 세션도 자동 연장 (30일)
-  session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
+  // 메모리 세션도 자동 연장 (1년)
+  session.expiresAt = Date.now() + 365 * 24 * 60 * 60 * 1000
   sessionStore.set(sessionId, session)
   
   return c.json({
