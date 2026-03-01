@@ -2,12 +2,28 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.15 - 차용증 상세 채권자 정보 정리)**: https://6aecc126.zbike-webapp.pages.dev
-- **대시보드**: https://6aecc126.zbike-webapp.pages.dev/dashboard
+- **최신 배포 (v8.16 - 고객 정보 등록 페이지)**: https://71eda43d.zbike-webapp.pages.dev
+- **대시보드**: https://71eda43d.zbike-webapp.pages.dev/dashboard
+- **고객 등록 링크 (로그인 불필요)**: https://71eda43d.zbike-webapp.pages.dev/static/customer-register.html
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.16 (2026-02-28)** - 고객 정보 등록 페이지 개선 🎉
+- ✅ **고객 전용 등록 링크**: 로그인 없이 고객이 직접 정보 입력 가능
+  - URL: `/static/customer-register.html`
+  - SMS/카카오톡으로 링크 전송 시 사용
+- ✅ **고객 친화적 UI**:
+  - 헤더: 관리자용 대시보드 링크 제거 → 고객 안내 문구로 변경
+  - 버튼: 취소 버튼 제거 → 등록하기/초기화만 표시
+  - 메시지: "담당자가 곧 연락드릴 예정입니다" 안내
+- ✅ **자동 중복 체크**: 주민등록번호/전화번호 실시간 중복 확인
+- ✅ **주소 검색**: 다음 우편번호 API 통합
+- ✅ **사용 시나리오**:
+  1. 관리자 → 고객에게 등록 링크 전송
+  2. 고객 → 링크 클릭하여 정보 입력
+  3. 관리자 → 대시보드에서 등록된 고객 확인 후 계약서 작성
 
 **v8.15 (2026-02-28)** - 차용증 상세 채권자 정보 정리 🎉
 - ✅ **채권자 정보 필드 정리**: 차용증 상세(모달)에서 "매니저" 전화번호 필드 제거
