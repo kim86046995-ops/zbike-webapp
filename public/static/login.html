@@ -11,29 +11,23 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 min-h-screen p-4 relative">
-    <!-- 우측 상단 고객 정보 등록 버튼 (모바일 최적화) -->
-    <div class="fixed top-2 right-2 z-50 sm:top-4 sm:right-4">
-        <a 
-            href="/static/customer-portal.html"
-            class="inline-flex items-center bg-purple-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm hover:bg-purple-700 active:bg-purple-800 transition-all shadow-2xl hover:shadow-2xl transform hover:scale-105 whitespace-nowrap border-2 border-white"
-            style="min-width: 120px; justify-content: center;"
-        >
-            <i class="fas fa-user-plus mr-1.5"></i>고객 정보 등록
-        </a>
-    </div>
-
-    <!-- 로그인 카드 컨테이너 -->
-    <div class="flex items-center justify-center min-h-screen w-full">
-
-    <!-- 로그인 카드 -->
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <!-- 로고 -->
+<body class="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 min-h-screen flex items-center justify-center p-4">
+    <!-- 메인 컨테이너 -->
+    <div class="w-full max-w-6xl">
+        <!-- 로고 (상단 중앙) -->
         <div class="text-center mb-6">
             <img src="/static/zbike-logo.png" alt="Z-BIKE" class="mx-auto mb-4" style="max-width: 180px; height: auto;">
-            <h1 class="text-2xl font-bold text-gray-800 mb-1">Z-BIKE 전자계약서</h1>
-            <p class="text-gray-600 text-sm">오토바이 리스/렌트 관리 시스템</p>
+            <h1 class="text-3xl font-bold text-white mb-2">Z-BIKE 전자계약서</h1>
+            <p class="text-white text-lg">오토바이 리스/렌트 관리 시스템</p>
         </div>
+
+        <!-- 2컬럼 레이아웃 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 왼쪽: 관리자 로그인 -->
+            <div class="bg-white rounded-2xl shadow-2xl p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-user-shield mr-2 text-blue-600"></i>관리자 로그인
+                </h2>
 
         <!-- 에러 메시지 -->
         <div id="errorMessage" class="hidden mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
@@ -108,7 +102,55 @@
                 <i class="fas fa-user-plus mr-2"></i>관리자 회원가입
             </a>
         </div>
-    </div>
+            </div>
+
+            <!-- 오른쪽: 고객 정보 등록 -->
+            <div class="bg-white rounded-2xl shadow-2xl p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-users mr-2 text-purple-600"></i>고객 정보 등록
+                </h2>
+
+                <div class="text-center mb-6">
+                    <div class="bg-purple-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user-edit text-purple-600 text-4xl"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4">고객님의 정보를 등록하여<br>빠르고 간편하게 계약을 진행하세요</p>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-center text-gray-700">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span>이름, 연락처 입력</span>
+                    </div>
+                    <div class="flex items-center text-gray-700">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span>주민등록번호 입력</span>
+                    </div>
+                    <div class="flex items-center text-gray-700">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span>주소 입력</span>
+                    </div>
+                    <div class="flex items-center text-gray-700">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span>담당자 연락 대기</span>
+                    </div>
+                </div>
+
+                <a 
+                    href="/static/customer-portal.html"
+                    class="block w-full bg-purple-600 text-white py-4 rounded-lg font-bold text-lg text-center hover:bg-purple-700 transition shadow-md transform hover:scale-105"
+                >
+                    <i class="fas fa-arrow-right mr-2"></i>고객 정보 등록하기
+                </a>
+
+                <div class="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <p class="text-sm text-purple-800 text-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        로그인 없이 간편하게 등록 가능합니다
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
