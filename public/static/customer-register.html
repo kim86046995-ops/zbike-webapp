@@ -12,10 +12,13 @@
     <!-- 헤더 -->
     <header class="bg-indigo-600 text-white shadow-lg">
         <div class="container mx-auto px-4 py-4">
-            <a href="/dashboard" class="text-xl font-bold flex items-center hover:bg-indigo-700 px-3 py-2 rounded-lg transition-colors cursor-pointer inline-flex">
-                <i class="fas fa-arrow-left mr-2"></i>
-                계약자 정보 등록
-            </a>
+            <div class="text-center">
+                <h1 class="text-2xl font-bold">
+                    <i class="fas fa-motorcycle mr-2"></i>
+                    Z-BIKE 고객 정보 등록
+                </h1>
+                <p class="text-sm text-indigo-100 mt-1">전자계약서 작성을 위한 정보를 입력해주세요</p>
+            </div>
         </div>
     </header>
 
@@ -123,12 +126,6 @@
 
                     <!-- 버튼 -->
                     <div class="flex justify-end gap-3">
-                        <button 
-                            type="button" 
-                            onclick="window.location.href='/dashboard'" 
-                            class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition">
-                            <i class="fas fa-times mr-2"></i>취소
-                        </button>
                         <button 
                             type="button" 
                             onclick="clearForm()" 
@@ -408,11 +405,25 @@
                     // 첫 번째 입력란으로 포커스
                     document.getElementById('customerName').focus();
                 } else {
-                    // 고객(비로그인 상태): 저장 후 뒤로가기하여 계약 등록 화면으로 복귀
-                    alert('✅ 계약자 정보가 저장되었습니다.\n\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n계약 등록 화면으로 돌아갑니다.');
+                    // 고객(비로그인 상태): 등록 완료 안내
+                    alert('✅ 고객 정보 등록이 완료되었습니다!\n\n📋 등록된 정보\n이름: ' + customerData.name + '\n전화번호: ' + customerData.phone + '\n\n담당자가 곧 연락드릴 예정입니다.\n감사합니다! 😊');
                     
-                    // 뒤로가기 (고객계약 등록 화면으로 복귀)
-                    window.history.back();
+                    // 폼 초기화 (추가 등록 가능하도록)
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerResidentNumber').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    document.getElementById('customerPostcode').value = '';
+                    document.getElementById('customerAddress').value = '';
+                    document.getElementById('customerDetailAddress').value = '';
+                    
+                    // 중복 체크 메시지 제거
+                    const residentMessageEl = document.getElementById('residentNumberMessage');
+                    if (residentMessageEl) residentMessageEl.remove();
+                    const phoneMessageEl = document.getElementById('phoneMessage');
+                    if (phoneMessageEl) phoneMessageEl.remove();
+                    
+                    // 첫 번째 입력란으로 포커스
+                    document.getElementById('customerName').focus();
                 }
             } catch (error) {
                 console.error('❌ 고객 등록 실패:', error);
