@@ -21,65 +21,62 @@
             <p class="text-gray-600 text-xs">오토바이 리스/렌트 관리 시스템</p>
         </div>
 
-        <!-- 2컬럼 레이아웃 (아이디 + 고객정보등록) -->
+        <!-- 2컬럼 레이아웃 -->
         <div class="grid grid-cols-2 gap-3 mb-3">
-            <!-- 왼쪽: 아이디 -->
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">
-                    <i class="fas fa-user mr-1"></i>아이디
-                </label>
-                <input 
-                    type="text" 
-                    id="username" 
-                    required 
-                    autocomplete="off"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    placeholder="아이디를 입력하세요"
-                >
+            <!-- 왼쪽 컬럼 -->
+            <div class="space-y-3">
+                <!-- 아이디 -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">
+                        <i class="fas fa-user mr-1"></i>아이디
+                    </label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        required 
+                        autocomplete="off"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        placeholder="아이디를 입력하세요"
+                    >
+                </div>
+
+                <!-- 비밀번호 -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">
+                        <i class="fas fa-lock mr-1"></i>비밀번호
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            required 
+                            autocomplete="off"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 text-sm"
+                            placeholder="비밀번호"
+                        >
+                        <button 
+                            type="button" 
+                            id="togglePassword"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-xs"
+                        >
+                            <i class="fas fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- 오른쪽: 고객정보등록 -->
-            <div>
+            <!-- 오른쪽 컬럼: 고객정보등록 (전체 높이) -->
+            <div class="flex flex-col">
                 <label class="block text-sm font-bold text-gray-700 mb-1">
                     <i class="fas fa-users mr-1"></i>고객정보등록
                 </label>
                 <a 
                     href="/static/customer-portal.html"
-                    class="block w-full bg-purple-600 text-white py-2 rounded-lg font-bold text-sm text-center hover:bg-purple-700 transition"
+                    class="flex-1 flex items-center justify-center bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition transform hover:scale-105 shadow-lg"
                 >
-                    <i class="fas fa-arrow-right mr-1"></i>등록하기
+                    <span><i class="fas fa-arrow-right mr-2"></i>등록하기</span>
                 </a>
             </div>
-        </div>
-
-        <!-- 2컬럼 레이아웃 (비밀번호 단독) -->
-        <div class="grid grid-cols-2 gap-3 mb-3">
-            <!-- 왼쪽: 비밀번호 -->
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">
-                    <i class="fas fa-lock mr-1"></i>비밀번호
-                </label>
-                <div class="relative">
-                    <input 
-                        type="password" 
-                        id="password" 
-                        required 
-                        autocomplete="off"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 text-sm"
-                        placeholder="비밀번호"
-                    >
-                    <button 
-                        type="button" 
-                        id="togglePassword"
-                        class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-xs"
-                    >
-                        <i class="fas fa-eye" id="toggleIcon"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 오른쪽: 빈 공간 (균형 유지) -->
-            <div></div>
         </div>
 
         <!-- 에러 메시지 -->
