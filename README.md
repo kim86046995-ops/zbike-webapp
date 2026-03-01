@@ -2,13 +2,18 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.17 - 계약서 목록 대량 작업 기능)**: https://db676f41.zbike-webapp.pages.dev
-- **대시보드**: https://db676f41.zbike-webapp.pages.dev/dashboard
-- **고객 등록 링크 (로그인 불필요)**: https://db676f41.zbike-webapp.pages.dev/static/customer-register.html
+- **최신 배포 (v8.18 - 계약서 버튼 순서 조정)**: https://e6fa0615.zbike-webapp.pages.dev
+- **대시보드**: https://e6fa0615.zbike-webapp.pages.dev/dashboard
+- **고객 등록 링크 (로그인 불필요)**: https://e6fa0615.zbike-webapp.pages.dev/static/customer-register.html
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.18 (2026-02-28)** - 계약서 버튼 순서 조정 🎉
+- ✅ **완료 버튼 위치 변경**: 다운로드 버튼 뒤로 이동
+  - 버튼 순서: 상세 → 다운로드 → **완료** → 삭제
+  - 더 직관적인 작업 흐름 제공
 
 **v8.17 (2026-02-28)** - 계약서 목록 대량 작업 기능 🎉
 - ✅ **체크박스 선택 기능**: 각 계약서에 체크박스 추가
