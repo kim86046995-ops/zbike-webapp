@@ -1180,6 +1180,12 @@
                         `;
                     }
                     
+                    // 상태 배지 옆에 남은 일수 추가
+                    if (statusLabel) {
+                        const remainingDaysHtml = `<span class="font-bold ml-2 ${progress.remainingDays <= 10 ? 'text-red-600' : progress.remainingDays <= 30 ? 'text-yellow-600' : 'text-blue-600'}">${progress.isExpired ? '⚠️ 만료' : `${progress.remainingDays}일`}</span>`;
+                        statusLabel.innerHTML = statusLabel.textContent + remainingDaysHtml;
+                    }
+                    
                     const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
                     if (contractBarEl) {
                         contractBarEl.innerHTML = `

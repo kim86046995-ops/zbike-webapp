@@ -362,15 +362,16 @@
                     <table class="w-full">
                         <thead class="bg-orange-600 text-white">
                             <tr>
-                                <th class="px-4 py-3 text-left">번호</th>
-                                <th class="px-4 py-3 text-left">차용증번호</th>
-                                <th class="px-4 py-3 text-left">차용인</th>
-                                <th class="px-4 py-3 text-left">전화번호</th>
-                                <th class="px-4 py-3 text-right">차용금액</th>
-                                <th class="px-4 py-3 text-center">차용일</th>
-                                <th class="px-4 py-3 text-center">상환예정일</th>
-                                <th class="px-4 py-3 text-center">상태</th>
-                                <th class="px-4 py-3 text-center">관리</th>
+                                <th class="px-3 py-3 text-left">번호</th>
+                                <th class="px-3 py-3 text-left">차용증번호</th>
+                                <th class="px-3 py-3 text-left">차용인</th>
+                                <th class="px-3 py-3 text-left">전화번호</th>
+                                <th class="px-3 py-3 text-right">차용금액</th>
+                                <th class="px-3 py-3 text-center">차용일</th>
+                                <th class="px-3 py-3 text-center">상환예정일</th>
+                                <th class="px-3 py-3 text-center">남은일수</th>
+                                <th class="px-3 py-3 text-center">상태</th>
+                                <th class="px-3 py-3 text-center">관리</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -408,21 +409,39 @@
                     statusText = '진행중';
                 }
 
+                // 남은 일수 계산 (진행중인 경우만)
+                let remainingDaysHtml = '-';
+                if (statusText === '진행중') {
+                    const repayDate = new Date(loan.repayment_date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    repayDate.setHours(0, 0, 0, 0);
+                    const diffTime = repayDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays >= 0) {
+                        remainingDaysHtml = `<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">${diffDays}일</span>`;
+                    } else {
+                        remainingDaysHtml = `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">기간만료</span>`;
+                    }
+                }
+
                 html += `
                     <tr class="hover:bg-gray-50 cursor-pointer" onclick="showDetail(${loan.id})">
-                        <td class="px-4 py-3">${index + 1}</td>
-                        <td class="px-4 py-3 font-semibold text-orange-600">${loan.loan_number || '-'}</td>
-                        <td class="px-4 py-3">${loan.borrower_name || '-'}</td>
-                        <td class="px-4 py-3">${loan.borrower_phone || '-'}</td>
-                        <td class="px-4 py-3 text-right font-semibold">${Number(loan.loan_amount || 0).toLocaleString()}원</td>
-                        <td class="px-4 py-3 text-center">${loan.loan_date || '-'}</td>
-                        <td class="px-4 py-3 text-center">${loan.repayment_date || '-'}</td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="px-3 py-3">${index + 1}</td>
+                        <td class="px-3 py-3 font-semibold text-orange-600">${loan.loan_number || '-'}</td>
+                        <td class="px-3 py-3">${loan.borrower_name || '-'}</td>
+                        <td class="px-3 py-3">${loan.borrower_phone || '-'}</td>
+                        <td class="px-3 py-3 text-right font-semibold">${Number(loan.loan_amount || 0).toLocaleString()}원</td>
+                        <td class="px-3 py-3 text-center">${loan.loan_date || '-'}</td>
+                        <td class="px-3 py-3 text-center">${loan.repayment_date || '-'}</td>
+                        <td class="px-3 py-3 text-center">${remainingDaysHtml}</td>
+                        <td class="px-3 py-3 text-center">
                             <span class="px-3 py-1 rounded-full text-xs font-bold ${statusColor}">
                                 ${statusText}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="px-3 py-3 text-center">
                             <button onclick="event.stopPropagation(); showDetail(${loan.id})" 
                                 class="text-orange-600 hover:text-orange-800 mx-1">
                                 <i class="fas fa-eye"></i>
@@ -492,14 +511,34 @@
                     statusText = '진행중';
                 }
 
+                // 남은 일수 계산 (진행중인 경우만)
+                let remainingDaysHtml = '';
+                if (statusText === '진행중') {
+                    const repayDate = new Date(loan.repayment_date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    repayDate.setHours(0, 0, 0, 0);
+                    const diffTime = repayDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays >= 0) {
+                        remainingDaysHtml = `<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 ml-2">남은일수 ${diffDays}일</span>`;
+                    } else {
+                        remainingDaysHtml = `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 ml-2">기간만료</span>`;
+                    }
+                }
+
                 html += `
                     <div class="bg-white rounded-lg shadow-md p-4 mb-4" onclick="showDetail(${loan.id})">
                         <div class="flex justify-between items-start mb-3">
-                            <div>
+                            <div class="flex-1">
                                 <div class="font-bold text-orange-600 mb-1">${loan.loan_number || '-'}</div>
-                                <span class="px-3 py-1 rounded-full text-xs font-bold ${statusColor}">
-                                    ${statusText}
-                                </span>
+                                <div class="flex items-center flex-wrap gap-2">
+                                    ${remainingDaysHtml}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold ${statusColor}">
+                                        ${statusText}
+                                    </span>
+                                </div>
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="event.stopPropagation(); showDetail(${loan.id})" 
