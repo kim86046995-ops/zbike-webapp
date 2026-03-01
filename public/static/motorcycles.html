@@ -1180,9 +1180,9 @@
                         `;
                     }
                     
-                    // 상태 배지 옆에 남은 일수 추가
+                    // 상태 배지 옆에 남은 일수 추가 (크고 진한 색상)
                     if (statusLabel) {
-                        const remainingDaysHtml = `<span class="font-bold ml-2 ${progress.remainingDays <= 10 ? 'text-red-600' : progress.remainingDays <= 30 ? 'text-yellow-600' : 'text-blue-600'}">${progress.isExpired ? '⚠️ 만료' : `${progress.remainingDays}일`}</span>`;
+                        const remainingDaysHtml = `<span class="font-extrabold ml-2 text-base ${progress.remainingDays <= 10 ? 'text-red-700' : progress.remainingDays <= 30 ? 'text-yellow-700' : 'text-blue-700'}">${progress.isExpired ? '⚠️ 만료' : `${progress.remainingDays}일`}</span>`;
                         statusLabel.innerHTML = statusLabel.textContent + remainingDaysHtml;
                     }
                     
