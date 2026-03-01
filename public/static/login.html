@@ -127,6 +127,15 @@
     <script>
         // 자동 로그인 체크 - 이미 로그인되어 있으면 리다이렉트
         (async function checkAutoLogin() {
+            // URL에 force_login 파라미터가 있으면 자동 로그인 스킵 (링크 복사 시)
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceLogin = urlParams.get('force_login');
+            
+            if (forceLogin === 'true') {
+                console.log('⚠️ 강제 로그인 모드 - 자동 로그인 스킵');
+                return;
+            }
+            
             const sessionId = localStorage.getItem('sessionId');
             const user = localStorage.getItem('user');
             
@@ -146,8 +155,7 @@
                         console.log('✅ 세션 유효 - 리다이렉트');
                         
                         // redirect 파라미터가 있으면 해당 페이지로, 없으면 대시보드로
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const redirectUrl = urlParams.get('redirect') || '/dashboard';
+                        const redirectUrl = urlParams.get('redirect') || '/static/motorcycle-register';
                         window.location.href = redirectUrl;
                         return;
                     } else {

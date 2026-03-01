@@ -283,7 +283,7 @@ app.post('/api/auth/login', async (c) => {
       console.log('🔍 c.env.DB:', !!c.env.DB, 'c.env.db:', !!c.env.db)
       
       if (DB) {
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30일
+        const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 365일 (1년)
         console.log('🔍 세션 저장 시도:', { sessionId, username: hardcodedUser.username, expiresAt })
         
         const result = await DB.prepare(`
@@ -447,8 +447,8 @@ app.get('/api/auth/check', async (c) => {
       `).bind(sessionId).first()
       
       if (session) {
-        // 세션 만료 시간 자동 연장 (30일)
-        const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        // 세션 만료 시간 자동 연장 (1년)
+        const newExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         await DB.prepare(`
           UPDATE sessions 
           SET expires_at = ? 
@@ -6194,6 +6194,23 @@ app.get('/dashboard', (c) => {
 
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script>
+            // ========================================
+            // 뒤로가기 방지 - 대시보드로 리다이렉트
+            // ========================================
+            (function() {
+                // 히스토리에 현재 페이지 추가
+                window.history.pushState(null, '', window.location.href);
+                
+                // 뒤로가기 시 대시보드로 이동
+                window.addEventListener('popstate', function(event) {
+                    window.history.pushState(null, '', window.location.href);
+                    // 현재 페이지가 대시보드가 아니면 대시보드로 이동
+                    if (!window.location.pathname.includes('/dashboard')) {
+                        window.location.href = '/dashboard';
+                    }
+                });
+            })();
+
             // Axios 인터셉터 설정 - 세션 ID 자동 추가 (동적으로 읽기)
             axios.interceptors.request.use(config => {
                 const sessionId = localStorage.getItem('sessionId');
