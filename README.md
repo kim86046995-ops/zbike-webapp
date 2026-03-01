@@ -2,13 +2,26 @@
 
 ## 🌐 URLs
 - **프로덕션**: https://zbike-webapp.pages.dev
-- **최신 배포 (v8.16 - 고객 정보 등록 페이지)**: https://71eda43d.zbike-webapp.pages.dev
-- **대시보드**: https://71eda43d.zbike-webapp.pages.dev/dashboard
-- **고객 등록 링크 (로그인 불필요)**: https://71eda43d.zbike-webapp.pages.dev/static/customer-register.html
+- **최신 배포 (v8.17 - 계약서 목록 대량 작업 기능)**: https://db676f41.zbike-webapp.pages.dev
+- **대시보드**: https://db676f41.zbike-webapp.pages.dev/dashboard
+- **고객 등록 링크 (로그인 불필요)**: https://db676f41.zbike-webapp.pages.dev/static/customer-register.html
 - **GitHub**: https://github.com/kim86046995-ops/zbike-webapp
 - **SMS 서버 (EC2)**: http://13.209.230.136:3001/sms
 
 ## 📅 최근 업데이트
+
+**v8.17 (2026-02-28)** - 계약서 목록 대량 작업 기능 🎉
+- ✅ **체크박스 선택 기능**: 각 계약서에 체크박스 추가
+  - 전체 선택/해제 기능
+  - 선택된 개수 실시간 표시
+- ✅ **대량 SMS 발신**: 선택된 계약서들에 한번에 SMS 발송
+  - "선택 항목 SMS 발신" 버튼
+  - 전화번호 없는 계약서 자동 필터링
+  - 발송 결과 통계 표시 (성공/실패 건수)
+- ✅ **계약 완료 버튼**: 각 계약서에 "완료" 버튼 추가
+  - 진행중(active) 계약서에만 표시
+  - 클릭 시 계약 상태를 완료(completed)로 변경
+  - 주황색 버튼으로 구분
 
 **v8.16 (2026-02-28)** - 고객 정보 등록 페이지 개선 🎉
 - ✅ **고객 전용 등록 링크**: 로그인 없이 고객이 직접 정보 입력 가능
