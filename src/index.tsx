@@ -268,6 +268,34 @@ app.post('/api/auth/login', async (c) => {
   )
   
   if (hardcodedUser) {
+    // 슈퍼관리자 동시 로그인 제한 체크 (3명)
+    if (hardcodedUser.role === 'super_admin') {
+      try {
+        const DB = c.env.DB || c.env.db
+        if (DB) {
+          // 현재 활성화된 슈퍼관리자 세션 수 확인
+          const activeSessionsResult = await DB.prepare(`
+            SELECT COUNT(*) as count 
+            FROM sessions 
+            WHERE role = 'super_admin' AND expires_at > datetime('now')
+          `).first()
+          
+          const activeSessionCount = (activeSessionsResult as any)?.count || 0
+          console.log('🔍 현재 슈퍼관리자 활성 세션 수:', activeSessionCount)
+          
+          // 3명 이상이면 로그인 거부
+          if (activeSessionCount >= 3) {
+            return c.json({ 
+              error: '슈퍼관리자는 최대 3명까지만 동시 로그인이 가능합니다. 다른 사용자가 로그아웃한 후 다시 시도해주세요.' 
+            }, 403)
+          }
+        }
+      } catch (error) {
+        console.error('❌ 동시 로그인 체크 실패:', error)
+        // 에러 발생 시에도 로그인 허용 (세션 체크 실패로 로그인 차단하지 않음)
+      }
+    }
+    
     // 세션 ID 생성
     const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36)
     
@@ -370,8 +398,19 @@ app.post('/api/auth/logout', async (c) => {
   const sessionId = c.req.header('X-Session-ID')
   
   if (sessionId) {
-    // 세션 저장소에서 제거
+    // 메모리 세션 저장소에서 제거
     sessionStore.delete(sessionId)
+    
+    // D1 데이터베이스에서도 세션 제거
+    try {
+      const DB = c.env.DB || c.env.db
+      if (DB) {
+        await DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run()
+        console.log('✅ 세션 삭제 완료 (D1):', sessionId)
+      }
+    } catch (error) {
+      console.error('❌ 세션 삭제 실패:', error)
+    }
   }
   
   return c.json({ success: true })
