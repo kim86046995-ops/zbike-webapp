@@ -11,7 +11,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 min-h-screen flex items-center justify-center p-4 relative">
+    <!-- 우측 상단 고객 정보 등록 버튼 -->
+    <div class="absolute top-4 right-4 z-10">
+        <a 
+            href="/static/customer-portal.html"
+            class="inline-block bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-purple-700 transition shadow-lg hover:shadow-xl transform hover:scale-105"
+        >
+            <i class="fas fa-user-plus mr-1"></i>고객 정보 등록
+        </a>
+    </div>
+
     <!-- 로그인 카드 -->
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <!-- 로고 -->
@@ -94,24 +104,6 @@
                 <i class="fas fa-user-plus mr-2"></i>관리자 회원가입
             </a>
         </div>
-
-        <!-- 구분선 -->
-        <div class="relative my-6">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-                <span class="px-4 bg-white text-gray-500">고객 정보를 등록하러 오셨나요?</span>
-            </div>
-        </div>
-
-        <!-- 고객 계약 등록 -->
-        <a 
-            href="/static/customer-portal.html"
-            class="block w-full bg-purple-600 text-white py-3 rounded-lg font-bold text-center hover:bg-purple-700 transition shadow-md"
-        >
-            <i class="fas fa-user-plus mr-2"></i>고객 정보 등록
-        </a>
     </div>
     
     <script>
