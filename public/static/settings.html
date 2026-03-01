@@ -225,9 +225,8 @@
             } catch (error) {
                 console.error('Error loading settings:', error);
                 if (error.response?.status === 401) {
-                    alert('인증에 실패했습니다. 다시 로그인해주세요.');
-                    localStorage.clear();
-                    window.location.href = '/static/login.html';
+                    console.log('⚠️ 401 에러 발생 - 페이지 새로고침');
+                    window.location.reload();
                 }
             }
         });
@@ -260,9 +259,8 @@
             } catch (error) {
                 console.error('Error saving settings:', error);
                 if (error.response?.status === 401) {
-                    alert('❌ 인증에 실패했습니다. 다시 로그인해주세요.');
-                    localStorage.clear();
-                    window.location.href = '/static/login.html';
+                    console.log('⚠️ 401 에러 발생 - 페이지 새로고침');
+                    window.location.reload();
                 } else {
                     alert('❌ 설정 저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
                 }
