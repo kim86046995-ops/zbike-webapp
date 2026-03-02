@@ -886,6 +886,7 @@
                 }
                 
                 console.log('✅ 계약서 데이터 로드 완료:', response.data);
+                console.log('🔍 고객 전화번호 확인:', response.data.customer_phone);
                 currentContract = response.data;
                 renderDetail();
                 console.log('✅ 모달 표시 완료');
@@ -1071,7 +1072,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>성명:</strong> ${c.customer_name}</p>
                             <p><strong>주민등록번호:</strong> <span class="resident-number-display">${maskResidentNumber(c.resident_number)}</span><span class="resident-number-full" style="display:none;">${getFullResidentNumber(c.resident_number)}</span></p>
-                            <p><strong>연락처:</strong> ${c.customer_phone}</p>
+                            <p><strong>연락처:</strong> ${c.customer_phone || '등록되지 않음'}</p>
                             <p><strong>우편번호:</strong> ${c.customer_postcode || '-'}</p>
                             <p class="col-span-2"><strong>주소:</strong> ${c.customer_address || '-'}${c.customer_detail_address ? ', ' + c.customer_detail_address : ''}</p>
                         </div>
