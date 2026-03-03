@@ -4487,6 +4487,8 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       contractTypeLabel = '업체 계약서'
     } else if (contract_type === 'loan') {
       contractTypeLabel = '차용증 계약서'
+    } else if (contract_type === 'individual' || contract_type === 'lease' || contract_type === 'rent') {
+      contractTypeLabel = '렌트 계약서'
     }
     
     const defaultMessage = `[Z-BIKE ${contractTypeLabel}]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
