@@ -4502,43 +4502,42 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       customer_name
     })
     
-    // Cloudflare Tunnel을 통한 EC2 SMS 서버 경유
-    // Cloudflare Workers → Cloudflare Tunnel → AWS EC2
-    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://campus-ing-blocking-mother.trycloudflare.com/api/sms/send-direct'
+    // AWS Lambda Function URL을 통한 SMS 전송
+    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://zf3aoethwx2ctssywatlpte4je0swebx.lambda-url.ap-northeast-2.on.aws/'
     
-    console.log('📤 EC2 SMS 서버 경유 (Cloudflare Tunnel):', SMS_AWS_LAMBDA_URL)
+    console.log('📤 AWS Lambda SMS 전송:', SMS_AWS_LAMBDA_URL)
     
     const requestBody = {
-      receiver: formattedPhone,
+      action: 'send',
+      phone: formattedPhone,
       message: message
     }
     
     console.log('📤 전송 데이터:', requestBody)
     
     try {
-      console.log('🔄 Fetching EC2 server...')
+      console.log('🔄 Calling AWS Lambda Function...')
       
-      // 정비관리 시스템과 동일한 방식으로 fetch
+      // AWS Lambda Function URL 호출
       const response = await fetch(SMS_AWS_LAMBDA_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Cloudflare-Workers'
+          'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody)
       })
       
       console.log('✅ Fetch completed:', response.status)
       
-      console.log('📥 EC2 응답 상태:', response.status, response.statusText)
+      console.log('📥 Lambda 응답 상태:', response.status, response.statusText)
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ EC2 서버 오류:', errorText)
+        console.error('❌ Lambda 오류:', errorText)
         return c.json({ 
           success: false, 
-          message: `EC2 서버 오류: ${response.status} ${response.statusText}`,
+          message: `Lambda 오류: ${response.status} ${response.statusText}`,
           debug: {
             status: response.status,
             error: errorText,
@@ -4547,17 +4546,27 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
         }, 500)
       }
       
-      const result = await response.json()
+      // Lambda Function URL 응답은 { statusCode, body } 형식
+      const lambdaResponse = await response.json()
+      console.log('📊 Lambda 전체 응답:', lambdaResponse)
       
-      console.log('📊 EC2 SMS 응답:', result)
+      // body가 있으면 파싱 (Lambda Function URL 형식)
+      let result = lambdaResponse
+      if (lambdaResponse.body) {
+        result = typeof lambdaResponse.body === 'string' 
+          ? JSON.parse(lambdaResponse.body) 
+          : lambdaResponse.body
+      }
+      
+      console.log('📊 Lambda SMS 응답:', result)
       
       if (result.success) {
-        console.log('✅ SMS 전송 성공 (EC2 경유)')
+        console.log('✅ SMS 전송 성공 (AWS Lambda)')
         return c.json({ 
           success: true, 
           message: 'SMS가 성공적으로 전송되었습니다',
           phone: formattedPhone,
-          provider: 'aligo-ec2',
+          provider: 'aligo-lambda',
           data: result
         })
       } else {
@@ -4569,10 +4578,10 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
         }, 500)
       }
     } catch (fetchError) {
-      console.error('❌ EC2 서버 연결 실패:', fetchError)
+      console.error('❌ Lambda 연결 실패:', fetchError)
       return c.json({ 
         success: false, 
-        message: `EC2 서버 연결 실패: ${fetchError.message}`,
+        message: `Lambda 연결 실패: ${fetchError.message}`,
         debug: {
           error: fetchError.message,
           type: fetchError.name,
