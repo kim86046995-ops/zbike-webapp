@@ -28,7 +28,7 @@ cd lambda
 4. **환경변수 설정**
    - `ALIGO_API_KEY` = `pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9`
    - `ALIGO_USER_ID` = `pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9`
-   - `ALIGO_SENDER` = `01086046995`
+   - `ALIGO_SENDER` = `062-400-6991` (지바이크 대표번호)
 5. **타임아웃 설정**
    - 30초로 변경
 6. **Function URL 생성**
@@ -50,7 +50,7 @@ Lambda 배포 후 Function URL을 복사합니다.
 SMS_AWS_LAMBDA_URL=https://your-function-url.lambda-url.ap-northeast-2.on.aws/
 SMS_ENABLED=false  # 테스트 시 true로 변경
 SMS_TEST_MODE=true # 실제 발송 시 false로 변경
-ADMIN_PHONE=01086046995
+ADMIN_PHONE=062-400-6991
 ```
 
 ### 3. 프로덕션 환경 설정
@@ -72,7 +72,7 @@ npx wrangler pages secret put SMS_TEST_MODE --project-name zbike-webapp
 
 # 관리자 전화번호
 npx wrangler pages secret put ADMIN_PHONE --project-name zbike-webapp
-# 값 입력: 01086046995
+# 값 입력: 062-400-6991
 ```
 
 ## 🧪 테스트
