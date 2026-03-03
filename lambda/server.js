@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 
 const API_KEY = 'pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9';
 const USER_ID = 'sangchyn11';
-const SENDER = '01086046995';
+const SENDER = '0624006991';
 
 console.log('SMS Server Configuration:');
 console.log('- API Key:', API_KEY.substring(0, 10) + '...');
