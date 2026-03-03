@@ -16,6 +16,22 @@ export const handler = async (event) => {
   console.log('📱 SMS 전송 요청:', JSON.stringify(event, null, 2));
   
   try {
+    // GET 요청 차단 (Lambda Function URL은 POST만 허용)
+    if (event.requestContext && event.requestContext.http && event.requestContext.http.method === 'GET') {
+      return {
+        statusCode: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          success: false,
+          error: 'Method Not Allowed. Please use POST method.',
+          message: 'GET 요청은 지원하지 않습니다. POST 요청을 사용하세요.'
+        })
+      };
+    }
+    
     // 요청 파싱
     let body;
     if (event.body) {
@@ -25,6 +41,22 @@ export const handler = async (event) => {
     }
     
     const { phone, message, action = 'send' } = body;
+    
+    // phone과 message 필수 확인 (action이 'send'일 때)
+    if (action === 'send' && (!phone || !message)) {
+      console.error('❌ 필수 파라미터 누락:', { phone: !!phone, message: !!message });
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          success: false,
+          error: '전화번호(phone)와 메시지(message)를 입력하세요'
+        })
+      };
+    }
     
     // 환경변수 확인
     const API_KEY = process.env.ALIGO_API_KEY;
