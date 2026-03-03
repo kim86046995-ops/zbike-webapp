@@ -4482,7 +4482,7 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
     const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
     
     // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
-    let contractTypeLabel = '전자계약서'
+    let contractTypeLabel = '렌트 계약서'  // 기본값을 렌트 계약서로 변경
     if (contract_type === 'business') {
       contractTypeLabel = '업체 계약서'
     } else if (contract_type === 'loan') {
