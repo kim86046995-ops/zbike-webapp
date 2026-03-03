@@ -7,7 +7,7 @@ import querystring from 'querystring';
  * 환경변수:
  * - ALIGO_API_KEY: pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9
  * - ALIGO_USER_ID: pe2pyx6zg5aqszgwr4mcwa59vrcbyrx9
- * - ALIGO_SENDER: 062-400-6991 (지바이크 대표번호)
+ * - ALIGO_SENDER: 0624006991 (지바이크 대표번호)
  * 
  * 고정 IP: 13.209.230.136 (NAT Gateway)
  */
