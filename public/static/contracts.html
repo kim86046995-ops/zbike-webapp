@@ -593,25 +593,28 @@
 
         async function loadContracts(forceRefresh = false) {
             try {
+                const cacheKey = 'contracts_cache';
+                const cacheTimeKey = 'contracts_cache_time';
+                const now = Date.now();
+                
                 // 강제 새로고침이면 캐시 클리어
                 if (forceRefresh) {
                     clearContractsCache();
                 }
                 
-                // 캐시 확인 (3분 이내)
-                const cacheKey = 'contracts_cache';
-                const cacheTimeKey = 'contracts_cache_time';
-                const cachedData = sessionStorage.getItem(cacheKey);
-                const cacheTime = sessionStorage.getItem(cacheTimeKey);
-                const now = Date.now();
-                
-                // 캐시가 유효하면 즉시 표시
-                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
-                    console.log('✅ 캐시된 계약서 데이터 즉시 표시');
-                    contracts = JSON.parse(cachedData);
-                    filteredContracts = contracts;
-                    filterContracts();
-                    return;
+                // 강제 새로고침이 아닐 때만 캐시 확인 (3분 이내)
+                if (!forceRefresh) {
+                    const cachedData = sessionStorage.getItem(cacheKey);
+                    const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                    
+                    // 캐시가 유효하면 즉시 표시
+                    if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
+                        console.log('✅ 캐시된 계약서 데이터 즉시 표시');
+                        contracts = JSON.parse(cachedData);
+                        filteredContracts = contracts;
+                        filterContracts();
+                        return;
+                    }
                 }
                 
                 // 개인 계약서와 업체 계약서를 모두 불러오기
