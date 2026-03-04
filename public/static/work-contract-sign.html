@@ -227,18 +227,24 @@
                 
                 <!-- 신분증 업로드 -->
                 <div class="mb-6">
-                    <h3 class="font-bold mb-2">신분증 업로드 (을)</h3>
+                    <h3 class="font-bold mb-3 text-lg text-orange-700">
+                        <i class="fas fa-id-card mr-2"></i>신분증 업로드 (필수)
+                    </h3>
                     <input type="file" id="idCardInput" accept="image/*" class="hidden" onchange="handleIdCardUpload(event)">
-                    <button onclick="document.getElementById('idCardInput').click()" class="w-full bg-gray-100 border-2 border-dashed border-gray-300 rounded p-4 hover:bg-gray-50">
-                        <i class="fas fa-id-card text-3xl text-gray-400 mb-2"></i>
-                        <p class="text-gray-600">신분증 사진을 선택하세요</p>
+                    <button type="button" onclick="document.getElementById('idCardInput').click()" 
+                            class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-6 px-4 rounded-lg border-2 border-orange-700 shadow-lg transition-all duration-200 hover:shadow-xl">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-camera text-4xl mb-3"></i>
+                            <p class="text-xl mb-1">신분증 사진 촬영 / 업로드</p>
+                            <p class="text-sm opacity-90">주민등록증, 운전면허증, 여권 등</p>
+                        </div>
                     </button>
-                    <div id="idCardPreview" class="mt-2"></div>
+                    <div id="idCardPreview" class="mt-4"></div>
                 </div>
                 
                 <div class="flex gap-2">
-                    <button onclick="save()" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 flex-1">
-                        <i class="fas fa-save mr-2"></i>서명 완료
+                    <button onclick="save()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 flex-1 font-bold text-lg shadow-lg">
+                        <i class="fas fa-check-circle mr-2"></i>서명 완료
                     </button>
                 </div>
             `;
@@ -334,9 +340,12 @@
             reader.onload = function(e) {
                 const preview = document.getElementById('idCardPreview');
                 preview.innerHTML = `
-                    <div class="relative">
-                        <img src="${e.target.result}" class="w-full rounded border">
-                        <button onclick="removeIdCard()" class="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                    <div class="relative border-4 border-green-500 rounded-lg overflow-hidden shadow-lg">
+                        <div class="bg-green-500 text-white px-3 py-2 font-bold flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>신분증 업로드 완료
+                        </div>
+                        <img src="${e.target.result}" class="w-full bg-white">
+                        <button onclick="removeIdCard()" class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg font-bold text-lg">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
