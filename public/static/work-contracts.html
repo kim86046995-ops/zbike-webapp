@@ -591,24 +591,30 @@
                 // 임시로 body에 추가 (PDF 생성용)
                 pdfContent.style.position = 'absolute';
                 pdfContent.style.left = '-9999px';
+                pdfContent.style.top = '0';
                 document.body.appendChild(pdfContent);
+                
+                // 약간의 지연을 두어 DOM이 완전히 렌더링되도록 함
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
                 // PDF 생성 옵션 (A4 크기)
                 const opt = {
-                    margin: 0,
+                    margin: [10, 10, 10, 10],
                     filename: `업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
+                    image: { type: 'jpeg', quality: 0.95 },
                     html2canvas: { 
                         scale: 2,
                         useCORS: true,
-                        letterRendering: true
+                        letterRendering: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
                     },
                     jsPDF: { 
                         unit: 'mm', 
                         format: 'a4', 
                         orientation: 'portrait' 
                     },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                    pagebreak: { mode: 'css', before: '.page-break' }
                 };
                 
                 // PDF 생성 및 다운로드

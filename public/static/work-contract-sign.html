@@ -268,10 +268,10 @@
             modal.id = 'signatureModal';
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
             modal.innerHTML = `
-                <div class="bg-white rounded-lg p-8 max-w-6xl w-full">
+                <div class="bg-white rounded-lg p-8 max-w-7xl w-full">
                     <h3 class="text-4xl font-bold mb-6">${type === 'company' ? '갑 (위탁자)' : '을 (수탁자)'} 서명</h3>
-                    <div class="border-4 border-gray-400 rounded-lg mb-6">
-                        <canvas id="modalSignature" width="1400" height="600" class="w-full touch-none"></canvas>
+                    <div class="border-4 border-green-500 rounded-lg mb-6 bg-white">
+                        <canvas id="modalSignature" width="1800" height="800" class="w-full touch-none" style="background: white;"></canvas>
                     </div>
                     <div class="flex gap-4">
                         <button onclick="clearModalSignature()" class="bg-gray-600 text-white px-8 py-4 rounded-lg text-2xl font-bold">지우기</button>
@@ -283,7 +283,12 @@
             document.body.appendChild(modal);
             
             const canvas = document.getElementById('modalSignature');
-            modalSignaturePad = new SignaturePad(canvas);
+            modalSignaturePad = new SignaturePad(canvas, {
+                minWidth: 3,
+                maxWidth: 6,
+                penColor: 'rgb(0, 0, 0)',
+                backgroundColor: 'rgb(255, 255, 255)'
+            });
         }
         
         function closeSignatureModal() {
