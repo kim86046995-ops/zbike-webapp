@@ -431,88 +431,102 @@
                     return;
                 }
                 
-                // PDF용 컨테이너 생성
+                // PDF용 컨테이너 생성 (A4 크기 794x1123 px at 96dpi)
                 const pdfContainer = document.createElement('div');
-                pdfContainer.style.width = '210mm'; // A4 폭
-                pdfContainer.style.minHeight = '297mm'; // A4 높이
-                pdfContainer.style.padding = '15mm'; // 여백
+                pdfContainer.style.width = '794px';
+                pdfContainer.style.padding = '60px';
                 pdfContainer.style.backgroundColor = '#ffffff';
-                pdfContainer.style.position = 'absolute';
-                pdfContainer.style.left = '-9999px'; // 화면 밖으로
+                pdfContainer.style.position = 'fixed';
+                pdfContainer.style.left = '-10000px';
                 pdfContainer.style.top = '0';
-                pdfContainer.style.fontFamily = 'Malgun Gothic, Arial, sans-serif';
-                pdfContainer.style.fontSize = '11pt';
-                pdfContainer.style.lineHeight = '1.6';
+                pdfContainer.style.fontFamily = '"Malgun Gothic", "맑은 고딕", Arial, sans-serif';
+                pdfContainer.style.fontSize = '14px';
+                pdfContainer.style.lineHeight = '1.7';
                 pdfContainer.style.color = '#000000';
                 pdfContainer.style.boxSizing = 'border-box';
+                pdfContainer.style.overflow = 'visible';
                 
                 // 모달 내용 복제
                 const clonedContent = modalContent.cloneNode(true);
                 
-                // Tailwind 클래스를 인라인 스타일로 변환
+                // 모든 요소의 스타일 명확히 설정
+                clonedContent.style.width = '100%';
+                clonedContent.style.padding = '0';
+                clonedContent.style.margin = '0';
+                clonedContent.style.border = 'none';
+                clonedContent.style.backgroundColor = 'transparent';
+                
                 // 제목
                 const title = clonedContent.querySelector('h1');
                 if (title) {
                     title.style.textAlign = 'center';
-                    title.style.fontSize = '24pt';
+                    title.style.fontSize = '26px';
                     title.style.fontWeight = 'bold';
-                    title.style.marginBottom = '20px';
+                    title.style.marginBottom = '30px';
+                    title.style.marginTop = '0';
                     title.style.color = '#000000';
                 }
                 
-                // 조항 박스들
-                const clauseBoxes = clonedContent.querySelectorAll('.border.rounded');
-                clauseBoxes.forEach(box => {
-                    box.style.marginBottom = '15px';
-                    box.style.padding = '12px';
+                // 모든 조항 박스들
+                const allBoxes = clonedContent.querySelectorAll('.border');
+                allBoxes.forEach(box => {
+                    box.style.marginBottom = '20px';
+                    box.style.padding = '15px';
                     box.style.backgroundColor = '#f9fafb';
-                    box.style.border = '1px solid #e5e7eb';
-                    box.style.borderRadius = '5px';
+                    box.style.border = '1px solid #d1d5db';
+                    box.style.borderRadius = '6px';
                     box.style.pageBreakInside = 'avoid';
+                    box.style.boxSizing = 'border-box';
                 });
                 
                 // 조항 제목들
                 const clauseTitles = clonedContent.querySelectorAll('h3');
                 clauseTitles.forEach(h3 => {
                     h3.style.fontWeight = 'bold';
-                    h3.style.fontSize = '13pt';
-                    h3.style.marginBottom = '8px';
+                    h3.style.fontSize = '16px';
+                    h3.style.marginBottom = '12px';
+                    h3.style.marginTop = '0';
                     h3.style.color = '#000000';
                 });
-                
-                // 동의 체크박스
-                const agreementBox = clonedContent.querySelector('.bg-yellow-50');
-                if (agreementBox) {
-                    agreementBox.style.backgroundColor = '#fef9c3';
-                    agreementBox.style.border = '4px solid #facc15';
-                    agreementBox.style.borderRadius = '8px';
-                    agreementBox.style.padding = '16px';
-                    agreementBox.style.marginBottom = '20px';
-                    agreementBox.style.display = 'inline-block';
-                    agreementBox.style.maxWidth = '100%';
-                }
                 
                 // 갑/을 정보 박스
                 const partyBoxes = clonedContent.querySelectorAll('.bg-blue-50, .bg-green-50');
                 partyBoxes.forEach(box => {
-                    box.style.padding = '15px';
-                    box.style.borderRadius = '5px';
-                    box.style.marginBottom = '15px';
+                    box.style.padding = '20px';
+                    box.style.borderRadius = '8px';
+                    box.style.marginBottom = '20px';
                     box.style.pageBreakInside = 'avoid';
                     if (box.classList.contains('bg-blue-50')) {
                         box.style.backgroundColor = '#dbeafe';
-                        box.style.border = '1px solid #3b82f6';
+                        box.style.border = '2px solid #3b82f6';
                     } else {
                         box.style.backgroundColor = '#d1fae5';
-                        box.style.border = '1px solid #10b981';
+                        box.style.border = '2px solid #10b981';
                     }
                 });
                 
-                // 이미지 크기 조정
+                // 모든 이미지
                 const images = clonedContent.querySelectorAll('img');
                 images.forEach(img => {
-                    img.style.maxWidth = '100%';
-                    img.style.height = 'auto';
+                    img.style.maxWidth = '150px';
+                    img.style.maxHeight = '150px';
+                    img.style.objectFit = 'contain';
+                    img.style.display = 'inline-block';
+                });
+                
+                // 모든 paragraph
+                const paragraphs = clonedContent.querySelectorAll('p');
+                paragraphs.forEach(p => {
+                    p.style.margin = '0 0 10px 0';
+                    p.style.fontSize = '14px';
+                    p.style.lineHeight = '1.7';
+                    p.style.color = '#000000';
+                });
+                
+                // 모든 div
+                const divs = clonedContent.querySelectorAll('div');
+                divs.forEach(div => {
+                    div.style.boxSizing = 'border-box';
                 });
                 
                 pdfContainer.appendChild(clonedContent);
@@ -520,36 +534,35 @@
                 
                 // 로딩 표시
                 const loadingDiv = document.createElement('div');
-                loadingDiv.style.position = 'fixed';
-                loadingDiv.style.top = '50%';
-                loadingDiv.style.left = '50%';
-                loadingDiv.style.transform = 'translate(-50%, -50%)';
-                loadingDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
-                loadingDiv.style.color = 'white';
-                loadingDiv.style.padding = '20px 40px';
-                loadingDiv.style.borderRadius = '10px';
-                loadingDiv.style.zIndex = '10000';
-                loadingDiv.style.fontSize = '18px';
-                loadingDiv.style.fontWeight = 'bold';
-                loadingDiv.textContent = 'PDF 생성 중...';
+                loadingDiv.id = 'pdf-loading';
+                loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:#fff;padding:30px 60px;border-radius:12px;z-index:99999;font-size:20px;font-weight:bold;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+                loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:15px;"></i>PDF 생성 중...';
                 document.body.appendChild(loadingDiv);
                 
-                // DOM 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // DOM 충분히 렌더링 대기
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                console.log('Capturing content...');
+                console.log('Container dimensions:', pdfContainer.offsetWidth, 'x', pdfContainer.offsetHeight);
+                console.log('Container scroll:', pdfContainer.scrollWidth, 'x', pdfContainer.scrollHeight);
                 
-                // html2canvas로 캡처
+                // html2canvas로 캡처 (충분한 높이 확보)
                 const canvas = await html2canvas(pdfContainer, {
                     scale: 2,
                     useCORS: true,
-                    allowTaint: true,
+                    allowTaint: false,
                     backgroundColor: '#ffffff',
-                    logging: false,
-                    width: pdfContainer.scrollWidth,
-                    height: pdfContainer.scrollHeight,
-                    windowWidth: pdfContainer.scrollWidth,
-                    windowHeight: pdfContainer.scrollHeight
+                    logging: true,
+                    width: 794,
+                    height: pdfContainer.scrollHeight + 100,  // 여유 높이 추가
+                    windowWidth: 794,
+                    windowHeight: pdfContainer.scrollHeight + 100,
+                    onclone: (clonedDoc) => {
+                        const clonedContainer = clonedDoc.querySelector('body > div:last-child');
+                        if (clonedContainer) {
+                            clonedContainer.style.height = 'auto';
+                            clonedContainer.style.minHeight = 'auto';
+                        }
+                    }
                 });
                 
                 console.log('Canvas created:', canvas.width, 'x', canvas.height);
@@ -558,29 +571,29 @@
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
+                    unit: 'px',
+                    format: [794, 1123]  // A4 at 96dpi
                 });
                 
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                const pdfWidth = 210; // A4 width in mm
-                const pdfHeight = 297; // A4 height in mm
-                const imgWidth = pdfWidth;
-                const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const pageWidth = 794;
+                const pageHeight = 1123;
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * pageWidth) / canvas.width;
                 
                 let heightLeft = imgHeight;
                 let position = 0;
                 
                 // 첫 페이지
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                heightLeft -= pdfHeight;
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
                 
                 // 추가 페이지
                 while (heightLeft > 0) {
                     position = heightLeft - imgHeight;
                     pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                    heightLeft -= pdfHeight;
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
                 }
                 
                 // PDF 저장
@@ -591,7 +604,8 @@
                 
                 // 정리
                 document.body.removeChild(pdfContainer);
-                document.body.removeChild(loadingDiv);
+                const loading = document.getElementById('pdf-loading');
+                if (loading) document.body.removeChild(loading);
                 
             } catch (error) {
                 console.error('PDF generation error:', error);
