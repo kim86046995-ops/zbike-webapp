@@ -7411,7 +7411,7 @@ app.get('/api/work-contracts/:id/sign', async (c) => {
 app.post('/api/work-contracts/:id/signature', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { company_signature, worker_signature, id_card_image } = await c.req.json()
+  const { worker_signature, id_card_image } = await c.req.json()
   
   try {
     // 계약서 조회
@@ -7424,9 +7424,12 @@ app.post('/api/work-contracts/:id/signature', async (c) => {
     }
     
     // 이미 서명된 계약서인지 확인
-    if (contract.status === 'active' && contract.company_signature && contract.worker_signature) {
+    if (contract.status === 'active' && contract.worker_signature) {
       return c.json({ error: '이미 서명된 계약서입니다' }, 400)
     }
+    
+    // 갑 도장은 고정된 이미지 경로 사용
+    const companySignature = '/static/company-seal.png'
     
     // 서명 저장
     await DB.prepare(`
@@ -7438,7 +7441,7 @@ app.post('/api/work-contracts/:id/signature', async (c) => {
           signed_at = datetime("now"),
           updated_at = datetime("now")
       WHERE id = ?
-    `).bind(company_signature, worker_signature, id_card_image || '', id).run()
+    `).bind(companySignature, worker_signature, id_card_image || '', id).run()
     
     return c.json({ 
       success: true, 

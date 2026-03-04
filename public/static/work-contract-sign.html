@@ -79,7 +79,7 @@
                         <div class="border p-4 rounded bg-gray-50">
                             <h3 class="font-bold mb-3 text-base">제5조 (계약기간)</h3>
                             <div class="space-y-2 pl-4">
-                                <p>1. 계약기간: <span class="font-bold">${c.start_date}</span> ~ <span class="font-bold">${c.end_date || '무기한'}</span></p>
+                                <p>1. 계약기간: <span class="font-bold">${c.start_date || new Date().toISOString().split('T')[0]}</span> ~ <span class="font-bold">${c.end_date || new Date().toISOString().split('T')[0]}</span></p>
                                 <p>2. 계약기간 만료 후 당사자 간 합의에 따라 계약을 연장할 수 있다.</p>
                             </div>
                         </div>
@@ -197,7 +197,9 @@
                         <div class="space-y-2">
                             <p>상호: <span class="font-bold">대성 배달대행</span></p>
                             <p>사업자번호: <span class="font-bold">487-39-01128</span></p>
-                            <p>대표자: <span class="font-bold">김상춘</span></p>
+                            <p class="flex items-center">대표자: <span class="font-bold">김상춘</span>
+                                <img src="/static/company-seal.png" alt="회사 도장" style="width: 120px; height: 120px; object-fit: contain; vertical-align: middle; background: #EEF2FF; padding: 10px; mix-blend-mode: darken; margin-left: 0.25rem;">
+                            </p>
                             <p>주소: <span class="font-bold">광주광역시 광산구 신가삼효로 31, 1층 플러스 사무실</span></p>
                             <p>전화번호: <span class="font-bold">010-8604-6995</span></p>
                         </div>
@@ -211,15 +213,6 @@
                             <p>주소: <span class="font-bold">${c.worker_address}</span></p>
                             <p>연락처: <span class="font-bold">${c.worker_phone}</span></p>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- 갑 서명란 -->
-                <div class="mt-8 mb-6">
-                    <h3 class="font-bold mb-2 text-blue-700">갑 (위탁자) 서명</h3>
-                    <div class="border-2 border-blue-300 rounded bg-blue-50 p-2 cursor-pointer" onclick="openSignatureModal('company')">
-                        <canvas id="companySignature" width="600" height="150" class="w-full bg-white rounded"></canvas>
-                        <p class="text-xs text-center text-gray-600 mt-2">클릭하여 서명하기</p>
                     </div>
                 </div>
                 
@@ -359,11 +352,6 @@
         }
         
         async function save() {
-            if (!companySignaturePad) {
-                alert('갑(위탁자) 서명을 해주세요');
-                return;
-            }
-            
             if (!workerSignaturePad) {
                 alert('을(수탁자) 서명을 해주세요');
                 return;
@@ -381,7 +369,6 @@
             reader.onload = async function(e) {
                 try {
                     await axios.post(`/api/work-contracts/${id}/signature`, {
-                        company_signature: companySignaturePad,
                         worker_signature: workerSignaturePad,
                         id_card_image: e.target.result
                     });
