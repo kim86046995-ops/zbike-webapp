@@ -477,6 +477,7 @@
                 
                 // jsPDF로 PDF 생성
                 const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'px',
