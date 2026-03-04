@@ -8,7 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <!-- PDF 생성 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto p-4 max-w-6xl">
@@ -411,96 +410,343 @@
                 const response = await axios.get(`/api/work-contracts/${contractId}`)
                 const contract = response.data
                 
-                // 상세 모달을 열어서 HTML을 가져옴
-                const detailModal = document.getElementById('detailModal');
-                if (!detailModal) {
-                    alert('상세 정보를 불러올 수 없습니다.');
-                    return;
-                }
+                const paymentTypeText = {
+                    'commission': '건당 수수료',
+                    'daily': '일당',
+                    'monthly': '월급'
+                };
                 
-                // 모달의 계약서 내용 부분만 복제
-                const modalContent = detailModal.querySelector('.bg-white.border-2.border-gray-300');
-                if (!modalContent) {
-                    alert('계약서 내용을 찾을 수 없습니다.');
-                    return;
-                }
-                
-                // PDF 생성용 컨테이너 생성
-                const pdfContainer = document.createElement('div');
-                pdfContainer.style.position = 'fixed';
-                pdfContainer.style.left = '50%';
-                pdfContainer.style.top = '50%';
-                pdfContainer.style.transform = 'translate(-50%, -50%)';
-                pdfContainer.style.width = '794px';
-                pdfContainer.style.backgroundColor = 'white';
-                pdfContainer.style.padding = '40px';
-                pdfContainer.style.zIndex = '9999';
-                pdfContainer.style.boxShadow = '0 0 0 10000px rgba(0,0,0,0.5)';
-                
-                // 모달 내용 복제
-                const clonedContent = modalContent.cloneNode(true);
-                pdfContainer.appendChild(clonedContent);
-                document.body.appendChild(pdfContainer);
-                
-                // 로딩 오버레이 표시
-                const loadingDiv = document.createElement('div');
-                loadingDiv.style.position = 'fixed';
-                loadingDiv.style.top = '20px';
-                loadingDiv.style.left = '50%';
-                loadingDiv.style.transform = 'translateX(-50%)';
-                loadingDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
-                loadingDiv.style.color = 'white';
-                loadingDiv.style.padding = '15px 30px';
-                loadingDiv.style.borderRadius = '8px';
-                loadingDiv.style.zIndex = '10000';
-                loadingDiv.style.fontSize = '18px';
-                loadingDiv.style.fontWeight = 'bold';
-                loadingDiv.textContent = 'PDF 생성 중...';
-                document.body.appendChild(loadingDiv);
-                
-                // 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                console.log('PDF Content dimensions:', pdfContainer.scrollWidth, 'x', pdfContainer.scrollHeight);
-                
-                // html2canvas로 캔버스 생성
-                const canvas = await html2canvas(pdfContainer, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: true,
-                    backgroundColor: '#ffffff',
-                    width: 794,
-                    height: pdfContainer.scrollHeight
-                });
-                
-                console.log('Canvas created:', canvas.width, 'x', canvas.height);
-                
-                // jsPDF로 PDF 생성
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                // jsPDF 초기화
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
-                    unit: 'px',
-                    format: [794, 1123]
+                    unit: 'mm',
+                    format: 'a4'
                 });
                 
-                const imgWidth = 794;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                const pageHeight = 1123;
+                const pageWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const margin = 15;
+                const contentWidth = pageWidth - 2 * margin;
+                let yPos = margin;
                 
-                let heightLeft = imgHeight;
-                let position = 0;
+                // 한글 폰트 설정 (기본 폰트 사용)
+                pdf.setFont('helvetica');
                 
-                // 첫 페이지 추가
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                heightLeft -= pageHeight;
+                // 제목
+                pdf.setFontSize(20);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('배달업무위탁계약서', pageWidth / 2, yPos, { align: 'center' });
+                yPos += 15;
                 
-                // 페이지 분할
-                while (heightLeft > 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                    heightLeft -= pageHeight;
+                // 계약 당사자
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'normal');
+                const introText = `대성 배달대행 (이하 "갑")과(와) ${contract.worker_name || '[근로자명]'} (이하 "을")은(는) 다음과 같이 배달업무위탁계약을 체결한다.`;
+                const splitIntro = pdf.splitTextToSize(introText, contentWidth);
+                pdf.text(splitIntro, margin, yPos);
+                yPos += splitIntro.length * 6 + 5;
+                
+                // 약관 데이터
+                const clauses = [
+                    {
+                        title: '제1조 (계약의 성격)',
+                        items: [
+                            '1. 본 계약은 근로계약이 아닌 업무위탁계약이다.',
+                            '2. 을은 갑에 종속된 근로자가 아니며, 독립적인 사업자로서 업무를 수행한다.',
+                            '3. 갑은 을에 대하여 근태관리, 출퇴근통제, 최소근무시간을 강제하지 않는다.',
+                            '4. 을은 업무수행 시간, 장소, 방법을 자유롭게 결정할 수 있다.'
+                        ]
+                    },
+                    {
+                        title: '제2조 (위탁업무의 내용)',
+                        items: [
+                            '1. 갑은 을에게 배달업무를 위탁하고, 을은 이를 수행한다.',
+                            `2. 위탁업무 수행 지역: ${contract.work_area || '광주시 전역'}`,
+                            '3. 을은 배달업무 수행 시 교통법규를 준수하고 안전운전에 유의해야 한다.'
+                        ]
+                    },
+                    {
+                        title: '제3조 (비용 부담)',
+                        items: [
+                            '1. 오토바이, 유류비, 보험료, 통신비 등은 을이 부담하는 것을 원칙으로 한다.',
+                            '2. 렌트 시에는 별도 계약을 체결한다.'
+                        ]
+                    },
+                    {
+                        title: '제4조 (보험 및 사고책임)',
+                        items: [
+                            '1. 을은 책임보험을 유지할 의무가 있다.',
+                            '2. 사고 발생 시 1차 책임은 을에게 있다.',
+                            '3. 보험 미가입 상태에서 발생한 사고는 전액 을이 책임진다.'
+                        ]
+                    },
+                    {
+                        title: '제5조 (계약기간)',
+                        items: [
+                            `1. 계약기간: ${contract.start_date || '계약일'} ~ 해지 원할 때 까지`,
+                            '2. 계약기간 만료 후 당사자 간 합의에 따라 계약을 연장할 수 있다.'
+                        ]
+                    },
+                    {
+                        title: '제6조 (위탁수수료)',
+                        items: [
+                            `1. 지급방식: ${paymentTypeText[contract.payment_type] || '건당 수수료'}`,
+                            '2. 갑은 매일 또는 주정산으로 플랫폼에서 정산하는 기준으로 정산을 지급한다.',
+                            '3. 다음 금액은 정산 시 공제 가능하다: 가. 리스 및 렌트료, 나. 사고부담금, 다. 차용금, 라. 장비대여료, 마. 미납금',
+                            '4. 세금은 세법에 따라 원천징수하며, 을은 사업소득자로서 종합소득세 신고의무를 진다.'
+                        ]
+                    }
+                ];
+                
+                // 조항 출력 (페이지 넘김 처리)
+                pdf.setFontSize(10);
+                for (const clause of clauses) {
+                    // 페이지 넘김 체크
+                    if (yPos > pageHeight - 40) {
+                        pdf.addPage();
+                        yPos = margin;
+                    }
+                    
+                    // 조항 제목
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(clause.title, margin, yPos);
+                    yPos += 7;
+                    
+                    // 조항 내용
+                    pdf.setFont('helvetica', 'normal');
+                    for (const item of clause.items) {
+                        const splitText = pdf.splitTextToSize(item, contentWidth - 5);
+                        for (const line of splitText) {
+                            if (yPos > pageHeight - 20) {
+                                pdf.addPage();
+                                yPos = margin;
+                            }
+                            pdf.text(line, margin + 3, yPos);
+                            yPos += 5;
+                        }
+                    }
+                    yPos += 3;
+                }
+                
+                // 새 페이지 - 나머지 조항
+                pdf.addPage();
+                yPos = margin;
+                
+                const remainingClauses = [
+                    {
+                        title: '제7조 (업무 수행장비)',
+                        items: [
+                            '1. 을은 업무수행에 필요한 배달차량(오토바이 등)을 직접 준비하거나, 갑으로부터 리스/렌트/대여할 수 있다.',
+                            '2. 갑으로부터 차량을 리스/렌트/대여받는 경우, 별도의 차량리스계약서 또는 차량대여계약서를 작성한다.',
+                            '3. 갑은 리스, 렌트 시 차량의 보험가입 및 정기점검 의무를 진다. 단 정비시기를 넘겨 차량에 이상이 있을 시는 을이 모든 책임을 진다.',
+                            '4. 자차일 경우 을은 보험가입 및 정기점검 의무를 진다.'
+                        ]
+                    },
+                    {
+                        title: '제8조 (리스·렌트·차용 후 연락두절 시 책임)',
+                        items: [
+                            '1. 을이 갑으로부터 차량을 리스, 렌트, 차용 후 정당한 사유 없이 7일 이상 연락이 두절되는 경우:',
+                            '  가. 갑은 즉시 차량반환을 요구할 수 있다.',
+                            '  나. 을은 차량 리스료/렌트료 전액 및 지연손해금(연 24%)을 지급해야 한다.',
+                            '  다. 을은 차량 손괴, 분실 등에 대한 모든 손해배상책임을 진다.',
+                            '  라. 갑은 횡령죄(형법 제355조), 사기죄(형법 제347조)로 형사고소할 수 있다.',
+                            '2. 을이 차량을 임의로 처분, 담보제공, 매각, 폐차하는 경우 횡령죄가 성립된다.',
+                            '3. 갑은 차량 회수를 위해 GPS 추적, 경찰신고, 채권추심 등 모든 법적 조치를 취할 수 있다.'
+                        ]
+                    },
+                    {
+                        title: '제9조 (손해배상)',
+                        items: [
+                            '1. 을이 고의 또는 중과실로 갑 또는 제3자에게 손해를 입힌 경우 손해배상책임을 진다.',
+                            '2. 배달 중 교통사고 발생 시, 을은 본인 가입 보험으로 처리하며 갑은 책임을 지지 않는다.'
+                        ]
+                    },
+                    {
+                        title: '제10조 (계약의 해지)',
+                        items: [
+                            '1. 당사자 일방은 7일 전 서면통지로 계약을 해지할 수 있다.',
+                            '2. 다음의 경우 즉시 해지할 수 있다: 가. 상대방이 계약을 중대하게 위반한 경우, 나. 을이 7일 이상 연락두절된 경우, 다. 을이 고의적으로 갑에게 손해를 입힌 경우'
+                        ]
+                    },
+                    {
+                        title: '제11조 (비밀유지)',
+                        items: [
+                            '1. 갑과 을은 본 계약의 이행과정에서 알게 된 상대방의 영업비밀, 기술정보, 고객정보 등 일체의 비밀정보를 제3자에게 누설하거나 본 계약 이외의 목적으로 사용할 수 없다.',
+                            '2. 비밀유지 의무는 계약 종료 후에도 2년간 유효하다.'
+                        ]
+                    },
+                    {
+                        title: '제12조 (개인정보 보호)',
+                        items: [
+                            '1. 갑과 을은 업무수행 중 취득한 개인정보를 본 계약 목적 외에 사용하거나 제3자에게 제공할 수 없다.',
+                            '2. 계약 종료 시 보유 중인 개인정보를 즉시 파기해야 한다.'
+                        ]
+                    },
+                    {
+                        title: '제13조 (분쟁해결)',
+                        items: [
+                            '1. 본 계약과 관련한 분쟁은 상호 협의하여 해결한다.',
+                            '2. 협의가 이루어지지 않을 경우 갑의 주소지 관할법원을 제1심 관할법원으로 한다.'
+                        ]
+                    }
+                ];
+                
+                for (const clause of remainingClauses) {
+                    if (yPos > pageHeight - 40) {
+                        pdf.addPage();
+                        yPos = margin;
+                    }
+                    
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(clause.title, margin, yPos);
+                    yPos += 7;
+                    
+                    pdf.setFont('helvetica', 'normal');
+                    for (const item of clause.items) {
+                        const splitText = pdf.splitTextToSize(item, contentWidth - 5);
+                        for (const line of splitText) {
+                            if (yPos > pageHeight - 20) {
+                                pdf.addPage();
+                                yPos = margin;
+                            }
+                            pdf.text(line, margin + 3, yPos);
+                            yPos += 5;
+                        }
+                    }
+                    yPos += 3;
+                }
+                
+                // 특약사항 (있을 경우)
+                if (contract.special_terms) {
+                    if (yPos > pageHeight - 40) {
+                        pdf.addPage();
+                        yPos = margin;
+                    }
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('제14조 (특약사항)', margin, yPos);
+                    yPos += 7;
+                    pdf.setFont('helvetica', 'normal');
+                    const splitSpecial = pdf.splitTextToSize(contract.special_terms, contentWidth - 5);
+                    for (const line of splitSpecial) {
+                        if (yPos > pageHeight - 20) {
+                            pdf.addPage();
+                            yPos = margin;
+                        }
+                        pdf.text(line, margin + 3, yPos);
+                        yPos += 5;
+                    }
+                    yPos += 5;
+                }
+                
+                // 새 페이지 - 동의 및 서명
+                pdf.addPage();
+                yPos = margin;
+                
+                // 동의 체크박스
+                pdf.setFillColor(254, 249, 195); // #fef9c3
+                pdf.roundedRect(margin, yPos, contentWidth, 25, 2, 2, 'F');
+                pdf.setDrawColor(250, 204, 21); // #facc15
+                pdf.setLineWidth(1);
+                pdf.roundedRect(margin, yPos, contentWidth, 25, 2, 2, 'S');
+                
+                // 체크박스
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(202, 138, 4);
+                pdf.setLineWidth(0.8);
+                pdf.rect(margin + 5, yPos + 5, 8, 8, 'FD');
+                
+                // 체크마크
+                pdf.setTextColor(22, 163, 74); // 녹색
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('✓', margin + 6.5, yPos + 12);
+                
+                // 동의 텍스트
+                pdf.setTextColor(161, 98, 7);
+                pdf.setFontSize(11);
+                pdf.text('동의 완료', margin + 15, yPos + 11);
+                
+                pdf.setTextColor(113, 63, 18);
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'normal');
+                const agreementText = '본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.';
+                const splitAgreement = pdf.splitTextToSize(agreementText, contentWidth - 20);
+                pdf.text(splitAgreement, margin + 15, yPos + 16);
+                
+                yPos += 30;
+                
+                // 계약 일자
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                const contractDate = contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : '';
+                pdf.text(contractDate, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 15;
+                
+                // 갑 (위탁자)
+                pdf.setFillColor(219, 234, 254); // #dbeafe
+                pdf.roundedRect(margin, yPos, contentWidth, 35, 2, 2, 'F');
+                pdf.setDrawColor(59, 130, 246);
+                pdf.setLineWidth(0.5);
+                pdf.roundedRect(margin, yPos, contentWidth, 35, 2, 2, 'S');
+                
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('갑 (위탁자)', margin + 5, yPos + 7);
+                
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text('상호: 대성 배달대행', margin + 5, yPos + 13);
+                pdf.text('사업자번호: 487-39-01128', margin + 5, yPos + 18);
+                pdf.text('대표자: 김상춘', margin + 5, yPos + 23);
+                pdf.text('주소: 광주광역시 광산구 신가삼효로 31, 1층 플러스 사무실', margin + 5, yPos + 28);
+                pdf.text('전화번호: 010-8604-6995', margin + 5, yPos + 33);
+                
+                // 도장 이미지 (있을 경우)
+                if (contract.company_signature) {
+                    try {
+                        pdf.addImage(contract.company_signature, 'PNG', pageWidth - margin - 25, yPos + 5, 20, 20);
+                    } catch (e) {
+                        console.log('Failed to add company signature image');
+                    }
+                }
+                
+                yPos += 40;
+                
+                // 을 (수탁자)
+                pdf.setFillColor(209, 250, 229); // #d1fae5
+                pdf.roundedRect(margin, yPos, contentWidth, 45, 2, 2, 'F');
+                pdf.setDrawColor(16, 185, 129);
+                pdf.setLineWidth(0.5);
+                pdf.roundedRect(margin, yPos, contentWidth, 45, 2, 2, 'S');
+                
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('을 (수탁자)', margin + 5, yPos + 7);
+                
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`성명: ${contract.worker_name || '[근로자명]'}`, margin + 5, yPos + 13);
+                pdf.text(`주민등록번호: ${contract.worker_id_number || '[주민등록번호]'}`, margin + 5, yPos + 18);
+                pdf.text(`주소: ${contract.worker_address || '[주소]'}`, margin + 5, yPos + 23);
+                pdf.text(`연락처: ${contract.worker_phone || '[전화번호]'}`, margin + 5, yPos + 28);
+                
+                // 서명 문구
+                pdf.setFontSize(8);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(55, 65, 81);
+                pdf.text('본인이 직접 계약 하였음을 서명합니다', margin + 5, yPos + 38);
+                
+                // 서명 이미지 (있을 경우)
+                if (contract.worker_signature) {
+                    try {
+                        pdf.addImage(contract.worker_signature, 'PNG', pageWidth - margin - 35, yPos + 5, 30, 15);
+                    } catch (e) {
+                        console.log('Failed to add worker signature image');
+                    }
                 }
                 
                 // PDF 저장
@@ -508,10 +754,6 @@
                 pdf.save(fileName);
                 
                 console.log('PDF generation complete');
-                
-                // 정리
-                document.body.removeChild(pdfContainer);
-                document.body.removeChild(loadingDiv);
                 
             } catch (error) {
                 console.error('PDF generation error:', error);
