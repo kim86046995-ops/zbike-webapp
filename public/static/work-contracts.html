@@ -471,8 +471,19 @@
                     box.style.cssText += 'padding:12px;background:#d1fae5;border:2px solid #10b981;border-radius:4px;margin-bottom:10px;page-break-inside:avoid;';
                 });
                 
+                // 이미지 크기 설정 (신분증은 크게, 도장/서명은 작게)
                 pdfContainer.querySelectorAll('img').forEach(img => {
-                    img.style.cssText += 'max-width:110px;max-height:110px;object-fit:contain;';
+                    // 신분증 이미지인지 확인 (alt="신분증" 또는 부모가 신분증 섹션)
+                    const isIdCard = img.alt === '신분증' || img.closest('div')?.querySelector('i.fa-id-card');
+                    
+                    if (isIdCard) {
+                        // 신분증은 크게 표시 (최대 400px)
+                        img.style.cssText += 'max-width:400px;max-height:300px;object-fit:contain;display:block;margin:10px auto;';
+                        console.log('✓ 신분증 이미지 스타일 적용됨');
+                    } else {
+                        // 도장/서명은 작게 표시
+                        img.style.cssText += 'max-width:110px;max-height:110px;object-fit:contain;';
+                    }
                 });
                 
                 pdfContainer.querySelectorAll('p').forEach(p => {
