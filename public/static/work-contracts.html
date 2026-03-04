@@ -289,11 +289,11 @@
                                     </div>
                                     
                                     <div style="margin-top: 40px; text-align: center;">
-                                        <div style="display: inline-flex; align-items: center; background-color: #fef9c3; border: 3px solid #facc15; border-radius: 8px; padding: 12px 20px; margin-bottom: 20px;">
-                                            <div style="width: 24px; height: 24px; background-color: #ffffff; border: 2px solid #ca8a04; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
-                                                <span style="color: #16a34a; font-size: 18px; font-weight: bold; line-height: 1;">✓</span>
+                                        <div style="display: inline-flex; align-items: center; background-color: #fef9c3; border: 3px solid #facc15; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; max-width: 90%;">
+                                            <div style="width: 20px; height: 20px; background-color: #ffffff; border: 2px solid #ca8a04; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;">
+                                                <span style="color: #16a34a; font-size: 14px; font-weight: bold; line-height: 1;">✓</span>
                                             </div>
-                                            <span style="color: #000000; font-size: 15px; font-weight: 600; white-space: nowrap;">전자서명 계약 동의 완료 - 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력 가능</span>
+                                            <span style="color: #000000; font-size: 13px; font-weight: 600;">전자서명 계약 동의 완료 (계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력 가능)</span>
                                         </div>
                                         <p style="margin-top: 20px; font-weight: bold; font-size: 17px; color: #000000;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                                     </div>
@@ -424,18 +424,22 @@
                 
                 // PDF용 컨테이너 생성 (A4 크기 794x1123 px at 96dpi)
                 const pdfContainer = document.createElement('div');
-                pdfContainer.style.width = '794px';
-                pdfContainer.style.padding = '60px';
-                pdfContainer.style.backgroundColor = '#ffffff';
-                pdfContainer.style.position = 'fixed';
-                pdfContainer.style.left = '-10000px';
-                pdfContainer.style.top = '0';
-                pdfContainer.style.fontFamily = '"Malgun Gothic", "맑은 고딕", Arial, sans-serif';
-                pdfContainer.style.fontSize = '14px';
-                pdfContainer.style.lineHeight = '1.7';
-                pdfContainer.style.color = '#000000';
-                pdfContainer.style.boxSizing = 'border-box';
-                pdfContainer.style.overflow = 'visible';
+                pdfContainer.id = 'pdf-temp-container';
+                pdfContainer.style.cssText = `
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 794px;
+                    padding: 60px;
+                    background-color: #ffffff;
+                    font-family: "Malgun Gothic", "맑은 고딕", Arial, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.7;
+                    color: #000000;
+                    box-sizing: border-box;
+                    z-index: -1;
+                    visibility: hidden;
+                `;
                 
                 // 모달의 렌더링된 innerHTML을 그대로 복사 (템플릿 변수가 이미 치환됨)
                 pdfContainer.innerHTML = modalContent.innerHTML;
@@ -483,24 +487,17 @@
                 console.log('Container dimensions:', pdfContainer.offsetWidth, 'x', pdfContainer.offsetHeight);
                 console.log('Container scroll:', pdfContainer.scrollWidth, 'x', pdfContainer.scrollHeight);
                 
-                // html2canvas로 캡처 (충분한 높이 확보)
+                // html2canvas로 캡처
+                pdfContainer.style.visibility = 'visible';  // 캡처 전 보이게
+                pdfContainer.style.zIndex = '99999';
+                
                 const canvas = await html2canvas(pdfContainer, {
                     scale: 2,
                     useCORS: true,
-                    allowTaint: false,
+                    allowTaint: true,
                     backgroundColor: '#ffffff',
                     logging: true,
-                    width: 794,
-                    height: pdfContainer.scrollHeight + 300,  // 여유 높이 대폭 증가
-                    windowWidth: 794,
-                    windowHeight: pdfContainer.scrollHeight + 300,
-                    onclone: (clonedDoc) => {
-                        const clonedContainer = clonedDoc.querySelector('body > div:last-child');
-                        if (clonedContainer) {
-                            clonedContainer.style.height = 'auto';
-                            clonedContainer.style.minHeight = 'auto';
-                        }
-                    }
+                    removeContainer: false
                 });
                 
                 console.log('Canvas created:', canvas.width, 'x', canvas.height);
