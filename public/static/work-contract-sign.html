@@ -187,7 +187,14 @@
                     </div>
                     
                     <div class="mt-10 text-center text-3xl">
-                        <p class="mb-4">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
+                        <div class="mb-6 bg-yellow-50 border-4 border-yellow-400 rounded-lg p-6">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="agreeCheckbox" class="mt-2 w-8 h-8 mr-4 cursor-pointer">
+                                <span class="text-left text-2xl">
+                                    <strong class="text-yellow-800">동의</strong>: 본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.
+                                </span>
+                            </label>
+                        </div>
                         <p class="mt-6 font-bold text-4xl">${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일</p>
                     </div>
                 </div>
@@ -464,6 +471,14 @@
             console.log('💾 저장 시작');
             console.log('서명 데이터:', workerSignaturePad);
             console.log('신분증 파일:', idCardFile);
+            
+            // 동의 체크 확인
+            const agreeCheckbox = document.getElementById('agreeCheckbox');
+            if (!agreeCheckbox.checked) {
+                alert('전자서명 계약 약관에 동의해주세요');
+                agreeCheckbox.focus();
+                return;
+            }
             
             if (!workerSignaturePad) {
                 alert('을(수탁자) 서명을 해주세요');

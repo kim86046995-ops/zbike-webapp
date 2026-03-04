@@ -572,20 +572,45 @@
                         
                         <div style="margin-bottom: 20px; padding: 15px; background-color: #dbeafe; border: 1px solid #3b82f6; border-radius: 5px;">
                             <h3 style="font-weight: bold; margin-bottom: 10px; font-size: 13pt;">갑 (위탁자)</h3>
-                            <p>상호: <strong>대성 배달대행</strong></p>
-                            <p>사업자번호: <strong>487-39-01128</strong></p>
-                            <p>대표자: <strong>김상춘</strong> (인)</p>
-                            <p>주소: <strong>광주광역시 광산구 신가삼효로 31, 1층 플러스 사무실</strong></p>
-                            <p>전화번호: <strong>010-8604-6995</strong></p>
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <p>상호: <strong>대성 배달대행</strong></p>
+                                    <p>사업자번호: <strong>487-39-01128</strong></p>
+                                    <p>대표자: <strong>김상춘</strong></p>
+                                    <p>주소: <strong>광주광역시 광산구 신가삼효로 31, 1층 플러스 사무실</strong></p>
+                                    <p>전화번호: <strong>010-8604-6995</strong></p>
+                                </div>
+                                ${contract.company_signature ? `
+                                    <div style="margin-left: 20px;">
+                                        <img src="${contract.company_signature}" alt="갑 도장" style="width: 100px; height: 100px; object-fit: contain;">
+                                    </div>
+                                ` : `
+                                    <div style="margin-left: 20px; width: 100px; height: 100px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10pt; color: #999;">
+                                        (인)
+                                    </div>
+                                `}
+                            </div>
                         </div>
                         
                         <div style="margin-bottom: 20px; padding: 15px; background-color: #d1fae5; border: 1px solid #10b981; border-radius: 5px;">
                             <h3 style="font-weight: bold; margin-bottom: 10px; font-size: 13pt;">을 (수탁자)</h3>
-                            <p>성명: <strong>${contract.worker_name || '[근로자명]'}</strong></p>
-                            <p>주민등록번호: <strong>${contract.worker_id_number || '[주민등록번호]'}</strong></p>
-                            <p>주소: <strong>${contract.worker_address || '[주소]'}</strong></p>
-                            <p>연락처: <strong>${contract.worker_phone || '[전화번호]'}</strong></p>
-                            ${contract.worker_signature ? '<p style="margin-top: 10px;">(서명)</p>' : ''}
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <p>성명: <strong>${contract.worker_name || '[근로자명]'}</strong></p>
+                                    <p>주민등록번호: <strong>${contract.worker_id_number || '[주민등록번호]'}</strong></p>
+                                    <p>주소: <strong>${contract.worker_address || '[주소]'}</strong></p>
+                                    <p>연락처: <strong>${contract.worker_phone || '[전화번호]'}</strong></p>
+                                </div>
+                                ${contract.worker_signature ? `
+                                    <div style="margin-left: 20px; background: white; padding: 5px; border: 2px solid #10b981; border-radius: 5px;">
+                                        <img src="${contract.worker_signature}" alt="을 서명" style="width: 150px; height: 80px; object-fit: contain;">
+                                    </div>
+                                ` : `
+                                    <div style="margin-left: 20px; width: 150px; height: 80px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10pt; color: #999;">
+                                        (서명)
+                                    </div>
+                                `}
+                            </div>
                         </div>
                     </div>
                 `;
