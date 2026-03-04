@@ -289,11 +289,19 @@
                                     </div>
                                     
                                     <div style="margin-top: 40px; text-align: center;">
-                                        <div style="display: inline-flex; align-items: center; background-color: #fef9c3; border: 3px solid #facc15; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; max-width: 90%;">
-                                            <div style="width: 20px; height: 20px; background-color: #ffffff; border: 2px solid #ca8a04; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;">
-                                                <span style="color: #16a34a; font-size: 14px; font-weight: bold; line-height: 1;">✓</span>
-                                            </div>
-                                            <span style="color: #000000; font-size: 13px; font-weight: 600;">전자서명 계약 동의 완료 (계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력 가능)</span>
+                                        <div style="display: inline-block; background-color: #fef9c3; border: 3px solid #facc15; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px;">
+                                            <table style="border-collapse: collapse; border: none;">
+                                                <tr>
+                                                    <td style="vertical-align: middle; padding: 0; margin: 0;">
+                                                        <div style="width: 20px; height: 20px; background-color: #ffffff; border: 2px solid #ca8a04; border-radius: 4px; text-align: center; line-height: 20px;">
+                                                            <span style="color: #16a34a; font-size: 14px; font-weight: bold;">✓</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style="vertical-align: middle; padding-left: 10px;">
+                                                        <span style="color: #000000; font-size: 13px; font-weight: 600;">전자서명 계약 동의 완료 (계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력 가능)</span>
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
                                         <p style="margin-top: 20px; font-weight: bold; font-size: 17px; color: #000000;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                                     </div>
@@ -477,26 +485,37 @@
                 const agreementBoxes = pdfContainer.querySelectorAll('div[style*="background-color: #fef9c3"]');
                 agreementBoxes.forEach(box => {
                     // 외부 박스
-                    box.style.cssText = 'display:inline-flex;align-items:center;background-color:#fef9c3;border:3px solid #facc15;border-radius:8px;padding:10px 16px;margin-bottom:20px;max-width:90%;';
+                    box.style.cssText = 'display:inline-block;background-color:#fef9c3;border:3px solid #facc15;border-radius:8px;padding:10px 16px;margin-bottom:20px;';
                     
-                    // 체크박스 찾기
-                    const checkbox = box.querySelector('div[style*="background-color: #ffffff"]');
-                    if (checkbox) {
-                        checkbox.style.cssText = 'width:20px;height:20px;background-color:#ffffff;border:2px solid #ca8a04;border-radius:4px;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;';
+                    // 테이블
+                    const table = box.querySelector('table');
+                    if (table) {
+                        table.style.cssText = 'border-collapse:collapse;border:none;width:100%;';
                         
-                        // 체크마크
-                        const checkmark = checkbox.querySelector('span');
-                        if (checkmark) {
-                            checkmark.style.cssText = 'color:#16a34a;font-size:14px;font-weight:bold;line-height:1;';
-                            console.log('✓ 체크마크 스타일 적용됨:', checkmark.textContent);
+                        // TD들
+                        const tds = table.querySelectorAll('td');
+                        if (tds[0]) tds[0].style.cssText = 'vertical-align:middle;padding:0;margin:0;';
+                        if (tds[1]) tds[1].style.cssText = 'vertical-align:middle;padding-left:10px;';
+                        
+                        // 체크박스
+                        const checkbox = box.querySelector('div[style*="background-color: #ffffff"]');
+                        if (checkbox) {
+                            checkbox.style.cssText = 'width:20px;height:20px;background-color:#ffffff;border:2px solid #ca8a04;border-radius:4px;text-align:center;line-height:20px;';
+                            
+                            // 체크마크
+                            const checkmark = checkbox.querySelector('span');
+                            if (checkmark) {
+                                checkmark.style.cssText = 'color:#16a34a;font-size:14px;font-weight:bold;';
+                                console.log('✓ 체크마크 스타일 적용됨:', checkmark.textContent);
+                            }
                         }
-                    }
-                    
-                    // 텍스트
-                    const text = box.querySelector('span:not([style*="line-height: 1"])');
-                    if (text) {
-                        text.style.cssText = 'color:#000000;font-size:13px;font-weight:600;';
-                        console.log('✓ 텍스트 스타일 적용됨:', text.textContent);
+                        
+                        // 텍스트
+                        const text = tds[1]?.querySelector('span');
+                        if (text) {
+                            text.style.cssText = 'color:#000000;font-size:13px;font-weight:600;';
+                            console.log('✓ 텍스트 스타일 적용됨:', text.textContent);
+                        }
                     }
                 });
                 
