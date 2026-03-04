@@ -434,7 +434,7 @@
                 const pdfContainer = document.createElement('div');
                 pdfContainer.id = 'pdf-temp-container';
                 pdfContainer.style.cssText = `
-                    position: absolute;
+                    position: fixed;
                     left: 0;
                     top: 0;
                     width: 794px;
@@ -445,8 +445,8 @@
                     line-height: 1.7;
                     color: #000000;
                     box-sizing: border-box;
-                    z-index: -1;
-                    visibility: hidden;
+                    z-index: 99998;
+                    overflow: visible;
                 `;
                 
                 // 모달의 렌더링된 innerHTML을 그대로 복사 (템플릿 변수가 이미 치환됨)
@@ -521,23 +521,23 @@
                 
                 document.body.appendChild(pdfContainer);
                 
-                // 로딩 표시
+                // 로딩 표시 (PDF 컨테이너보다 위에)
                 const loadingDiv = document.createElement('div');
                 loadingDiv.id = 'pdf-loading';
-                loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:#fff;padding:30px 60px;border-radius:12px;z-index:99999;font-size:20px;font-weight:bold;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+                loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);color:#fff;padding:30px 60px;border-radius:12px;z-index:100000;font-size:20px;font-weight:bold;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
                 loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:15px;"></i>PDF 생성 중...';
                 document.body.appendChild(loadingDiv);
                 
                 // DOM 충분히 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 
                 console.log('Container dimensions:', pdfContainer.offsetWidth, 'x', pdfContainer.offsetHeight);
                 console.log('Container scroll:', pdfContainer.scrollWidth, 'x', pdfContainer.scrollHeight);
                 
-                // html2canvas로 캡처
-                pdfContainer.style.visibility = 'visible';  // 캡처 전 보이게
-                pdfContainer.style.zIndex = '99999';
+                // 로딩 오버레이 잠깐 숨기기 (캡처할 때)
+                loadingDiv.style.display = 'none';
                 
+                // html2canvas로 캡처
                 const canvas = await html2canvas(pdfContainer, {
                     scale: 2,
                     useCORS: true,
@@ -546,6 +546,9 @@
                     logging: true,
                     removeContainer: false
                 });
+                
+                // 로딩 다시 보이기
+                loadingDiv.style.display = 'block';
                 
                 console.log('Canvas created:', canvas.width, 'x', canvas.height);
                 
