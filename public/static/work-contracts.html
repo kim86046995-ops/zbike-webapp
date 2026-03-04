@@ -436,11 +436,11 @@
                     left: 0;
                     top: 0;
                     width: 794px;
-                    padding: 40px;
+                    padding: 30px;
                     background-color: #ffffff;
                     font-family: "Malgun Gothic", "맑은 고딕", Arial, sans-serif;
-                    font-size: 12px;
-                    line-height: 1.6;
+                    font-size: 11px;
+                    line-height: 1.5;
                     color: #000000;
                     box-sizing: border-box;
                     z-index: 99998;
@@ -452,31 +452,31 @@
                 
                 // 인라인 스타일 강제 적용
                 pdfContainer.querySelectorAll('h1').forEach(h1 => {
-                    h1.style.cssText = 'text-align:center;font-size:22px;font-weight:bold;margin:0 0 24px 0;color:#000;';
+                    h1.style.cssText = 'text-align:center;font-size:20px;font-weight:bold;margin:0 0 20px 0;color:#000;';
                 });
                 
                 pdfContainer.querySelectorAll('h3').forEach(h3 => {
-                    h3.style.cssText = 'font-weight:bold;font-size:14px;margin:0 0 10px 0;color:#000;';
+                    h3.style.cssText = 'font-weight:bold;font-size:13px;margin:0 0 8px 0;color:#000;';
                 });
                 
                 pdfContainer.querySelectorAll('.border').forEach(box => {
-                    box.style.cssText += 'margin-bottom:16px;padding:12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;';
+                    box.style.cssText += 'margin-bottom:12px;padding:10px;background:#f9fafb;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;';
                 });
                 
                 pdfContainer.querySelectorAll('.bg-blue-50').forEach(box => {
-                    box.style.cssText += 'padding:16px;background:#dbeafe;border:2px solid #3b82f6;border-radius:6px;margin-bottom:16px;';
+                    box.style.cssText += 'padding:12px;background:#dbeafe;border:2px solid #3b82f6;border-radius:4px;margin-bottom:12px;';
                 });
                 
                 pdfContainer.querySelectorAll('.bg-green-50').forEach(box => {
-                    box.style.cssText += 'padding:16px;background:#d1fae5;border:2px solid #10b981;border-radius:6px;margin-bottom:16px;';
+                    box.style.cssText += 'padding:12px;background:#d1fae5;border:2px solid #10b981;border-radius:4px;margin-bottom:12px;';
                 });
                 
                 pdfContainer.querySelectorAll('img').forEach(img => {
-                    img.style.cssText += 'max-width:120px;max-height:120px;object-fit:contain;';
+                    img.style.cssText += 'max-width:100px;max-height:100px;object-fit:contain;';
                 });
                 
                 pdfContainer.querySelectorAll('p').forEach(p => {
-                    p.style.cssText += 'margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#000;';
+                    p.style.cssText += 'margin:0 0 6px 0;font-size:11px;line-height:1.5;color:#000;';
                 });
                 
                 // 동의 체크박스 스타일 강제 적용
