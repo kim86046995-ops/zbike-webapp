@@ -477,12 +477,28 @@
                     const isIdCard = img.alt === '신분증' || img.closest('div')?.querySelector('i.fa-id-card');
                     
                     if (isIdCard) {
-                        // 신분증은 크게 표시 (최대 400px)
-                        img.style.cssText += 'max-width:400px;max-height:300px;object-fit:contain;display:block;margin:10px auto;';
-                        console.log('✓ 신분증 이미지 스타일 적용됨');
+                        // 신분증은 크게 표시 (최대 500px)
+                        img.style.cssText = 'max-width:500px !important;max-height:400px !important;width:auto !important;height:auto !important;object-fit:contain !important;display:block !important;margin:15px auto !important;border:2px solid #d1d5db !important;border-radius:8px !important;padding:10px !important;background:#fff !important;';
+                        console.log('✓ 신분증 이미지 스타일 적용됨:', img.src?.substring(0, 50));
                     } else {
                         // 도장/서명은 작게 표시
                         img.style.cssText += 'max-width:110px;max-height:110px;object-fit:contain;';
+                    }
+                });
+                
+                // 신분증 섹션 스타일 강제 적용
+                const allDivs = pdfContainer.querySelectorAll('div');
+                allDivs.forEach(div => {
+                    const icon = div.querySelector('i.fa-id-card');
+                    if (icon) {
+                        div.style.cssText += 'page-break-before:always;padding:20px;background:#f3f4f6;border:2px solid #9ca3af;border-radius:8px;margin-top:25px;margin-bottom:25px;';
+                        
+                        const heading = div.querySelector('h3');
+                        if (heading) {
+                            heading.style.cssText = 'font-size:18px;font-weight:bold;color:#000;margin-bottom:20px;text-align:center;';
+                        }
+                        
+                        console.log('✓ 신분증 섹션 스타일 적용됨');
                     }
                 });
                 
