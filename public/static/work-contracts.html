@@ -329,8 +329,13 @@
                                                 </div>
                                             </div>
                                             ${contract.worker_signature ? `
-                                            <div class="ml-4 bg-white p-4 rounded-lg border-4 border-green-500">
-                                                <img src="${contract.worker_signature}" alt="을 서명" class="w-72 h-72 object-contain">
+                                            <div class="ml-4">
+                                                <div class="bg-white p-4 rounded-lg border-4 border-green-500">
+                                                    <img src="${contract.worker_signature}" alt="을 서명" class="w-72 h-72 object-contain">
+                                                </div>
+                                                <p class="text-sm text-gray-700 mt-2 font-semibold">
+                                                    <i class="fas fa-pen-nib text-green-600 mr-1"></i>본인이 직접 계약 하였음을 서명합니다
+                                                </p>
                                             </div>
                                             ` : ''}
                                         </div>
@@ -616,8 +621,13 @@
                                     <p>연락처: <strong>${contract.worker_phone || '[전화번호]'}</strong></p>
                                 </div>
                                 ${contract.worker_signature ? `
-                                    <div style="margin-left: 20px; background: white; padding: 5px; border: 2px solid #10b981; border-radius: 5px;">
-                                        <img src="${contract.worker_signature}" alt="을 서명" style="width: 150px; height: 80px; object-fit: contain;">
+                                    <div style="margin-left: 20px;">
+                                        <div style="background: white; padding: 5px; border: 2px solid #10b981; border-radius: 5px;">
+                                            <img src="${contract.worker_signature}" alt="을 서명" style="width: 150px; height: 80px; object-fit: contain;">
+                                        </div>
+                                        <p style="font-size: 9pt; color: #374151; margin-top: 5px; font-weight: 600;">
+                                            ✍️ 본인이 직접 계약 하였음을 서명합니다
+                                        </p>
                                     </div>
                                 ` : `
                                     <div style="margin-left: 20px; width: 150px; height: 80px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10pt; color: #999;">
