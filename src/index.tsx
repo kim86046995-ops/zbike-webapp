@@ -4475,8 +4475,8 @@ app.get('/api/contract-shares', authMiddleware, async (c) => {
 })
 
 // SMS 전송 API (계약서 공유 링크 전송)
-// SMS 전송 (인증 필요) - 정비관리 시스템 방식 (EC2 경유)
-app.post('/api/send-sms', authMiddleware, async (c) => {
+// SMS 전송 (인증 불필요로 변경) - 정비관리 시스템 방식 (EC2 경유)
+app.post('/api/send-sms', async (c) => {
   try {
     const body = await c.req.json()
     const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
