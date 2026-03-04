@@ -1676,9 +1676,9 @@
                     detailModal.classList.add('hidden');
                 }
                 
-                // 목록 새로고침
+                // 목록 새로고침 (캐시 무시하고 강제 새로고침)
                 console.log('🔄 계약서 목록 새로고침 시작');
-                await loadContracts();
+                await loadContracts(true);  // forceRefresh = true
                 console.log('✅ 계약서 목록 새로고침 완료');
                 
             } catch (error) {
