@@ -436,11 +436,11 @@
                     left: 0;
                     top: 0;
                     width: 794px;
-                    padding: 30px;
+                    padding: 40px;
                     background-color: #ffffff;
                     font-family: "Malgun Gothic", "맑은 고딕", Arial, sans-serif;
-                    font-size: 11px;
-                    line-height: 1.5;
+                    font-size: 12px;
+                    line-height: 1.6;
                     color: #000000;
                     box-sizing: border-box;
                     z-index: 99998;
@@ -452,38 +452,38 @@
                 
                 // 인라인 스타일 강제 적용
                 pdfContainer.querySelectorAll('h1').forEach(h1 => {
-                    h1.style.cssText = 'text-align:center;font-size:20px;font-weight:bold;margin:0 0 20px 0;color:#000;';
+                    h1.style.cssText = 'text-align:center;font-size:22px;font-weight:bold;margin:0 0 24px 0;color:#000;word-wrap:break-word;';
                 });
                 
                 pdfContainer.querySelectorAll('h3').forEach(h3 => {
-                    h3.style.cssText = 'font-weight:bold;font-size:13px;margin:0 0 8px 0;color:#000;';
+                    h3.style.cssText = 'font-weight:bold;font-size:14px;margin:0 0 10px 0;color:#000;word-wrap:break-word;';
                 });
                 
                 pdfContainer.querySelectorAll('.border').forEach(box => {
-                    box.style.cssText += 'margin-bottom:12px;padding:10px;background:#f9fafb;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;';
+                    box.style.cssText += 'margin-bottom:14px;padding:12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;box-sizing:border-box;page-break-inside:avoid;';
                 });
                 
                 pdfContainer.querySelectorAll('.bg-blue-50').forEach(box => {
-                    box.style.cssText += 'padding:12px;background:#dbeafe;border:2px solid #3b82f6;border-radius:4px;margin-bottom:12px;';
+                    box.style.cssText += 'padding:14px;background:#dbeafe;border:2px solid #3b82f6;border-radius:5px;margin-bottom:14px;page-break-inside:avoid;';
                 });
                 
                 pdfContainer.querySelectorAll('.bg-green-50').forEach(box => {
-                    box.style.cssText += 'padding:12px;background:#d1fae5;border:2px solid #10b981;border-radius:4px;margin-bottom:12px;';
+                    box.style.cssText += 'padding:14px;background:#d1fae5;border:2px solid #10b981;border-radius:5px;margin-bottom:14px;page-break-inside:avoid;';
                 });
                 
                 pdfContainer.querySelectorAll('img').forEach(img => {
-                    img.style.cssText += 'max-width:100px;max-height:100px;object-fit:contain;';
+                    img.style.cssText += 'max-width:110px;max-height:110px;object-fit:contain;';
                 });
                 
                 pdfContainer.querySelectorAll('p').forEach(p => {
-                    p.style.cssText += 'margin:0 0 6px 0;font-size:11px;line-height:1.5;color:#000;';
+                    p.style.cssText += 'margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#000;word-wrap:break-word;';
                 });
                 
                 // 동의 체크박스 스타일 강제 적용
                 const agreementBoxes = pdfContainer.querySelectorAll('div[style*="background-color: #fef9c3"]');
                 agreementBoxes.forEach(box => {
                     // 외부 박스 - 얇은 테두리, 작은 패딩
-                    box.style.cssText = 'display:inline-block;background-color:#fef9c3;border:2px solid #facc15;border-radius:4px;padding:6px 12px;margin-bottom:20px;';
+                    box.style.cssText = 'display:inline-block;background-color:#fef9c3;border:2px solid #facc15;border-radius:4px;padding:5px 10px;margin-bottom:16px;';
                     
                     // 테이블
                     const table = box.querySelector('table');
@@ -493,19 +493,19 @@
                         // TD들
                         const tds = table.querySelectorAll('td');
                         if (tds[0]) tds[0].style.cssText = 'vertical-align:middle;padding:0;margin:0;line-height:1;';
-                        if (tds[1]) tds[1].style.cssText = 'vertical-align:middle;padding:0;line-height:1.3;';
+                        if (tds[1]) tds[1].style.cssText = 'vertical-align:middle;padding:0;line-height:1.2;';
                         
                         // 체크마크 직접
                         const checkmark = tds[0]?.querySelector('span');
                         if (checkmark) {
-                            checkmark.style.cssText = 'color:#16a34a;font-size:16px;font-weight:bold;margin-right:6px;';
+                            checkmark.style.cssText = 'color:#16a34a;font-size:14px;font-weight:bold;margin-right:5px;';
                             console.log('✓ 체크마크 스타일 적용됨:', checkmark.textContent);
                         }
                         
                         // 텍스트
                         const text = tds[1]?.querySelector('span');
                         if (text) {
-                            text.style.cssText = 'color:#000000;font-size:13px;font-weight:600;';
+                            text.style.cssText = 'color:#000000;font-size:12px;font-weight:600;';
                             console.log('✓ 텍스트 스타일 적용됨:', text.textContent);
                         }
                     }
