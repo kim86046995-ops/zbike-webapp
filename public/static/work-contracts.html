@@ -7,7 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <!-- PDF 생성 라이브러리 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto p-4 max-w-6xl">
@@ -589,54 +590,79 @@
                     </div>
                 `;
                 
-                // 임시로 body에 추가 (화면 밖에 위치)
+                // 임시로 body에 추가 (보이도록)
                 pdfContent.style.position = 'fixed';
-                pdfContent.style.left = '0';
-                pdfContent.style.top = '0';
-                pdfContent.style.zIndex = '-1';
-                pdfContent.style.opacity = '0';
+                pdfContent.style.left = '50%';
+                pdfContent.style.top = '50%';
+                pdfContent.style.transform = 'translate(-50%, -50%)';
+                pdfContent.style.zIndex = '9999';
+                pdfContent.style.boxShadow = '0 0 20px rgba(0,0,0,0.3)';
                 document.body.appendChild(pdfContent);
                 
+                // 로딩 오버레이 추가
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.inset = '0';
+                overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                overlay.style.zIndex = '9998';
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.innerHTML = '<div style="background:white;padding:20px;border-radius:10px;"><p style="font-size:18px;font-weight:bold;">PDF 생성 중...</p></div>';
+                document.body.appendChild(overlay);
+                
                 // DOM 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 console.log('PDF Content dimensions:', pdfContent.offsetWidth, 'x', pdfContent.offsetHeight);
                 
-                // PDF 생성 옵션
-                const opt = {
-                    margin: 10,
-                    filename: `업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`,
-                    image: { 
-                        type: 'jpeg', 
-                        quality: 0.98 
-                    },
-                    html2canvas: { 
-                        scale: 2,
-                        useCORS: true,
-                        logging: true,
-                        backgroundColor: '#ffffff',
-                        windowWidth: 794,
-                        windowHeight: 1123
-                    },
-                    jsPDF: { 
-                        unit: 'px', 
-                        format: [794, 1123],  // A4 at 96 DPI
-                        orientation: 'portrait',
-                        hotfixes: ['px_scaling']
-                    },
-                    pagebreak: { 
-                        mode: ['avoid-all', 'css', 'legacy'],
-                        before: '.page-break'
-                    }
-                };
+                // html2canvas로 이미지 생성
+                const canvas = await html2canvas(pdfContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: true,
+                    backgroundColor: '#ffffff',
+                    width: 794,
+                    height: pdfContent.scrollHeight
+                });
                 
-                // PDF 생성 및 다운로드
-                console.log('Starting PDF generation...');
-                await html2pdf().set(opt).from(pdfContent).save();
+                console.log('Canvas created:', canvas.width, 'x', canvas.height);
+                
+                // jsPDF로 PDF 생성
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: [794, 1123]
+                });
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgWidth = 794;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                let heightLeft = imgHeight;
+                let position = 0;
+                const pageHeight = 1123;
+                
+                // 첫 페이지
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                // 추가 페이지
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                // PDF 저장
+                pdf.save(`업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`);
                 console.log('PDF generation complete');
                 
                 // 임시 요소 제거
                 document.body.removeChild(pdfContent);
+                document.body.removeChild(overlay);
                 
             } catch (error) {
                 console.error('PDF 생성 오류:', error);
