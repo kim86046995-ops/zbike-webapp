@@ -571,7 +571,14 @@
                         ` : ''}
                         
                         <div style="text-align: center; margin: 30px 0;">
-                            <p>본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
+                            <div style="margin: 0 auto 20px; max-width: 600px; padding: 15px; background-color: #fef9c3; border: 3px solid #facc15; border-radius: 8px; display: inline-block;">
+                                <div style="display: flex; align-items: start; text-align: left;">
+                                    <div style="font-size: 20pt; color: #ca8a04; margin-right: 10px; line-height: 1;">✓</div>
+                                    <div>
+                                        <span style="font-weight: bold; color: #a16207;">동의 완료</span>: 본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.
+                                    </div>
+                                </div>
+                            </div>
                             <p style="margin-top: 15px; font-weight: bold; font-size: 13pt;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                         </div>
                         
