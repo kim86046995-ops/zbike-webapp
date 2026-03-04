@@ -265,17 +265,17 @@
             currentSignatureType = type;
             const modal = document.createElement('div');
             modal.id = 'signatureModal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
             modal.innerHTML = `
-                <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-                    <h3 class="text-xl font-bold mb-4">${type === 'company' ? '갑 (위탁자)' : '을 (수탁자)'} 서명</h3>
-                    <div class="border-2 border-gray-300 rounded mb-4">
-                        <canvas id="modalSignature" width="700" height="300" class="w-full touch-none"></canvas>
+                <div class="bg-white rounded-lg p-8 max-w-6xl w-full">
+                    <h3 class="text-4xl font-bold mb-6">${type === 'company' ? '갑 (위탁자)' : '을 (수탁자)'} 서명</h3>
+                    <div class="border-4 border-gray-400 rounded-lg mb-6">
+                        <canvas id="modalSignature" width="1400" height="600" class="w-full touch-none"></canvas>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="clearModalSignature()" class="bg-gray-600 text-white px-4 py-2 rounded">지우기</button>
-                        <button onclick="saveModalSignature()" class="bg-purple-600 text-white px-4 py-2 rounded flex-1">확인</button>
-                        <button onclick="closeSignatureModal()" class="bg-red-600 text-white px-4 py-2 rounded">취소</button>
+                    <div class="flex gap-4">
+                        <button onclick="clearModalSignature()" class="bg-gray-600 text-white px-8 py-4 rounded-lg text-2xl font-bold">지우기</button>
+                        <button onclick="saveModalSignature()" class="bg-purple-600 text-white px-8 py-4 rounded-lg flex-1 text-2xl font-bold">확인</button>
+                        <button onclick="closeSignatureModal()" class="bg-red-600 text-white px-8 py-4 rounded-lg text-2xl font-bold">취소</button>
                     </div>
                 </div>
             `;
@@ -363,6 +363,56 @@
             document.getElementById('idCardInput').value = '';
         }
         
+        // 이미지 압축 함수 (D1 용량 제한 해결)
+        async function compressImage(file, maxSizeKB = 500) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // 최대 너비 1200px로 제한
+                        const maxWidth = 1200;
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // 품질을 조정하면서 용량 최적화
+                        let quality = 0.7;
+                        let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        
+                        // 목표 크기보다 크면 품질을 더 낮춤
+                        while (compressedDataUrl.length > maxSizeKB * 1024 * 1.37 && quality > 0.1) {
+                            quality -= 0.1;
+                            compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        }
+                        
+                        console.log('🗜️ 이미지 압축:', {
+                            원본크기: Math.round(e.target.result.length / 1024) + 'KB',
+                            압축크기: Math.round(compressedDataUrl.length / 1024) + 'KB',
+                            품질: Math.round(quality * 100) + '%'
+                        });
+                        
+                        resolve(compressedDataUrl);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
         async function save() {
             console.log('💾 저장 시작');
             console.log('서명 데이터:', workerSignaturePad);
@@ -387,13 +437,9 @@
             saveButton.innerHTML = '<i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p class="text-xl">전송 중...</p>';
             
             try {
-                // 신분증을 Base64로 변환
-                const idCardBase64 = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(idCardFile);
-                });
+                // 신분증 이미지 압축 (D1 용량 제한 해결)
+                console.log('🗜️ 이미지 압축 중...');
+                const idCardBase64 = await compressImage(idCardFile, 500);
                 
                 console.log('📤 API 요청 전송');
                 const response = await axios.post(`/api/work-contracts/${id}/signature`, {
@@ -409,7 +455,20 @@
                 console.error('에러 상세:', error.response?.data);
                 saveButton.disabled = false;
                 saveButton.innerHTML = originalHTML;
-                alert('오류가 발생했습니다: ' + (error.response?.data?.error || error.message));
+                
+                let errorMessage = '오류가 발생했습니다: ';
+                if (error.response?.data?.error) {
+                    errorMessage += error.response.data.error;
+                } else if (error.message) {
+                    errorMessage += error.message;
+                }
+                
+                // D1 용량 초과 에러 메시지
+                if (errorMessage.includes('SQLITE_TOOBIG') || errorMessage.includes('too big')) {
+                    errorMessage = '이미지 크기가 너무 큽니다. 더 작은 사진을 선택해주세요.';
+                }
+                
+                alert(errorMessage);
             }
         }
         
