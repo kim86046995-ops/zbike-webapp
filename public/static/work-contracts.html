@@ -288,17 +288,17 @@
                                         ` : ''}
                                     </div>
                                     
-                                    <div class="mt-8 text-center">
-                                        <div class="mb-4 bg-yellow-50 border-4 border-yellow-400 rounded-lg p-6 inline-block max-w-4xl">
-                                            <div class="flex items-start">
-                                                <i class="fas fa-check-square text-yellow-700 text-3xl mr-4 mt-1"></i>
-                                                <div class="text-left">
-                                                    <p class="font-bold text-gray-900 mb-3 text-lg">✓ 전자서명 계약 동의</p>
-                                                    <p class="text-gray-800 text-base leading-relaxed">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
+                                    <div style="margin-top: 40px; text-align: center;">
+                                        <div style="display: inline-block; background-color: #fef9c3; border: 4px solid #facc15; border-radius: 12px; padding: 24px; max-width: 800px; margin-bottom: 20px;">
+                                            <div style="display: flex; align-items: flex-start; text-align: left;">
+                                                <i class="fas fa-check-square" style="color: #ca8a04; font-size: 32px; margin-right: 16px; margin-top: 4px;"></i>
+                                                <div>
+                                                    <p style="font-weight: bold; color: #000000; font-size: 18px; margin: 0 0 12px 0;">✓ 전자서명 계약 동의</p>
+                                                    <p style="color: #1f2937; font-size: 16px; line-height: 1.8; margin: 0;">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <p class="mt-4 font-bold text-base">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
+                                        <p style="margin-top: 16px; font-weight: bold; font-size: 16px;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                                     </div>
                                 </div>
                                 
