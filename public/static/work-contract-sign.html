@@ -256,6 +256,18 @@
         
         let resizeHandler = null;
         
+        // 워터마크 그리기 함수
+        function drawWatermark(canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.font = `${Math.floor(canvas.height / 6)}px sans-serif`;
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('이름을 정자로 쓰세요', canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+        }
+        
         function openSignatureModal(type) {
             currentSignatureType = type;
             const modal = document.createElement('div');
@@ -301,6 +313,21 @@
                     velocityFilterWeight: 0.7
                 });
                 
+                // 초기 워터마크 표시
+                drawWatermark(canvas);
+                
+                // 서명 시작 시 워터마크 제거, 끝나면 다시 표시
+                modalSignaturePad.addEventListener('beginStroke', () => {
+                    // 서명이 있으면 워터마크를 표시하지 않음
+                });
+                
+                modalSignaturePad.addEventListener('endStroke', () => {
+                    // 서명이 비어있으면 워터마크 다시 표시
+                    if (modalSignaturePad.isEmpty()) {
+                        drawWatermark(canvas);
+                    }
+                });
+                
                 // 창 크기 변경 시 캔버스 크기 조정
                 resizeHandler = function() {
                     const data = modalSignaturePad.toData();
@@ -313,7 +340,13 @@
                     canvas.style.height = newHeight + 'px';
                     
                     modalSignaturePad.clear();
-                    modalSignaturePad.fromData(data);
+                    
+                    // 서명 데이터가 있으면 복원, 없으면 워터마크 표시
+                    if (data && data.length > 0) {
+                        modalSignaturePad.fromData(data);
+                    } else {
+                        drawWatermark(canvas);
+                    }
                 };
                 
                 window.addEventListener('resize', resizeHandler);
@@ -331,7 +364,12 @@
         }
         
         function clearModalSignature() {
-            if (modalSignaturePad) modalSignaturePad.clear();
+            if (modalSignaturePad) {
+                const canvas = document.getElementById('modalSignature');
+                modalSignaturePad.clear();
+                // 워터마크 다시 그리기
+                drawWatermark(canvas);
+            }
         }
         
         function saveModalSignature() {
