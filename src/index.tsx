@@ -7441,12 +7441,20 @@ app.delete('/api/work-contracts/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
   
   try {
-    // Soft delete
-    await DB.prepare(`
+    // Soft delete with proper await
+    const result = await DB.prepare(`
       UPDATE work_contracts 
       SET deleted_at = datetime("now")
       WHERE id = ?
     `).bind(id).run()
+    
+    // Verify the update was successful
+    if (result.meta?.changes === 0) {
+      return c.json({ 
+        success: false, 
+        message: '계약서를 찾을 수 없습니다' 
+      }, 404)
+    }
     
     return c.json({ 
       success: true, 

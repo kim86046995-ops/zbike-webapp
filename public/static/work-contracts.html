@@ -377,9 +377,15 @@
         
         async function remove(id) {
             if (!confirm('삭제하시겠습니까?')) return;
-            await axios.delete(`/api/work-contracts/${id}`);
-            alert('삭제되었습니다');
-            load();
+            
+            try {
+                await axios.delete(`/api/work-contracts/${id}`);
+                alert('삭제되었습니다');
+                await load(); // Wait for the list to reload
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('삭제 실패: ' + (error.response?.data?.message || error.message));
+            }
         }
         
         load();
