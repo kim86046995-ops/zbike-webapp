@@ -452,23 +452,23 @@
                 
                 // 인라인 스타일 강제 적용
                 pdfContainer.querySelectorAll('h1').forEach(h1 => {
-                    h1.style.cssText = 'text-align:center;font-size:22px;font-weight:bold;margin:0 0 24px 0;color:#000;word-wrap:break-word;';
+                    h1.style.cssText = 'text-align:center;font-size:22px;font-weight:bold;margin:0 0 20px 0;color:#000;word-wrap:break-word;';
                 });
                 
                 pdfContainer.querySelectorAll('h3').forEach(h3 => {
-                    h3.style.cssText = 'font-weight:bold;font-size:14px;margin:0 0 10px 0;color:#000;word-wrap:break-word;';
+                    h3.style.cssText = 'font-weight:bold;font-size:14px;margin:0 0 8px 0;color:#000;word-wrap:break-word;';
                 });
                 
                 pdfContainer.querySelectorAll('.border').forEach(box => {
-                    box.style.cssText += 'margin-bottom:14px;padding:12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;box-sizing:border-box;page-break-inside:avoid;';
+                    box.style.cssText += 'margin-bottom:10px;padding:10px;background:#f9fafb;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;page-break-inside:avoid;';
                 });
                 
                 pdfContainer.querySelectorAll('.bg-blue-50').forEach(box => {
-                    box.style.cssText += 'padding:14px;background:#dbeafe;border:2px solid #3b82f6;border-radius:5px;margin-bottom:14px;page-break-inside:avoid;';
+                    box.style.cssText += 'padding:12px;background:#dbeafe;border:2px solid #3b82f6;border-radius:4px;margin-bottom:10px;page-break-inside:avoid;';
                 });
                 
                 pdfContainer.querySelectorAll('.bg-green-50').forEach(box => {
-                    box.style.cssText += 'padding:14px;background:#d1fae5;border:2px solid #10b981;border-radius:5px;margin-bottom:14px;page-break-inside:avoid;';
+                    box.style.cssText += 'padding:12px;background:#d1fae5;border:2px solid #10b981;border-radius:4px;margin-bottom:10px;page-break-inside:avoid;';
                 });
                 
                 pdfContainer.querySelectorAll('img').forEach(img => {
@@ -476,7 +476,7 @@
                 });
                 
                 pdfContainer.querySelectorAll('p').forEach(p => {
-                    p.style.cssText += 'margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#000;word-wrap:break-word;';
+                    p.style.cssText += 'margin:0 0 6px 0;font-size:12px;line-height:1.5;color:#000;word-wrap:break-word;';
                 });
                 
                 // 동의 체크박스 스타일 강제 적용
