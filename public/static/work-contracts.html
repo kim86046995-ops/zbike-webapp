@@ -472,6 +472,34 @@
                 pdfContainer.querySelectorAll('p').forEach(p => {
                     p.style.cssText += 'margin:0 0 10px 0;font-size:14px;line-height:1.7;color:#000;';
                 });
+                
+                // 동의 체크박스 스타일 강제 적용
+                const agreementBoxes = pdfContainer.querySelectorAll('div[style*="background-color: #fef9c3"]');
+                agreementBoxes.forEach(box => {
+                    // 외부 박스
+                    box.style.cssText = 'display:inline-flex;align-items:center;background-color:#fef9c3;border:3px solid #facc15;border-radius:8px;padding:10px 16px;margin-bottom:20px;max-width:90%;';
+                    
+                    // 체크박스 찾기
+                    const checkbox = box.querySelector('div[style*="background-color: #ffffff"]');
+                    if (checkbox) {
+                        checkbox.style.cssText = 'width:20px;height:20px;background-color:#ffffff;border:2px solid #ca8a04;border-radius:4px;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;';
+                        
+                        // 체크마크
+                        const checkmark = checkbox.querySelector('span');
+                        if (checkmark) {
+                            checkmark.style.cssText = 'color:#16a34a;font-size:14px;font-weight:bold;line-height:1;';
+                            console.log('✓ 체크마크 스타일 적용됨:', checkmark.textContent);
+                        }
+                    }
+                    
+                    // 텍스트
+                    const text = box.querySelector('span:not([style*="line-height: 1"])');
+                    if (text) {
+                        text.style.cssText = 'color:#000000;font-size:13px;font-weight:600;';
+                        console.log('✓ 텍스트 스타일 적용됨:', text.textContent);
+                    }
+                });
+                
                 document.body.appendChild(pdfContainer);
                 
                 // 로딩 표시
