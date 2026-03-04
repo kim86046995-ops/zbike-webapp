@@ -4481,17 +4481,32 @@ app.post('/api/send-sms', async (c) => {
     const body = await c.req.json()
     const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
     
-    // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
-    let contractTypeLabel = '전자계약서'
-    if (contract_type === 'business') {
-      contractTypeLabel = '업체 계약서'
-    } else if (contract_type === 'loan') {
-      contractTypeLabel = '차용증 계약서'
+    // 메시지 결정 (커스텀 메시지 우선, 없으면 기본 메시지)
+    let message = customMessage
+    
+    if (!message) {
+      // 메시지가 없으면 기본 메시지 생성
+      let contractTypeLabel = '전자계약서'
+      if (contract_type === 'business') {
+        contractTypeLabel = '업체 계약서'
+      } else if (contract_type === 'loan') {
+        contractTypeLabel = '차용증 계약서'
+      } else if (contract_type === 'work') {
+        contractTypeLabel = '업무위탁계약서'
+      }
+      
+      message = `[Z-BIKE ${contractTypeLabel}]\n\n${customer_name || '고객'}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
     }
     
-    const defaultMessage = `[Z-BIKE ${contractTypeLabel}]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
-    const message = customMessage || defaultMessage
     const phoneNumber = to || phone
+    
+    if (!phoneNumber || !message) {
+      return c.json({ 
+        success: false, 
+        message: '전화번호와 메시지가 필요합니다',
+        debug: { phone: phoneNumber, hasMessage: !!message }
+      }, 400)
+    }
     
     // 하이픈이 있는 전화번호 형식으로 변환 (010-1234-5678)
     const formattedPhone = phoneNumber.replace(/[^0-9]/g, '').replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
