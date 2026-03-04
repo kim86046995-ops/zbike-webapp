@@ -79,7 +79,7 @@
                         <div class="border-4 p-6 rounded-lg bg-gray-50">
                             <h3 class="font-bold mb-4 text-4xl">제5조 (계약기간)</h3>
                             <div class="space-y-3 pl-6">
-                                <p>1. 계약기간: <span class="font-bold">${c.start_date || new Date().toISOString().split('T')[0]}</span> ~ <span class="font-bold">${c.end_date || new Date().toISOString().split('T')[0]}</span></p>
+                                <p>1. 계약기간: <span class="font-bold">${c.start_date || new Date().toISOString().split('T')[0]}</span> ~ 해지 원할 때 까지</p>
                                 <p>2. 계약기간 만료 후 당사자 간 합의에 따라 계약을 연장할 수 있다.</p>
                             </div>
                         </div>
@@ -106,7 +106,8 @@
                             <div class="space-y-3 pl-6">
                                 <p>1. 을은 업무수행에 필요한 배달차량(오토바이 등)을 직접 준비하거나, 갑으로부터 리스/렌트/대여할 수 있다.</p>
                                 <p>2. 갑으로부터 차량을 리스/렌트/대여받는 경우, 별도의 차량리스계약서 또는 차량대여계약서를 작성한다.</p>
-                                <p>3. 갑은 리스, 렌트 시 차량의 보험가입 및 정기점검 의무를 진다. 자차일 경우 을은 보험가입 및 정기점검 의무를 진다.</p>
+                                <p>3. 갑은 리스, 렌트 시 차량의 보험가입 및 정기점검 의무를 진다. 단 정비시기를 넘겨 차량에 이상이 있을 시는 을이 모든 책임을 진다.</p>
+                                <p>4. 자차일 경우 을은 보험가입 및 정기점검 의무를 진다.</p>
                             </div>
                         </div>
                         
@@ -186,7 +187,7 @@
                     </div>
                     
                     <div class="mt-10 text-center text-3xl">
-                        <p class="mb-4">본 계약을 증명하기 위하여 계약서 2부를 작성하여 갑과 을이 서명날인 후 각 1부씩 보관한다.</p>
+                        <p class="mb-4">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
                         <p class="mt-6 font-bold text-4xl">${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일</p>
                     </div>
                 </div>
