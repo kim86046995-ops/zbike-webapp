@@ -576,22 +576,25 @@
                         ` : ''}
                         
                         <div style="text-align: center; margin: 30px 0;">
-                            <div style="margin: 0 auto 20px; max-width: 680px; padding: 20px; background-color: #fef9c3; border: 4px solid #facc15; border-radius: 10px; display: inline-block;">
-                                <div style="display: flex; align-items: start; text-align: left;">
-                                    <!-- 체크박스 -->
-                                    <div style="width: 32px; height: 32px; border: 3px solid #ca8a04; background-color: #fff; border-radius: 4px; flex-shrink: 0; margin-right: 15px; display: flex; align-items: center; justify-content: center; position: relative;">
-                                        <div style="font-size: 24pt; color: #16a34a; font-weight: bold; line-height: 1;">✓</div>
-                                    </div>
-                                    <!-- 텍스트 -->
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: bold; color: #a16207; font-size: 13pt; margin-bottom: 8px;">
-                                            ✓ 전자서명 계약 동의
-                                        </div>
-                                        <div style="color: #713f12; font-size: 11pt; line-height: 1.6;">
-                                            본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.
-                                        </div>
-                                    </div>
-                                </div>
+                            <div style="margin: 0 auto 20px; max-width: 680px; padding: 20px; background-color: #fef9c3; border: 4px solid #facc15; border-radius: 10px; text-align: left;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="width: 50px; vertical-align: top; padding-right: 15px;">
+                                            <!-- 체크박스 -->
+                                            <div style="width: 40px; height: 40px; border: 4px solid #ca8a04; background-color: #ffffff; border-radius: 4px; text-align: center; line-height: 40px;">
+                                                <span style="font-size: 28pt; color: #16a34a; font-weight: bold;">✓</span>
+                                            </div>
+                                        </td>
+                                        <td style="vertical-align: top;">
+                                            <div style="font-weight: bold; color: #a16207; font-size: 13pt; margin-bottom: 10px;">
+                                                동의 완료
+                                            </div>
+                                            <div style="color: #713f12; font-size: 11pt; line-height: 1.8;">
+                                                본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
                             <p style="margin-top: 15px; font-weight: bold; font-size: 13pt;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                         </div>
