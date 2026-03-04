@@ -402,12 +402,13 @@
                     'monthly': '월급'
                 };
                 
-                // PDF용 HTML 생성 (A4 크기에 맞춤)
+                // PDF용 HTML 생성 (A4 크기에 맞춤 - 픽셀 단위)
                 const pdfContent = document.createElement('div');
-                pdfContent.style.width = '210mm';  // A4 width
-                pdfContent.style.padding = '10mm';
+                pdfContent.style.width = '794px';  // A4 width at 96 DPI
+                pdfContent.style.padding = '40px';
                 pdfContent.style.backgroundColor = 'white';
                 pdfContent.style.fontFamily = 'Malgun Gothic, sans-serif';
+                pdfContent.style.color = '#000000';
                 pdfContent.innerHTML = `
                     <div style="font-size: 11pt; line-height: 1.6;">
                         <h1 style="text-align: center; font-size: 20pt; font-weight: bold; margin-bottom: 20px;">배달업무위탁계약서</h1>
@@ -588,37 +589,51 @@
                     </div>
                 `;
                 
-                // 임시로 body에 추가 (PDF 생성용)
-                pdfContent.style.position = 'absolute';
-                pdfContent.style.left = '-9999px';
+                // 임시로 body에 추가 (화면 밖에 위치)
+                pdfContent.style.position = 'fixed';
+                pdfContent.style.left = '0';
                 pdfContent.style.top = '0';
+                pdfContent.style.zIndex = '-1';
+                pdfContent.style.opacity = '0';
                 document.body.appendChild(pdfContent);
                 
-                // 약간의 지연을 두어 DOM이 완전히 렌더링되도록 함
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // DOM 렌더링 대기
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // PDF 생성 옵션 (A4 크기)
+                console.log('PDF Content dimensions:', pdfContent.offsetWidth, 'x', pdfContent.offsetHeight);
+                
+                // PDF 생성 옵션
                 const opt = {
-                    margin: [10, 10, 10, 10],
+                    margin: 10,
                     filename: `업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`,
-                    image: { type: 'jpeg', quality: 0.95 },
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 0.98 
+                    },
                     html2canvas: { 
                         scale: 2,
                         useCORS: true,
-                        letterRendering: true,
-                        logging: false,
-                        backgroundColor: '#ffffff'
+                        logging: true,
+                        backgroundColor: '#ffffff',
+                        windowWidth: 794,
+                        windowHeight: 1123
                     },
                     jsPDF: { 
-                        unit: 'mm', 
-                        format: 'a4', 
-                        orientation: 'portrait' 
+                        unit: 'px', 
+                        format: [794, 1123],  // A4 at 96 DPI
+                        orientation: 'portrait',
+                        hotfixes: ['px_scaling']
                     },
-                    pagebreak: { mode: 'css', before: '.page-break' }
+                    pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy'],
+                        before: '.page-break'
+                    }
                 };
                 
                 // PDF 생성 및 다운로드
+                console.log('Starting PDF generation...');
                 await html2pdf().set(opt).from(pdfContent).save();
+                console.log('PDF generation complete');
                 
                 // 임시 요소 제거
                 document.body.removeChild(pdfContent);
