@@ -243,8 +243,11 @@
                 </div>
                 
                 <div class="flex gap-2">
-                    <button onclick="save()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 flex-1 font-bold text-lg shadow-lg">
-                        <i class="fas fa-check-circle mr-2"></i>서명 완료
+                    <button onclick="save()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold py-6 px-4 rounded-lg border-2 border-purple-800 shadow-lg transition-all duration-200 hover:shadow-xl">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-paper-plane text-4xl mb-3"></i>
+                            <p class="text-xl">계약서 전송</p>
+                        </div>
                     </button>
                 </div>
             `;
@@ -361,6 +364,10 @@
         }
         
         async function save() {
+            console.log('💾 저장 시작');
+            console.log('서명 데이터:', workerSignaturePad);
+            console.log('신분증 파일:', idCardFile);
+            
             if (!workerSignaturePad) {
                 alert('을(수탁자) 서명을 해주세요');
                 return;
@@ -371,24 +378,39 @@
                 return;
             }
             
-            if (!confirm('서명을 완료하시겠습니까?')) return;
+            if (!confirm('계약서를 전송하시겠습니까?')) return;
             
-            // 신분증을 Base64로 변환
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    await axios.post(`/api/work-contracts/${id}/signature`, {
-                        worker_signature: workerSignaturePad,
-                        id_card_image: e.target.result
-                    });
-                    
-                    alert('서명이 완료되었습니다');
-                    location.reload();
-                } catch (error) {
-                    alert('오류: ' + (error.response?.data?.error || error.message));
-                }
-            };
-            reader.readAsDataURL(idCardFile);
+            // 로딩 표시
+            const saveButton = document.querySelector('button[onclick="save()"]');
+            const originalHTML = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p class="text-xl">전송 중...</p>';
+            
+            try {
+                // 신분증을 Base64로 변환
+                const idCardBase64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(idCardFile);
+                });
+                
+                console.log('📤 API 요청 전송');
+                const response = await axios.post(`/api/work-contracts/${id}/signature`, {
+                    worker_signature: workerSignaturePad,
+                    id_card_image: idCardBase64
+                });
+                
+                console.log('✅ 서명 완료:', response.data);
+                alert('계약서가 전송되었습니다!');
+                location.reload();
+            } catch (error) {
+                console.error('❌ 서명 오류:', error);
+                console.error('에러 상세:', error.response?.data);
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalHTML;
+                alert('오류가 발생했습니다: ' + (error.response?.data?.error || error.message));
+            }
         }
         
         load();
