@@ -6178,6 +6178,10 @@ app.get('/dashboard', (c) => {
                         <i class="fas fa-file-invoice-dollar text-3xl text-yellow-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">차용증 작성</p>
                     </a>
+                    <a href="/static/work-contracts.html" class="bg-pink-50 hover:bg-pink-100 p-4 rounded-lg text-center transition">
+                        <i class="fas fa-file-contract text-3xl text-pink-600 mb-2"></i>
+                        <p class="text-sm font-medium text-gray-700">업무위탁계약서</p>
+                    </a>
                     <a href="/static/customers-simple.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-users text-3xl text-blue-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">고객 목록</p>

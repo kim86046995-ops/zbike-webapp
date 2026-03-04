@@ -65,17 +65,33 @@
                 </div>
             </div>
 
-            <!-- 오른쪽 컬럼: 고객정보등록 (전체 높이) -->
-            <div class="flex flex-col">
-                <label class="block text-sm font-bold text-gray-700 mb-1">
-                    <i class="fas fa-users mr-1"></i>고객정보등록
-                </label>
-                <a 
-                    href="/static/customer-portal.html"
-                    class="flex-1 flex items-center justify-center bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition transform hover:scale-105 shadow-lg"
-                >
-                    <span><i class="fas fa-arrow-right mr-2"></i>등록하기</span>
-                </a>
+            <!-- 오른쪽 컬럼: 고객정보등록 + 업무위탁계약서 -->
+            <div class="flex flex-col gap-2">
+                <!-- 고객정보등록 -->
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fas fa-users mr-1"></i>고객정보등록
+                    </label>
+                    <a 
+                        href="/static/customer-portal.html"
+                        class="flex items-center justify-center bg-purple-600 text-white rounded-lg font-bold text-sm hover:bg-purple-700 transition transform hover:scale-105 shadow-lg py-2"
+                    >
+                        <span><i class="fas fa-arrow-right mr-1"></i>등록하기</span>
+                    </a>
+                </div>
+                
+                <!-- 업무위탁계약서 -->
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fas fa-file-contract mr-1"></i>업무위탁계약서
+                    </label>
+                    <a 
+                        href="/static/work-contract-new.html"
+                        class="flex items-center justify-center bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition transform hover:scale-105 shadow-lg py-2"
+                    >
+                        <span><i class="fas fa-edit mr-1"></i>작성하기</span>
+                    </a>
+                </div>
             </div>
         </div>
 
