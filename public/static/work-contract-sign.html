@@ -236,23 +236,6 @@
                     </p>
                 </div>
                 
-                <!-- 신분증 업로드 -->
-                <div class="mb-6">
-                    <h3 class="font-bold mb-3 text-lg text-orange-700">
-                        <i class="fas fa-id-card mr-2"></i>신분증 업로드 (필수)
-                    </h3>
-                    <input type="file" id="idCardInput" accept="image/*" class="hidden" onchange="handleIdCardUpload(event)">
-                    <button type="button" onclick="document.getElementById('idCardInput').click()" 
-                            class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-6 px-4 rounded-lg border-2 border-orange-700 shadow-lg transition-all duration-200 hover:shadow-xl">
-                        <div class="flex flex-col items-center">
-                            <i class="fas fa-camera text-4xl mb-3"></i>
-                            <p class="text-xl mb-1">신분증 사진 촬영 / 업로드</p>
-                            <p class="text-sm opacity-90">주민등록증, 운전면허증, 여권 등</p>
-                        </div>
-                    </button>
-                    <div id="idCardPreview" class="mt-4"></div>
-                </div>
-                
                 <div class="flex gap-2">
                     <button onclick="save()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold py-12 px-8 rounded-lg border-4 border-purple-800 shadow-lg transition-all duration-200 hover:shadow-xl">
                         <div class="flex flex-col items-center">
@@ -270,7 +253,6 @@
         let companySignaturePad = null;
         let workerSignaturePad = null;
         let modalSignaturePad = null;
-        let idCardFile = null;
         
         let resizeHandler = null;
         
@@ -385,95 +367,12 @@
             closeSignatureModal();
         }
         
-        function handleIdCardUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                alert('이미지 파일만 업로드 가능합니다');
-                return;
-            }
-            
-            idCardFile = file;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById('idCardPreview');
-                preview.innerHTML = `
-                    <div class="relative border-4 border-green-500 rounded-lg overflow-hidden shadow-lg">
-                        <div class="bg-green-500 text-white px-3 py-2 font-bold flex items-center">
-                            <i class="fas fa-check-circle mr-2"></i>신분증 업로드 완료
-                        </div>
-                        <img src="${e.target.result}" class="w-full bg-white">
-                        <button onclick="removeIdCard()" class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg font-bold text-lg">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                `;
-            };
-            reader.readAsDataURL(file);
-        }
+
         
-        function removeIdCard() {
-            idCardFile = null;
-            document.getElementById('idCardPreview').innerHTML = '';
-            document.getElementById('idCardInput').value = '';
-        }
-        
-        // 이미지 압축 함수 (D1 용량 제한 해결)
-        async function compressImage(file, maxSizeKB = 500) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        // 최대 너비 1200px로 제한
-                        const maxWidth = 1200;
-                        if (width > maxWidth) {
-                            height = (height * maxWidth) / width;
-                            width = maxWidth;
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // 품질을 조정하면서 용량 최적화
-                        let quality = 0.7;
-                        let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                        
-                        // 목표 크기보다 크면 품질을 더 낮춤
-                        while (compressedDataUrl.length > maxSizeKB * 1024 * 1.37 && quality > 0.1) {
-                            quality -= 0.1;
-                            compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                        }
-                        
-                        console.log('🗜️ 이미지 압축:', {
-                            원본크기: Math.round(e.target.result.length / 1024) + 'KB',
-                            압축크기: Math.round(compressedDataUrl.length / 1024) + 'KB',
-                            품질: Math.round(quality * 100) + '%'
-                        });
-                        
-                        resolve(compressedDataUrl);
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
         
         async function save() {
             console.log('💾 저장 시작');
             console.log('서명 데이터:', workerSignaturePad);
-            console.log('신분증 파일:', idCardFile);
             
             // 동의 체크 확인
             const agreeCheckbox = document.getElementById('agreeCheckbox');
@@ -488,11 +387,6 @@
                 return;
             }
             
-            if (!idCardFile) {
-                alert('신분증을 업로드해주세요');
-                return;
-            }
-            
             if (!confirm('계약서를 전송하시겠습니까?')) return;
             
             // 로딩 표시
@@ -502,14 +396,9 @@
             saveButton.innerHTML = '<i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p class="text-xl">전송 중...</p>';
             
             try {
-                // 신분증 이미지 압축 (D1 용량 제한 해결)
-                console.log('🗜️ 이미지 압축 중...');
-                const idCardBase64 = await compressImage(idCardFile, 500);
-                
                 console.log('📤 API 요청 전송');
                 const response = await axios.post(`/api/work-contracts/${id}/signature`, {
-                    worker_signature: workerSignaturePad,
-                    id_card_image: idCardBase64
+                    worker_signature: workerSignaturePad
                 });
                 
                 console.log('✅ 서명 완료:', response.data);
