@@ -260,11 +260,28 @@
         function drawWatermark(canvas) {
             const ctx = canvas.getContext('2d');
             ctx.save();
-            ctx.font = `${Math.floor(canvas.height / 6)}px sans-serif`;
+            
+            const text = '이름을 정자로 써주세요';
+            
+            // 초기 폰트 크기 설정 (캔버스 높이 기준)
+            let fontSize = Math.floor(canvas.height / 8);
+            ctx.font = `${fontSize}px sans-serif`;
+            
+            // 텍스트 너비 측정
+            let textWidth = ctx.measureText(text).width;
+            
+            // 캔버스 너비의 90%를 넘으면 폰트 크기 줄이기
+            const maxWidth = canvas.width * 0.9;
+            while (textWidth > maxWidth && fontSize > 10) {
+                fontSize--;
+                ctx.font = `${fontSize}px sans-serif`;
+                textWidth = ctx.measureText(text).width;
+            }
+            
             ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('이름을 정자로 쓰세요', canvas.width / 2, canvas.height / 2);
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
             ctx.restore();
         }
         
