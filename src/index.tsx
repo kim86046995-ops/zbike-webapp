@@ -7277,4 +7277,169 @@ app.get('/api/sms/status', superAdminMiddleware, async (c) => {
   })
 })
 
+// ==================== 업무위탁계약서 API ====================
+
+// 업무위탁계약서 생성 (인증 불필요)
+app.post('/api/work-contracts', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const data = await c.req.json()
+  
+  try {
+    const session = c.get('session')
+    const created_by = session?.username || null
+    
+    // 계약번호 생성 (WORK-YYYYMMDD-XXX)
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const count = await DB.prepare(`
+      SELECT COUNT(*) as count FROM work_contracts 
+      WHERE substr(contract_number, 6, 8) = ?
+    `).bind(today).first()
+    
+    const sequence = String((count as any).count + 1).padStart(3, '0')
+    const contract_number = `WORK-${today}-${sequence}`
+    
+    // 계약서 저장
+    const result = await DB.prepare(`
+      INSERT INTO work_contracts (
+        contract_number, worker_name, worker_phone, worker_id_number,
+        worker_address, special_terms, created_by, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now"))
+    `).bind(
+      contract_number,
+      data.worker_name,
+      data.worker_phone,
+      data.worker_id_number || '',
+      data.worker_address || '',
+      data.special_terms || '',
+      created_by
+    ).run()
+    
+    return c.json({
+      success: true,
+      id: result.meta.last_row_id,
+      contract_number,
+      message: '업무위탁계약서가 생성되었습니다'
+    })
+  } catch (error: any) {
+    console.error('업무위탁계약서 생성 오류:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// 업무위탁계약서 목록 조회 (인증 필요)
+app.get('/api/work-contracts', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  const result = await DB.prepare(`
+    SELECT * FROM work_contracts 
+    WHERE deleted_at IS NULL
+    ORDER BY created_at DESC
+  `).all()
+  
+  return c.json(result.results || [])
+})
+
+// 업무위탁계약서 상세 조회 (인증 필요)
+app.get('/api/work-contracts/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare('SELECT * FROM work_contracts WHERE id = ?').bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
+// 업무위탁계약서 서명용 조회 (인증 불필요)
+app.get('/api/work-contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare('SELECT * FROM work_contracts WHERE id = ?').bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
+// 업무위탁계약서 서명 제출 (인증 불필요)
+app.post('/api/work-contracts/:id/signature', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { company_signature, worker_signature, id_card_image } = await c.req.json()
+  
+  try {
+    // 계약서 조회
+    const contract = await DB.prepare(`
+      SELECT * FROM work_contracts WHERE id = ?
+    `).bind(id).first() as any
+    
+    if (!contract) {
+      return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+    }
+    
+    // 이미 서명된 계약서인지 확인
+    if (contract.status === 'active' && contract.company_signature && contract.worker_signature) {
+      return c.json({ error: '이미 서명된 계약서입니다' }, 400)
+    }
+    
+    // 서명 저장
+    await DB.prepare(`
+      UPDATE work_contracts 
+      SET company_signature = ?, 
+          worker_signature = ?, 
+          id_card_image = ?,
+          status = 'active',
+          signed_at = datetime("now"),
+          updated_at = datetime("now")
+      WHERE id = ?
+    `).bind(company_signature, worker_signature, id_card_image || '', id).run()
+    
+    return c.json({ 
+      success: true, 
+      message: '계약서 서명이 완료되었습니다' 
+    })
+  } catch (error: any) {
+    console.error('서명 저장 오류:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// 업무위탁계약서 삭제 (인증 필요)
+app.delete('/api/work-contracts/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  try {
+    // Soft delete
+    await DB.prepare(`
+      UPDATE work_contracts 
+      SET deleted_at = datetime("now")
+      WHERE id = ?
+    `).bind(id).run()
+    
+    return c.json({ 
+      success: true, 
+      message: '계약서가 삭제되었습니다' 
+    })
+  } catch (error: any) {
+    console.error('계약서 삭제 오류:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
 export default app

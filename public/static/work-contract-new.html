@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>업무위탁계약서 작성</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold"><i class="fas fa-file-contract mr-2"></i>업무위탁계약서 작성</h1>
+                <button type="button" onclick="autoFill()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
+                    <i class="fas fa-magic mr-1"></i>테스트 자동입력
+                </button>
+            </div>
+            
+            <form id="form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold mb-2">근로자명 *</label>
+                        <input name="worker_name" required class="w-full border p-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">전화번호 *</label>
+                        <input name="worker_phone" id="worker_phone" required placeholder="010-1234-5678" maxlength="13" class="w-full border p-2 rounded">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block font-bold mb-2">주민등록번호 *</label>
+                    <input name="worker_id_number" id="worker_id_number" required placeholder="123456-1234567" maxlength="14" class="w-full border p-2 rounded">
+                </div>
+                
+                <div>
+                    <label class="block font-bold mb-2">주소 *</label>
+                    <input name="worker_address" required class="w-full border p-2 rounded">
+                </div>
+                
+                <div>
+                    <label class="block font-bold mb-2">특약사항</label>
+                    <textarea name="special_terms" rows="4" class="w-full border p-2 rounded"></textarea>
+                </div>
+                
+                <!-- 계약서 미리보기 버튼 -->
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <button type="button" onclick="showPreview()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 w-full">
+                        <i class="fas fa-file-pdf mr-2"></i>계약서 전체 내용 미리보기
+                    </button>
+                    <p class="text-xs text-gray-600 mt-2 text-center">저장 전 계약서 전문을 확인할 수 있습니다</p>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700">
+                        <i class="fas fa-save mr-2"></i>저장 및 SMS 발송
+                    </button>
+                    <a href="/static/work-contracts.html" class="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700">취소</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 계약서 미리보기 모달 -->
+        <div id="previewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onclick="closePreview(event)">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                    <h2 class="text-xl font-bold">배달업무위탁계약서 전문</h2>
+                    <button onclick="closePreview()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div id="previewContent" class="p-6"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // 로그인 체크 제거 - 로그인 없이도 접근 가능
+        const sessionId = localStorage.getItem('sessionId');
+        if (sessionId) {
+            axios.defaults.headers.common['X-Session-ID'] = sessionId;
+        }
+        
+        // 전화번호 자동 하이픈
+        document.getElementById('worker_phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, ''); // 숫자만 추출
+            let result = '';
+            
+            if (value.length <= 3) {
+                result = value;
+            } else if (value.length <= 7) {
+                result = value.substring(0, 3) + '-' + value.substring(3);
+            } else {
+                result = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7, 11);
+            }
+            
+            e.target.value = result;
+        });
+        
+        // 주민등록번호 자동 하이픈
+        document.getElementById('worker_id_number').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, ''); // 숫자만 추출
+            let result = '';
+            
+            if (value.length <= 6) {
+                result = value;
+            } else {
+                result = value.substring(0, 6) + '-' + value.substring(6, 13);
+            }
+            
+            e.target.value = result;
+        });
+        
+        // 테스트용 자동 입력
+        function autoFill() {
+            document.querySelector('input[name="worker_name"]').value = '홍길동';
+            document.querySelector('input[name="worker_phone"]').value = '010-1234-5678';
+            document.querySelector('input[name="worker_id_number"]').value = '850101-1234567';
+            document.querySelector('input[name="worker_address"]').value = '광주광역시 북구 첨단과기로 123';
+            document.querySelector('textarea[name="special_terms"]').value = '테스트 계약서입니다.';
+            
+            alert('✅ 테스트 데이터가 자동으로 입력되었습니다!');
+        }
+        
+        // 계약서 미리보기
+        function showPreview() {
+            const formData = new FormData(document.getElementById('form'));
+            const data = Object.fromEntries(formData);
+            
+            const previewHTML = generateContractHTML(data);
+            document.getElementById('previewContent').innerHTML = previewHTML;
+            document.getElementById('previewModal').classList.remove('hidden');
+        }
+        
+        function closePreview(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('previewModal').classList.add('hidden');
+        }
+        
+        function generateContractHTML(data) {
+            const paymentTypeText = {
+                'commission': '건당 수수료',
+                'daily': '일당',
+                'monthly': '월급'
+            };
+            
+            return `
+                <h1 class="text-2xl font-bold mb-6 text-center">배달업무위탁계약서</h1>
+                
+                <div class="mb-6 text-sm leading-relaxed">
+                    <p class="mb-4 text-center">대성 배달대행 (이하 "갑")과(와) <span class="font-bold">${data.worker_name || '[근로자명]'}</span> (이하 "을")은(는) 다음과 같이 배달업무위탁계약을 체결한다.</p>
+                    
+                    <div class="space-y-6">
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제1조 (계약의 성격)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 본 계약은 근로계약이 아닌 업무위탁계약이다.</p>
+                                <p>2. 을은 갑에 종속된 근로자가 아니며, 독립적인 사업자로서 업무를 수행한다.</p>
+                                <p>3. 갑은 을에 대하여 근태관리, 출퇴근통제, 최소근무시간을 강제하지 않는다.</p>
+                                <p>4. 을은 업무수행 시간, 장소, 방법을 자유롭게 결정할 수 있다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제2조 (위탁업무의 내용)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 갑은 을에게 배달업무를 위탁하고, 을은 이를 수행한다.</p>
+                                <p>2. 위탁업무 수행 지역: <span class="font-bold">${data.work_area || '광주시 전역'}</span></p>
+                                <p>3. 을은 배달업무 수행 시 교통법규를 준수하고 안전운전에 유의해야 한다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제3조 (비용 부담)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 오토바이, 유류비, 보험료, 통신비 등은 을이 부담하는 것을 원칙으로 한다.</p>
+                                <p>2. 렌트 시에는 별도 계약을 체결한다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제4조 (보험 및 사고책임)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 을은 책임보험을 유지할 의무가 있다.</p>
+                                <p>2. 사고 발생 시 1차 책임은 을에게 있다.</p>
+                                <p>3. 보험 미가입 상태에서 발생한 사고는 전액 을이 책임진다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제5조 (계약기간)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 계약기간: <span class="font-bold">${data.start_date || '[시작일]'}</span> ~ <span class="font-bold">${data.end_date || '무기한'}</span></p>
+                                <p>2. 계약기간 만료 후 당사자 간 합의에 따라 계약을 연장할 수 있다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제6조 (위탁수수료)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 지급방식: <span class="font-bold">${paymentTypeText[data.payment_type] || '건당 수수료'}</span></p>
+                                <p>2. 갑은 매일 또는 주정산으로 플랫폼에서 정산하는 기준으로 정산을 지급한다.</p>
+                                <p>3. 다음 금액은 정산 시 공제 가능하다:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 리스 및 렌트료</p>
+                                    <p>나. 사고부담금</p>
+                                    <p>다. 차용금</p>
+                                    <p>라. 장비대여료</p>
+                                    <p>마. 미납금</p>
+                                </div>
+                                <p>4. 세금은 세법에 따라 원천징수하며, 을은 사업소득자로서 종합소득세 신고의무를 진다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제7조 (업무 수행장비)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 을은 업무수행에 필요한 배달차량(오토바이 등)을 직접 준비하거나, 갑으로부터 리스/렌트/대여할 수 있다.</p>
+                                <p>2. 갑으로부터 차량을 리스/렌트/대여받는 경우, 별도의 차량리스계약서 또는 차량대여계약서를 작성한다.</p>
+                                <p>3. 갑은 리스, 렌트 시 차량의 보험가입 및 정기점검 의무를 진다. 자차일 경우 을은 보험가입 및 정기점검 의무를 진다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-red-50">
+                            <h3 class="font-bold mb-3 text-base text-red-700">제8조 (리스·렌트·차용 후 연락두절 시 책임)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p class="font-bold text-red-700">1. 을이 갑으로부터 차량을 리스, 렌트, 차용 후 정당한 사유 없이 7일 이상 연락이 두절되는 경우:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 갑은 즉시 차량반환을 요구할 수 있다.</p>
+                                    <p>나. 을은 차량 리스료/렌트료 전액 및 지연손해금(연 24%)을 지급해야 한다.</p>
+                                    <p>다. 을은 차량 손괴, 분실 등에 대한 모든 손해배상책임을 진다.</p>
+                                    <p>라. 갑은 횡령죄(형법 제355조), 사기죄(형법 제347조)로 형사고소할 수 있다.</p>
+                                </div>
+                                <p class="font-bold text-red-700">2. 을이 차량을 임의로 처분, 담보제공, 매각, 폐차하는 경우 횡령죄가 성립된다.</p>
+                                <p class="font-bold text-red-700">3. 갑은 차량 회수를 위해 GPS 추적, 경찰신고, 채권추심 등 모든 법적 조치를 취할 수 있다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제9조 (손해배상)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 을이 고의 또는 중과실로 갑 또는 제3자에게 손해를 입힌 경우 손해배상책임을 진다.</p>
+                                <p>2. 배달 중 교통사고 발생 시, 을은 본인 가입 보험으로 처리하며 갑은 책임을 지지 않는다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제10조 (계약의 해지)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 당사자 일방은 7일 전 서면통지로 계약을 해지할 수 있다.</p>
+                                <p>2. 다음의 경우 즉시 해지할 수 있다:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 상대방이 계약을 중대하게 위반한 경우</p>
+                                    <p>나. 을이 7일 이상 연락두절된 경우</p>
+                                    <p>다. 을이 고의적으로 갑에게 손해를 입힌 경우</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-yellow-50">
+                            <h3 class="font-bold mb-3 text-base">제11조 (비밀유지)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 갑과 을은 본 계약의 이행과정에서 알게 된 상대방의 영업비밀, 기술정보, 고객정보 등 일체의 비밀정보를 제3자에게 누설하거나 본 계약 이외의 목적으로 사용할 수 없다.</p>
+                                <p>2. 비밀유지 의무는 계약 종료 후에도 2년간 유효하다.</p>
+                                <p>3. 비밀유지 의무를 위반한 경우, 위반 당사자는 상대방에게 발생한 손해를 배상할 책임이 있다.</p>
+                                <p>4. 다음 정보는 비밀유지 의무에서 제외된다:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 공지된 정보 또는 공지될 예정인 정보</p>
+                                    <p>나. 법령에 따라 공개가 요구되는 정보</p>
+                                    <p>다. 제3자로부터 적법하게 취득한 정보</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제12조 (개인정보 보호)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 갑과 을은 업무수행 중 취득한 개인정보를 본 계약 목적 외에 사용하거나 제3자에게 제공할 수 없다.</p>
+                                <p>2. 계약 종료 시 보유 중인 개인정보를 즉시 파기해야 한다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제13조 (분쟁해결)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 본 계약과 관련한 분쟁은 상호 협의하여 해결한다.</p>
+                                <p>2. 협의가 이루어지지 않을 경우 갑의 주소지 관할법원을 제1심 관할법원으로 한다.</p>
+                            </div>
+                        </div>
+                        
+                        ${data.special_terms ? `
+                            <div class="border p-4 rounded bg-blue-50">
+                                <h3 class="font-bold mb-3 text-base">제14조 (특약사항)</h3>
+                                <div class="pl-4 whitespace-pre-wrap">${data.special_terms}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mt-8 text-center text-sm">
+                        <p>본 계약을 증명하기 위하여 계약서 2부를 작성하여 갑과 을이 서명날인 후 각 1부씩 보관한다.</p>
+                        <p class="mt-4 font-bold">${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-6 mt-8">
+                    <div class="border p-4 rounded bg-blue-50">
+                        <h3 class="font-bold mb-3 text-lg">갑 (위탁자)</h3>
+                        <div class="space-y-2">
+                            <p>상호: <span class="font-bold">대성 배달대행</span></p>
+                            <p>사업자번호: <span class="font-bold">487-39-01128</span></p>
+                            <p>대표자: <span class="font-bold">김상춘</span></p>
+                            <p>주소: <span class="font-bold">광주광역시 광산구 신가삼효로 31, 1층 플러스 사무실</span></p>
+                            <p>전화번호: <span class="font-bold">010-8604-6995</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="border p-4 rounded bg-green-50">
+                        <h3 class="font-bold mb-3 text-lg">을 (수탁자)</h3>
+                        <div class="space-y-2">
+                            <p>성명: <span class="font-bold">${data.worker_name || '[근로자명]'}</span></p>
+                            <p>주민등록번호: <span class="font-bold">${data.worker_id_number || '[주민등록번호]'}</span></p>
+                            <p>주소: <span class="font-bold">${data.worker_address || '[주소]'}</span></p>
+                            <p>연락처: <span class="font-bold">${data.worker_phone || '[전화번호]'}</span></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let isSubmitting = false; // 중복 제출 방지
+        
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 중복 제출 방지
+            if (isSubmitting) {
+                console.log('⚠️ 이미 제출 중입니다...');
+                return;
+            }
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            if (!confirm('계약서를 작성하고 SMS를 발송하시겠습니까?')) return;
+            
+            isSubmitting = true;
+            const submitButton = document.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...';
+            
+            try {
+                console.log('📝 계약서 작성 요청:', data);
+                console.log('🔑 Session ID:', localStorage.getItem('sessionId') || '없음');
+                
+                const res = await axios.post('/api/work-contracts', data);
+                const contract = res.data;
+                console.log('✅ 계약서 작성 완료:', contract);
+                
+                // ✅ 계약서 목록 캐시 클리어 (새로고침 시 즉시 반영)
+                sessionStorage.removeItem('work_contracts_cache');
+                sessionStorage.removeItem('work_contracts_cache_time');
+                console.log('🗑️ 계약서 목록 캐시 클리어 완료');
+                
+                // SMS 발송
+                const shareUrl = `${window.location.origin}/static/work-contract-sign.html?id=${contract.id}`;
+                
+                console.log('📱 SMS 발송 요청:', {
+                    phone: contract.worker_phone,
+                    url: shareUrl
+                });
+                
+                await axios.post('/api/send-sms', {
+                    phone: contract.worker_phone,
+                    message: `[Z-BIKE 업무위탁계약서]\n\n${contract.worker_name}님 계약내용 확인 후 서명해주세요.\n\n링크: ${shareUrl}\n\n* 72시간 이내 서명 부탁드립니다.`
+                });
+                
+                console.log('✅ SMS 발송 완료');
+                alert('계약서가 저장되고 SMS가 발송되었습니다');
+                
+                // 폼 초기화
+                document.getElementById('form').reset();
+                
+                // 3초 후 리스트 페이지로 이동 (로그인 상태인 경우에만)
+                if (localStorage.getItem('sessionId')) {
+                    setTimeout(() => {
+                        window.location.href = '/static/work-contracts.html';
+                    }, 2000);
+                } else {
+                    // 비로그인 상태면 페이지 유지
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
+                    isSubmitting = false;
+                }
+            } catch (error) {
+                console.error('❌ 오류 발생:', error);
+                console.error('❌ 응답 데이터:', error.response?.data);
+                console.error('❌ 상태 코드:', error.response?.status);
+                
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+                isSubmitting = false;
+                
+                if (error.response?.status === 401) {
+                    alert('로그인이 필요합니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                } else {
+                    alert('오류가 발생했습니다: ' + (error.response?.data?.error || error.message));
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"="width=device-width, initial-scale=1.0">
+    <title>업무위탁계약서 서명</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 max-w-4xl">
+        <div id="content" class="bg-white rounded-lg shadow-md p-6"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        let signaturePad;
+        
+        async function load() {
+            const res = await axios.get(`/api/work-contracts/${id}/sign`);
+            const c = res.data;
+            
+            if (c.status === 'active') {
+                document.getElementById('content').innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold mb-2">이미 서명이 완료된 계약서입니다</h2>
+                        <p class="text-gray-600">서명일: ${c.signed_at}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            document.getElementById('content').innerHTML = `
+                <h1 class="text-2xl font-bold mb-6 text-center">배달업무위탁계약서</h1>
+                
+                <div class="mb-6 text-sm leading-relaxed">
+                    <p class="mb-4 text-center">대성 배달대행 (이하 "갑")과(와) <span class="font-bold">${c.worker_name}</span> (이하 "을")은(는) 다음과 같이 배달업무위탁계약을 체결한다.</p>
+                    
+                    <div class="space-y-6">
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제1조 (계약의 성격)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 본 계약은 근로계약이 아닌 업무위탁계약이다.</p>
+                                <p>2. 을은 갑에 종속된 근로자가 아니며, 독립적인 사업자로서 업무를 수행한다.</p>
+                                <p>3. 갑은 을에 대하여 근태관리, 출퇴근통제, 최소근무시간을 강제하지 않는다.</p>
+                                <p>4. 을은 업무수행 시간, 장소, 방법을 자유롭게 결정할 수 있다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제2조 (위탁업무의 내용)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 갑은 을에게 배달업무를 위탁하고, 을은 이를 수행한다.</p>
+                                <p>2. 위탁업무 수행 지역: <span class="font-bold">${c.work_area || '광주시 전역'}</span></p>
+                                <p>3. 을은 배달업무 수행 시 교통법규를 준수하고 안전운전에 유의해야 한다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제3조 (비용 부담)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 오토바이, 유류비, 보험료, 통신비 등은 을이 부담하는 것을 원칙으로 한다.</p>
+                                <p>2. 렌트 시에는 별도 계약을 체결한다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제4조 (보험 및 사고책임)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 을은 책임보험을 유지할 의무가 있다.</p>
+                                <p>2. 사고 발생 시 1차 책임은 을에게 있다.</p>
+                                <p>3. 보험 미가입 상태에서 발생한 사고는 전액 을이 책임진다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제5조 (계약기간)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 계약기간: <span class="font-bold">${c.start_date}</span> ~ <span class="font-bold">${c.end_date || '무기한'}</span></p>
+                                <p>2. 계약기간 만료 후 당사자 간 합의에 따라 계약을 연장할 수 있다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제6조 (위탁수수료)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 지급방식: <span class="font-bold">${c.payment_type === 'commission' ? '건당 수수료' : c.payment_type === 'daily' ? '일당' : '월급'}</span></p>
+                                <p>2. 갑은 매일 또는 주정산으로 플랫폼에서 정산하는 기준으로 정산을 지급한다.</p>
+                                <p>3. 다음 금액은 정산 시 공제 가능하다:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 리스 및 렌트료</p>
+                                    <p>나. 사고부담금</p>
+                                    <p>다. 차용금</p>
+                                    <p>라. 장비대여료</p>
+                                    <p>마. 미납금</p>
+                                </div>
+                                <p>4. 세금은 세법에 따라 원천징수하며, 을은 사업소득자로서 종합소득세 신고의무를 진다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제7조 (업무 수행장비)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 을은 업무수행에 필요한 배달차량(오토바이 등)을 직접 준비하거나, 갑으로부터 리스/렌트/대여할 수 있다.</p>
+                                <p>2. 갑으로부터 차량을 리스/렌트/대여받는 경우, 별도의 차량리스계약서 또는 차량대여계약서를 작성한다.</p>
+                                <p>3. 갑은 리스, 렌트 시 차량의 보험가입 및 정기점검 의무를 진다. 자차일 경우 을은 보험가입 및 정기점검 의무를 진다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-red-50">
+                            <h3 class="font-bold mb-3 text-base text-red-700">제8조 (리스·렌트·차용 후 연락두절 시 책임)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p class="font-bold text-red-700">1. 을이 갑으로부터 차량을 리스, 렌트, 차용 후 정당한 사유 없이 7일 이상 연락이 두절되는 경우:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 갑은 즉시 차량반환을 요구할 수 있다.</p>
+                                    <p>나. 을은 차량 리스료/렌트료 전액 및 지연손해금(연 24%)을 지급해야 한다.</p>
+                                    <p>다. 을은 차량 손괴, 분실 등에 대한 모든 손해배상책임을 진다.</p>
+                                    <p>라. 갑은 횡령죄(형법 제355조), 사기죄(형법 제347조)로 형사고소할 수 있다.</p>
+                                </div>
+                                <p class="font-bold text-red-700">2. 을이 차량을 임의로 처분, 담보제공, 매각, 폐차하는 경우 횡령죄가 성립된다.</p>
+                                <p class="font-bold text-red-700">3. 갑은 차량 회수를 위해 GPS 추적, 경찰신고, 채권추심 등 모든 법적 조치를 취할 수 있다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제9조 (손해배상)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 을이 고의 또는 중과실로 갑 또는 제3자에게 손해를 입힌 경우 손해배상책임을 진다.</p>
+                                <p>2. 배달 중 교통사고 발생 시, 을은 본인 가입 보험으로 처리하며 갑은 책임을 지지 않는다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제10조 (계약의 해지)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 당사자 일방은 7일 전 서면통지로 계약을 해지할 수 있다.</p>
+                                <p>2. 다음의 경우 즉시 해지할 수 있다:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 상대방이 계약을 중대하게 위반한 경우</p>
+                                    <p>나. 을이 7일 이상 연락두절된 경우</p>
+                                    <p>다. 을이 고의적으로 갑에게 손해를 입힌 경우</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-yellow-50">
+                            <h3 class="font-bold mb-3 text-base">제11조 (비밀유지)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 갑과 을은 본 계약의 이행과정에서 알게 된 상대방의 영업비밀, 기술정보, 고객정보 등 일체의 비밀정보를 제3자에게 누설하거나 본 계약 이외의 목적으로 사용할 수 없다.</p>
+                                <p>2. 비밀유지 의무는 계약 종료 후에도 2년간 유효하다.</p>
+                                <p>3. 비밀유지 의무를 위반한 경우, 위반 당사자는 상대방에게 발생한 손해를 배상할 책임이 있다.</p>
+                                <p>4. 다음 정보는 비밀유지 의무에서 제외된다:</p>
+                                <div class="pl-4 space-y-1">
+                                    <p>가. 공지된 정보 또는 공지될 예정인 정보</p>
+                                    <p>나. 법령에 따라 공개가 요구되는 정보</p>
+                                    <p>다. 제3자로부터 적법하게 취득한 정보</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제12조 (개인정보 보호)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 갑과 을은 업무수행 중 취득한 개인정보를 본 계약 목적 외에 사용하거나 제3자에게 제공할 수 없다.</p>
+                                <p>2. 계약 종료 시 보유 중인 개인정보를 즉시 파기해야 한다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="border p-4 rounded bg-gray-50">
+                            <h3 class="font-bold mb-3 text-base">제13조 (분쟁해결)</h3>
+                            <div class="space-y-2 pl-4">
+                                <p>1. 본 계약과 관련한 분쟁은 상호 협의하여 해결한다.</p>
+                                <p>2. 협의가 이루어지지 않을 경우 갑의 주소지 관할법원을 제1심 관할법원으로 한다.</p>
+                            </div>
+                        </div>
+                        
+                        ${c.special_terms ? `
+                            <div class="border p-4 rounded bg-blue-50">
+                                <h3 class="font-bold mb-3 text-base">제14조 (특약사항)</h3>
+                                <div class="pl-4 whitespace-pre-wrap">${c.special_terms}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mt-8 text-center text-sm">
+                        <p>본 계약을 증명하기 위하여 계약서 2부를 작성하여 갑과 을이 서명날인 후 각 1부씩 보관한다.</p>
+                        <p class="mt-4 font-bold">${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-6 mt-8">
+                    <div class="border p-4 rounded bg-blue-50">
+                        <h3 class="font-bold mb-3 text-lg">갑 (위탁자)</h3>
+                        <div class="space-y-2">
+                            <p>상호: <span class="font-bold">대성 배달대행</span></p>
+                            <p>사업자번호: <span class="font-bold">487-39-01128</span></p>
+                            <p>대표자: <span class="font-bold">김상춘</span></p>
+                            <p>주소: <span class="font-bold">광주광역시 광산구 신가삼효로 31, 1층 플러스 사무실</span></p>
+                            <p>전화번호: <span class="font-bold">010-8604-6995</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="border p-4 rounded bg-green-50">
+                        <h3 class="font-bold mb-3 text-lg">을 (수탁자)</h3>
+                        <div class="space-y-2">
+                            <p>성명: <span class="font-bold">${c.worker_name}</span></p>
+                            <p>주민등록번호: <span class="font-bold">${c.worker_id_number}</span></p>
+                            <p>주소: <span class="font-bold">${c.worker_address}</span></p>
+                            <p>연락처: <span class="font-bold">${c.worker_phone}</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 갑 서명란 -->
+                <div class="mt-8 mb-6">
+                    <h3 class="font-bold mb-2 text-blue-700">갑 (위탁자) 서명</h3>
+                    <div class="border-2 border-blue-300 rounded bg-blue-50 p-2 cursor-pointer" onclick="openSignatureModal('company')">
+                        <canvas id="companySignature" width="600" height="150" class="w-full bg-white rounded"></canvas>
+                        <p class="text-xs text-center text-gray-600 mt-2">클릭하여 서명하기</p>
+                    </div>
+                </div>
+                
+                <!-- 을 서명란 -->
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2 text-green-700">을 (수탁자) 서명</h3>
+                    <div class="border-2 border-green-300 rounded bg-green-50 p-2 cursor-pointer" onclick="openSignatureModal('worker')">
+                        <canvas id="workerSignature" width="600" height="150" class="w-full bg-white rounded"></canvas>
+                        <p class="text-xs text-center text-gray-600 mt-2">클릭하여 서명하기</p>
+                    </div>
+                </div>
+                
+                <!-- 신분증 업로드 -->
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">신분증 업로드 (을)</h3>
+                    <input type="file" id="idCardInput" accept="image/*" class="hidden" onchange="handleIdCardUpload(event)">
+                    <button onclick="document.getElementById('idCardInput').click()" class="w-full bg-gray-100 border-2 border-dashed border-gray-300 rounded p-4 hover:bg-gray-50">
+                        <i class="fas fa-id-card text-3xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600">신분증 사진을 선택하세요</p>
+                    </button>
+                    <div id="idCardPreview" class="mt-2"></div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="save()" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 flex-1">
+                        <i class="fas fa-save mr-2"></i>서명 완료
+                    </button>
+                </div>
+            `;
+            
+            // 서명 패드 초기화는 하지 않음 (모달에서 사용)
+        }
+        
+        let currentSignatureType = null;
+        let companySignaturePad = null;
+        let workerSignaturePad = null;
+        let modalSignaturePad = null;
+        let idCardFile = null;
+        
+        function openSignatureModal(type) {
+            currentSignatureType = type;
+            const modal = document.createElement('div');
+            modal.id = 'signatureModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+                    <h3 class="text-xl font-bold mb-4">${type === 'company' ? '갑 (위탁자)' : '을 (수탁자)'} 서명</h3>
+                    <div class="border-2 border-gray-300 rounded mb-4">
+                        <canvas id="modalSignature" width="700" height="300" class="w-full touch-none"></canvas>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="clearModalSignature()" class="bg-gray-600 text-white px-4 py-2 rounded">지우기</button>
+                        <button onclick="saveModalSignature()" class="bg-purple-600 text-white px-4 py-2 rounded flex-1">확인</button>
+                        <button onclick="closeSignatureModal()" class="bg-red-600 text-white px-4 py-2 rounded">취소</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            const canvas = document.getElementById('modalSignature');
+            modalSignaturePad = new SignaturePad(canvas);
+        }
+        
+        function closeSignatureModal() {
+            const modal = document.getElementById('signatureModal');
+            if (modal) modal.remove();
+            modalSignaturePad = null;
+        }
+        
+        function clearModalSignature() {
+            if (modalSignaturePad) modalSignaturePad.clear();
+        }
+        
+        function saveModalSignature() {
+            if (modalSignaturePad.isEmpty()) {
+                alert('서명을 해주세요');
+                return;
+            }
+            
+            const signatureData = modalSignaturePad.toDataURL();
+            
+            if (currentSignatureType === 'company') {
+                const canvas = document.getElementById('companySignature');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = signatureData;
+                companySignaturePad = signatureData;
+            } else {
+                const canvas = document.getElementById('workerSignature');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = signatureData;
+                workerSignaturePad = signatureData;
+            }
+            
+            closeSignatureModal();
+        }
+        
+        function handleIdCardUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('이미지 파일만 업로드 가능합니다');
+                return;
+            }
+            
+            idCardFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('idCardPreview');
+                preview.innerHTML = `
+                    <div class="relative">
+                        <img src="${e.target.result}" class="w-full rounded border">
+                        <button onclick="removeIdCard()" class="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeIdCard() {
+            idCardFile = null;
+            document.getElementById('idCardPreview').innerHTML = '';
+            document.getElementById('idCardInput').value = '';
+        }
+        
+        async function save() {
+            if (!companySignaturePad) {
+                alert('갑(위탁자) 서명을 해주세요');
+                return;
+            }
+            
+            if (!workerSignaturePad) {
+                alert('을(수탁자) 서명을 해주세요');
+                return;
+            }
+            
+            if (!idCardFile) {
+                alert('신분증을 업로드해주세요');
+                return;
+            }
+            
+            if (!confirm('서명을 완료하시겠습니까?')) return;
+            
+            // 신분증을 Base64로 변환
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    await axios.post(`/api/work-contracts/${id}/signature`, {
+                        company_signature: companySignaturePad,
+                        worker_signature: workerSignaturePad,
+                        id_card_image: e.target.result
+                    });
+                    
+                    alert('서명이 완료되었습니다');
+                    location.reload();
+                } catch (error) {
+                    alert('오류: ' + (error.response?.data?.error || error.message));
+                }
+            };
+            reader.readAsDataURL(idCardFile);
+        }
+        
+        load();
+    </script>
+</body>
+</html>

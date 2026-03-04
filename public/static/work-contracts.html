@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>업무위탁계약서 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold"><i class="fas fa-file-contract mr-2"></i>업무위탁계약서</h1>
+                <a href="/static/work-contract-new.html" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    <i class="fas fa-plus mr-2"></i>새 계약서
+                </a>
+            </div>
+            
+            <div id="list"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // 로그인 체크
+        const sessionId = localStorage.getItem('sessionId');
+        if (!sessionId) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/static/login.html';
+        }
+        
+        axios.defaults.headers.common['X-Session-ID'] = sessionId;
+        
+        async function load() {
+            const res = await axios.get('/api/work-contracts');
+            const list = document.getElementById('list');
+            
+            if (res.data.length === 0) {
+                list.innerHTML = '<div class="text-center py-12 text-gray-500">등록된 계약서가 없습니다</div>';
+                return;
+            }
+            
+            list.innerHTML = res.data.map(c => `
+                <div class="border p-4 mb-4 rounded hover:bg-gray-50">
+                    <div class="flex justify-between">
+                        <div>
+                            <div class="font-bold">${c.worker_name}</div>
+                            <div class="text-sm text-gray-600">${c.worker_phone} | ${c.contract_number}</div>
+                            <div class="text-sm">${c.start_date} ~ ${c.end_date || '무기한'}</div>
+                            <span class="badge ${c.status === 'active' ? 'bg-green-500' : c.status === 'pending' ? 'bg-yellow-500' : 'bg-gray-500'} text-white px-2 py-1 rounded text-xs">
+                                ${c.status === 'active' ? '진행중' : c.status === 'pending' ? '서명대기' : '완료'}
+                            </span>
+                        </div>
+                        <div>
+                            ${c.status === 'pending' ? `
+                                <button onclick="sendSMS(${c.id}, '${c.worker_name}', '${c.worker_phone}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm mr-2">
+                                    <i class="fas fa-sms"></i> SMS 발송
+                                </button>
+                            ` : ''}
+                            <button onclick="remove(${c.id})" class="bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-trash"></i> 삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function sendSMS(id, name, phone) {
+            if (!confirm(`${name}님에게 서명 요청 SMS를 발송하시겠습니까?`)) return;
+            
+            const shareUrl = `${window.location.origin}/static/work-contract-sign.html?id=${id}`;
+            
+            try {
+                await axios.post('/api/send-sms', {
+                    phone,
+                    message: `[Z-BIKE 업무위탁계약서]\\n\\n${name}님 계약내용 확인 후 서명해주세요.\\n\\n링크: ${shareUrl}\\n\\n* 72시간 이내 서명 부탁드립니다.`
+                });
+                alert('SMS가 발송되었습니다');
+            } catch (error) {
+                alert('SMS 발송 실패: ' + (error.response?.data?.message || error.message));
+            }
+        }
+        
+        async function remove(id) {
+            if (!confirm('삭제하시겠습니까?')) return;
+            await axios.delete(`/api/work-contracts/${id}`);
+            alert('삭제되었습니다');
+            load();
+        }
+        
+        load();
+    </script>
+</body>
+</html>
