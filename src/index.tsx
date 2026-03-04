@@ -4479,6 +4479,8 @@ app.get('/api/contract-shares', authMiddleware, async (c) => {
 app.post('/api/send-sms', async (c) => {
   try {
     const body = await c.req.json()
+    console.log('📥 SMS API 요청 받음:', body)
+    
     const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
     
     // 메시지 결정 (커스텀 메시지 우선, 없으면 기본 메시지)
@@ -4500,10 +4502,26 @@ app.post('/api/send-sms', async (c) => {
     
     const phoneNumber = to || phone
     
-    if (!phoneNumber || !message) {
+    console.log('🔍 유효성 검사:', { 
+      phoneNumber, 
+      hasMessage: !!message, 
+      messageLength: message?.length 
+    })
+    
+    if (!phoneNumber) {
+      console.error('❌ 전화번호 없음')
       return c.json({ 
         success: false, 
-        message: '전화번호와 메시지가 필요합니다',
+        message: '전화번호가 필요합니다',
+        debug: { phone: phoneNumber, hasMessage: !!message }
+      }, 400)
+    }
+    
+    if (!message) {
+      console.error('❌ 메시지 없음')
+      return c.json({ 
+        success: false, 
+        message: '메시지가 필요합니다',
         debug: { phone: phoneNumber, hasMessage: !!message }
       }, 400)
     }
