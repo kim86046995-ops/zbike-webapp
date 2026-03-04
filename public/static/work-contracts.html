@@ -288,17 +288,17 @@
                                         ` : ''}
                                     </div>
                                     
-                                    <div class="mt-8 text-center text-sm">
-                                        <div class="mb-4 bg-yellow-50 border-4 border-yellow-400 rounded-lg p-4 inline-block max-w-4xl">
+                                    <div class="mt-8 text-center">
+                                        <div class="mb-4 bg-yellow-50 border-4 border-yellow-400 rounded-lg p-6 inline-block max-w-4xl">
                                             <div class="flex items-start">
-                                                <i class="fas fa-check-square text-yellow-600 text-2xl mr-3 mt-1"></i>
+                                                <i class="fas fa-check-square text-yellow-700 text-3xl mr-4 mt-1"></i>
                                                 <div class="text-left">
-                                                    <p class="font-bold text-yellow-800 mb-2">동의 완료</p>
-                                                    <p class="text-yellow-900">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
+                                                    <p class="font-bold text-gray-900 mb-3 text-lg">✓ 전자서명 계약 동의</p>
+                                                    <p class="text-gray-800 text-base leading-relaxed">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <p class="mt-4 font-bold">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
+                                        <p class="mt-4 font-bold text-base">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                                     </div>
                                 </div>
                                 
