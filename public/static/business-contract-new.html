@@ -1470,6 +1470,11 @@
                 console.log('✅ 계약서 저장 완료:', response.data);
                 const { id: contractId, contract_number: contractNumber } = response.data;
 
+                // ✅ 계약서 목록 캐시 클리어 (새로고침 시 즉시 반영)
+                sessionStorage.removeItem('contracts_cache');
+                sessionStorage.removeItem('contracts_cache_time');
+                console.log('🗑️ 계약서 목록 캐시 클리어 완료');
+
                 // 9. 성공 메시지 표시
                 alert(`✅ 업체 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명이 저장되었습니다.\n\n계약서 목록으로 이동합니다.`);
 
