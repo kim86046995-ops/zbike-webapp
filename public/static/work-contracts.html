@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <!-- PDF 생성 라이브러리 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto p-4 max-w-6xl">
@@ -409,7 +409,7 @@
         // PDF 다운로드
         async function downloadPDF(contractId) {
             try {
-                console.log('Starting PDF generation for contract:', contractId);
+                console.log('📄 PDF 생성 시작:', contractId);
                 
                 // 계약서 데이터 가져오기
                 const response = await axios.get(`/api/work-contracts/${contractId}`)
@@ -428,231 +428,52 @@
                     return;
                 }
                 
-                // PDF용 컨테이너 생성 (A4 크기 794x1123 px at 96dpi)
-                const pdfContainer = document.createElement('div');
-                pdfContainer.id = 'pdf-temp-container';
-                pdfContainer.style.cssText = `
-                    position: fixed;
-                    left: 0;
-                    top: 0;
-                    width: 794px;
-                    padding: 40px;
-                    background-color: #ffffff;
-                    font-family: "Malgun Gothic", "맑은 고딕", Arial, sans-serif;
-                    font-size: 12px;
-                    line-height: 1.6;
-                    color: #000000;
-                    box-sizing: border-box;
-                    z-index: 99998;
-                    overflow: visible;
-                `;
+                console.log('✅ 모달 콘텐츠 확인 완료');
                 
-                // 모달의 렌더링된 innerHTML을 그대로 복사 (템플릿 변수가 이미 치환됨)
-                pdfContainer.innerHTML = modalContent.innerHTML;
-                
-                // 디버깅: 모든 이미지 확인
-                console.log('=== PDF 컨테이너 내 이미지 목록 ===');
-                const allImages = pdfContainer.querySelectorAll('img');
-                console.log('총 이미지 개수:', allImages.length);
-                allImages.forEach((img, index) => {
-                    console.log(`이미지 ${index + 1}:`, {
-                        alt: img.alt,
-                        src: img.src?.substring(0, 80),
-                        width: img.width,
-                        height: img.height
-                    });
-                });
-                
-                // 인라인 스타일 강제 적용
-                pdfContainer.querySelectorAll('h1').forEach(h1 => {
-                    h1.style.cssText = 'text-align:center;font-size:22px;font-weight:bold;margin:0 0 20px 0;color:#000;word-wrap:break-word;';
-                });
-                
-                pdfContainer.querySelectorAll('h3').forEach(h3 => {
-                    h3.style.cssText = 'font-weight:bold;font-size:14px;margin:0 0 8px 0;color:#000;word-wrap:break-word;';
-                });
-                
-                pdfContainer.querySelectorAll('.border').forEach(box => {
-                    box.style.cssText += 'margin-bottom:10px;padding:10px;background:#f9fafb;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;page-break-inside:avoid;';
-                });
-                
-                pdfContainer.querySelectorAll('.bg-blue-50').forEach(box => {
-                    box.style.cssText += 'padding:12px;background:#dbeafe;border:2px solid #3b82f6;border-radius:4px;margin-bottom:10px;page-break-inside:avoid;';
-                });
-                
-                pdfContainer.querySelectorAll('.bg-green-50').forEach(box => {
-                    box.style.cssText += 'padding:12px;background:#d1fae5;border:2px solid #10b981;border-radius:4px;margin-bottom:10px;page-break-inside:avoid;';
-                });
-                
-                // 이미지 크기 설정 (신분증은 크게, 도장/서명은 작게)
-                console.log('=== 이미지 스타일 적용 시작 ===');
-                pdfContainer.querySelectorAll('img').forEach((img, index) => {
-                    // 신분증 이미지인지 확인 (alt="신분증" 또는 부모가 신분증 섹션)
-                    const isIdCard = img.alt === '신분증' || img.closest('div')?.querySelector('i.fa-id-card');
-                    
-                    console.log(`이미지 ${index + 1} - isIdCard:`, isIdCard, 'alt:', img.alt);
-                    
-                    if (isIdCard) {
-                        // 신분증은 크게 표시 (최대 500px)
-                        img.style.cssText = 'max-width:500px !important;max-height:400px !important;width:auto !important;height:auto !important;object-fit:contain !important;display:block !important;margin:15px auto !important;border:2px solid #d1d5db !important;border-radius:8px !important;padding:10px !important;background:#fff !important;';
-                        console.log('✅ 신분증 이미지 스타일 적용됨:', img.src?.substring(0, 80));
-                    } else {
-                        // 도장/서명은 작게 표시
-                        img.style.cssText += 'max-width:110px;max-height:110px;object-fit:contain;';
-                        console.log('📝 도장/서명 이미지 스타일 적용됨');
-                    }
-                });
-                
-                // 신분증 섹션 스타일 강제 적용
-                console.log('=== 신분증 섹션 찾기 시작 ===');
-                const allDivs = pdfContainer.querySelectorAll('div');
-                console.log('총 div 개수:', allDivs.length);
-                
-                let idCardSectionFound = false;
-                allDivs.forEach((div, index) => {
-                    const icon = div.querySelector('i.fa-id-card');
-                    if (icon) {
-                        idCardSectionFound = true;
-                        console.log(`✅ 신분증 섹션 발견! (div ${index})`);
-                        
-                        div.style.cssText += 'page-break-before:always;padding:20px;background:#f3f4f6;border:2px solid #9ca3af;border-radius:8px;margin-top:25px;margin-bottom:25px;';
-                        
-                        const heading = div.querySelector('h3');
-                        if (heading) {
-                            heading.style.cssText = 'font-size:18px;font-weight:bold;color:#000;margin-bottom:20px;text-align:center;';
-                            console.log('  - 제목 텍스트:', heading.textContent);
-                        }
-                        
-                        const img = div.querySelector('img');
-                        if (img) {
-                            console.log('  - 신분증 이미지 있음:', img.src?.substring(0, 80));
-                        } else {
-                            console.warn('  ⚠️ 신분증 이미지 없음!');
-                        }
-                    }
-                });
-                
-                if (!idCardSectionFound) {
-                    console.warn('❌ 신분증 섹션을 찾을 수 없습니다!');
-                }
-                
-                pdfContainer.querySelectorAll('p').forEach(p => {
-                    p.style.cssText += 'margin:0 0 6px 0;font-size:12px;line-height:1.5;color:#000;word-wrap:break-word;';
-                });
-                
-                // 동의 체크박스 스타일 강제 적용
-                const agreementBoxes = pdfContainer.querySelectorAll('div[style*="background-color: #fef9c3"]');
-                agreementBoxes.forEach(box => {
-                    // 외부 박스 - 얇은 테두리, 작은 패딩
-                    box.style.cssText = 'display:inline-block;background-color:#fef9c3;border:2px solid #facc15;border-radius:4px;padding:5px 10px;margin-bottom:16px;';
-                    
-                    // 테이블
-                    const table = box.querySelector('table');
-                    if (table) {
-                        table.style.cssText = 'border-collapse:collapse;border:none;';
-                        
-                        // TD들
-                        const tds = table.querySelectorAll('td');
-                        if (tds[0]) tds[0].style.cssText = 'vertical-align:middle;padding:0;margin:0;line-height:1;';
-                        if (tds[1]) tds[1].style.cssText = 'vertical-align:middle;padding:0;line-height:1.2;';
-                        
-                        // 체크마크 직접
-                        const checkmark = tds[0]?.querySelector('span');
-                        if (checkmark) {
-                            checkmark.style.cssText = 'color:#16a34a;font-size:14px;font-weight:bold;margin-right:5px;';
-                            console.log('✓ 체크마크 스타일 적용됨:', checkmark.textContent);
-                        }
-                        
-                        // 텍스트
-                        const text = tds[1]?.querySelector('span');
-                        if (text) {
-                            text.style.cssText = 'color:#000000;font-size:12px;font-weight:600;';
-                            console.log('✓ 텍스트 스타일 적용됨:', text.textContent);
-                        }
-                    }
-                });
-                
-                document.body.appendChild(pdfContainer);
-                
-                // 로딩 표시 (PDF 컨테이너보다 위에)
-                const loadingDiv = document.createElement('div');
-                loadingDiv.id = 'pdf-loading';
-                loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);color:#fff;padding:30px 60px;border-radius:12px;z-index:100000;font-size:20px;font-weight:bold;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
-                loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:15px;"></i>PDF 생성 중...';
-                document.body.appendChild(loadingDiv);
-                
-                // DOM 충분히 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                console.log('Container dimensions:', pdfContainer.offsetWidth, 'x', pdfContainer.offsetHeight);
-                console.log('Container scroll:', pdfContainer.scrollWidth, 'x', pdfContainer.scrollHeight);
-                
-                // 로딩 오버레이 잠깐 숨기기 (캡처할 때)
-                loadingDiv.style.display = 'none';
-                
-                // html2canvas로 캡처
-                const canvas = await html2canvas(pdfContainer, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: true,
-                    removeContainer: false
-                });
-                
-                // 로딩 다시 보이기
-                loadingDiv.style.display = 'block';
-                
-                console.log('Canvas created:', canvas.width, 'x', canvas.height);
-                
-                // jsPDF로 PDF 생성
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'px',
-                    format: [794, 1123]  // A4 at 96dpi
-                });
-                
-                const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                const pageWidth = 794;
-                const pageHeight = 1123;
-                const imgWidth = pageWidth;
-                const imgHeight = (canvas.height * pageWidth) / canvas.width;
-                
-                let heightLeft = imgHeight;
-                let position = 0;
-                
-                // 첫 페이지
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                
-                // 추가 페이지
-                while (heightLeft > 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-                
-                // PDF 저장
+                // 파일명 생성
                 const fileName = `업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`;
-                pdf.save(fileName);
                 
-                console.log('PDF generation complete');
+                // A4 최적화 옵션
+                const opt = {
+                    margin: [8, 10, 8, 10],
+                    filename: fileName,
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 0.98 
+                    },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        letterRendering: true,
+                        logging: true,
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait',
+                        compress: true
+                    },
+                    pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy'],
+                        before: '.page-break-before',
+                        after: '.page-break-after',
+                        avoid: ['img', '.bg-green-50', '.bg-blue-50', '.border']
+                    }
+                };
+
+                console.log('🎨 html2pdf 시작...');
                 
-                // 정리
-                document.body.removeChild(pdfContainer);
-                const loading = document.getElementById('pdf-loading');
-                if (loading) document.body.removeChild(loading);
+                // PDF 생성 및 다운로드
+                await html2pdf().set(opt).from(modalContent).save();
+                
+                console.log('✅ PDF 생성 완료:', fileName);
                 
             } catch (error) {
-                console.error('PDF generation error:', error);
-                alert('PDF 생성 중 오류가 발생했습니다: ' + error.message);
-                // 정리
-                const pdfContainer = document.querySelector('div[style*="-9999px"]');
-                if (pdfContainer) document.body.removeChild(pdfContainer);
-                const loadingDiv = document.querySelector('div[style*="fixed"][style*="10000"]');
-                if (loadingDiv) document.body.removeChild(loadingDiv);
+                console.error('❌ PDF 생성 오류:', error);
+                alert(`PDF 다운로드에 실패했습니다.\n\n오류: ${error.message}`);
             }
         }
 
