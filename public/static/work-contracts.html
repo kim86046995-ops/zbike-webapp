@@ -405,24 +405,118 @@
         // PDF 다운로드
         async function downloadPDF(contractId) {
             try {
+                console.log('Starting PDF generation for contract:', contractId);
+                
                 // 계약서 데이터 가져오기
                 const response = await axios.get(`/api/work-contracts/${contractId}`)
                 const contract = response.data
                 
-                const paymentTypeText = {
-                    'commission': '건당 수수료',
-                    'daily': '일당',
-                    'monthly': '월급'
-                };
+                // 상세 모달을 열어서 HTML을 가져옴
+                const detailModal = document.getElementById('detailModal');
+                if (!detailModal) {
+                    alert('상세 정보를 불러올 수 없습니다.');
+                    return;
+                }
                 
-                // PDF용 HTML 생성 (A4 크기에 맞춤 - 픽셀 단위)
-                const pdfContent = document.createElement('div');
-                pdfContent.style.width = '794px';  // A4 width at 96 DPI
-                pdfContent.style.padding = '40px';
-                pdfContent.style.backgroundColor = 'white';
-                pdfContent.style.fontFamily = 'Malgun Gothic, sans-serif';
-                pdfContent.style.color = '#000000';
-                pdfContent.innerHTML = `
+                // 모달의 계약서 내용 부분만 복제
+                const modalContent = detailModal.querySelector('.bg-white.border-2.border-gray-300');
+                if (!modalContent) {
+                    alert('계약서 내용을 찾을 수 없습니다.');
+                    return;
+                }
+                
+                // PDF 생성용 컨테이너 생성
+                const pdfContainer = document.createElement('div');
+                pdfContainer.style.position = 'fixed';
+                pdfContainer.style.left = '50%';
+                pdfContainer.style.top = '50%';
+                pdfContainer.style.transform = 'translate(-50%, -50%)';
+                pdfContainer.style.width = '794px';
+                pdfContainer.style.backgroundColor = 'white';
+                pdfContainer.style.padding = '40px';
+                pdfContainer.style.zIndex = '9999';
+                pdfContainer.style.boxShadow = '0 0 0 10000px rgba(0,0,0,0.5)';
+                
+                // 모달 내용 복제
+                const clonedContent = modalContent.cloneNode(true);
+                pdfContainer.appendChild(clonedContent);
+                document.body.appendChild(pdfContainer);
+                
+                // 로딩 오버레이 표시
+                const loadingDiv = document.createElement('div');
+                loadingDiv.style.position = 'fixed';
+                loadingDiv.style.top = '20px';
+                loadingDiv.style.left = '50%';
+                loadingDiv.style.transform = 'translateX(-50%)';
+                loadingDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                loadingDiv.style.color = 'white';
+                loadingDiv.style.padding = '15px 30px';
+                loadingDiv.style.borderRadius = '8px';
+                loadingDiv.style.zIndex = '10000';
+                loadingDiv.style.fontSize = '18px';
+                loadingDiv.style.fontWeight = 'bold';
+                loadingDiv.textContent = 'PDF 생성 중...';
+                document.body.appendChild(loadingDiv);
+                
+                // 렌더링 대기
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                console.log('PDF Content dimensions:', pdfContainer.scrollWidth, 'x', pdfContainer.scrollHeight);
+                
+                // html2canvas로 캔버스 생성
+                const canvas = await html2canvas(pdfContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: true,
+                    backgroundColor: '#ffffff',
+                    width: 794,
+                    height: pdfContainer.scrollHeight
+                });
+                
+                console.log('Canvas created:', canvas.width, 'x', canvas.height);
+                
+                // jsPDF로 PDF 생성
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: [794, 1123]
+                });
+                
+                const imgWidth = 794;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const pageHeight = 1123;
+                
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                // 첫 페이지 추가
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                heightLeft -= pageHeight;
+                
+                // 페이지 분할
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                    heightLeft -= pageHeight;
+                }
+                
+                // PDF 저장
+                const fileName = `업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`;
+                pdf.save(fileName);
+                
+                console.log('PDF generation complete');
+                
+                // 정리
+                document.body.removeChild(pdfContainer);
+                document.body.removeChild(loadingDiv);
+                
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('PDF 생성 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
                     <div style="font-size: 11pt; line-height: 1.6;">
                         <h1 style="text-align: center; font-size: 20pt; font-weight: bold; margin-bottom: 20px;">배달업무위탁계약서</h1>
                         
@@ -648,88 +742,6 @@
                                 `}
                             </div>
                         </div>
-                    </div>
-                `;
-                
-                // 임시로 body에 추가 (보이도록)
-                pdfContent.style.position = 'fixed';
-                pdfContent.style.left = '50%';
-                pdfContent.style.top = '50%';
-                pdfContent.style.transform = 'translate(-50%, -50%)';
-                pdfContent.style.zIndex = '9999';
-                pdfContent.style.boxShadow = '0 0 20px rgba(0,0,0,0.3)';
-                document.body.appendChild(pdfContent);
-                
-                // 로딩 오버레이 추가
-                const overlay = document.createElement('div');
-                overlay.style.position = 'fixed';
-                overlay.style.inset = '0';
-                overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                overlay.style.zIndex = '9998';
-                overlay.style.display = 'flex';
-                overlay.style.alignItems = 'center';
-                overlay.style.justifyContent = 'center';
-                overlay.innerHTML = '<div style="background:white;padding:20px;border-radius:10px;"><p style="font-size:18px;font-weight:bold;">PDF 생성 중...</p></div>';
-                document.body.appendChild(overlay);
-                
-                // DOM 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                console.log('PDF Content dimensions:', pdfContent.offsetWidth, 'x', pdfContent.offsetHeight);
-                
-                // html2canvas로 이미지 생성
-                const canvas = await html2canvas(pdfContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: true,
-                    backgroundColor: '#ffffff',
-                    width: 794,
-                    height: pdfContent.scrollHeight
-                });
-                
-                console.log('Canvas created:', canvas.width, 'x', canvas.height);
-                
-                // jsPDF로 PDF 생성
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'px',
-                    format: [794, 1123]
-                });
-                
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                const imgWidth = 794;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                let heightLeft = imgHeight;
-                let position = 0;
-                const pageHeight = 1123;
-                
-                // 첫 페이지
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                
-                // 추가 페이지
-                while (heightLeft > 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-                
-                // PDF 저장
-                pdf.save(`업무위탁계약서_${contract.worker_name || contract.contract_number}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.pdf`);
-                console.log('PDF generation complete');
-                
-                // 임시 요소 제거
-                document.body.removeChild(pdfContent);
-                document.body.removeChild(overlay);
-                
-            } catch (error) {
-                console.error('PDF 생성 오류:', error);
-                alert('PDF 다운로드 중 오류가 발생했습니다: ' + error.message);
-            }
-        }
         
         async function remove(id) {
             if (!confirm('삭제하시겠습니까?')) return;
