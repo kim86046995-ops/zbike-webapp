@@ -437,90 +437,37 @@
                 pdfContainer.style.boxSizing = 'border-box';
                 pdfContainer.style.overflow = 'visible';
                 
-                // 모달 내용 복제
-                const clonedContent = modalContent.cloneNode(true);
+                // 모달의 렌더링된 innerHTML을 그대로 복사 (템플릿 변수가 이미 치환됨)
+                pdfContainer.innerHTML = modalContent.innerHTML;
                 
-                // 모든 요소의 스타일 명확히 설정
-                clonedContent.style.width = '100%';
-                clonedContent.style.padding = '0';
-                clonedContent.style.margin = '0';
-                clonedContent.style.border = 'none';
-                clonedContent.style.backgroundColor = 'transparent';
-                
-                // 제목
-                const title = clonedContent.querySelector('h1');
-                if (title) {
-                    title.style.textAlign = 'center';
-                    title.style.fontSize = '26px';
-                    title.style.fontWeight = 'bold';
-                    title.style.marginBottom = '30px';
-                    title.style.marginTop = '0';
-                    title.style.color = '#000000';
-                }
-                
-                // 모든 조항 박스들
-                const allBoxes = clonedContent.querySelectorAll('.border');
-                allBoxes.forEach(box => {
-                    box.style.marginBottom = '20px';
-                    box.style.padding = '15px';
-                    box.style.backgroundColor = '#f9fafb';
-                    box.style.border = '1px solid #d1d5db';
-                    box.style.borderRadius = '6px';
-                    box.style.pageBreakInside = 'avoid';
-                    box.style.boxSizing = 'border-box';
+                // 인라인 스타일 강제 적용
+                pdfContainer.querySelectorAll('h1').forEach(h1 => {
+                    h1.style.cssText = 'text-align:center;font-size:26px;font-weight:bold;margin:0 0 30px 0;color:#000;';
                 });
                 
-                // 조항 제목들
-                const clauseTitles = clonedContent.querySelectorAll('h3');
-                clauseTitles.forEach(h3 => {
-                    h3.style.fontWeight = 'bold';
-                    h3.style.fontSize = '16px';
-                    h3.style.marginBottom = '12px';
-                    h3.style.marginTop = '0';
-                    h3.style.color = '#000000';
+                pdfContainer.querySelectorAll('h3').forEach(h3 => {
+                    h3.style.cssText = 'font-weight:bold;font-size:16px;margin:0 0 12px 0;color:#000;';
                 });
                 
-                // 갑/을 정보 박스
-                const partyBoxes = clonedContent.querySelectorAll('.bg-blue-50, .bg-green-50');
-                partyBoxes.forEach(box => {
-                    box.style.padding = '20px';
-                    box.style.borderRadius = '8px';
-                    box.style.marginBottom = '20px';
-                    box.style.pageBreakInside = 'avoid';
-                    if (box.classList.contains('bg-blue-50')) {
-                        box.style.backgroundColor = '#dbeafe';
-                        box.style.border = '2px solid #3b82f6';
-                    } else {
-                        box.style.backgroundColor = '#d1fae5';
-                        box.style.border = '2px solid #10b981';
-                    }
+                pdfContainer.querySelectorAll('.border').forEach(box => {
+                    box.style.cssText += 'margin-bottom:20px;padding:15px;background:#f9fafb;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;';
                 });
                 
-                // 모든 이미지
-                const images = clonedContent.querySelectorAll('img');
-                images.forEach(img => {
-                    img.style.maxWidth = '150px';
-                    img.style.maxHeight = '150px';
-                    img.style.objectFit = 'contain';
-                    img.style.display = 'inline-block';
+                pdfContainer.querySelectorAll('.bg-blue-50').forEach(box => {
+                    box.style.cssText += 'padding:20px;background:#dbeafe;border:2px solid #3b82f6;border-radius:8px;margin-bottom:20px;';
                 });
                 
-                // 모든 paragraph
-                const paragraphs = clonedContent.querySelectorAll('p');
-                paragraphs.forEach(p => {
-                    p.style.margin = '0 0 10px 0';
-                    p.style.fontSize = '14px';
-                    p.style.lineHeight = '1.7';
-                    p.style.color = '#000000';
+                pdfContainer.querySelectorAll('.bg-green-50').forEach(box => {
+                    box.style.cssText += 'padding:20px;background:#d1fae5;border:2px solid #10b981;border-radius:8px;margin-bottom:20px;';
                 });
                 
-                // 모든 div
-                const divs = clonedContent.querySelectorAll('div');
-                divs.forEach(div => {
-                    div.style.boxSizing = 'border-box';
+                pdfContainer.querySelectorAll('img').forEach(img => {
+                    img.style.cssText += 'max-width:150px;max-height:150px;object-fit:contain;';
                 });
                 
-                pdfContainer.appendChild(clonedContent);
+                pdfContainer.querySelectorAll('p').forEach(p => {
+                    p.style.cssText += 'margin:0 0 10px 0;font-size:14px;line-height:1.7;color:#000;';
+                });
                 document.body.appendChild(pdfContainer);
                 
                 // 로딩 표시
