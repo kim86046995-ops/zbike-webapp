@@ -262,16 +262,18 @@
         let modalSignaturePad = null;
         let idCardFile = null;
         
+        let resizeHandler = null;
+        
         function openSignatureModal(type) {
             currentSignatureType = type;
             const modal = document.createElement('div');
             modal.id = 'signatureModal';
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
             modal.innerHTML = `
-                <div class="bg-white rounded-lg p-8 max-w-7xl w-full">
+                <div class="bg-white rounded-lg p-8 max-w-7xl w-full mx-auto">
                     <h3 class="text-4xl font-bold mb-6">${type === 'company' ? '갑 (위탁자)' : '을 (수탁자)'} 서명</h3>
-                    <div class="border-4 border-green-500 rounded-lg mb-6 bg-white">
-                        <canvas id="modalSignature" width="1800" height="800" class="w-full touch-none" style="background: white;"></canvas>
+                    <div class="border-4 border-green-500 rounded-lg mb-6 bg-white" id="canvasContainer">
+                        <canvas id="modalSignature" class="w-full touch-none" style="background: white; display: block;"></canvas>
                     </div>
                     <div class="flex gap-4">
                         <button onclick="clearModalSignature()" class="bg-gray-600 text-white px-8 py-4 rounded-lg text-2xl font-bold">지우기</button>
@@ -282,16 +284,55 @@
             `;
             document.body.appendChild(modal);
             
-            const canvas = document.getElementById('modalSignature');
-            modalSignaturePad = new SignaturePad(canvas, {
-                minWidth: 3,
-                maxWidth: 6,
-                penColor: 'rgb(0, 0, 0)',
-                backgroundColor: 'rgb(255, 255, 255)'
-            });
+            // 약간의 지연을 두어 DOM이 완전히 렌더링되도록 함
+            setTimeout(() => {
+                const canvas = document.getElementById('modalSignature');
+                const container = document.getElementById('canvasContainer');
+                
+                // 컨테이너의 실제 크기 가져오기
+                const containerWidth = container.clientWidth;
+                const containerHeight = Math.floor(containerWidth * 0.5); // 2:1 비율
+                
+                // 캔버스의 실제 크기를 컨테이너와 동일하게 설정
+                canvas.width = containerWidth;
+                canvas.height = containerHeight;
+                canvas.style.width = containerWidth + 'px';
+                canvas.style.height = containerHeight + 'px';
+                
+                console.log('Canvas size:', canvas.width, 'x', canvas.height);
+                
+                modalSignaturePad = new SignaturePad(canvas, {
+                    minWidth: 2,
+                    maxWidth: 5,
+                    penColor: 'rgb(0, 0, 0)',
+                    backgroundColor: 'rgb(255, 255, 255)',
+                    velocityFilterWeight: 0.7
+                });
+                
+                // 창 크기 변경 시 캔버스 크기 조정
+                resizeHandler = function() {
+                    const data = modalSignaturePad.toData();
+                    const newWidth = container.clientWidth;
+                    const newHeight = Math.floor(newWidth * 0.5);
+                    
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    canvas.style.width = newWidth + 'px';
+                    canvas.style.height = newHeight + 'px';
+                    
+                    modalSignaturePad.clear();
+                    modalSignaturePad.fromData(data);
+                };
+                
+                window.addEventListener('resize', resizeHandler);
+            }, 100);
         }
         
         function closeSignatureModal() {
+            if (resizeHandler) {
+                window.removeEventListener('resize', resizeHandler);
+                resizeHandler = null;
+            }
             const modal = document.getElementById('signatureModal');
             if (modal) modal.remove();
             modalSignaturePad = null;
