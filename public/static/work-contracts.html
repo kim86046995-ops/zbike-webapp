@@ -289,16 +289,22 @@
                                     </div>
                                     
                                     <div style="margin-top: 40px; text-align: center;">
-                                        <div style="display: inline-block; background-color: #fef9c3; border: 4px solid #facc15; border-radius: 12px; padding: 24px; max-width: 800px; margin-bottom: 20px;">
-                                            <div style="display: flex; align-items: flex-start; text-align: left;">
-                                                <i class="fas fa-check-square" style="color: #ca8a04; font-size: 32px; margin-right: 16px; margin-top: 4px;"></i>
-                                                <div>
-                                                    <p style="font-weight: bold; color: #000000; font-size: 18px; margin: 0 0 12px 0;">✓ 전자서명 계약 동의</p>
-                                                    <p style="color: #1f2937; font-size: 16px; line-height: 1.8; margin: 0;">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
-                                                </div>
-                                            </div>
+                                        <div style="display: inline-block; background-color: #fef9c3; border: 4px solid #facc15; border-radius: 12px; padding: 30px; max-width: 850px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                            <table style="width: 100%; border-collapse: collapse;">
+                                                <tr>
+                                                    <td style="width: 50px; vertical-align: top; padding-right: 20px;">
+                                                        <div style="width: 40px; height: 40px; background-color: #ffffff; border: 3px solid #ca8a04; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                                            <span style="color: #16a34a; font-size: 28px; font-weight: bold; line-height: 1;">✓</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style="text-align: left;">
+                                                        <div style="font-weight: bold; color: #000000; font-size: 20px; margin-bottom: 15px;">✓ 전자서명 계약 동의</div>
+                                                        <div style="color: #1f2937; font-size: 17px; line-height: 1.9;">본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</div>
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
-                                        <p style="margin-top: 16px; font-weight: bold; font-size: 16px;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
+                                        <p style="margin-top: 20px; font-weight: bold; font-size: 17px; color: #000000;">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                                     </div>
                                 </div>
                                 
