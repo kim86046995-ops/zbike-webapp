@@ -289,7 +289,14 @@
                                     </div>
                                     
                                     <div class="mt-8 text-center text-sm">
-                                        <p>본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.</p>
+                                        <div class="mb-4 bg-yellow-50 border-4 border-yellow-400 rounded-lg p-4 inline-block">
+                                            <div class="flex items-start">
+                                                <i class="fas fa-check-square text-yellow-600 text-2xl mr-3 mt-1"></i>
+                                                <div class="text-left">
+                                                    <span class="font-bold text-yellow-800">동의 완료</span>: 본 계약은 전자서명 계약이며 계약서 원본은 갑이 보관하며 을은 언제든지 열람 및 출력할 수 있다.
+                                                </div>
+                                            </div>
+                                        </div>
                                         <p class="mt-4 font-bold">${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'}) : ''}</p>
                                     </div>
                                 </div>
