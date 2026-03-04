@@ -65,6 +65,9 @@
                                     <i class="fas fa-sms"></i> SMS 발송
                                 </button>
                             ` : ''}
+                            <button onclick="showDetail(${c.id})" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm mr-2">
+                                <i class="fas fa-info-circle"></i> 상세
+                            </button>
                             <button onclick="remove(${c.id})" class="bg-red-600 text-white px-3 py-1 rounded text-sm">
                                 <i class="fas fa-trash"></i> 삭제
                             </button>
@@ -87,6 +90,241 @@
                 alert('SMS가 발송되었습니다');
             } catch (error) {
                 alert('SMS 발송 실패: ' + (error.response?.data?.message || error.message));
+            }
+        }
+        
+        // 상세 정보 표시
+        async function showDetail(id) {
+            try {
+                const response = await axios.get(`/api/work-contracts/${id}`)
+                const contract = response.data
+                
+                // 모달 생성
+                const modal = document.createElement('div')
+                modal.id = 'detailModal'
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto'
+                modal.innerHTML = `
+                    <div class="bg-white rounded-lg max-w-4xl w-full my-8">
+                        <div class="p-6">
+                            <!-- 헤더 -->
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-2xl font-bold text-gray-800">
+                                    <i class="fas fa-file-contract text-purple-600 mr-2"></i>
+                                    업무위탁계약서 상세
+                                </h2>
+                                <button onclick="closeDetail()" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-times text-2xl"></i>
+                                </button>
+                            </div>
+
+                            <!-- 계약자 정보 -->
+                            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                    <i class="fas fa-user text-blue-600 mr-2"></i>
+                                    계약자 정보
+                                </h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <span class="text-gray-600 font-medium">계약번호:</span>
+                                        <span class="ml-2 text-gray-800">${contract.contract_number || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">상태:</span>
+                                        <span class="ml-2 px-2 py-1 rounded text-sm ${
+                                            contract.status === 'active' ? 'bg-green-100 text-green-800' :
+                                            contract.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }">
+                                            ${contract.status === 'active' ? '서명완료' : contract.status === 'pending' ? '서명대기' : contract.status}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">작업자명:</span>
+                                        <span class="ml-2 text-gray-800">${contract.worker_name || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">연락처:</span>
+                                        <span class="ml-2 text-gray-800">${contract.worker_phone || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">주민번호:</span>
+                                        <span class="ml-2 text-gray-800">${contract.worker_id_number || 'N/A'}</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="text-gray-600 font-medium">주소:</span>
+                                        <span class="ml-2 text-gray-800">${contract.worker_address || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">업무 지역:</span>
+                                        <span class="ml-2 text-gray-800">${contract.work_area || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">계약 유형:</span>
+                                        <span class="ml-2 text-gray-800">${contract.contract_type || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">보수 형태:</span>
+                                        <span class="ml-2 text-gray-800">${
+                                            contract.payment_type === 'commission' ? '건당 수수료' :
+                                            contract.payment_type === 'daily' ? '일당' :
+                                            contract.payment_type === 'monthly' ? '월급' : contract.payment_type
+                                        }</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">보수 금액:</span>
+                                        <span class="ml-2 text-gray-800">${contract.payment_amount ? contract.payment_amount.toLocaleString() + '원' : 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">작업 시간:</span>
+                                        <span class="ml-2 text-gray-800">${contract.work_hours || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 font-medium">작업 요일:</span>
+                                        <span class="ml-2 text-gray-800">${contract.work_days || 'N/A'}</span>
+                                    </div>
+                                    ${contract.special_terms ? `
+                                    <div class="col-span-2">
+                                        <span class="text-gray-600 font-medium">특약사항:</span>
+                                        <div class="ml-2 mt-2 p-3 bg-white rounded border border-gray-200">
+                                            <pre class="whitespace-pre-wrap text-sm text-gray-800">${contract.special_terms}</pre>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                    <div>
+                                        <span class="text-gray-600 font-medium">작성일:</span>
+                                        <span class="ml-2 text-gray-800">${new Date(contract.created_at).toLocaleString('ko-KR')}</span>
+                                    </div>
+                                    ${contract.signed_at ? `
+                                    <div>
+                                        <span class="text-gray-600 font-medium">서명일:</span>
+                                        <span class="ml-2 text-gray-800">${new Date(contract.signed_at).toLocaleString('ko-KR')}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <!-- 계약 약관 -->
+                            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                    <i class="fas fa-file-alt text-green-600 mr-2"></i>
+                                    계약 약관
+                                </h3>
+                                <div class="bg-white rounded-lg p-4 space-y-4 text-sm">
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제1조 (계약의 성격)</h4>
+                                        <p class="text-gray-700">본 계약은 근로기준법상의 근로계약이 아니며, 위탁자와 수탁자 간의 업무위탁 계약입니다.</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제2조 (위탁업무 범위)</h4>
+                                        <p class="text-gray-700">수탁자는 ${contract.work_area || '지정 지역'}에서 배달 대행 업무를 수행합니다.</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제3조 (비용 책임)</h4>
+                                        <p class="text-gray-700">업무 수행 중 발생하는 유류비, 통신비 등 모든 비용은 수탁자(기사)가 부담합니다.</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제4조 (보험 및 사고 책임)</h4>
+                                        <p class="text-gray-700">수탁자는 자신의 책임으로 보험에 가입하며, 업무 수행 중 발생하는 모든 사고에 대한 책임은 수탁자가 부담합니다.</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제5조 (계약 기간)</h4>
+                                        <p class="text-gray-700">본 계약은 ${contract.start_date ? new Date(contract.start_date).toLocaleDateString('ko-KR') : '계약일'}부터 ${contract.end_date ? new Date(contract.end_date).toLocaleDateString('ko-KR') : '해지 시'}까지 유효합니다.</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제6조 (위탁 수수료)</h4>
+                                        <p class="text-gray-700">
+                                            ${contract.payment_type === 'commission' ? '건당 수수료' : contract.payment_type === 'daily' ? '일당' : '월급'} 방식이며, 
+                                            금액은 ${contract.payment_amount ? contract.payment_amount.toLocaleString() + '원' : '미정'}입니다.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2">제7조 (장비 제공)</h4>
+                                        <p class="text-gray-700">위탁자는 수탁자에게 업무 수행을 위한 오토바이를 제공할 수 있으며, 이는 임대차 계약 또는 무상 대여 형태로 진행됩니다.</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-2 text-red-600">제8조 (잠적 시 책임)</h4>
+                                        <p class="text-red-600 font-medium">수탁자가 임대차/대여 중인 오토바이를 가지고 잠적할 경우, 위탁자는 법적 조치를 취할 권리가 있으며, 수탁자는 횡령죄 등의 형사 책임을 질 수 있습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 서명 정보 -->
+                            ${contract.company_signature || contract.worker_signature ? `
+                            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                    <i class="fas fa-signature text-indigo-600 mr-2"></i>
+                                    서명 정보
+                                </h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    ${contract.company_signature ? `
+                                    <div>
+                                        <h4 class="font-medium text-gray-700 mb-2">업체 서명</h4>
+                                        <img src="${contract.company_signature}" alt="업체 서명" class="border border-gray-300 rounded-lg max-w-full h-auto">
+                                    </div>
+                                    ` : ''}
+                                    ${contract.worker_signature ? `
+                                    <div>
+                                        <h4 class="font-medium text-gray-700 mb-2">작업자 서명</h4>
+                                        <img src="${contract.worker_signature}" alt="작업자 서명" class="border border-gray-300 rounded-lg max-w-full h-auto">
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <!-- 신분증 정보 -->
+                            ${contract.id_card_image ? `
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                    <i class="fas fa-id-card text-orange-600 mr-2"></i>
+                                    신분증 사본
+                                </h3>
+                                <div class="flex justify-center">
+                                    <img src="${contract.id_card_image}" alt="신분증" class="border border-gray-300 rounded-lg max-w-md max-h-96 object-contain">
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                    <i class="fas fa-id-card text-orange-600 mr-2"></i>
+                                    신분증 사본
+                                </h3>
+                                <p class="text-center text-gray-500">신분증이 등록되지 않았습니다</p>
+                            </div>
+                            `}
+
+                            <!-- 닫기 버튼 -->
+                            <div class="mt-6 flex justify-end">
+                                <button onclick="closeDetail()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg">
+                                    <i class="fas fa-times mr-2"></i>닫기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `
+                
+                document.body.appendChild(modal)
+                
+                // ESC 키로 닫기
+                modal.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeDetail()
+                })
+                
+                // 배경 클릭으로 닫기
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeDetail()
+                })
+            } catch (error) {
+                console.error('상세 정보 로드 오류:', error)
+                alert('상세 정보를 불러오는데 실패했습니다')
+            }
+        }
+
+        // 상세 모달 닫기
+        function closeDetail() {
+            const modal = document.getElementById('detailModal')
+            if (modal) {
+                modal.remove()
             }
         }
         
