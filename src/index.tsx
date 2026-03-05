@@ -3682,14 +3682,14 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     
     console.log('✅ [Business Contract] 오토바이 조회 성공:', motorcycle)
   
-  // 계약서 번호 생성 (B-YYYYMMDD-XXXX 형식)
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const countResult = await DB.prepare(
-    `SELECT COUNT(*) as count FROM business_contracts WHERE contract_number LIKE ?`
-  ).bind(`B-${today}-%`).first()
+  // 계약서 번호 생성 (B-YYYYMMDD-HHMMSS-XXX 형식으로 변경하여 충돌 방지)
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+  const timeStr = now.toISOString().slice(11, 19).replace(/:/g, ''); // HHMMSS
+  const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0'); // 000-999
+  const contractNumber = `B-${today}-${timeStr}-${randomSuffix}`;
   
-  const count = (countResult as any).count + 1
-  const contractNumber = `B-${today}-${String(count).padStart(4, '0')}`
+  console.log('📋 [Business Contract] 생성된 계약서 번호:', contractNumber);
   
   // 같은 오토바이의 기존 활성 계약을 완료 처리
   console.log('🔄 [Business] Checking for existing active contracts for motorcycle:', data.motorcycle_id)
