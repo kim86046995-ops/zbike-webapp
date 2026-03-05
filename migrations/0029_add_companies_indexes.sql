@@ -1,8 +1,5 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- Migration 0029: companies 테이블 인덱스 추가
+-- Migration 0029: companies 테이블 인덱스 추가 (DEPRECATED - moved to 0032)
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-CREATE INDEX IF NOT EXISTS idx_companies_business_number ON companies(business_number);
-CREATE INDEX IF NOT EXISTS idx_companies_rep_phone ON companies(representative_phone);
-CREATE INDEX IF NOT EXISTS idx_companies_rep_resident ON companies(representative_resident_number);
-CREATE INDEX IF NOT EXISTS idx_companies_rep_name ON companies(representative);
+-- 이 마이그레이션은 0032에서 테이블 재생성 시 인덱스가 함께 생성되므로 
+-- 더 이상 필요하지 않습니다. 빈 마이그레이션으로 유지하여 버전 번호를 보존합니다.
