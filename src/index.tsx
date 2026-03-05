@@ -3659,11 +3659,15 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     const DB = c.env.DB || c.env.db
     const data = await c.req.json()
     
-    console.log('📋 [Business Contract] 요청 데이터:', {
+    console.log('📋 [Business Contract] 요청 데이터 전체:', JSON.stringify(data, null, 2))
+    console.log('📋 [Business Contract] 주요 필드:', {
       motorcycle_id: data.motorcycle_id,
       company_name: data.company_name,
+      company_code: data.company_code,
       business_phone: data.business_phone,
-      representative_phone: data.representative_phone
+      representative_phone: data.representative_phone,
+      contract_start_date: data.contract_start_date,
+      contract_end_date: data.contract_end_date
     })
     
     // 오토바이 정보 조회 (driving_range를 가져오기 위함)
