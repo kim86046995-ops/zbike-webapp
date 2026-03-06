@@ -379,6 +379,7 @@
                             <option value="rent">렌트</option>
                             <option value="business">업체</option>
                             <option value="temp_rent">임시</option>
+                            <option value="completed">완료</option>
                         </select>
                     </div>
                     <div>
@@ -693,33 +694,35 @@
                 // 타입 매칭 로직 개선
                 let matchType = !typeFilter;
                 if (typeFilter) {
-                    if (typeFilter === 'temp_rent') {
+                    if (typeFilter === 'completed') {
+                        // 완료: completed 또는 cancelled 상태
+                        matchType = c.status === 'completed' || c.status === 'cancelled';
+                    } else if (typeFilter === 'temp_rent') {
                         // 임시렌트
-                        matchType = c.contract_type === 'temp_rent';
+                        matchType = c.contract_type === 'temp_rent' && c.status === 'active';
                     } else if (typeFilter === 'business') {
                         // 업체 계약서
-                        matchType = c.contract_type === 'business';
+                        matchType = c.contract_type === 'business' && c.status === 'active';
                     } else if (typeFilter === 'lease') {
                         // 개인 리스
-                        matchType = c.contract_type === 'lease' || c.contract_type === 'individual';
+                        matchType = (c.contract_type === 'lease' || c.contract_type === 'individual') && c.status === 'active';
                     } else if (typeFilter === 'rent') {
                         // 개인 렌트
-                        matchType = c.contract_type === 'rent';
+                        matchType = c.contract_type === 'rent' && c.status === 'active';
                     }
                 }
                 
-                // ✅ 상태 매칭 로직 - 기본값 'active'
-                // statusFilter가 없으면 기본적으로 진행중(active)만 표시
+                // ✅ 상태 매칭 로직 - 계약 타입이 'completed'가 아닐 때만 적용
                 let matchStatus = true;
-                if (statusFilter === 'active') {
-                    // 진행중: active 상태만
-                    matchStatus = c.status === 'active';
-                } else if (statusFilter === 'completed,cancelled') {
-                    // 계약완료: completed 또는 cancelled
-                    matchStatus = c.status === 'completed' || c.status === 'cancelled';
-                } else {
-                    // 기본값: active만 표시
-                    matchStatus = c.status === 'active';
+                if (typeFilter !== 'completed') {
+                    // 계약 타입이 완료가 아니면 기본적으로 active만
+                    if (statusFilter === 'active') {
+                        matchStatus = c.status === 'active';
+                    } else if (statusFilter === 'completed,cancelled') {
+                        matchStatus = c.status === 'completed' || c.status === 'cancelled';
+                    } else {
+                        matchStatus = c.status === 'active';
+                    }
                 }
                 
                 const matchSearch = !searchInput || 
