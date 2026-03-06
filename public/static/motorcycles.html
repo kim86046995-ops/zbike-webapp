@@ -1286,7 +1286,18 @@
                 document.getElementById('motorcycleInfo').innerHTML = `
                     <h3 class="text-lg font-bold mb-2">${motorcycle.vehicle_name}</h3>
                     <div class="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>번호판:</strong> ${motorcycle.plate_number || '(폐지됨)'}</p>
+                        <p>
+                            <strong>번호판:</strong> ${motorcycle.plate_number || '(폐지됨)'}
+                            ${motorcycle.status === 'scrapped' ? `
+                                <button 
+                                    onclick="editPlateNumber(${motorcycleId})" 
+                                    class="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                                    title="번호판 수정"
+                                >
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
+                        </p>
                         <p><strong>차대번호:</strong> ${motorcycle.chassis_number}</p>
                         <p><strong>연식:</strong> ${motorcycle.model_year}년</p>
                         ${previousPlateNumber ? `<p class="col-span-2 text-orange-600"><strong>폐지 전 번호판:</strong> ${previousPlateNumber}</p>` : ''}
@@ -1940,11 +1951,11 @@
                         `업데이트된 계약: ${activeContracts.length}건\n` +
                         `• 계약 상태: 진행 중 (유지)\n` +
                         `• 계약서 보험 정보: 자동 업데이트됨\n` +
-                        `• 오토바이 상태: ${wasScrappedOrMaintenance ? '휴차중으로 전환됨 ✨' : '그대로 유지'}`
+                        `• 오토바이 상태: ${wasScrappedOrMaintenance ? '그대로 유지 (차량번호도 변경해야 휴차중 전환)' : '그대로 유지'}`
                     );
                 } else {
                     if (wasScrappedOrMaintenance) {
-                        alert('✅ 보험 정보가 수정되었습니다\n\n🔄 폐지/정비 상태에서 휴차중으로 전환되었습니다!');
+                        alert('✅ 보험 정보가 수정되었습니다\n\n💡 휴차중으로 전환하려면 차량번호도 함께 변경해주세요!');
                     } else {
                         alert('✅ 보험 정보가 수정되었습니다');
                     }
@@ -1986,6 +1997,91 @@
             } catch (error) {
                 console.error('Error deleting motorcycle:', error);
                 alert('❌ 삭제에 실패했습니다');
+            }
+        }
+
+        // 폐지 오토바이의 번호판 수정 (보험정보와 함께 변경 시 휴차중 전환)
+        async function editPlateNumber(id) {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('⚠️ 로그인이 필요합니다.');
+                window.location.href = '/static/login.html';
+                return;
+            }
+
+            try {
+                // 현재 오토바이 정보 조회
+                const response = await axios.get(`/api/motorcycles/${id}`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                const motorcycle = response.data;
+
+                // 번호판 입력 받기
+                const newPlateNumber = prompt(
+                    `🚗 번호판 변경\n\n` +
+                    `현재 번호판: ${motorcycle.plate_number || '(없음)'}\n` +
+                    `현재 차대번호: ${motorcycle.chassis_number}\n\n` +
+                    `💡 폐지 상태에서 휴차중으로 전환하려면:\n` +
+                    `   1️⃣ 번호판 입력\n` +
+                    `   2️⃣ 보험정보도 함께 입력\n\n` +
+                    `새 번호판을 입력하세요:`,
+                    motorcycle.plate_number || ''
+                );
+
+                // 취소 시
+                if (newPlateNumber === null) {
+                    console.log('번호판 수정 취소됨');
+                    return;
+                }
+
+                // 빈 값 체크
+                const trimmedPlateNumber = newPlateNumber.trim();
+                if (!trimmedPlateNumber) {
+                    alert('❌ 번호판을 입력해주세요!');
+                    return;
+                }
+
+                // 변경 없음
+                if (trimmedPlateNumber === motorcycle.plate_number) {
+                    alert('ℹ️ 번호판이 동일합니다.');
+                    return;
+                }
+
+                // 서버에 업데이트
+                console.log('💾 번호판 업데이트 시작...', { id, plate_number: trimmedPlateNumber });
+                const updateResponse = await axios.put(`/api/motorcycles/${id}`, {
+                    plate_number: trimmedPlateNumber
+                }, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                console.log('✅ 번호판 업데이트 완료:', updateResponse.data);
+
+                // 성공 메시지
+                if (motorcycle.status === 'scrapped' || motorcycle.status === 'maintenance') {
+                    alert(
+                        `✅ 번호판이 변경되었습니다\n\n` +
+                        `• 새 번호판: ${trimmedPlateNumber}\n` +
+                        `• 현재 상태: 폐지/정비 (유지)\n\n` +
+                        `💡 휴차중으로 전환하려면 보험정보도 함께 입력해주세요!`
+                    );
+                } else {
+                    alert(`✅ 번호판이 변경되었습니다\n\n• 새 번호판: ${trimmedPlateNumber}`);
+                }
+
+                // 모달 닫기
+                hideModal();
+
+                // 목록 강제 새로고침
+                await loadMotorcycles(true);
+
+            } catch (error) {
+                console.error('❌ 번호판 수정 실패:', error);
+                if (error.response?.status === 401) {
+                    alert('⚠️ 세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                } else {
+                    alert(`❌ 번호판 수정 실패:\n${error.response?.data?.error || error.message}`);
+                }
             }
         }
 
