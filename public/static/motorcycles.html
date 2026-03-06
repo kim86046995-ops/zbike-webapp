@@ -1191,9 +1191,10 @@
                     }
                     
                     // 상태 배지 옆에 남은 일수 추가 (크고 진한 색상)
-                    if (statusLabel) {
+                    const statusLabelEl = document.getElementById(`status-label-${motorcycleId}`);
+                    if (statusLabelEl) {
                         const remainingDaysHtml = `<span class="font-extrabold ml-2 text-base ${progress.remainingDays <= 10 ? 'text-red-700' : progress.remainingDays <= 30 ? 'text-yellow-700' : 'text-blue-700'}">${progress.isExpired ? '⚠️ 만료' : `${progress.remainingDays}일`}</span>`;
-                        statusLabel.innerHTML = statusLabel.textContent + remainingDaysHtml;
+                        statusLabelEl.innerHTML = statusLabelEl.textContent + remainingDaysHtml;
                     }
                     
                     const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
