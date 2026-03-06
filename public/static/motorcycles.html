@@ -10,7 +10,7 @@
     <title>오토바이 관리</title>
     <!-- 인증 및 뒤로가기 처리 스크립트 -->
     <script src="/static/auth-check.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -692,11 +692,6 @@
             
             // 필터링
             let filtered = motorcycles.filter(m => {
-                // deleted_at이 있는 오토바이는 제외 (소프트 삭제된 항목)
-                if (m.deleted_at) {
-                    return false;
-                }
-                
                 // 상태 필터
                 if (statusFilter) {
                     // 수리중/폐지 복합 필터 처리
@@ -1013,9 +1008,9 @@
             listEl.innerHTML = html;
             console.log('✅ 카드 렌더링 완료, DOM 업데이트됨');
             
-            // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드 (필터링된 항목만)
+            // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드
             console.log('📋 계약/검사 정보 로딩 시작...');
-            filtered.forEach(m => {
+            motorcycles.forEach(m => {
                 loadContractInfo(m.id);
                 loadInspectionInfo(m);
             });
@@ -1098,13 +1093,8 @@
                     const statusIcon = document.getElementById(`status-icon-${motorcycleId}`);
                     const statusLabel = document.getElementById(`status-label-${motorcycleId}`);
                     
-                    // 요소가 모두 존재하는지 확인
-                    if (!statusBadge || !statusIcon || !statusLabel) {
-                        // console.log(`⚠️ Status elements not found for motorcycle ${motorcycleId}`);
-                        return;
-                    }
-                    
-                    if (activeContract) {
+                    if (statusBadge && statusIcon && statusLabel) {
+                        if (activeContract) {
                             statusIcon.className = 'fas fa-motorcycle mr-1';
                             
                             // 계약 타입별 표시 및 색상 구분
@@ -1461,9 +1451,6 @@
             const history = currentHistoryData[index];
             if (!history) return;
             
-            // 모달에 motorcycleId 저장 (삭제 후 새로고침용)
-            document.getElementById('historyDetailModal').dataset.motorcycleId = history.motorcycle_id;
-            
             const detailHtml = `
                 <div class="bg-white p-6 rounded-lg shadow-lg max-w-2xl">
                     <div class="border-b pb-4 mb-4">
@@ -1550,14 +1537,7 @@
                         ` : ''}
                     </div>
                     
-                    <div class="mt-6 flex justify-between">
-                        <button 
-                            onclick="deleteHistory(${history.id})"
-                            class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                            <i class="fas fa-trash mr-2"></i>
-                            삭제
-                        </button>
+                    <div class="mt-6 flex justify-end">
                         <button 
                             onclick="hideHistoryDetailModal()"
                             class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
@@ -1575,34 +1555,6 @@
 
         function hideHistoryDetailModal() {
             document.getElementById('historyDetailModal').classList.add('hidden');
-        }
-
-        async function deleteHistory(historyId) {
-            if (!confirm('⚠️ 이 이력을 삭제하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다!')) {
-                return;
-            }
-
-            try {
-                const sessionId = sessionStorage.getItem('session_id');
-                const response = await axios.delete(`/api/motorcycle-history/${historyId}`, {
-                    headers: { 'X-Session-ID': sessionId }
-                });
-
-                alert('✅ 이력이 삭제되었습니다.');
-                hideHistoryDetailModal();
-                
-                // 이력 목록 새로고침
-                const currentMotorcycleId = document.getElementById('historyDetailModal').dataset.motorcycleId;
-                if (currentMotorcycleId) {
-                    await loadMotorcycleHistory(currentMotorcycleId);
-                }
-                
-                // 오토바이 목록도 새로고침
-                await loadMotorcycles();
-            } catch (error) {
-                console.error('이력 삭제 실패:', error);
-                alert('❌ 이력 삭제에 실패했습니다: ' + (error.response?.data?.error || error.message));
-            }
         }
 
         function showAddModal() {
@@ -2010,36 +1962,23 @@
         }
 
         async function deleteMotorcycle(id) {
-            // 1단계 확인 - 삭제 유형 선택
-            const deleteType = confirm(
-                '⚠️ 오토바이 삭제 방법을 선택하세요:\n\n' +
-                '✅ [확인] = 완전 삭제 (데이터베이스에서 영구 삭제)\n' +
-                '   - 오토바이 정보 완전 삭제\n' +
-                '   - 모든 계약 이력도 삭제\n' +
-                '   - 복구 불가능\n\n' +
-                '❌ [취소] = 취소\n\n' +
-                '완전 삭제하시겠습니까?'
-            );
-            
-            if (!deleteType) {
-                return; // 취소
+            // 1단계 확인
+            if (!confirm('⚠️ 오토바이를 삭제하시겠습니까?\n\n삭제하면:\n✗ 오토바이 정보 완전 삭제\n✗ 모든 계약 이력도 삭제\n✗ 복구 불가능\n\n정말 삭제하시겠습니까?')) {
+                return;
             }
             
             // 2단계 최종 확인
-            if (!confirm('⚠️⚠️ 최종 확인 ⚠️⚠️\n\n정말로 완전 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) {
+            if (!confirm('⚠️⚠️ 최종 확인 ⚠️⚠️\n\n정말로 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) {
                 return;
             }
 
             try {
-                const sessionId = sessionStorage.getItem('session_id');
-                await axios.delete(`/api/motorcycles/${id}?hard=true`, {
-                    headers: { 'X-Session-ID': sessionId }
-                });
-                alert('✅ 완전 삭제되었습니다');
+                await axios.delete(`/api/motorcycles/${id}`);
+                alert('✅ 삭제되었습니다');
                 loadMotorcycles();
             } catch (error) {
                 console.error('Error deleting motorcycle:', error);
-                alert('❌ 삭제에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                alert('❌ 삭제에 실패했습니다');
             }
         }
 
