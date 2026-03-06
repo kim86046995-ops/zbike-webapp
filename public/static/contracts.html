@@ -845,8 +845,9 @@
                     statusText = '진행중';  // 기본값
                 }
 
-                // 완료 버튼 표시 여부 (계약중이거나 서명대기인 경우)
-                const showCompleteButton = c.status === 'active' || c.status === 'pending';
+                // 완료 버튼 표시 여부 (active 상태이고 서명 완료된 경우만)
+                // pending 상태는 아직 고객이 서명하지 않았으므로 완료 버튼 없음
+                const showCompleteButton = c.status === 'active';
 
                 // 남은 일수 계산 (계약중인 경우만)
                 let remainingDays = '';
