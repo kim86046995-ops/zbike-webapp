@@ -1013,9 +1013,9 @@
             listEl.innerHTML = html;
             console.log('✅ 카드 렌더링 완료, DOM 업데이트됨');
             
-            // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드
+            // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드 (필터링된 항목만)
             console.log('📋 계약/검사 정보 로딩 시작...');
-            motorcycles.forEach(m => {
+            filtered.forEach(m => {
                 loadContractInfo(m.id);
                 loadInspectionInfo(m);
             });
