@@ -627,6 +627,11 @@
                     console.log('✅ 캐시된 계약서 데이터 즉시 표시');
                     contracts = JSON.parse(cachedData);
                     filteredContracts = contracts;
+                    
+                    // 임시렌트 계약 개수 확인
+                    const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
+                    console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
+                    
                     filterContracts();
                     return;
                 }
@@ -655,6 +660,10 @@
                 contracts = [...personalContracts, ...businessContracts].sort((a, b) => {
                     return new Date(b.created_at) - new Date(a.created_at);
                 });
+                
+                // 임시렌트 계약 개수 확인
+                const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
+                console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
                 
                 // 캐시에 저장
                 sessionStorage.setItem(cacheKey, JSON.stringify(contracts));
@@ -772,12 +781,12 @@
                     // 임시렌트 (최우선 처리)
                     displayType = 'temp_rent';
                     displayTypeText = '임시렌트';
-                    // 약식 계약 여부 확인: 전화번호가 없으면 약식
-                    const isSimplified = !c.customer_phone || c.customer_phone === '';
+                    // 약식 계약 여부 확인: 서명 데이터가 없으면 약식 (관리자 직접 저장)
+                    const isSimplified = !c.signature_data || c.signature_data === '';
                     if (isSimplified) {
                         displayTypeText = '임시렌트 (약식)';
                     }
-                    console.log('📋 임시렌트 계약:', c.contract_number, '전화:', c.customer_phone, '주민:', c.resident_number, '약식:', isSimplified);
+                    console.log('📋 임시렌트 계약:', c.contract_number, '서명:', c.signature_data ? '있음' : '없음', '약식:', isSimplified);
                 } else if (c.contract_type === 'business') {
                     // 업체 계약서: business_type에 따라 리스/렌트 구분
                     displayType = c.business_type || 'rent';
