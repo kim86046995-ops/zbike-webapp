@@ -1341,7 +1341,6 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
 app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const hard = c.req.query('hard') === 'true' // 하드 삭제 여부
   const user = c.get('user')
   const userId = user?.id || null
   
@@ -1352,105 +1351,26 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
     }
     
-    console.log(`🗑️ [Motorcycle Delete] ID=${id}, hard=${hard}`)
+    console.log(`🗑️ [Motorcycle Delete] ID=${id}`)
     
-    if (hard) {
-      // 하드 삭제: 완전히 데이터베이스에서 제거
-      console.log('💀 [Motorcycle] 하드 삭제 시작')
-      
-      // 삭제 이력 추가 (에러 발생 시 무시)
-      try {
-        await DB.prepare(`
-          INSERT INTO motorcycle_history 
-          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          id, 
-          (motorcycle as any).chassis_number,
-          'delete', '오토바이 완전 삭제', 
-          (motorcycle as any).vehicle_name, '', userId,
-          `오토바이 하드 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
-        ).run()
-      } catch (historyError) {
-        console.log('⚠️ [Motorcycle] 이력 저장 실패 (무시):', historyError)
-      }
-      
-      // 관련 계약 삭제 (모든 계약 테이블)
-      console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
-      
-      // contract_history 먼저 삭제 (FOREIGN KEY 제약 회피)
-      try {
-        await DB.prepare('DELETE FROM contract_history WHERE contract_id IN (SELECT id FROM contracts WHERE motorcycle_id = ?)').bind(id).run()
-        console.log('✅ [Motorcycle] contract_history 삭제 완료')
-      } catch (histError) {
-        console.log('⚠️ [Motorcycle] contract_history 삭제 실패 (무시):', histError)
-      }
-      
-      // 이제 계약서 삭제
-      await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
-      await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
-      await DB.prepare('DELETE FROM work_contracts WHERE motorcycle_id = ?').bind(id).run()
-      console.log('✅ [Motorcycle] 관련 계약 삭제 완료')
-      
-      // 오토바이 완전 삭제
-      await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
-      
-      console.log('✅ [Motorcycle] 하드 삭제 완료')
-      return c.json({ success: true, message: '오토바이가 완전히 삭제되었습니다', type: 'hard' })
-    } else {
-      // 소프트 삭제: deleted_at만 설정
-      console.log('📦 [Motorcycle] 소프트 삭제 시작')
-      
-      // 삭제 이력 추가 (에러 발생 시 무시)
-      try {
-        await DB.prepare(`
-          INSERT INTO motorcycle_history 
-          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          id, 
-          (motorcycle as any).chassis_number,
-          'delete', '오토바이 삭제', 
-          (motorcycle as any).vehicle_name, '', userId,
-          `오토바이 소프트 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
-        ).run()
-      } catch (historyError) {
-        console.log('⚠️ [Motorcycle] 이력 저장 실패 (무시):', historyError)
-      }
-      
-      // 관련 계약 삭제 (모든 계약 테이블)
-      console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
-      
-      // contract_history 먼저 삭제 (FOREIGN KEY 제약 회피)
-      try {
-        await DB.prepare('DELETE FROM contract_history WHERE contract_id IN (SELECT id FROM contracts WHERE motorcycle_id = ?)').bind(id).run()
-        console.log('✅ [Motorcycle] contract_history 삭제 완료')
-      } catch (histError) {
-        console.log('⚠️ [Motorcycle] contract_history 삭제 실패 (무시):', histError)
-      }
-      
-      // 이제 계약서 삭제
-      await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
-      await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
-      await DB.prepare('DELETE FROM work_contracts WHERE motorcycle_id = ?').bind(id).run()
-      console.log('✅ [Motorcycle] 관련 계약 삭제 완료')
-      
-      // 소프트 삭제 (deleted_at 설정)
-      await DB.prepare(`
-        UPDATE motorcycles 
-        SET deleted_at = datetime('now'), 
-            status = 'deleted',
-            updated_at = datetime('now')
-        WHERE id = ?
-      `).bind(id).run()
-      
-      console.log('✅ [Motorcycle] 소프트 삭제 완료')
-      return c.json({ success: true, message: '오토바이가 삭제 처리되었습니다', type: 'soft' })
-    }
+    // 소프트 삭제만 수행 (FOREIGN KEY 문제 회피)
+    console.log('📦 [Motorcycle] 소프트 삭제 시작')
     
+    // 소프트 삭제 (deleted_at 설정)
+    await DB.prepare(`
+      UPDATE motorcycles 
+      SET deleted_at = datetime('now'), 
+          status = 'deleted',
+          updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(id).run()
+    
+    console.log('✅ [Motorcycle] 소프트 삭제 완료')
     return c.json({ 
-      message: '오토바이가 삭제되었습니다. 이력은 영구 보존됩니다.',
-      note: '오토바이 이력(motorcycle_history)은 삭제되지 않으며 영구 보관됩니다.'
+      success: true, 
+      message: '오토바이가 삭제 처리되었습니다',
+      note: '계약서 데이터는 보존됩니다',
+      type: 'soft'
     })
   } catch (error) {
     console.error('❌ [Motorcycle Delete] 오토바이 삭제 실패:', error)
@@ -1464,6 +1384,8 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
     }, 500)
   }
 })
+
+
 
 // 오토바이 상태 변경 (해지/폐지)
 app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
