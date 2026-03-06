@@ -1105,6 +1105,20 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       contract_end_date: data.contract_end_date !== undefined ? data.contract_end_date : (existing.contract_end_date || '')
     }
     
+    // 🔄 폐지/정비 상태에서 보험정보나 차량번호 변경 시 자동으로 휴차중으로 전환
+    const isScrappedOrMaintenance = existing.status === 'scrapped' || existing.status === 'maintenance'
+    const isInsuranceChanged = 
+      data.insurance_company !== undefined ||
+      data.insurance_start_date !== undefined ||
+      data.insurance_end_date !== undefined ||
+      data.driving_range !== undefined
+    const isPlateNumberChanged = data.plate_number !== undefined && data.plate_number !== existing.plate_number
+    
+    if (isScrappedOrMaintenance && (isInsuranceChanged || isPlateNumberChanged)) {
+      console.log(`🔄 [Motorcycle Update] 폐지/정비 → 휴차중 자동 전환: ID=${id}`)
+      mergedData.status = 'available'
+    }
+    
     // 변경 이력 저장 (모든 중요 필드 - 이력보호 절대원칙)
     const user = c.get('user')
     const userId = user?.id || null
