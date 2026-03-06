@@ -698,8 +698,11 @@
                         // 완료: completed 또는 cancelled 상태
                         matchType = c.status === 'completed' || c.status === 'cancelled';
                     } else if (typeFilter === 'temp_rent') {
-                        // 임시렌트
+                        // 임시렌트 (약식, 정식 모두 포함)
                         matchType = c.contract_type === 'temp_rent' && c.status === 'active';
+                        if (matchType) {
+                            console.log('✅ 임시렌트 필터 매칭:', c.contract_number, '타입:', c.contract_type, '전화:', c.customer_phone, '주민:', c.resident_number);
+                        }
                     } else if (typeFilter === 'business') {
                         // 업체 계약서
                         matchType = c.contract_type === 'business' && c.status === 'active';
@@ -769,11 +772,12 @@
                     // 임시렌트 (최우선 처리)
                     displayType = 'temp_rent';
                     displayTypeText = '임시렌트';
-                    // 약식 계약 여부 확인 (전화번호가 없거나 주민번호가 없으면 약식)
-                    const isSimplified = !c.customer_phone || c.customer_phone === '' || !c.resident_number || c.resident_number === '';
+                    // 약식 계약 여부 확인 (전화번호와 주민번호 둘 다 없으면 약식)
+                    const isSimplified = (!c.customer_phone || c.customer_phone === '') && (!c.resident_number || c.resident_number === '');
                     if (isSimplified) {
                         displayTypeText = '임시렌트 (약식)';
                     }
+                    console.log('📋 임시렌트 계약:', c.contract_number, '전화:', c.customer_phone, '주민:', c.resident_number, '약식:', isSimplified);
                 } else if (c.contract_type === 'business') {
                     // 업체 계약서: business_type에 따라 리스/렌트 구분
                     displayType = c.business_type || 'rent';
