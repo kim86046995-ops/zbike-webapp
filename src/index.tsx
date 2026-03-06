@@ -3532,6 +3532,46 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
   }
 })
 
+// 오토바이 이력 삭제
+app.delete('/api/motorcycle-history/:id', authMiddleware, async (c) => {
+  try {
+    const DB = c.env.DB || c.env.db
+    const historyId = c.req.param('id')
+    
+    console.log(`🗑️ [Motorcycle History] 이력 삭제 요청: ID=${historyId}`)
+    
+    // 이력 존재 확인
+    const history = await DB.prepare(
+      `SELECT * FROM motorcycle_history WHERE id = ?`
+    ).bind(historyId).first()
+    
+    if (!history) {
+      console.error(`❌ [Motorcycle History] 이력을 찾을 수 없음: ID=${historyId}`)
+      return c.json({ error: '이력을 찾을 수 없습니다' }, 404)
+    }
+    
+    console.log(`📋 [Motorcycle History] 삭제할 이력:`, history)
+    
+    // 이력 삭제
+    await DB.prepare(
+      `DELETE FROM motorcycle_history WHERE id = ?`
+    ).bind(historyId).run()
+    
+    console.log(`✅ [Motorcycle History] 이력 삭제 완료: ID=${historyId}`)
+    return c.json({ success: true, message: '이력이 삭제되었습니다' })
+    
+  } catch (error: any) {
+    console.error('❌ [Motorcycle History] 이력 삭제 에러:', {
+      message: error.message,
+      stack: error.stack
+    })
+    return c.json({ 
+      error: '이력 삭제 중 오류가 발생했습니다',
+      details: error.message 
+    }, 500)
+  }
+})
+
 // ============================================
 // 사업자 정보 API
 // ============================================
