@@ -1450,6 +1450,9 @@
             const history = currentHistoryData[index];
             if (!history) return;
             
+            // 모달에 motorcycleId 저장 (삭제 후 새로고침용)
+            document.getElementById('historyDetailModal').dataset.motorcycleId = history.motorcycle_id;
+            
             const detailHtml = `
                 <div class="bg-white p-6 rounded-lg shadow-lg max-w-2xl">
                     <div class="border-b pb-4 mb-4">
@@ -1536,7 +1539,14 @@
                         ` : ''}
                     </div>
                     
-                    <div class="mt-6 flex justify-end">
+                    <div class="mt-6 flex justify-between">
+                        <button 
+                            onclick="deleteHistory(${history.id})"
+                            class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                            <i class="fas fa-trash mr-2"></i>
+                            삭제
+                        </button>
                         <button 
                             onclick="hideHistoryDetailModal()"
                             class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
@@ -1554,6 +1564,34 @@
 
         function hideHistoryDetailModal() {
             document.getElementById('historyDetailModal').classList.add('hidden');
+        }
+
+        async function deleteHistory(historyId) {
+            if (!confirm('⚠️ 이 이력을 삭제하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다!')) {
+                return;
+            }
+
+            try {
+                const sessionId = sessionStorage.getItem('session_id');
+                const response = await axios.delete(`/api/motorcycle-history/${historyId}`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+
+                alert('✅ 이력이 삭제되었습니다.');
+                hideHistoryDetailModal();
+                
+                // 이력 목록 새로고침
+                const currentMotorcycleId = document.getElementById('historyDetailModal').dataset.motorcycleId;
+                if (currentMotorcycleId) {
+                    await loadMotorcycleHistory(currentMotorcycleId);
+                }
+                
+                // 오토바이 목록도 새로고침
+                await loadMotorcycles();
+            } catch (error) {
+                console.error('이력 삭제 실패:', error);
+                alert('❌ 이력 삭제에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
         }
 
         function showAddModal() {
