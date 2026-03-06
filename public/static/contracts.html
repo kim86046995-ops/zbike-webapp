@@ -353,28 +353,30 @@
         <!-- 메인 컨텐츠 -->
         <main class="container mx-auto px-4 py-8">
             <!-- 필터 -->
-            <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-4 items-center">
-                <div>
-                    <label class="block text-sm font-bold mb-2">계약 타입</label>
-                    <select id="typeFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
-                        <option value="">전체</option>
-                        <option value="lease">리스</option>
-                        <option value="rent">렌트</option>
-                        <option value="business">업체리스/렌트</option>
-                        <option value="temp_rent">임시렌트</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-2">상태</label>
-                    <select id="statusFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
-                        <option value="">전체</option>
-                        <option value="active">진행중</option>
-                        <option value="completed,cancelled">계약완료</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-bold mb-2">검색</label>
-                    <input type="text" id="searchInput" onkeyup="filterContracts()" placeholder="계약번호, 고객명, 번호판" class="w-full px-3 py-2 border rounded-lg">
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">계약 타입</label>
+                        <select id="typeFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="">전체</option>
+                            <option value="lease">리스</option>
+                            <option value="rent">렌트</option>
+                            <option value="business">업체리스/렌트</option>
+                            <option value="temp_rent">임시렌트</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">상태</label>
+                        <select id="statusFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="">전체</option>
+                            <option value="active">진행중</option>
+                            <option value="completed,cancelled">계약완료</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">검색</label>
+                        <input type="text" id="searchInput" onkeyup="filterContracts()" placeholder="계약번호, 고객명, 번호판" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
                 </div>
             </div>
 
