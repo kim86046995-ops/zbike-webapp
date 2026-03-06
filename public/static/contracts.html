@@ -299,6 +299,22 @@
             background: white;
             transform: scale(1.1);
         }
+        
+        /* ✅ Select dropdown 스타일 개선 - 모든 옵션 표시 */
+        select#typeFilter,
+        select#statusFilter {
+            appearance: auto; /* 브라우저 기본 드롭다운 사용 */
+            -webkit-appearance: auto;
+            -moz-appearance: auto;
+        }
+        
+        /* 모바일에서 드롭다운 높이 제한 제거 */
+        @media (max-width: 768px) {
+            select#typeFilter,
+            select#statusFilter {
+                font-size: 16px; /* iOS zoom 방지 */
+            }
+        }
     </style>
     
     
@@ -357,12 +373,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-bold mb-2">계약 타입</label>
-                        <select id="typeFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <select id="typeFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" style="max-height: none;">
                             <option value="">전체</option>
                             <option value="lease">리스</option>
                             <option value="rent">렌트</option>
-                            <option value="business">업체리스/렌트</option>
-                            <option value="temp_rent">임시렌트</option>
+                            <option value="business">업체</option>
+                            <option value="temp_rent">임시</option>
                         </select>
                     </div>
                     <div>
