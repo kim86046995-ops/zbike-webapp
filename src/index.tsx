@@ -1358,18 +1358,22 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       // 하드 삭제: 완전히 데이터베이스에서 제거
       console.log('💀 [Motorcycle] 하드 삭제 시작')
       
-      // 삭제 이력 추가
-      await DB.prepare(`
-        INSERT INTO motorcycle_history 
-        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id, 
-        (motorcycle as any).chassis_number,
-        'delete', '오토바이 완전 삭제', 
-        (motorcycle as any).vehicle_name, '', userId,
-        `오토바이 하드 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
-      ).run()
+      // 삭제 이력 추가 (에러 발생 시 무시)
+      try {
+        await DB.prepare(`
+          INSERT INTO motorcycle_history 
+          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          id, 
+          (motorcycle as any).chassis_number,
+          'delete', '오토바이 완전 삭제', 
+          (motorcycle as any).vehicle_name, '', userId,
+          `오토바이 하드 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
+        ).run()
+      } catch (historyError) {
+        console.log('⚠️ [Motorcycle] 이력 저장 실패 (무시):', historyError)
+      }
       
       // 관련 계약 삭제 (모든 계약 테이블)
       console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
@@ -1387,18 +1391,22 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       // 소프트 삭제: deleted_at만 설정
       console.log('📦 [Motorcycle] 소프트 삭제 시작')
       
-      // 삭제 이력 추가
-      await DB.prepare(`
-        INSERT INTO motorcycle_history 
-        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id, 
-        (motorcycle as any).chassis_number,
-        'delete', '오토바이 삭제', 
-        (motorcycle as any).vehicle_name, '', userId,
-        `오토바이 소프트 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
-      ).run()
+      // 삭제 이력 추가 (에러 발생 시 무시)
+      try {
+        await DB.prepare(`
+          INSERT INTO motorcycle_history 
+          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          id, 
+          (motorcycle as any).chassis_number,
+          'delete', '오토바이 삭제', 
+          (motorcycle as any).vehicle_name, '', userId,
+          `오토바이 소프트 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
+        ).run()
+      } catch (historyError) {
+        console.log('⚠️ [Motorcycle] 이력 저장 실패 (무시):', historyError)
+      }
       
       // 관련 계약 삭제 (모든 계약 테이블)
       console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
