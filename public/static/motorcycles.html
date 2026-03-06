@@ -1098,8 +1098,13 @@
                     const statusIcon = document.getElementById(`status-icon-${motorcycleId}`);
                     const statusLabel = document.getElementById(`status-label-${motorcycleId}`);
                     
-                    if (statusBadge && statusIcon && statusLabel) {
-                        if (activeContract) {
+                    // 요소가 모두 존재하는지 확인
+                    if (!statusBadge || !statusIcon || !statusLabel) {
+                        // console.log(`⚠️ Status elements not found for motorcycle ${motorcycleId}`);
+                        return;
+                    }
+                    
+                    if (activeContract) {
                             statusIcon.className = 'fas fa-motorcycle mr-1';
                             
                             // 계약 타입별 표시 및 색상 구분
