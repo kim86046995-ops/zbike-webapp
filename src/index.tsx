@@ -1433,8 +1433,15 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       note: '오토바이 이력(motorcycle_history)은 삭제되지 않으며 영구 보관됩니다.'
     })
   } catch (error) {
-    console.error('오토바이 삭제 실패:', error)
-    return c.json({ error: '삭제에 실패했습니다: ' + (error as any).message }, 500)
+    console.error('❌ [Motorcycle Delete] 오토바이 삭제 실패:', error)
+    console.error('❌ [Motorcycle Delete] Error name:', (error as any).name)
+    console.error('❌ [Motorcycle Delete] Error message:', (error as any).message)
+    console.error('❌ [Motorcycle Delete] Error stack:', (error as any).stack)
+    return c.json({ 
+      error: '삭제에 실패했습니다',
+      details: (error as any).message,
+      name: (error as any).name
+    }, 500)
   }
 })
 
