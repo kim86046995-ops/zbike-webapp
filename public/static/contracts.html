@@ -799,8 +799,13 @@
                 // 서명 여부에 따라 상태 텍스트 결정
                 let statusText = '';
                 if (c.status === 'active') {
-                    // 서명 데이터가 없으면 "서명대기", 있으면 "계약중"
-                    statusText = (!c.signature_data || c.signature_data === '') ? '서명대기' : '계약중';
+                    // 임시렌트는 무조건 "진행중"으로 표시
+                    if (c.contract_type === 'temp_rent') {
+                        statusText = '진행중';
+                    } else {
+                        // 다른 계약은 서명 데이터가 없으면 "서명대기", 있으면 "계약중"
+                        statusText = (!c.signature_data || c.signature_data === '') ? '서명대기' : '계약중';
+                    }
                 } else if (c.status === 'completed') {
                     statusText = '계약종료';
                 } else if (c.status === 'cancelled') {

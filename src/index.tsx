@@ -2789,8 +2789,9 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     FROM motorcycles WHERE id = ?
   `).bind(data.motorcycle_id).first() as any
   
-  // status를 pending으로 저장 (서명 전 상태)
-  const statusToSave = data.signature_data ? 'active' : 'pending'
+  // 임시렌트는 무조건 진행중(active) 상태로 저장
+  // 다른 계약은 서명 데이터 유무로 판단
+  const statusToSave = (data.contract_type === 'temp_rent') ? 'active' : (data.signature_data ? 'active' : 'pending')
   
   const result = await DB.prepare(`
     INSERT INTO contracts (
