@@ -715,31 +715,31 @@
                         // 완료: completed 또는 cancelled 상태
                         matchType = c.status === 'completed' || c.status === 'cancelled';
                     } else if (typeFilter === 'temp_rent') {
-                        // 임시렌트 (약식, 정식 모두 포함)
-                        matchType = c.contract_type === 'temp_rent' && c.status === 'active';
+                        // 임시렌트 (약식, 정식 모두 포함, pending도 포함)
+                        matchType = c.contract_type === 'temp_rent' && (c.status === 'active' || c.status === 'pending');
                         console.log('🔎 임시렌트 체크:', c.contract_number, 'contract_type:', c.contract_type, 'status:', c.status, 'matchType:', matchType);
                     } else if (typeFilter === 'business') {
-                        // 업체 계약서
-                        matchType = c.contract_type === 'business' && c.status === 'active';
+                        // 업체 계약서 (pending도 포함)
+                        matchType = c.contract_type === 'business' && (c.status === 'active' || c.status === 'pending');
                     } else if (typeFilter === 'lease') {
-                        // 개인 리스
-                        matchType = (c.contract_type === 'lease' || c.contract_type === 'individual') && c.status === 'active';
+                        // 개인 리스 (pending도 포함)
+                        matchType = (c.contract_type === 'lease' || c.contract_type === 'individual') && (c.status === 'active' || c.status === 'pending');
                     } else if (typeFilter === 'rent') {
-                        // 개인 렌트
-                        matchType = c.contract_type === 'rent' && c.status === 'active';
+                        // 개인 렌트 (pending도 포함)
+                        matchType = c.contract_type === 'rent' && (c.status === 'active' || c.status === 'pending');
                     }
                 }
                 
                 // ✅ 상태 매칭 로직 - 계약 타입이 'completed'가 아닐 때만 적용
                 let matchStatus = true;
                 if (typeFilter !== 'completed') {
-                    // 계약 타입이 완료가 아니면 기본적으로 active만
+                    // 계약 타입이 완료가 아니면 기본적으로 active와 pending 포함
                     if (statusFilter === 'active') {
-                        matchStatus = c.status === 'active';
+                        matchStatus = c.status === 'active' || c.status === 'pending';  // pending도 포함
                     } else if (statusFilter === 'completed,cancelled') {
                         matchStatus = c.status === 'completed' || c.status === 'cancelled';
                     } else {
-                        matchStatus = c.status === 'active';
+                        matchStatus = c.status === 'active' || c.status === 'pending';  // pending도 포함
                     }
                 }
                 
@@ -819,13 +819,17 @@
                 
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
+                    'pending': 'bg-blue-100 text-blue-800',  // pending 상태 색상 추가
                     'completed': 'bg-red-600 text-white',
                     'cancelled': 'bg-red-600 text-white'
                 };
                 
                 // 서명 여부에 따라 상태 텍스트 결정
                 let statusText = '';
-                if (c.status === 'active') {
+                if (c.status === 'pending') {
+                    // pending 상태는 무조건 "서명대기"
+                    statusText = '서명대기';
+                } else if (c.status === 'active') {
                     // 임시렌트는 무조건 "진행중"으로 표시
                     if (c.contract_type === 'temp_rent') {
                         statusText = '진행중';
@@ -841,8 +845,8 @@
                     statusText = '진행중';  // 기본값
                 }
 
-                // 완료 버튼 표시 여부 (계약중인 모든 경우)
-                const showCompleteButton = c.status === 'active';
+                // 완료 버튼 표시 여부 (계약중이거나 서명대기인 경우)
+                const showCompleteButton = c.status === 'active' || c.status === 'pending';
 
                 // 남은 일수 계산 (계약중인 경우만)
                 let remainingDays = '';
