@@ -6113,26 +6113,29 @@ app.get('/dashboard', (c) => {
     <body class="bg-gray-100">
         <!-- 헤더 -->
         <div class="bg-white shadow-md">
-            <div class="container mx-auto px-4 py-4">
+            <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1 sm:mr-2 text-blue-600"></i>
                         운영현황
                     </h1>
-                    <div class="flex items-center space-x-4">
-                        <!-- 슈퍼관리자 전용: 관리자 관리 버튼 -->
+                    <div class="flex items-center space-x-2 sm:space-x-4">
+                        <!-- 슈퍼관리자 전용: 관리자 관리 버튼 (모바일에서는 아이콘만) -->
                         <a href="/static/admin-management.html" id="adminManagementBtn" class="hidden text-gray-600 hover:text-blue-600 font-medium">
-                            <i class="fas fa-users-cog mr-1"></i>관리자 관리
+                            <i class="fas fa-users-cog mr-0 sm:mr-1"></i>
+                            <span class="hidden sm:inline">관리자 관리</span>
                         </a>
                         <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600 font-medium">
-                            <i class="fas fa-cog mr-1"></i>설정
+                            <i class="fas fa-cog mr-0 sm:mr-1"></i>
+                            <span class="hidden sm:inline">설정</span>
                         </a>
-                        <div class="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <i class="fas fa-user-shield text-blue-600"></i>
-                            <span id="userRoleBadge" class="text-sm font-bold text-blue-700"></span>
+                        <div class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <i class="fas fa-user-shield text-blue-600 text-sm sm:text-base"></i>
+                            <span id="userRoleBadge" class="text-xs sm:text-sm font-bold text-blue-700"></span>
                         </div>
-                        <button onclick="logout()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition">
-                            <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                        <button onclick="logout()" class="px-2 sm:px-4 py-1.5 sm:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition text-sm sm:text-base">
+                            <i class="fas fa-sign-out-alt mr-0 sm:mr-1"></i>
+                            <span class="hidden sm:inline">로그아웃</span>
                         </button>
                     </div>
                 </div>
@@ -6140,149 +6143,149 @@ app.get('/dashboard', (c) => {
         </div>
 
         <!-- 메인 콘텐츠 -->
-        <div class="container mx-auto px-4 py-8">
+        <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
             <!-- 운영 통계 카드 4개 -->
-            <div class="grid grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <!-- 총 바이크 -->
-                <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('all')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-motorcycle"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-motorcycle"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">총 바이크</div>
-                            <div id="totalCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">총 바이크</div>
+                            <div id="totalCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 사용중 -->
-                <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('rented')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-check-circle"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-check-circle"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">사용중</div>
-                            <div id="rentedCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">사용중</div>
+                            <div id="rentedCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 휴차중 -->
-                <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('available')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-pause-circle"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-pause-circle"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">휴차중</div>
-                            <div id="availableCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">휴차중</div>
+                            <div id="availableCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 정비/폐지 -->
-                <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('maintenance_scrapped')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-tools"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-tools"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">정비/폐지</div>
-                            <div id="maintenanceCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">정비/폐지</div>
+                            <div id="maintenanceCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- 추가 통계 -->
-            <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <!-- 오토바이 관리 -->
-                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition" onclick="window.location.href='/static/motorcycles.html'">
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition" onclick="window.location.href='/static/motorcycles.html'">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">오토바이 관리</p>
-                            <p class="text-lg font-bold text-blue-600">바로가기</p>
+                            <p class="text-gray-600 text-base sm:text-sm">오토바이 관리</p>
+                            <p class="text-xl sm:text-lg font-bold text-blue-600">바로가기</p>
                         </div>
-                        <div class="text-3xl text-blue-600"><i class="fas fa-motorcycle"></i></div>
+                        <div class="text-4xl sm:text-5xl text-blue-600"><i class="fas fa-motorcycle"></i></div>
                     </div>
                 </div>
 
                 <!-- 총 고객 수 -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-md">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">총 고객</p>
-                            <p id="totalCustomers" class="text-2xl font-bold text-gray-800">0</p>
+                            <p class="text-gray-600 text-base sm:text-sm">총 고객</p>
+                            <p id="totalCustomers" class="text-2xl sm:text-3xl font-bold text-gray-800">0</p>
                         </div>
-                        <div class="text-3xl text-green-600"><i class="fas fa-users"></i></div>
+                        <div class="text-4xl sm:text-5xl text-green-600"><i class="fas fa-users"></i></div>
                     </div>
                 </div>
 
                 <!-- 차용 대금 -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-md">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">차용 대금</p>
-                            <p id="totalLoanAmount" class="text-2xl font-bold text-gray-800">0원</p>
+                            <p class="text-gray-600 text-base sm:text-sm">차용 대금</p>
+                            <p id="totalLoanAmount" class="text-2xl sm:text-3xl font-bold text-gray-800">0원</p>
                         </div>
-                        <div class="text-3xl text-orange-600"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="text-4xl sm:text-5xl text-orange-600"><i class="fas fa-file-invoice-dollar"></i></div>
                     </div>
                 </div>
             </div>
 
             <!-- 빠른 액세스 -->
-            <div class="bg-white p-6 rounded-xl shadow-md">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                <h2 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">
                     <i class="fas fa-bolt mr-2 text-yellow-500"></i>빠른 액세스
                 </h2>
-                <div class="grid grid-cols-5 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                     <!-- Row 1 -->
-                    <a href="/static/motorcycle-register.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-plus-circle text-3xl text-blue-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">오토바이 등록</p>
+                    <a href="/static/motorcycle-register.html" class="bg-blue-50 hover:bg-blue-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-plus-circle text-4xl sm:text-5xl text-blue-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">오토바이 등록</p>
                     </a>
-                    <a href="/static/customer-register.html" class="bg-cyan-50 hover:bg-cyan-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-user-plus text-3xl text-cyan-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">고객 등록</p>
+                    <a href="/static/customer-register.html" class="bg-cyan-50 hover:bg-cyan-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-user-plus text-4xl sm:text-5xl text-cyan-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">고객 등록</p>
                     </a>
-                    <a href="/static/companies.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-building text-3xl text-indigo-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업체 등록</p>
+                    <a href="/static/companies.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-building text-4xl sm:text-5xl text-indigo-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업체 등록</p>
                     </a>
-                    <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-file-signature text-3xl text-green-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">개인계약서 작성</p>
+                    <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-file-signature text-4xl sm:text-5xl text-green-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">개인계약서 작성</p>
                     </a>
-                    <a href="/static/business-contract-new.html" class="bg-teal-50 hover:bg-teal-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-handshake text-3xl text-teal-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업체계약서 작성</p>
+                    <a href="/static/business-contract-new.html" class="bg-teal-50 hover:bg-teal-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-handshake text-4xl sm:text-5xl text-teal-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업체계약서 작성</p>
                     </a>
                     
                     <!-- Row 2 -->
-                    <a href="/static/loan-new.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-file-invoice-dollar text-3xl text-yellow-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">차용증 작성</p>
+                    <a href="/static/loan-new.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-file-invoice-dollar text-4xl sm:text-5xl text-yellow-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">차용증 작성</p>
                     </a>
-                    <a href="/static/customers-simple.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-users text-3xl text-blue-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">고객 목록</p>
+                    <a href="/static/customers-simple.html" class="bg-blue-50 hover:bg-blue-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-users text-4xl sm:text-5xl text-blue-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">고객 목록</p>
                     </a>
-                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition relative">
-                        <i class="fas fa-folder-open text-3xl text-orange-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">계약서 목록</p>
-                        <div class="absolute top-2 right-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 sm:p-5 rounded-lg text-center transition relative">
+                        <i class="fas fa-folder-open text-4xl sm:text-5xl text-orange-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">계약서 목록</p>
+                        <div class="absolute top-2 right-2 bg-orange-600 text-white text-xs sm:text-sm font-bold px-2 py-1 rounded-full">
                             <span id="activeContractsCount">0</span>
                         </div>
                     </a>
-                    <a href="/static/loans.html" class="bg-red-50 hover:bg-red-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-receipt text-3xl text-red-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">차용증 목록</p>
+                    <a href="/static/loans.html" class="bg-red-50 hover:bg-red-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-receipt text-4xl sm:text-5xl text-red-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">차용증 목록</p>
                     </a>
-                    <a href="/static/companies-list.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업체 목록</p>
+                    <a href="/static/companies-list.html" class="bg-purple-50 hover:bg-purple-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-building text-4xl sm:text-5xl text-purple-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업체 목록</p>
                     </a>
-                    <a href="/static/work-contracts.html" class="bg-pink-50 hover:bg-pink-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-file-contract text-3xl text-pink-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업무위탁계약서</p>
+                    <a href="/static/work-contracts.html" class="bg-pink-50 hover:bg-pink-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-file-contract text-4xl sm:text-5xl text-pink-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업무위탁계약서</p>
                     </a>
                 </div>
             </div>
