@@ -698,6 +698,9 @@
             const typeFilter = document.getElementById('typeFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            
+            console.log('🔍 필터 시작 - 타입:', typeFilter, '상태:', statusFilter, '검색:', searchInput);
+            console.log('📊 전체 계약 수:', contracts.length);
 
             filteredContracts = contracts.filter(c => {
                 // 타입 매칭 로직 개선
@@ -709,9 +712,7 @@
                     } else if (typeFilter === 'temp_rent') {
                         // 임시렌트 (약식, 정식 모두 포함)
                         matchType = c.contract_type === 'temp_rent' && c.status === 'active';
-                        if (matchType) {
-                            console.log('✅ 임시렌트 필터 매칭:', c.contract_number, '타입:', c.contract_type, '전화:', c.customer_phone, '주민:', c.resident_number);
-                        }
+                        console.log('🔎 임시렌트 체크:', c.contract_number, 'contract_type:', c.contract_type, 'status:', c.status, 'matchType:', matchType);
                     } else if (typeFilter === 'business') {
                         // 업체 계약서
                         matchType = c.contract_type === 'business' && c.status === 'active';
@@ -742,8 +743,16 @@
                     (c.customer_name && c.customer_name.toLowerCase().includes(searchInput)) ||
                     (c.plate_number && c.plate_number.toLowerCase().includes(searchInput));
                 
-                return matchType && matchStatus && matchSearch;
+                const finalMatch = matchType && matchStatus && matchSearch;
+                
+                if (typeFilter === 'temp_rent') {
+                    console.log('✅ 임시렌트 최종 결과:', c.contract_number, 'matchType:', matchType, 'matchStatus:', matchStatus, 'matchSearch:', matchSearch, '→ 표시:', finalMatch);
+                }
+                
+                return finalMatch;
             });
+            
+            console.log('🎯 필터 결과:', filteredContracts.length, '개');
 
             renderContracts();
         }
