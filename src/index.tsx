@@ -1377,6 +1377,16 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       
       // 관련 계약 삭제 (모든 계약 테이블)
       console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
+      
+      // contract_history 먼저 삭제 (FOREIGN KEY 제약 회피)
+      try {
+        await DB.prepare('DELETE FROM contract_history WHERE contract_id IN (SELECT id FROM contracts WHERE motorcycle_id = ?)').bind(id).run()
+        console.log('✅ [Motorcycle] contract_history 삭제 완료')
+      } catch (histError) {
+        console.log('⚠️ [Motorcycle] contract_history 삭제 실패 (무시):', histError)
+      }
+      
+      // 이제 계약서 삭제
       await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
       await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
       await DB.prepare('DELETE FROM work_contracts WHERE motorcycle_id = ?').bind(id).run()
@@ -1410,6 +1420,16 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       
       // 관련 계약 삭제 (모든 계약 테이블)
       console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
+      
+      // contract_history 먼저 삭제 (FOREIGN KEY 제약 회피)
+      try {
+        await DB.prepare('DELETE FROM contract_history WHERE contract_id IN (SELECT id FROM contracts WHERE motorcycle_id = ?)').bind(id).run()
+        console.log('✅ [Motorcycle] contract_history 삭제 완료')
+      } catch (histError) {
+        console.log('⚠️ [Motorcycle] contract_history 삭제 실패 (무시):', histError)
+      }
+      
+      // 이제 계약서 삭제
       await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
       await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
       await DB.prepare('DELETE FROM work_contracts WHERE motorcycle_id = ?').bind(id).run()
