@@ -368,9 +368,8 @@
                     <label class="block text-sm font-bold mb-2">상태</label>
                     <select id="statusFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
                         <option value="">전체</option>
-                        <option value="active">계약중</option>
-                        <option value="completed">계약종료</option>
-                        <option value="cancelled">계약종료</option>
+                        <option value="active">진행중</option>
+                        <option value="completed,cancelled">계약완료</option>
                     </select>
                 </div>
                 <div class="flex-1">
@@ -692,7 +691,21 @@
                     }
                 }
                 
-                const matchStatus = !statusFilter || c.status === statusFilter;
+                // ✅ 상태 매칭 로직 개선 (진행중 / 계약완료)
+                let matchStatus = !statusFilter;
+                if (statusFilter) {
+                    if (statusFilter === 'active') {
+                        // 진행중: active 상태만
+                        matchStatus = c.status === 'active';
+                    } else if (statusFilter === 'completed,cancelled') {
+                        // 계약완료: completed 또는 cancelled
+                        matchStatus = c.status === 'completed' || c.status === 'cancelled';
+                    } else {
+                        // 기타 (하위 호환성)
+                        matchStatus = c.status === statusFilter;
+                    }
+                }
+                
                 const matchSearch = !searchInput || 
                     c.contract_number.toLowerCase().includes(searchInput) ||
                     (c.customer_name && c.customer_name.toLowerCase().includes(searchInput)) ||
