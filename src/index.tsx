@@ -1397,9 +1397,12 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
         `오토바이 소프트 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
       ).run()
       
-      // 관련 계약 삭제
+      // 관련 계약 삭제 (모든 계약 테이블)
+      console.log('🗑️ [Motorcycle] 관련 계약 삭제 중...')
       await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
       await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
+      await DB.prepare('DELETE FROM work_contracts WHERE motorcycle_id = ?').bind(id).run()
+      console.log('✅ [Motorcycle] 관련 계약 삭제 완료')
       
       // 소프트 삭제 (deleted_at 설정)
       await DB.prepare(`
