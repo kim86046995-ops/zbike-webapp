@@ -1975,7 +1975,8 @@
             try {
                 await axios.delete(`/api/motorcycles/${id}`);
                 alert('✅ 삭제되었습니다');
-                loadMotorcycles();
+                // 캐시를 무시하고 강제 새로고침
+                loadMotorcycles(true);
             } catch (error) {
                 console.error('Error deleting motorcycle:', error);
                 alert('❌ 삭제에 실패했습니다');
