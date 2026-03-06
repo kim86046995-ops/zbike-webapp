@@ -1341,6 +1341,7 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
 app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
+  const hard = c.req.query('hard') === 'true' // 하드 삭제 여부
   const user = c.get('user')
   const userId = user?.id || null
   
@@ -1351,43 +1352,67 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
     }
     
-    // ✅ 이력 보존 원칙: motorcycle_history는 절대 삭제하지 않음!
-    // 삭제 이력만 추가
-    await DB.prepare(`
-      INSERT INTO motorcycle_history 
-      (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      id, 
-      (motorcycle as any).chassis_number,
-      'delete', '오토바이 삭제', 
-      (motorcycle as any).vehicle_name, '', userId,
-      `오토바이 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
-    ).run()
+    console.log(`🗑️ [Motorcycle Delete] ID=${id}, hard=${hard}`)
     
-    // ⚠️ 절대원칙: motorcycle_history는 삭제하지 않음!
-    // 1년 후 자동 삭제를 위해 deleted_at 필드를 사용하거나, 
-    // 이력 테이블은 영구 보존
-    
-    // 관련 계약 이력 (contract_history)는 보존!
-    // - 이력은 절대 삭제하지 않음
-    
-    // 관련 계약 삭제 (contracts, business_contracts)
-    await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
-    await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
-    
-    // 오토바이 본체만 삭제 (이력은 보존)
-    // 또는 soft delete로 deleted_at 설정
-    await DB.prepare(`
-      UPDATE motorcycles 
-      SET deleted_at = datetime('now'), 
-          status = 'deleted',
-          updated_at = datetime('now')
-      WHERE id = ?
-    `).bind(id).run()
-    
-    // 하드 삭제를 원하면 아래 코드 사용:
-    // await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
+    if (hard) {
+      // 하드 삭제: 완전히 데이터베이스에서 제거
+      console.log('💀 [Motorcycle] 하드 삭제 시작')
+      
+      // 삭제 이력 추가
+      await DB.prepare(`
+        INSERT INTO motorcycle_history 
+        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, 
+        (motorcycle as any).chassis_number,
+        'delete', '오토바이 완전 삭제', 
+        (motorcycle as any).vehicle_name, '', userId,
+        `오토바이 하드 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
+      ).run()
+      
+      // 관련 계약 삭제
+      await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
+      await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
+      
+      // 오토바이 완전 삭제
+      await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
+      
+      console.log('✅ [Motorcycle] 하드 삭제 완료')
+      return c.json({ success: true, message: '오토바이가 완전히 삭제되었습니다', type: 'hard' })
+    } else {
+      // 소프트 삭제: deleted_at만 설정
+      console.log('📦 [Motorcycle] 소프트 삭제 시작')
+      
+      // 삭제 이력 추가
+      await DB.prepare(`
+        INSERT INTO motorcycle_history 
+        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, 
+        (motorcycle as any).chassis_number,
+        'delete', '오토바이 삭제', 
+        (motorcycle as any).vehicle_name, '', userId,
+        `오토바이 소프트 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
+      ).run()
+      
+      // 관련 계약 삭제
+      await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
+      await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
+      
+      // 소프트 삭제 (deleted_at 설정)
+      await DB.prepare(`
+        UPDATE motorcycles 
+        SET deleted_at = datetime('now'), 
+            status = 'deleted',
+            updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(id).run()
+      
+      console.log('✅ [Motorcycle] 소프트 삭제 완료')
+      return c.json({ success: true, message: '오토바이가 삭제 처리되었습니다', type: 'soft' })
+    }
     
     return c.json({ 
       message: '오토바이가 삭제되었습니다. 이력은 영구 보존됩니다.',
