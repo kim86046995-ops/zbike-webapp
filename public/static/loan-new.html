@@ -1227,6 +1227,14 @@
                     headers: { 'X-Session-ID': sessionId }
                 });
                 allCustomers = response.data;
+                
+                // ✅ 가나다순(ㄱ,ㄴ,ㄷ,ㄹ...) 정렬 추가
+                allCustomers.sort((a, b) => {
+                    const nameA = (a.name || '').trim();
+                    const nameB = (b.name || '').trim();
+                    return nameA.localeCompare(nameB, 'ko-KR');
+                });
+                
                 displayCustomerModal();
             } catch (error) {
                 alert('계약자 목록을 불러오는데 실패했습니다: ' + error.message);

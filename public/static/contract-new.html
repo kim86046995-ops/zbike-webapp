@@ -1716,7 +1716,15 @@
                     }
                 });
                 customers = response.data;
-                console.log('고객 목록 로드:', customers.length);
+                
+                // ✅ 가나다순(ㄱ,ㄴ,ㄷ,ㄹ...) 정렬 추가
+                customers.sort((a, b) => {
+                    const nameA = (a.name || '').trim();
+                    const nameB = (b.name || '').trim();
+                    return nameA.localeCompare(nameB, 'ko-KR');
+                });
+                
+                console.log('고객 목록 로드:', customers.length, '(가나다순 정렬 완료)');
             } catch (error) {
                 console.error('고객 목록 로드 실패:', error);
                 alert('고객 목록을 불러오는데 실패했습니다.');
