@@ -355,13 +355,16 @@
     <div class="min-h-screen">
         <!-- 헤더 -->
         <header class="bg-purple-600 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-                <a href="/dashboard" class="text-xl font-bold flex items-center hover:bg-purple-700 px-3 py-2 rounded-lg transition-colors cursor-pointer">
+            <div class="container mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+                <a href="/dashboard" class="text-lg md:text-xl font-bold flex items-center hover:bg-purple-700 px-2 md:px-3 py-2 rounded-lg transition-colors cursor-pointer">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    <span>계약서 목록</span>
+                    <span class="hidden sm:inline">계약서 목록</span>
+                    <span class="sm:hidden">목록</span>
                 </a>
-                <a href="/static/contract-new.html" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-purple-50">
-                    <i class="fas fa-plus mr-2"></i>새 계약서 작성
+                <a href="/static/contract-new.html" class="bg-white text-purple-600 px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-bold hover:bg-purple-50">
+                    <i class="fas fa-plus mr-1 md:mr-2"></i>
+                    <span class="hidden sm:inline">새 계약서 작성</span>
+                    <span class="sm:hidden">작성</span>
                 </a>
             </div>
         </header>
@@ -397,16 +400,18 @@
             </div>
 
             <!-- SMS 발신 버튼 -->
-            <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded border-gray-300">
-                    <label for="selectAll" class="font-medium text-gray-700">전체 선택</label>
-                    <span id="selectedCount" class="text-sm text-gray-500">(0개 선택됨)</span>
+            <div class="bg-white rounded-lg shadow-md p-3 md:p-4 mb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    <div class="flex items-center gap-2 md:gap-3">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-4 h-4 md:w-5 md:h-5 rounded border-gray-300">
+                        <label for="selectAll" class="text-sm md:text-base font-medium text-gray-700">전체 선택</label>
+                        <span id="selectedCount" class="text-xs md:text-sm text-gray-500">(0개 선택됨)</span>
+                    </div>
+                    <button onclick="sendBulkSMS()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-2 rounded-lg text-sm md:text-base font-medium transition flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>선택 항목 SMS 발신</span>
+                    </button>
                 </div>
-                <button onclick="sendBulkSMS()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center gap-2">
-                    <i class="fas fa-paper-plane"></i>
-                    선택 항목 SMS 발신
-                </button>
             </div>
 
             <!-- 계약서 목록 -->
@@ -857,21 +862,21 @@
                 }
 
                 return `
-                    <div class="bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-all">
-                        <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
-                            <div class="flex items-start gap-2">
-                                <input type="checkbox" class="contract-checkbox mt-1 w-5 h-5 rounded border-gray-300" 
+                    <div class="bg-white rounded-lg shadow-md p-3 md:p-4 hover:shadow-lg transition-all">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
+                            <div class="flex items-start gap-2 w-full sm:w-auto">
+                                <input type="checkbox" class="contract-checkbox mt-1 w-4 h-4 md:w-5 md:h-5 rounded border-gray-300 flex-shrink-0" 
                                        data-id="${c.id}" 
                                        data-type="${c.contract_type}"
                                        data-phone="${c.customer_phone || c.business_phone || ''}"
                                        data-name="${c.customer_name}"
                                        data-number="${c.contract_number}"
                                        onchange="updateSelectedCount()">
-                                <div>
-                                    <h3 class="text-lg font-bold text-gray-800 mb-1">
+                                <div class="flex-1">
+                                    <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1.5">
                                         ${c.contract_number}
                                     </h3>
-                                    <div class="flex gap-1">
+                                    <div class="flex flex-wrap gap-1">
                                         <span class="px-2 py-0.5 rounded-full text-xs font-bold ${c.status === 'completed' ? 'bg-gray-100 text-gray-800' : typeColors[displayType]}">
                                             ${displayTypeText || '렌트'}
                                     </span>
@@ -882,29 +887,29 @@
                                 </div>
                             </div>
                             </div>
-                            <div class="flex gap-1 flex-wrap">
-                                <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
-                                    <i class="fas fa-eye mr-1"></i>상세
+                            <div class="flex gap-1.5 flex-wrap w-full sm:w-auto justify-end">
+                                <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-purple-700 flex-1 sm:flex-none">
+                                    <i class="fas fa-eye mr-1"></i><span class="hidden sm:inline">상세</span>
                                 </button>
-                                <button onclick="quickDownloadPDF('${c.contract_type}', ${c.id})" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded hover:bg-green-700" title="PDF 다운로드">
+                                <button onclick="quickDownloadPDF('${c.contract_type}', ${c.id})" class="bg-green-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-green-700 flex-1 sm:flex-none" title="PDF 다운로드">
                                     <i class="fas fa-download"></i>
                                 </button>
                                 ${showCompleteButton ? `
-                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-orange-600 text-white px-3 py-1.5 text-sm rounded hover:bg-orange-700" title="계약 완료">
-                                    <i class="fas fa-check-circle mr-1"></i>완료
+                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-orange-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-orange-700 flex-1 sm:flex-none" title="계약 완료">
+                                    <i class="fas fa-check-circle mr-1"></i><span class="hidden md:inline">완료</span>
                                 </button>
                                 ` : ''}
-                                <button onclick="deleteContract('${c.contract_type}', ${c.id})" class="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700">
+                                <button onclick="deleteContract('${c.contract_type}', ${c.id})" class="bg-red-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-red-700 flex-1 sm:flex-none">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm text-gray-600">
                             <div>
-                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> <span class="text-base font-bold text-gray-800">${c.customer_name}</span></p>
+                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.customer_name}</span></p>
                                 <p class="mb-1"><i class="fas fa-phone w-4 text-purple-600"></i> ${c.customer_phone || c.business_phone || '-'}</p>
-                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-base font-bold text-gray-800">${c.plate_number}</span> <span class="text-gray-600">(${c.vehicle_name})</span></p>
+                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.plate_number}</span> <span class="text-gray-600">(${c.vehicle_name})</span></p>
                             </div>
                             <div>
                                 <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.contract_start_date || c.start_date} ~ ${c.contract_end_date || c.end_date}</p>
