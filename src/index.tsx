@@ -2235,6 +2235,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       customers: 0,
       contracts: {
         active: 0,
+        active_contracts_count: 0,  // 진행중 계약 건수
         monthly_revenue: 0,
         total_deposits: 0,
         active_business: 0,
@@ -2321,6 +2322,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       customers: (customerCount as any)?.count || 0,
       contracts: {
         active: totalActiveContracts,  // 개인계약 + 업체계약
+        active_contracts_count: totalActiveContracts,  // 진행중 계약 건수 (계약서 목록 카드용)
         monthly_revenue: (contractStats as any)?.total_monthly_revenue || 0,
         total_deposits: (contractStats as any)?.total_deposits || 0,
         active_business: (businessContractStats as any)?.active_business_contracts || 0,
@@ -6262,9 +6264,12 @@ app.get('/dashboard', (c) => {
                         <i class="fas fa-users text-3xl text-blue-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">고객 목록</p>
                     </a>
-                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition">
+                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition relative">
                         <i class="fas fa-folder-open text-3xl text-orange-600 mb-2"></i>
                         <p class="text-sm font-medium text-gray-700">계약서 목록</p>
+                        <div class="absolute top-2 right-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                            <span id="activeContractsCount">0</span>
+                        </div>
                     </a>
                     <a href="/static/loans.html" class="bg-red-50 hover:bg-red-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-receipt text-3xl text-red-600 mb-2"></i>
@@ -6407,6 +6412,11 @@ app.get('/dashboard', (c) => {
                 document.getElementById('totalCustomers').textContent = data.customers;
                 document.getElementById('totalLoanAmount').textContent = 
                     (data.contracts.total_loan_amount || 0).toLocaleString() + '원';
+                
+                // 진행중 계약 건수 표시 (계약서 목록 카드)
+                const activeContractsCount = data.contracts.active_contracts_count || 0;
+                document.getElementById('activeContractsCount').textContent = activeContractsCount;
+                console.log('✅ 진행중 계약 건수:', activeContractsCount);
             }
             
             // 상태별 필터링 (오토바이 관리 페이지로 이동)
