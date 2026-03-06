@@ -6119,7 +6119,7 @@ app.get('/dashboard', (c) => {
     <html lang="ko">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=1280, initial-scale=0.5, user-scalable=yes">
         <title>Z-BIKE 전자계약서</title>
         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -6167,7 +6167,7 @@ app.get('/dashboard', (c) => {
         <!-- 메인 콘텐츠 -->
         <div class="container mx-auto px-4 py-8">
             <!-- 운영 통계 카드 4개 -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-4 gap-4 mb-8">
                 <!-- 총 바이크 -->
                 <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('all')">
@@ -6218,7 +6218,7 @@ app.get('/dashboard', (c) => {
             </div>
 
             <!-- 추가 통계 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-3 gap-6 mb-8">
                 <!-- 오토바이 관리 -->
                 <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition" onclick="window.location.href='/static/motorcycles.html'">
                     <div class="flex items-center justify-between">
@@ -6258,7 +6258,7 @@ app.get('/dashboard', (c) => {
                 <h2 class="text-xl font-bold mb-4 text-gray-800">
                     <i class="fas fa-bolt mr-2 text-yellow-500"></i>빠른 액세스
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="grid grid-cols-5 gap-4">
                     <!-- Row 1 -->
                     <a href="/static/motorcycle-register.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
                         <i class="fas fa-plus-circle text-3xl text-blue-600 mb-2"></i>
