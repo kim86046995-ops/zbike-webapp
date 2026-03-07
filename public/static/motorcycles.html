@@ -1325,16 +1325,17 @@
                     contracts
                         .filter(c => c.status === 'completed' || c.status === 'cancelled')
                         .forEach(contract => {
-                            const endDate = contract.completed_at || contract.cancelled_at || contract.end_date;
+                            // 실제 종료 날짜: completed_at 또는 cancelled_at (계약 기간 end_date가 아님!)
+                            const actualEndDate = contract.completed_at || contract.cancelled_at;
                             const statusText = contract.status === 'completed' ? '계약 완료' : '계약 해지';
                             const typeText = contract.contract_type === 'temp_rent' ? '임시렌트' : 
                                            contract.contract_type === 'lease' ? '리스' : 
                                            contract.contract_type === 'rent' ? '렌트' : '개인';
                             
                             allHistory.push({
-                                change_date: endDate || contract.created_at,
+                                change_date: actualEndDate || contract.created_at,
                                 field_name: statusText,
-                                display: `${contract.contract_number} | ${contract.customer_name || contract.company_name || '알 수 없음'} | ${contract.start_date} ~ ${contract.end_date || '-'} | 종료: ${endDate ? formatDate(endDate) : '-'}`,
+                                display: `${contract.contract_number} | ${contract.customer_name || contract.company_name || '알 수 없음'} | 계약기간: ${contract.start_date} ~ ${contract.end_date || '-'} | 실제종료: ${actualEndDate ? formatDate(actualEndDate) : '-'}`,
                                 type: 'contract',
                                 icon: 'fas fa-file-contract',
                                 color: 'text-blue-700',

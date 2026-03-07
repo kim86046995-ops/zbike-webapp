@@ -2798,9 +2798,12 @@ app.post('/api/contracts', authMiddleware, async (c) => {
       
       await DB.prepare(`
         UPDATE business_contracts 
-        SET status = 'cancelled', end_date = ?, updated_at = datetime("now") 
+        SET status = 'cancelled', 
+            end_date = ?, 
+            cancelled_at = ?,
+            updated_at = datetime("now") 
         WHERE id = ?
-      `).bind(today, oldContract.id).run()
+      `).bind(today, today, oldContract.id).run()
       
       console.log(`✅ Replaced business contract: ${oldContract.contract_number}`)
     }
@@ -3774,11 +3777,14 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
   if (existingContracts.results.length > 0) {
     console.log(`📋 [Business] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
     for (const contract of existingContracts.results) {
+      const today = new Date().toISOString().split('T')[0]
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'completed', updated_at = datetime('now') 
+        SET status = 'completed', 
+            completed_at = ?,
+            updated_at = datetime('now') 
         WHERE id = ?
-      `).bind((contract as any).id).run()
+      `).bind(today, (contract as any).id).run()
       console.log(`✅ [Business] Completed personal contract: ${(contract as any).contract_number}`)
     }
   }
@@ -3792,11 +3798,14 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
   if (existingBusinessContracts.results.length > 0) {
     console.log(`📋 [Business] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
     for (const contract of existingBusinessContracts.results) {
+      const today = new Date().toISOString().split('T')[0]
       await DB.prepare(`
         UPDATE business_contracts 
-        SET status = 'completed', updated_at = datetime('now') 
+        SET status = 'completed', 
+            completed_at = ?,
+            updated_at = datetime('now') 
         WHERE id = ?
-      `).bind((contract as any).id).run()
+      `).bind(today, (contract as any).id).run()
       console.log(`✅ [Business] Completed business contract: ${(contract as any).contract_number}`)
     }
   }
@@ -5777,11 +5786,14 @@ app.post('/api/temp-rent-contracts', async (c) => {
     if (existingContracts.results.length > 0) {
       console.log(`📋 [TempRent] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
       for (const contract of existingContracts.results) {
+        const today = new Date().toISOString().split('T')[0]
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime("now") 
           WHERE id = ?
-        `).bind((contract as any).id).run()
+        `).bind(today, (contract as any).id).run()
         console.log(`✅ [TempRent] Completed personal contract: ${(contract as any).contract_number}`)
       }
     }
@@ -5795,11 +5807,14 @@ app.post('/api/temp-rent-contracts', async (c) => {
     if (existingBusinessContracts.results.length > 0) {
       console.log(`📋 [TempRent] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
       for (const contract of existingBusinessContracts.results) {
+        const today = new Date().toISOString().split('T')[0]
         await DB.prepare(`
           UPDATE business_contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime("now") 
           WHERE id = ?
-        `).bind((contract as any).id).run()
+        `).bind(today, (contract as any).id).run()
         console.log(`✅ [TempRent] Completed business contract: ${(contract as any).contract_number}`)
       }
     }
