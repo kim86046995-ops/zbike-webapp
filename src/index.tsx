@@ -7616,4 +7616,113 @@ app.delete('/api/work-contracts/:id', authMiddleware, async (c) => {
   }
 })
 
+// 관리자 전용: 완료된 계약의 completed_at 날짜 채우기 마이그레이션
+app.post('/api/admin/migrate-completed-dates', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    console.log('🔄 완료 날짜 마이그레이션 시작...')
+    
+    // 1. 개인 계약: completed 상태인데 completed_at이 NULL인 것들
+    const personalContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM contracts 
+      WHERE status = 'completed' AND completed_at IS NULL
+    `).all()
+    
+    console.log(`📋 개인 계약 마이그레이션 대상: ${personalContracts.results?.length || 0}건`)
+    
+    for (const contract of personalContracts.results || []) {
+      const c = contract as any
+      // updated_at을 completed_at으로 복사
+      await DB.prepare(`
+        UPDATE contracts 
+        SET completed_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 개인 계약 ${c.contract_number}: completed_at = ${c.updated_at}`)
+    }
+    
+    // 2. 개인 계약: cancelled 상태인데 cancelled_at이 NULL인 것들
+    const cancelledContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM contracts 
+      WHERE status = 'cancelled' AND cancelled_at IS NULL
+    `).all()
+    
+    console.log(`📋 개인 계약(취소) 마이그레이션 대상: ${cancelledContracts.results?.length || 0}건`)
+    
+    for (const contract of cancelledContracts.results || []) {
+      const c = contract as any
+      await DB.prepare(`
+        UPDATE contracts 
+        SET cancelled_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 개인 계약(취소) ${c.contract_number}: cancelled_at = ${c.updated_at}`)
+    }
+    
+    // 3. 업체 계약: completed 상태인데 completed_at이 NULL인 것들
+    const businessContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM business_contracts 
+      WHERE status = 'completed' AND completed_at IS NULL
+    `).all()
+    
+    console.log(`📋 업체 계약 마이그레이션 대상: ${businessContracts.results?.length || 0}건`)
+    
+    for (const contract of businessContracts.results || []) {
+      const c = contract as any
+      await DB.prepare(`
+        UPDATE business_contracts 
+        SET completed_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 업체 계약 ${c.contract_number}: completed_at = ${c.updated_at}`)
+    }
+    
+    // 4. 업체 계약: cancelled 상태인데 cancelled_at이 NULL인 것들
+    const cancelledBusinessContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM business_contracts 
+      WHERE status = 'cancelled' AND cancelled_at IS NULL
+    `).all()
+    
+    console.log(`📋 업체 계약(취소) 마이그레이션 대상: ${cancelledBusinessContracts.results?.length || 0}건`)
+    
+    for (const contract of cancelledBusinessContracts.results || []) {
+      const c = contract as any
+      await DB.prepare(`
+        UPDATE business_contracts 
+        SET cancelled_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 업체 계약(취소) ${c.contract_number}: cancelled_at = ${c.updated_at}`)
+    }
+    
+    const totalCount = 
+      (personalContracts.results?.length || 0) + 
+      (cancelledContracts.results?.length || 0) + 
+      (businessContracts.results?.length || 0) +
+      (cancelledBusinessContracts.results?.length || 0)
+    
+    return c.json({
+      success: true,
+      message: `✅ 마이그레이션 완료: 총 ${totalCount}건 업데이트`,
+      details: {
+        personal_completed: personalContracts.results?.length || 0,
+        personal_cancelled: cancelledContracts.results?.length || 0,
+        business_completed: businessContracts.results?.length || 0,
+        business_cancelled: cancelledBusinessContracts.results?.length || 0
+      }
+    })
+  } catch (error: any) {
+    console.error('❌ 마이그레이션 실패:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
 export default app
