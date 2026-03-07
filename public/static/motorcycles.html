@@ -1327,6 +1327,15 @@
                         .forEach(contract => {
                             // 실제 종료 날짜: completed_at 또는 cancelled_at (계약 기간 end_date가 아님!)
                             const actualEndDate = contract.completed_at || contract.cancelled_at;
+                            console.log('📅 계약 종료일 확인:', {
+                                contract_number: contract.contract_number,
+                                status: contract.status,
+                                completed_at: contract.completed_at,
+                                cancelled_at: contract.cancelled_at,
+                                actualEndDate: actualEndDate,
+                                formatted: actualEndDate ? formatDate(actualEndDate) : '-'
+                            });
+                            
                             const statusText = contract.status === 'completed' ? '계약 완료' : '계약 해지';
                             const typeText = contract.contract_type === 'temp_rent' ? '임시렌트' : 
                                            contract.contract_type === 'lease' ? '리스' : 
