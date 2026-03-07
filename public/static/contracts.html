@@ -597,6 +597,22 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const typeParam = urlParams.get('type');
                 const statusParam = urlParams.get('status');
+                const refreshParam = urlParams.get('refresh');
+                
+                // refresh 파라미터가 있으면 캐시 클리어
+                if (refreshParam) {
+                    clearContractsCache();
+                    console.log('🔄 URL refresh 파라미터로 캐시 클리어');
+                    
+                    // URL에서 refresh 파라미터 제거 (깔끔하게)
+                    const newUrl = window.location.pathname + 
+                        (typeParam || statusParam ? '?' + 
+                            (typeParam ? 'type=' + typeParam : '') + 
+                            (typeParam && statusParam ? '&' : '') + 
+                            (statusParam ? 'status=' + statusParam : '') 
+                        : '');
+                    window.history.replaceState({}, '', newUrl);
+                }
                 
                 // 계약 유형 필터 설정
                 if (typeParam) {
@@ -1733,6 +1749,8 @@
             }
 
             try {
+                console.log('✅ 계약 완료 처리 시작:', { contractType, id });
+                
                 if (contractType === 'business') {
                     // 업체 계약서 완료
                     await axios.put(`/api/business-contracts/${id}/complete`);
@@ -1742,9 +1760,19 @@
                 }
                 
                 alert('✅ 계약이 완료 처리되었습니다.\n\n해당 오토바이는 다시 계약할 수 있습니다.');
-                loadContracts(); // 목록 새로고침
+                
+                // 상세 모달이 열려있으면 닫기
+                const detailModal = document.getElementById('contractDetailModal');
+                if (detailModal && !detailModal.classList.contains('hidden')) {
+                    detailModal.classList.add('hidden');
+                }
+                
+                // 목록 즉시 새로고침 (캐시 무시)
+                console.log('🔄 계약서 목록 새로고침 시작');
+                await loadContracts(true);  // forceRefresh = true
+                console.log('✅ 계약서 목록 새로고침 완료');
             } catch (error) {
-                console.error('Error completing contract:', error);
+                console.error('❌ 계약 완료 처리 실패:', error);
                 alert('계약 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
@@ -2352,6 +2380,11 @@
                 document.querySelectorAll('.contract-checkbox').forEach(cb => cb.checked = false);
                 document.getElementById('selectAll').checked = false;
                 updateSelectedCount();
+                
+                // 목록 즉시 새로고침 (캐시 무시)
+                console.log('🔄 SMS 발송 후 계약서 목록 새로고침');
+                await loadContracts(true);  // forceRefresh = true
+                console.log('✅ 계약서 목록 새로고침 완료');
                 
             } catch (error) {
                 console.error('SMS 발송 오류:', error);

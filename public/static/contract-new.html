@@ -2736,9 +2736,9 @@
                     }
                 }
                 
-                // 계약서 목록으로 이동
+                // 계약서 목록으로 이동 (캐시 무시 플래그 추가)
                 setTimeout(() => {
-                    window.location.href = '/static/contracts.html';
+                    window.location.href = '/static/contracts.html?refresh=' + Date.now();
                 }, 3000);
                 
             } catch (error) {
