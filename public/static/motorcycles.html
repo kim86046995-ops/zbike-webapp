@@ -1304,143 +1304,120 @@
                     </div>
                 `;
                 
-                // 계약 이력 표시
-                if (contracts.length === 0) {
+                // 계약 이력 및 상세 이력 통합 표시
+                if (contracts.length === 0 && (!detailedHistory || detailedHistory.length === 0)) {
                     document.getElementById('contractHistory').innerHTML = `
                         <div class="text-center py-8 text-gray-500">
                             <i class="fas fa-inbox text-4xl mb-2 opacity-50"></i>
-                            <p>계약 이력이 없습니다</p>
+                            <p>이력이 없습니다</p>
                         </div>
                     `;
                 } else {
-                    const statusColors = {
-                        'active': 'bg-green-100 text-green-800',
-                        'completed': 'bg-gray-100 text-gray-800',
-                        'cancelled': 'bg-red-100 text-red-800'
-                    };
-                    const statusTexts = {
-                        'active': '진행중',
-                        'completed': '완료',
-                        'cancelled': '취소'
-                    };
-                    const typeTexts = {
-                        'lease': '리스',
-                        'rent': '렌트',
-                        'individual': '개인',
-                        'temp_rent': '임시렌트'
-                    };
-                    const actionTypeTexts = {
-                        'created': '생성',
-                        'updated': '변경',
-                        'completed': '완료',
-                        'cancelled': '해지',
-                        'replaced': '대체'
-                    };
-                    const actionTypeColors = {
-                        'created': 'text-blue-600',
-                        'updated': 'text-purple-600',
-                        'completed': 'text-gray-600',
-                        'cancelled': 'text-red-600',
-                        'replaced': 'text-orange-600'
-                    };
+                    // 전역 변수에 저장 (상세보기용)
+                    if (detailedHistory && detailedHistory.length > 0) {
+                        currentHistoryData = detailedHistory;
+                    }
+                    
+                    // 모든 이력 통합 (계약 완료 이력 + 상세 이력)
+                    let allHistory = [];
+                    
+                    // 1. 완료된 계약만 이력으로 추가 (completed 또는 cancelled만)
+                    contracts
+                        .filter(c => c.status === 'completed' || c.status === 'cancelled')
+                        .forEach(contract => {
+                            const endDate = contract.completed_at || contract.cancelled_at || contract.end_date;
+                            const statusText = contract.status === 'completed' ? '계약 완료' : '계약 해지';
+                            const typeText = contract.contract_type === 'temp_rent' ? '임시렌트' : 
+                                           contract.contract_type === 'lease' ? '리스' : 
+                                           contract.contract_type === 'rent' ? '렌트' : '개인';
+                            
+                            allHistory.push({
+                                change_date: endDate || contract.created_at,
+                                field_name: statusText,
+                                display: `${contract.contract_number} | ${contract.customer_name || contract.company_name || '알 수 없음'} | ${contract.start_date} ~ ${contract.end_date || '-'} | 종료: ${endDate ? formatDate(endDate) : '-'}`,
+                                type: 'contract',
+                                icon: 'fas fa-file-contract',
+                                color: 'text-blue-700',
+                                bgColor: 'bg-blue-50'
+                            });
+                        });
+                    
+                    // 2. 상세 이력 추가 (보험, 오토바이 정보 변경 등)
+                    if (detailedHistory && detailedHistory.length > 0) {
+                        detailedHistory.forEach((h, index) => {
+                            // 계약 완료/해지 이력은 제외 (위에서 이미 추가함)
+                            if (h.field_name !== '계약 완료' && h.field_name !== '업체계약 완료' && h.field_name !== '계약 해지') {
+                                allHistory.push({
+                                    change_date: h.change_date,
+                                    field_name: h.field_name,
+                                    display: `${h.old_value || '-'} → ${h.new_value || '-'}`,
+                                    type: 'detail',
+                                    icon: 'fas fa-edit',
+                                    color: 'text-purple-600',
+                                    bgColor: 'bg-purple-50',
+                                    changed_by_name: h.changed_by_name,
+                                    notes: h.notes,
+                                    index: index
+                                });
+                            }
+                        });
+                    }
+                    
+                    // 날짜순 정렬 (최신순)
+                    allHistory.sort((a, b) => new Date(b.change_date) - new Date(a.change_date));
                     
                     let historyHtml = `
-                        <div class="space-y-6">
-                            <div>
-                                <h4 class="font-bold text-gray-700 mb-4">📋 계약 목록 (총 ${contracts.length}건)</h4>
-                                <div class="space-y-3">
-                                    ${contracts.map(contract => `
-                                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <p class="font-bold text-gray-800">${contract.contract_number || '번호없음'}</p>
-                                                    <p class="text-sm"><span class="font-bold text-gray-900">${contract.customer_name}</span> <span class="text-gray-600">(${contract.customer_phone})</span></p>
-                                                </div>
-                                                <div class="flex gap-2">
-                                                    <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[contract.status]}">
-                                                        ${statusTexts[contract.status]}
-                                                    </span>
-                                                    <span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
-                                                        ${typeTexts[contract.contract_type] || contract.contract_type}
+                        <div>
+                            <h4 class="font-bold text-gray-700 mb-4 text-lg">📋 이력 (총 ${allHistory.length}건)</h4>
+                            <div class="space-y-2 max-h-[600px] overflow-y-auto">
+                                ${allHistory.map(h => `
+                                    <div class="${h.bgColor} p-3 rounded-lg border border-gray-200 hover:shadow-md transition-all">
+                                        <div class="flex items-start gap-3">
+                                            <div class="flex-shrink-0 w-8 h-8 ${h.bgColor} rounded-full flex items-center justify-center ${h.color}">
+                                                <i class="${h.icon}"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="font-bold ${h.color}">${h.field_name}</span>
+                                                    <span class="text-gray-500 text-xs">
+                                                        ${new Date(h.change_date).toLocaleDateString('ko-KR')} ${new Date(h.change_date).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
                                                     </span>
                                                 </div>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                                <p><strong>계약기간:</strong> ${contract.start_date && contract.end_date ? `${formatDate(contract.start_date)} ~ ${formatDate(contract.end_date)}` : '-'}</p>
-                                                <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
-                                                <p><strong>선납금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
-                                                <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
-                                                ${contract.status === 'cancelled' && contract.cancelled_at ? `
-                                                    <p class="text-red-600 font-bold col-span-2"><strong>해지일:</strong> ${formatDate(contract.cancelled_at)}</p>
-                                                ` : ''}
-                                                ${contract.status === 'completed' && contract.completed_at ? `
-                                                    <p class="text-gray-600 font-bold col-span-2"><strong>완료일:</strong> ${formatDate(contract.completed_at)}</p>
-                                                ` : ''}
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>`;
-                    
-                    // 상세 이력이 있으면 추가
-                    if (detailedHistory && detailedHistory.length > 0) {
-                        // 전역 변수에 저장 (상세보기용)
-                        currentHistoryData = detailedHistory;
-                        
-                        historyHtml += `
-                            <div class="border-t pt-4">
-                                <h4 class="font-bold text-gray-700 mb-3">📝 상세 이력 (총 ${detailedHistory.length}건)</h4>
-                                <div class="space-y-1.5 max-h-96 overflow-y-auto">
-                                    ${detailedHistory.map((h, index) => `
-                                        <div class="bg-white p-3 rounded border border-gray-200 text-sm hover:bg-gray-50 transition-colors">
-                                            <div class="flex justify-between items-start gap-2">
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center gap-2 mb-1">
-                                                        <span class="font-bold text-purple-600">
-                                                            <i class="fas fa-edit"></i>
-                                                            ${h.field_name || '변경'}
-                                                        </span>
-                                                        <span class="text-gray-500 text-xs">
-                                                            ${new Date(h.change_date).toLocaleDateString('ko-KR')} ${new Date(h.change_date).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
-                                                        </span>
-                                                    </div>
-                                                    <div class="text-gray-700 pl-5">
-                                                        <span class="text-red-600 line-through">${h.old_value || '-'}</span>
-                                                        <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
-                                                        <span class="text-green-600 font-medium">${h.new_value || '-'}</span>
-                                                    </div>
-                                                    ${h.changed_by_name ? `
-                                                        <div class="text-xs mt-1 pl-5">
-                                                            <span class="text-gray-500">변경자:</span> <span class="font-bold text-gray-900">${h.changed_by_name}</span>
-                                                        </div>
-                                                    ` : ''}
-                                                    ${h.notes ? `
-                                                        <div class="text-xs text-gray-600 mt-1 pl-5 bg-gray-50 p-2 rounded">
-                                                            <i class="fas fa-comment-alt mr-1"></i>
-                                                            ${h.notes}
-                                                        </div>
-                                                    ` : ''}
+                                                <div class="text-sm text-gray-700">
+                                                    ${h.display}
                                                 </div>
+                                                ${h.changed_by_name ? `
+                                                    <div class="text-xs text-gray-500 mt-1">
+                                                        변경자: <span class="font-bold">${h.changed_by_name}</span>
+                                                    </div>
+                                                ` : ''}
+                                                ${h.notes && h.type === 'detail' ? `
+                                                    <div class="text-xs text-gray-600 mt-1 bg-white p-2 rounded">
+                                                        <i class="fas fa-comment-alt mr-1"></i>
+                                                        ${h.notes}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                            ${h.type === 'detail' && h.index !== undefined ? `
                                                 <button 
-                                                    onclick="showHistoryDetail(${index})"
+                                                    onclick="showHistoryDetail(${h.index})"
                                                     class="flex-shrink-0 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
                                                     title="상세보기"
                                                 >
                                                     <i class="fas fa-eye mr-1"></i>
                                                     상세
                                                 </button>
-                                            </div>
+                                            ` : ''}
                                         </div>
-                                    `).join('')}
-                                </div>
+                                    </div>
+                                `).join('')}
                             </div>
-                        `;
-                    }
+                        </div>
+                    `;
                     
-                    historyHtml += `</div>`;
                     document.getElementById('contractHistory').innerHTML = historyHtml;
                 }
-                
+                        
                 document.getElementById('historyModal').classList.remove('hidden');
             } catch (error) {
                 console.error('Error loading contract history:', error);

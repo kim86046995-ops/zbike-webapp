@@ -2564,9 +2564,12 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  // 계약서 조회
+  // 계약서 전체 정보 조회
   const contract = await DB.prepare(`
-    SELECT motorcycle_id, status FROM contracts WHERE id = ?
+    SELECT c.*, cu.name as customer_name 
+    FROM contracts c
+    LEFT JOIN customers cu ON c.customer_id = cu.id
+    WHERE c.id = ?
   `).bind(id).first() as any
   
   if (!contract) {
@@ -2577,12 +2580,16 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
     return c.json({ error: '이미 완료된 계약서입니다' }, 400)
   }
   
+  const today = new Date().toISOString().split('T')[0]
+  
   // 계약서 상태를 완료로 변경
   await DB.prepare(`
     UPDATE contracts 
-    SET status = 'completed', updated_at = datetime("now") 
+    SET status = 'completed', 
+        completed_at = ?,
+        updated_at = datetime("now") 
     WHERE id = ?
-  `).bind(id).run()
+  `).bind(today, id).run()
   
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
@@ -2590,6 +2597,24 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
     SET status = 'available', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
+  
+  // 계약 완료 이력을 motorcycle_history에 저장
+  await DB.prepare(`
+    INSERT INTO motorcycle_history (
+      motorcycle_id, field_name, old_value, new_value, 
+      changed_by, changed_by_name, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    contract.motorcycle_id,
+    '계약 완료',
+    `계약번호: ${contract.contract_number}`,
+    `계약자: ${contract.customer_name || '알 수 없음'}, 기간: ${contract.start_date} ~ ${contract.end_date}, 종료일: ${today}`,
+    null, // changed_by (user_id)
+    '시스템',
+    `계약번호: ${contract.contract_number}, 계약자: ${contract.customer_name || '알 수 없음'}, 계약기간: ${contract.start_date} ~ ${contract.end_date}, 계약종료일: ${today}`
+  ).run()
+  
+  console.log(`✅ 계약 완료 이력 저장: ${contract.contract_number}, 고객: ${contract.customer_name}`)
   
   return c.json({ message: '계약이 완료 처리되었습니다' })
 })
@@ -3988,9 +4013,12 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  // 계약서 조회
+  // 계약서 전체 정보 조회
   const contract = await DB.prepare(`
-    SELECT motorcycle_id, status FROM business_contracts WHERE id = ?
+    SELECT bc.*, comp.company_name 
+    FROM business_contracts bc
+    LEFT JOIN companies comp ON bc.company_id = comp.id
+    WHERE bc.id = ?
   `).bind(id).first() as any
   
   if (!contract) {
@@ -4001,12 +4029,16 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
     return c.json({ error: '이미 완료된 계약서입니다' }, 400)
   }
   
+  const today = new Date().toISOString().split('T')[0]
+  
   // 계약서 상태를 완료로 변경
   await DB.prepare(`
     UPDATE business_contracts 
-    SET status = 'completed', updated_at = datetime("now") 
+    SET status = 'completed', 
+        completed_at = ?,
+        updated_at = datetime("now") 
     WHERE id = ?
-  `).bind(id).run()
+  `).bind(today, id).run()
   
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
@@ -4014,6 +4046,24 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
     SET status = 'available', updated_at = datetime("now") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
+  
+  // 계약 완료 이력을 motorcycle_history에 저장
+  await DB.prepare(`
+    INSERT INTO motorcycle_history (
+      motorcycle_id, field_name, old_value, new_value, 
+      changed_by, changed_by_name, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    contract.motorcycle_id,
+    '업체계약 완료',
+    `계약번호: ${contract.contract_number}`,
+    `업체: ${contract.company_name || '알 수 없음'}, 기간: ${contract.start_date} ~ ${contract.end_date}, 종료일: ${today}`,
+    null, // changed_by (user_id)
+    '시스템',
+    `계약번호: ${contract.contract_number}, 업체: ${contract.company_name || '알 수 없음'}, 계약기간: ${contract.start_date} ~ ${contract.end_date}, 계약종료일: ${today}`
+  ).run()
+  
+  console.log(`✅ 업체계약 완료 이력 저장: ${contract.contract_number}, 업체: ${contract.company_name}`)
   
   return c.json({ message: '계약이 완료 처리되었습니다' })
 })
