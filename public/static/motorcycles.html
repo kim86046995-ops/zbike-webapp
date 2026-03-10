@@ -1961,17 +1961,17 @@
                     console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
                 });
                 
-                // 상세보기 다시 열기 (비동기로 처리)
+                // 이력 모달 다시 열기 (비동기로 처리)
                 setTimeout(() => {
                     try {
-                        if (typeof showDetail === 'function') {
-                            console.log('🔄 상세보기 다시 열기...');
-                            showDetail(id);
+                        if (typeof showHistory === 'function') {
+                            console.log('🔄 이력 모달 다시 열기...');
+                            showHistory(id);
                         }
                     } catch (detailError) {
-                        console.warn('⚠️ 상세보기 열기 실패 (무시):', detailError);
+                        console.warn('⚠️ 이력 모달 열기 실패 (무시):', detailError);
                     }
-                }, 500); // 500ms 후 상세보기 열기 (목록 로딩과 동시 진행)
+                }, 500); // 500ms 후 이력 모달 열기 (목록 로딩과 동시 진행)
             } catch (error) {
                 console.error('❌ 보험 정보 저장 실패:', error);
                 alert('❌ 보험 정보 저장에 실패했습니다\n\n' + (error.response?.data?.error || error.message));
@@ -2084,17 +2084,17 @@
                     console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
                 });
 
-                // 상세보기 다시 열기 (비동기로 처리)
+                // 이력 모달 다시 열기 (비동기로 처리)
                 setTimeout(() => {
                     try {
-                        if (typeof showDetail === 'function') {
-                            console.log('🔄 상세보기 다시 열기...');
-                            showDetail(id);
+                        if (typeof showHistory === 'function') {
+                            console.log('🔄 이력 모달 다시 열기...');
+                            showHistory(id);
                         }
                     } catch (detailError) {
-                        console.warn('⚠️ 상세보기 열기 실패 (무시):', detailError);
+                        console.warn('⚠️ 이력 모달 열기 실패 (무시):', detailError);
                     }
-                }, 500); // 500ms 후 상세보기 열기 (목록 로딩과 동시 진행)
+                }, 500); // 500ms 후 이력 모달 열기 (목록 로딩과 동시 진행)
 
             } catch (error) {
                 console.error('❌ 번호판 수정 실패:', error);
