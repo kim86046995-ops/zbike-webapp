@@ -127,7 +127,7 @@
                     <div class="p-6">
                         <p class="text-sm text-gray-700 mb-4 font-semibold">※ 아래 박스를 터치하면 확대하여 서명할 수 있습니다</p>
                         <div class="border-2 border-gray-400 rounded overflow-hidden bg-white" style="cursor: pointer;">
-                            <canvas id="signatureCanvas" width="800" height="200" class="w-full cursor-pointer bg-white"></canvas>
+                            <canvas id="signatureCanvas" width="1200" height="300" class="w-full cursor-pointer bg-white"></canvas>
                         </div>
                         <div class="mt-3 flex justify-between items-center">
                             <button type="button" onclick="clearSignature()" class="text-sm text-red-600 hover:text-red-800 font-semibold">
@@ -1085,12 +1085,14 @@
             const modal = document.getElementById('signatureModal');
             modal.classList.remove('hidden');
             
-            // 모달 캔버스 크기 설정
+            // 모달 캔버스 크기 설정 (4:1 비율 유지)
             setTimeout(() => {
                 const modalCanvas = document.getElementById('signatureCanvasModal');
                 const container = modalCanvas.parentElement;
-                modalCanvas.width = container.clientWidth;
-                modalCanvas.height = container.clientHeight;
+                const containerWidth = container.clientWidth;
+                // 4:1 비율 유지 (너비의 1/4)
+                modalCanvas.width = containerWidth;
+                modalCanvas.height = Math.floor(containerWidth / 4);
                 
                 // 기존 서명 복사
                 const mainCanvas = document.getElementById('signatureCanvas');
@@ -1121,9 +1123,20 @@
             const mainCanvas = document.getElementById('signatureCanvas');
             const mainCtx = mainCanvas.getContext('2d');
             
-            // 메인 캔버스에 복사
+            // 메인 캔버스에 복사 (비율 유지하며 중앙 정렬)
             mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-            mainCtx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+            
+            // 원본 비율을 유지하면서 메인 캔버스 크기에 맞춤
+            const scale = Math.min(
+                mainCanvas.width / modalCanvas.width,
+                mainCanvas.height / modalCanvas.height
+            );
+            const scaledWidth = modalCanvas.width * scale;
+            const scaledHeight = modalCanvas.height * scale;
+            const x = (mainCanvas.width - scaledWidth) / 2;
+            const y = (mainCanvas.height - scaledHeight) / 2;
+            
+            mainCtx.drawImage(modalCanvas, x, y, scaledWidth, scaledHeight);
             
             closeSignatureModal();
         }
