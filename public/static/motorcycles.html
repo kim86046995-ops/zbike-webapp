@@ -2056,7 +2056,15 @@
                 });
                 console.log('✅ 번호판 업데이트 완료:', updateResponse.data);
 
-                // 성공 메시지
+                // ✅ 성공 확인: success 필드 체크
+                if (!updateResponse.data || updateResponse.data.success === false) {
+                    throw new Error(updateResponse.data?.error || '업데이트 응답이 올바르지 않습니다');
+                }
+
+                // 모달 닫기
+                hideModal();
+
+                // 성공 메시지 (최우선 표시)
                 if (motorcycle.status === 'scrapped' || motorcycle.status === 'maintenance') {
                     alert(
                         `✅ 번호판이 변경되었습니다\n\n` +
@@ -2068,11 +2076,25 @@
                     alert(`✅ 번호판이 변경되었습니다\n\n• 새 번호판: ${trimmedPlateNumber}`);
                 }
 
-                // 모달 닫기
-                hideModal();
+                // 목록 새로고침 (비동기로 처리하여 사용자 경험 개선)
+                console.log('🔄 오토바이 목록 새로고침 시작...');
+                loadMotorcycles(true).then(() => {
+                    console.log('✅ 목록 새로고침 완료');
+                }).catch(err => {
+                    console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
+                });
 
-                // 목록 강제 새로고침
-                await loadMotorcycles(true);
+                // 상세보기 다시 열기 (비동기로 처리)
+                setTimeout(() => {
+                    try {
+                        if (typeof showDetail === 'function') {
+                            console.log('🔄 상세보기 다시 열기...');
+                            showDetail(id);
+                        }
+                    } catch (detailError) {
+                        console.warn('⚠️ 상세보기 열기 실패 (무시):', detailError);
+                    }
+                }, 500); // 500ms 후 상세보기 열기 (목록 로딩과 동시 진행)
 
             } catch (error) {
                 console.error('❌ 번호판 수정 실패:', error);
