@@ -1953,6 +1953,11 @@
                     }
                 }
                 
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
                 // 목록 새로고침 (비동기로 처리하여 사용자 경험 개선)
                 console.log('🔄 오토바이 목록 새로고침 시작...');
                 loadMotorcycles(true).then(() => {
@@ -1992,6 +1997,12 @@
             try {
                 await axios.delete(`/api/motorcycles/${id}`);
                 alert('✅ 삭제되었습니다');
+                
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
                 // 캐시를 무시하고 강제 새로고침
                 loadMotorcycles(true);
             } catch (error) {
@@ -2075,6 +2086,11 @@
                 } else {
                     alert(`✅ 번호판이 변경되었습니다\n\n• 새 번호판: ${trimmedPlateNumber}`);
                 }
+
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
 
                 // 목록 새로고침 (비동기로 처리하여 사용자 경험 개선)
                 console.log('🔄 오토바이 목록 새로고침 시작...');

@@ -220,6 +220,12 @@
                 console.log('등록 데이터:', data);
                 const response = await axios.post('/api/motorcycles', data);
                 console.log('등록 성공:', response.data);
+                
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
                 alert('✅ 오토바이가 등록되었습니다.\n\n계속해서 추가 등록이 가능합니다.');
                 
                 // 폼 초기화 (추가 등록을 위해)
