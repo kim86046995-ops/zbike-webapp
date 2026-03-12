@@ -1931,11 +1931,14 @@
                     throw new Error(updateResponse.data?.error || '업데이트 응답이 올바르지 않습니다');
                 }
                 
+                // 현재 오토바이 정보 조회
+                const currentMotorcycle = motorcycles.find(m => m.id == id);
+                const wasScrappedOrMaintenance = currentMotorcycle && (currentMotorcycle.status === 'scrapped' || currentMotorcycle.status === 'maintenance');
+                
                 // 모달 닫기
                 hideModal();
                 
                 // 4. 성공 메시지 (최우선 표시)
-                const wasScrappedOrMaintenance = motorcycleData.status === 'scrapped' || motorcycleData.status === 'maintenance';
                 
                 if (activeContracts.length > 0) {
                     alert(
@@ -1967,11 +1970,12 @@
                 });
                 
                 // 이력 모달 다시 열기 (비동기로 처리)
-                setTimeout(() => {
+                setTimeout(async () => {
                     try {
                         if (typeof showHistory === 'function') {
                             console.log('🔄 이력 모달 다시 열기...');
-                            showHistory(id);
+                            await showHistory(id);
+                            console.log('✅ 이력 모달 열기 완료');
                         }
                     } catch (detailError) {
                         console.warn('⚠️ 이력 모달 열기 실패 (무시):', detailError);
@@ -2101,11 +2105,12 @@
                 });
 
                 // 이력 모달 다시 열기 (비동기로 처리)
-                setTimeout(() => {
+                setTimeout(async () => {
                     try {
                         if (typeof showHistory === 'function') {
                             console.log('🔄 이력 모달 다시 열기...');
-                            showHistory(id);
+                            await showHistory(id);
+                            console.log('✅ 이력 모달 열기 완료');
                         }
                     } catch (detailError) {
                         console.warn('⚠️ 이력 모달 열기 실패 (무시):', detailError);
