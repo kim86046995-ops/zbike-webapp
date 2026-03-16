@@ -719,9 +719,21 @@
                 const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
                 console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
                 
-                // 캐시에 저장
-                sessionStorage.setItem(cacheKey, JSON.stringify(contracts));
-                sessionStorage.setItem(cacheTimeKey, now.toString());
+                // 캐시에 저장 (quota 에러 처리)
+                try {
+                    // 캐시 크기 줄이기: signature_data와 id_card_photo 같은 큰 데이터는 제외
+                    const contractsForCache = contracts.map(c => {
+                        const { signature_data, id_card_photo, business_license_photo, ...rest } = c;
+                        return rest;
+                    });
+                    
+                    sessionStorage.setItem(cacheKey, JSON.stringify(contractsForCache));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                    console.log('✅ 캐시 저장 완료:', contractsForCache.length, '건');
+                } catch (cacheError) {
+                    console.warn('⚠️ 캐시 저장 실패 (quota 초과 가능):', cacheError.message);
+                    // 캐시 저장 실패해도 계속 진행
+                }
                 
                 filteredContracts = contracts;
                 console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
