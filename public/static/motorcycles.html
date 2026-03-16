@@ -1701,20 +1701,37 @@
                     const activeContract = contractResponse.data.find(c => c.status === 'active');
                     
                     console.log('📋 활성 계약 정보:', activeContract);
+                    console.log('📋 계약 타입 원본 값:', activeContract?.contract_type);
                     
                     if (activeContract) {
                         // 계약 타입 변환
                         let contractTypeText = '';
-                        if (activeContract.contract_type === 'lease') {
+                        const contractType = activeContract.contract_type;
+                        
+                        console.log('🔍 계약 타입 체크:', { 
+                            contractType, 
+                            type: typeof contractType,
+                            isEmpty: !contractType,
+                            value: JSON.stringify(contractType)
+                        });
+                        
+                        if (contractType === 'lease') {
                             contractTypeText = '리스';
-                        } else if (activeContract.contract_type === 'rent') {
+                        } else if (contractType === 'rent') {
                             contractTypeText = '렌트';
-                        } else if (activeContract.contract_type === 'temp_rent') {
+                        } else if (contractType === 'temp_rent') {
                             contractTypeText = '임시렌트';
-                        } else if (activeContract.contract_type === 'business') {
+                        } else if (contractType === 'business') {
                             contractTypeText = '업체';
+                        } else if (contractType === 'personal') {
+                            contractTypeText = '개인';
+                        } else if (contractType) {
+                            // 알 수 없는 타입이지만 값이 있으면 그대로 표시
+                            contractTypeText = contractType;
+                            console.warn('⚠️ 알 수 없는 계약 타입:', contractType);
                         } else {
-                            contractTypeText = activeContract.contract_type || '';
+                            contractTypeText = '';
+                            console.warn('⚠️ 계약 타입이 null/undefined입니다');
                         }
                         
                         document.getElementById('monthlyFee').value = activeContract.monthly_fee || '';
@@ -1723,7 +1740,7 @@
                         document.getElementById('contractStartDate').value = activeContract.start_date || '';
                         document.getElementById('contractEndDate').value = activeContract.end_date || '';
                         
-                        console.log('✅ 계약 종류:', contractTypeText);
+                        console.log('✅ 계약 종류 설정 완료:', contractTypeText);
                         
                         // 보험 정보도 계약서에서 가져오기
                         document.getElementById('insuranceCompany').value = activeContract.insurance_company || m.insurance_company || '';
