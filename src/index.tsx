@@ -840,42 +840,81 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const status = c.req.query('status')
   
-  let query = `
-    SELECT 
-      m.*,
-      COALESCE(c.id, bc.id) as contract_id,
-      COALESCE(c.contract_type, 'business') as contract_type,
-      COALESCE(c.status, bc.status) as contract_status,
-      COALESCE(cu.name, bc.company_name) as customer_name,
-      COALESCE(c.start_date, bc.contract_start_date) as start_date,
-      COALESCE(c.end_date, bc.contract_end_date) as end_date
-    FROM motorcycles m
-    LEFT JOIN contracts c ON m.id = c.motorcycle_id 
-      AND c.status = 'active'
-      AND date(c.end_date) >= date('now')
-    LEFT JOIN customers cu ON c.customer_id = cu.id
-    LEFT JOIN business_contracts bc ON m.id = bc.motorcycle_id
-      AND bc.status = 'active'
-      AND date(bc.contract_end_date) >= date('now')
-  `
+  // 기본 오토바이 목록 조회
+  let motorcyclesQuery = `SELECT * FROM motorcycles`
   
   if (status) {
-    query += ` WHERE m.status = '${status}'`
+    motorcyclesQuery += ` WHERE status = ?`
   }
   
-  // 보험 만료일이 가까운 순서대로 정렬
-  // 1순위: 보험 종료일이 가까운 순 (NULL은 마지막)
-  // 2순위: 생성일 최신순
-  query += ` ORDER BY 
+  motorcyclesQuery += ` ORDER BY 
     CASE 
-      WHEN m.insurance_end_date IS NULL THEN 1 
+      WHEN insurance_end_date IS NULL THEN 1 
       ELSE 0 
     END,
-    m.insurance_end_date ASC,
-    m.created_at DESC`
+    insurance_end_date ASC,
+    created_at DESC`
   
-  const result = await DB.prepare(query).all()
-  return c.json(result.results)
+  const motorcyclesResult = status 
+    ? await DB.prepare(motorcyclesQuery).bind(status).all()
+    : await DB.prepare(motorcyclesQuery).all()
+  
+  const motorcycles = motorcyclesResult.results || []
+  
+  // 각 오토바이에 대해 활성 계약 정보 조회 (개인 계약 우선)
+  const enrichedMotorcycles = await Promise.all(motorcycles.map(async (m: any) => {
+    // 1. 개인 계약 확인
+    const personalContract = await DB.prepare(`
+      SELECT 
+        c.id as contract_id,
+        c.contract_type,
+        c.status as contract_status,
+        cu.name as customer_name,
+        c.start_date,
+        c.end_date
+      FROM contracts c
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      WHERE c.motorcycle_id = ?
+        AND c.status = 'active'
+        AND date(c.end_date) >= date('now')
+      LIMIT 1
+    `).bind(m.id).first()
+    
+    if (personalContract) {
+      return {
+        ...m,
+        ...personalContract
+      }
+    }
+    
+    // 2. 업체 계약 확인
+    const businessContract = await DB.prepare(`
+      SELECT 
+        id as contract_id,
+        'business' as contract_type,
+        status as contract_status,
+        company_name as customer_name,
+        contract_start_date as start_date,
+        contract_end_date as end_date
+      FROM business_contracts
+      WHERE motorcycle_id = ?
+        AND status = 'active'
+        AND date(contract_end_date) >= date('now')
+      LIMIT 1
+    `).bind(m.id).first()
+    
+    if (businessContract) {
+      return {
+        ...m,
+        ...businessContract
+      }
+    }
+    
+    // 3. 계약 없음
+    return m
+  }))
+  
+  return c.json(enrichedMotorcycles)
 })
 
 // 공개 API: 고객 계약서 작성용 오토바이 목록 (인증 불필요)

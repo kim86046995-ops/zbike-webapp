@@ -632,8 +632,18 @@
             
             try {
                 const response = await axios.get('/api/motorcycles');
-                motorcycles = response.data;
-                console.log('✅ 오토바이 데이터 수신:', motorcycles.length, '대');
+                let rawData = response.data;
+                console.log('✅ 오토바이 데이터 수신:', rawData.length, '대');
+                
+                // 중복 제거: 같은 ID를 가진 오토바이는 하나만 유지
+                const uniqueMap = new Map();
+                rawData.forEach(m => {
+                    if (!uniqueMap.has(m.id)) {
+                        uniqueMap.set(m.id, m);
+                    }
+                });
+                motorcycles = Array.from(uniqueMap.values());
+                console.log('✅ 중복 제거 완료:', motorcycles.length, '대 (제거된 중복:', rawData.length - motorcycles.length, '개)');
                 
                 // 캐시에 저장
                 sessionStorage.setItem(cacheKey, JSON.stringify(motorcycles));
@@ -1690,14 +1700,30 @@
                 try {
                     const activeContract = contractResponse.data.find(c => c.status === 'active');
                     
+                    console.log('📋 활성 계약 정보:', activeContract);
+                    
                     if (activeContract) {
+                        // 계약 타입 변환
+                        let contractTypeText = '';
+                        if (activeContract.contract_type === 'lease') {
+                            contractTypeText = '리스';
+                        } else if (activeContract.contract_type === 'rent') {
+                            contractTypeText = '렌트';
+                        } else if (activeContract.contract_type === 'temp_rent') {
+                            contractTypeText = '임시렌트';
+                        } else if (activeContract.contract_type === 'business') {
+                            contractTypeText = '업체';
+                        } else {
+                            contractTypeText = activeContract.contract_type || '';
+                        }
+                        
                         document.getElementById('monthlyFee').value = activeContract.monthly_fee || '';
-                        document.getElementById('contractType').value = activeContract.contract_type === 'personal' ? '개인' : 
-                                                                         activeContract.contract_type === 'business' ? '업체' : 
-                                                                         activeContract.contract_type === 'temp_rent' ? '임시렌트' : '';
+                        document.getElementById('contractType').value = contractTypeText;
                         document.getElementById('deposit').value = activeContract.deposit || '';
                         document.getElementById('contractStartDate').value = activeContract.start_date || '';
                         document.getElementById('contractEndDate').value = activeContract.end_date || '';
+                        
+                        console.log('✅ 계약 종류:', contractTypeText);
                         
                         // 보험 정보도 계약서에서 가져오기
                         document.getElementById('insuranceCompany').value = activeContract.insurance_company || m.insurance_company || '';
@@ -1706,16 +1732,20 @@
                         document.getElementById('insuranceEndDate').value = activeContract.insurance_end_date || m.insurance_end_date || '';
                         document.getElementById('drivingRange').value = activeContract.driving_range || m.driving_range || '';
                     } else {
+                        console.log('⚠️ 개인 계약 없음, 업체 계약 확인 중...');
                         // 업체 계약 조회
                         const businessResponse = await axios.get('/api/business-contracts');
                         const activeBusiness = businessResponse.data.find(bc => bc.motorcycle_id === id && bc.status === 'active');
                         
                         if (activeBusiness) {
+                            console.log('📋 업체 계약 발견:', activeBusiness);
                             document.getElementById('monthlyFee').value = activeBusiness.daily_amount || '';
                             document.getElementById('contractType').value = '업체';
                             document.getElementById('deposit').value = activeBusiness.deposit || '';
                             document.getElementById('contractStartDate').value = activeBusiness.contract_start_date || '';
                             document.getElementById('contractEndDate').value = activeBusiness.contract_end_date || '';
+                            
+                            console.log('✅ 업체 계약 정보 로드 완료');
                             
                             // 보험 정보
                             document.getElementById('insuranceCompany').value = m.insurance_company || '';
