@@ -1063,7 +1063,11 @@
             }
             
             function stopDrawing() {
-                isDrawing = false;
+                if (isDrawing) {
+                    isDrawing = false;
+                    // 서명이 끝났을 때 버튼 상태 업데이트
+                    updateSubmitButton();
+                }
             }
         }
 
