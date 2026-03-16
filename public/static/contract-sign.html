@@ -1212,6 +1212,14 @@
             const hasSignature = imageData.data.some(channel => channel !== 0);
             const hasIdCard = idCardPhoto !== null && idCardPhoto !== '';
             
+            // 디버깅 로그
+            console.log('🔍 버튼 상태 체크:', {
+                agreeChecked,
+                hasSignature,
+                hasIdCard,
+                idCardPhotoLength: idCardPhoto ? idCardPhoto.length : 0
+            });
+            
             // 체크리스트 표시 업데이트
             const checkAgree = document.getElementById('checkAgree');
             const checkSignature = document.getElementById('checkSignature');

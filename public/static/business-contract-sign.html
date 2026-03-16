@@ -1056,6 +1056,12 @@
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const hasSignature = imageData.data.some(channel => channel !== 0);
             
+            // 디버깅 로그
+            console.log('🔍 버튼 상태 체크 (업체):', {
+                agreeChecked,
+                hasSignature
+            });
+            
             // 체크리스트 표시 업데이트
             const checkAgree = document.getElementById('checkAgree');
             const checkSignature = document.getElementById('checkSignature');
