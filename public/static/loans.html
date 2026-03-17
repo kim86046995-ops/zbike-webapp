@@ -623,8 +623,8 @@
             let statusText = '';
             let statusColorClass = statusColors[actualStatus];
             if (actualStatus === 'active') {
-                // 서명 데이터가 없으면 "서명대기", 있으면 "진행중"
-                if (!loan.signature_data || loan.signature_data === '') {
+                // borrower_signature 필드로 확인 (차용증 테이블)
+                if (!loan.borrower_signature || loan.borrower_signature === '') {
                     statusText = '서명대기';
                     statusColorClass = 'text-blue-600';
                 } else {
