@@ -173,6 +173,7 @@
                         </label>
                         <select id="sortOrder" onchange="filterAndSortMotorcycles()" class="w-full px-3 py-2 border rounded-lg">
                             <option value="insurance_exp" selected>보험 만료일순</option>
+                            <option value="contract_exp">계약 만료일순</option>
                             <option value="created_desc">입력순 (최신)</option>
                             <option value="created_asc">입력순 (오래된)</option>
                             <option value="plate_asc">번호 빠른순</option>
@@ -576,6 +577,13 @@
                     } else {
                         statusFilterElement.value = statusParam;
                     }
+                    
+                    // 사용중(rented) 상태일 때 자동으로 "계약 만료일순" 정렬 설정
+                    if (statusParam === 'rented') {
+                        const sortOrderElement = document.getElementById('sortOrder');
+                        sortOrderElement.value = 'contract_exp';
+                        console.log('✅ 사용중 상태 - 계약 만료일순으로 자동 정렬');
+                    }
                 }
                 
                 console.log('📋 오토바이 목록 로딩 시작...');
@@ -773,6 +781,11 @@
                         const aInspection = a.inspection_end_date || '9999-12-31';
                         const bInspection = b.inspection_end_date || '9999-12-31';
                         return aInspection.localeCompare(bInspection);
+                    case 'contract_exp':
+                        // 계약 만료일이 가까운 순 (계약 없으면 맨 뒤로)
+                        const aContract = a.end_date || '9999-12-31';
+                        const bContract = b.end_date || '9999-12-31';
+                        return aContract.localeCompare(bContract);
                     default:
                         return b.id - a.id;
                 }
