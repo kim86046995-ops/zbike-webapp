@@ -1527,11 +1527,10 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
           deposit = NULL,
           contract_start_date = NULL,
           contract_end_date = NULL,
-          owner_name = '',
           updated_at = datetime("now") 
       WHERE id = ?
     `).bind(status, id).run()
-    console.log(`✅ Contract info cleared for motorcycle #${id} (basic info and insurance info preserved)`)
+    console.log(`✅ Contract info cleared for motorcycle #${id} (basic info, insurance info, and owner_name preserved)`)
     
     // 이력 기록: 상태 변경
     if (existing.status !== status) {
