@@ -839,6 +839,7 @@ app.post('/api/auth/reset-password', async (c) => {
 app.get('/api/motorcycles', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const status = c.req.query('status')
+  const search = c.req.query('search')
   
   // 기본 오토바이 목록 조회
   let motorcyclesQuery = `SELECT * FROM motorcycles`
@@ -859,7 +860,37 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
     ? await DB.prepare(motorcyclesQuery).bind(status).all()
     : await DB.prepare(motorcyclesQuery).all()
   
-  const motorcycles = motorcyclesResult.results || []
+  let motorcycles = motorcyclesResult.results || []
+  
+  // 검색어가 있고 결과가 없으면 폐지 전 번호판으로 검색
+  if (search && motorcycles.length === 0) {
+    console.log(`🔍 Searching for old plate number: ${search}`)
+    
+    // motorcycle_history에서 폐지 전 번호판(old_value) 검색
+    const historyResult = await DB.prepare(`
+      SELECT DISTINCT motorcycle_id, chassis_number
+      FROM motorcycle_history
+      WHERE change_type = 'scrapped'
+        AND old_value LIKE ?
+      ORDER BY change_date DESC
+      LIMIT 1
+    `).bind(`%${search}%`).first()
+    
+    if (historyResult) {
+      console.log(`✅ Found old plate in history: motorcycle_id=${historyResult.motorcycle_id}, chassis=${historyResult.chassis_number}`)
+      
+      // 해당 차대번호로 현재 오토바이 조회 (번호판이 변경되었을 수 있음)
+      const currentMotorcycle = await DB.prepare(`
+        SELECT * FROM motorcycles 
+        WHERE chassis_number = ?
+      `).bind(historyResult.chassis_number).first()
+      
+      if (currentMotorcycle) {
+        console.log(`✅ Found current motorcycle with chassis ${historyResult.chassis_number}, current plate: ${currentMotorcycle.plate_number}`)
+        motorcycles = [currentMotorcycle]
+      }
+    }
+  }
   
   // 각 오토바이에 대해 활성 계약 정보 조회 (개인 계약 우선)
   const enrichedMotorcycles = await Promise.all(motorcycles.map(async (m: any) => {

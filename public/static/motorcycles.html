@@ -698,7 +698,7 @@
         }
 
         // 통계 카드 업데이트
-        function filterAndSortMotorcycles() {
+        async function filterAndSortMotorcycles() {
             // 검색어
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             
@@ -748,6 +748,53 @@
                 
                 return true;
             });
+            
+            // 검색어가 있고 결과가 없으면 폐지 전 번호로 API 재검색
+            if (searchTerm && filtered.length === 0) {
+                console.log('🔍 검색 결과 없음 - 폐지 전 번호로 재검색:', searchTerm);
+                try {
+                    const response = await axios.get(`/api/motorcycles?search=${encodeURIComponent(searchTerm)}`);
+                    const searchResults = response.data;
+                    
+                    if (searchResults && searchResults.length > 0) {
+                        console.log('✅ 폐지 전 번호로 찾음:', searchResults[0].plate_number);
+                        
+                        // 검색 결과를 전역 motorcycles 배열에 추가 (중복 방지)
+                        const existingIds = new Set(motorcycles.map(m => m.id));
+                        searchResults.forEach(m => {
+                            if (!existingIds.has(m.id)) {
+                                motorcycles.push(m);
+                                motorcycleContracts[m.id] = m.customer_name || '';
+                            }
+                        });
+                        
+                        // 캐시 업데이트
+                        sessionStorage.setItem('motorcycles_cache', JSON.stringify(motorcycles));
+                        
+                        // 필터링 재실행 (이제 결과가 있을 것)
+                        filtered = motorcycles.filter(m => {
+                            if (statusFilter) {
+                                if (statusFilter === 'maintenance') {
+                                    if (m.status !== 'maintenance' && m.status !== 'scrapped') return false;
+                                } else if (statusFilter === 'rented') {
+                                    if (!m.customer_name) return false;
+                                } else if (m.status !== statusFilter) {
+                                    return false;
+                                }
+                            }
+                            
+                            // 재검색 결과는 무조건 포함
+                            return searchResults.some(sr => sr.id === m.id);
+                        });
+                        
+                        console.log('✅ 폐지 전 번호 검색 결과:', filtered.length, '대');
+                    } else {
+                        console.log('❌ 폐지 전 번호로도 결과 없음');
+                    }
+                } catch (error) {
+                    console.error('❌ 폐지 전 번호 검색 실패:', error);
+                }
+            }
             
             // 정렬
             filtered.sort((a, b) => {
