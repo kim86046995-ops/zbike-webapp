@@ -919,11 +919,11 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
     }
   }
   
-  // 기본 오토바이 목록 조회
-  let motorcyclesQuery = `SELECT * FROM motorcycles`
+  // 기본 오토바이 목록 조회 (삭제된 것 제외)
+  let motorcyclesQuery = `SELECT * FROM motorcycles WHERE (status != 'deleted' OR status IS NULL)`
   
   if (status) {
-    motorcyclesQuery += ` WHERE status = ?`
+    motorcyclesQuery += ` AND status = ?`
   }
   
   motorcyclesQuery += ` ORDER BY 
