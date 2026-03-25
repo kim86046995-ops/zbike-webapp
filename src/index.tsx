@@ -841,30 +841,9 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
   const status = c.req.query('status')
   const search = c.req.query('search')
   
-  // 기본 오토바이 목록 조회
-  let motorcyclesQuery = `SELECT * FROM motorcycles`
-  
-  if (status) {
-    motorcyclesQuery += ` WHERE status = ?`
-  }
-  
-  motorcyclesQuery += ` ORDER BY 
-    CASE 
-      WHEN insurance_end_date IS NULL THEN 1 
-      ELSE 0 
-    END,
-    insurance_end_date ASC,
-    created_at DESC`
-  
-  const motorcyclesResult = status 
-    ? await DB.prepare(motorcyclesQuery).bind(status).all()
-    : await DB.prepare(motorcyclesQuery).all()
-  
-  let motorcycles = motorcyclesResult.results || []
-  
-  // 검색어가 있고 결과가 없으면 폐지 전 번호판으로 검색
-  if (search && motorcycles.length === 0) {
-    console.log(`🔍 Searching for old plate number: ${search}`)
+  // 검색어가 있으면 이력에서 폐지 전 번호판 먼저 확인
+  if (search) {
+    console.log(`🔍 Searching for old plate number in history: ${search}`)
     
     // motorcycle_history에서 폐지 전 번호판(old_value) 검색
     const historyResult = await DB.prepare(`
@@ -887,10 +866,78 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
       
       if (currentMotorcycle) {
         console.log(`✅ Found current motorcycle with chassis ${historyResult.chassis_number}, current plate: ${currentMotorcycle.plate_number}`)
-        motorcycles = [currentMotorcycle]
+        
+        // 계약 정보 추가
+        const personalContract = await DB.prepare(`
+          SELECT 
+            c.id as contract_id,
+            c.contract_type,
+            c.status as contract_status,
+            cu.name as customer_name,
+            c.start_date,
+            c.end_date
+          FROM contracts c
+          LEFT JOIN customers cu ON c.customer_id = cu.id
+          WHERE c.motorcycle_id = ?
+            AND c.status = 'active'
+            AND date(c.end_date) >= date('now')
+          LIMIT 1
+        `).bind(currentMotorcycle.id).first()
+        
+        if (personalContract) {
+          return c.json([{
+            ...currentMotorcycle,
+            ...personalContract
+          }])
+        }
+        
+        const businessContract = await DB.prepare(`
+          SELECT 
+            id as contract_id,
+            'business' as contract_type,
+            status as contract_status,
+            company_name as customer_name,
+            contract_start_date as start_date,
+            contract_end_date as end_date
+          FROM business_contracts
+          WHERE motorcycle_id = ?
+            AND status = 'active'
+            AND date(contract_end_date) >= date('now')
+          LIMIT 1
+        `).bind(currentMotorcycle.id).first()
+        
+        if (businessContract) {
+          return c.json([{
+            ...currentMotorcycle,
+            ...businessContract
+          }])
+        }
+        
+        return c.json([currentMotorcycle])
       }
     }
   }
+  
+  // 기본 오토바이 목록 조회
+  let motorcyclesQuery = `SELECT * FROM motorcycles`
+  
+  if (status) {
+    motorcyclesQuery += ` WHERE status = ?`
+  }
+  
+  motorcyclesQuery += ` ORDER BY 
+    CASE 
+      WHEN insurance_end_date IS NULL THEN 1 
+      ELSE 0 
+    END,
+    insurance_end_date ASC,
+    created_at DESC`
+  
+  const motorcyclesResult = status 
+    ? await DB.prepare(motorcyclesQuery).bind(status).all()
+    : await DB.prepare(motorcyclesQuery).all()
+  
+  const motorcycles = motorcyclesResult.results || []
   
   // 각 오토바이에 대해 활성 계약 정보 조회 (개인 계약 우선)
   const enrichedMotorcycles = await Promise.all(motorcycles.map(async (m: any) => {
