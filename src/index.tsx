@@ -845,23 +845,24 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
   if (search) {
     console.log(`🔍 Searching for old plate number in history: ${search}`)
     
-    // motorcycle_history에서 폐지 전 번호판(old_value) 검색
+    // motorcycle_history에서 폐지/삭제 전 번호판(old_value) 검색
     const historyResult = await DB.prepare(`
       SELECT DISTINCT motorcycle_id, chassis_number
       FROM motorcycle_history
-      WHERE change_type = 'scrapped'
-        AND old_value LIKE ?
+      WHERE (change_type = 'scrapped' OR change_type = 'delete')
+        AND (old_value LIKE ? OR notes LIKE ?)
       ORDER BY change_date DESC
       LIMIT 1
-    `).bind(`%${search}%`).first()
+    `).bind(`%${search}%`, `%${search}%`).first()
     
     if (historyResult) {
       console.log(`✅ Found old plate in history: motorcycle_id=${historyResult.motorcycle_id}, chassis=${historyResult.chassis_number}`)
       
-      // 해당 차대번호로 현재 오토바이 조회 (번호판이 변경되었을 수 있음)
+      // 해당 차대번호로 현재 오토바이 조회 (번호판이 변경되었을 수 있음, 삭제되지 않은 것만)
       const currentMotorcycle = await DB.prepare(`
         SELECT * FROM motorcycles 
         WHERE chassis_number = ?
+          AND (status != 'deleted' OR status IS NULL)
       `).bind(historyResult.chassis_number).first()
       
       if (currentMotorcycle) {
