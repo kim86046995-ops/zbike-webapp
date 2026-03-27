@@ -3362,8 +3362,15 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   const id = c.req.param('id')
   const { status } = await c.req.json()
   
-  // 계약서 정보 조회
-  const contract = await DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first()
+  // 개인 계약서 정보 조회
+  let contract = await DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first()
+  let isBusinessContract = false
+  
+  // 개인 계약이 없으면 업체 계약 조회
+  if (!contract) {
+    contract = await DB.prepare('SELECT * FROM business_contracts WHERE id = ?').bind(id).first()
+    isBusinessContract = true
+  }
   
   if (!contract) {
     return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
@@ -3375,14 +3382,17 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   // 계약서 상태 업데이트 (기록은 보존)
   // 해지/완료 시 종료일을 오늘 날짜로 자동 설정
   const today = new Date().toISOString().split('T')[0]
-  let endDate = oldContract.end_date
+  let endDate = isBusinessContract ? oldContract.contract_end_date : oldContract.end_date
   
   if (status === 'completed' || status === 'cancelled') {
     endDate = today
     const dateField = status === 'cancelled' ? 'cancelled_at' : 'completed_at'
-    await DB.prepare(`UPDATE contracts SET status = ?, end_date = ?, ${dateField} = ?, updated_at = datetime("now") WHERE id = ?`)
+    const tableName = isBusinessContract ? 'business_contracts' : 'contracts'
+    const endDateField = isBusinessContract ? 'contract_end_date' : 'end_date'
+    
+    await DB.prepare(`UPDATE ${tableName} SET status = ?, ${endDateField} = ?, ${dateField} = ?, updated_at = datetime("now") WHERE id = ?`)
       .bind(status, today, today, id).run()
-    console.log(`📅 Contract #${id} ${status} - end_date and ${dateField} set to ${today}`)
+    console.log(`📅 ${isBusinessContract ? 'Business ' : ''}Contract #${id} ${status} - ${endDateField} and ${dateField} set to ${today}`)
     
     // 이력 기록: 계약 해지/완료
     await recordContractHistory(
@@ -3403,27 +3413,30 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
       status === 'cancelled' ? '수동 해지' : '계약 완료'
     )
   } else {
-    await DB.prepare('UPDATE contracts SET status = ?, updated_at = datetime("now") WHERE id = ?')
+    const tableName = isBusinessContract ? 'business_contracts' : 'contracts'
+    await DB.prepare(`UPDATE ${tableName} SET status = ?, updated_at = datetime("now") WHERE id = ?`)
       .bind(status, id).run()
       
-    // 이력 기록: 상태 변경
-    await recordContractHistory(
-      DB,
-      Number(id),
-      oldContract.motorcycle_id,
-      oldContract.customer_id,
-      oldContract.contract_number,
-      oldContract.contract_type,
-      'updated',
-      oldStatus,
-      status,
-      oldContract.start_date,
-      endDate,
-      oldContract.monthly_fee,
-      oldContract.deposit,
-      oldContract.special_terms,
-      `상태 변경: ${oldStatus} → ${status}`
-    )
+    // 이력 기록: 상태 변경 (개인 계약만, 업체 계약은 별도 처리)
+    if (!isBusinessContract) {
+      await recordContractHistory(
+        DB,
+        Number(id),
+        oldContract.motorcycle_id,
+        oldContract.customer_id,
+        oldContract.contract_number,
+        oldContract.contract_type,
+        'updated',
+        oldStatus,
+        status,
+        oldContract.start_date,
+        endDate,
+        oldContract.monthly_fee,
+        oldContract.deposit,
+        oldContract.special_terms,
+        `상태 변경: ${oldStatus} → ${status}`
+      )
+    }
   }
   
   // 계약 해지/완료시 처리
@@ -3434,7 +3447,7 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
     await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
       .bind('available', motorcycleId).run()
     
-    // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지)
+    // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지, owner_name도 유지)
     await DB.prepare(`
       UPDATE motorcycles 
       SET monthly_fee = NULL,
@@ -3442,12 +3455,11 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
           deposit = NULL,
           contract_start_date = NULL,
           contract_end_date = NULL,
-          owner_name = '',
           updated_at = datetime("now") 
       WHERE id = ?
     `).bind(motorcycleId).run()
     
-    console.log(`✅ Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic and insurance info preserved)`)
+    console.log(`✅ ${isBusinessContract ? 'Business ' : ''}Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic info, insurance info, and owner_name preserved)`)
     
     // ⭐ SMS 전송 (계약 해지 알림)
     try {
