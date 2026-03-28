@@ -53,29 +53,6 @@ app.get('/', (c) => {
   return c.redirect('/static/login.html')
 })
 
-// 캐시 무효화 미들웨어 (모든 응답)
-app.use('*', async (c, next) => {
-  await next()
-  
-  // 모든 응답에 캐시 무효화 헤더 추가 (HTML, JS, CSS 포함)
-  c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
-  c.res.headers.set('Pragma', 'no-cache')
-  c.res.headers.set('Expires', '0')
-})
-
-// 정적 파일 서빙 (Cloudflare Pages ASSETS 바인딩 사용)
-app.use('/static/*', async (c, next) => {
-  // ASSETS 바인딩을 통해 정적 파일 서빙
-  const url = new URL(c.req.url)
-  const response = await c.env.ASSETS.fetch(url)
-  
-  if (response.status === 404) {
-    return next()
-  }
-  
-  return response
-})
-
 // ============================================
 // 인증 헬퍼 함수
 // ============================================

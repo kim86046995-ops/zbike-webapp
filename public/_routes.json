@@ -1,12 +1,5 @@
 {
   "version": 1,
-  "include": ["/*"],
-  "exclude": [
-    "/_headers",
-    "/backups/*",
-    "/favicon.ico",
-    "/favicon.svg",
-    "/og-image.html",
-    "/og-image.png"
-  ]
+  "include": ["/api/*"],
+  "exclude": ["*"]
 }
