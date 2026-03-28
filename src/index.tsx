@@ -50,7 +50,7 @@ app.use('*', cors({
 // 루트 경로 - 로그인 페이지로 리다이렉트
 // ============================================
 app.get('/', (c) => {
-  return c.redirect('/static/login.html')
+  return c.redirect('/static/login')  // Cloudflare Pages clean URLs: .html 확장자 제거
 })
 
 // ============================================
