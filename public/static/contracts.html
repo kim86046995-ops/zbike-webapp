@@ -712,13 +712,11 @@
             
             filteredContracts = contracts;
             console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
-            filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
+            console.log('📊 filteredContracts 설정 완료:', filteredContracts.length, '건');
             
-            // 로딩 스피너 제거
-            const loadingElement = document.querySelector('#contractList .text-center.py-12');
-            if (loadingElement && loadingElement.textContent.includes('로딩 중')) {
-                loadingElement.remove();
-            }
+            // filterContracts() 호출 전에 먼저 렌더링 확인
+            filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
+            console.log('✅ filterContracts() 호출 완료');
         }
         
         // 백그라운드에서 계약 목록 업데이트 (조용히)
@@ -892,9 +890,11 @@
         }
 
         function renderContracts() {
+            console.log('🎨 renderContracts() 시작, filteredContracts:', filteredContracts.length, '건');
             const listEl = document.getElementById('contractList');
             
             if (filteredContracts.length === 0) {
+                console.log('📭 계약서 없음 - 빈 상태 UI 표시');
                 listEl.innerHTML = `
                     <div class="text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
@@ -906,6 +906,8 @@
                 `;
                 return;
             }
+            
+            console.log('✅ 계약서 목록 렌더링 시작...');
 
             listEl.innerHTML = filteredContracts.map(c => {
                 const typeColors = {
@@ -1058,6 +1060,8 @@
                     </div>
                 `;
             }).join('');
+            
+            console.log('✅ renderContracts() 완료 - ', filteredContracts.length, '건 렌더링됨');
         }
 
         async function showDetail(contractType, id) {
