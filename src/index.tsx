@@ -2609,7 +2609,7 @@ app.get('/api/contracts/:id/sign', async (c) => {
     FROM contracts c
     JOIN motorcycles m ON c.motorcycle_id = m.id
     LEFT JOIN customers cu ON c.customer_id = cu.id
-    WHERE c.id = ?
+    WHERE c.id = ? AND c.deleted_at IS NULL
   `).bind(id).first()
   
   if (!result) {
@@ -4093,7 +4093,7 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
       m.insurance_company, m.insurance_start_date, m.insurance_end_date
     FROM business_contracts bc
     JOIN motorcycles m ON bc.motorcycle_id = m.id
-    WHERE bc.id = ?
+    WHERE bc.id = ? AND bc.deleted_at IS NULL
   `).bind(id).first()
   
   if (!result) {
@@ -7790,7 +7790,7 @@ app.get('/api/work-contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  const result = await DB.prepare('SELECT * FROM work_contracts WHERE id = ?').bind(id).first()
+  const result = await DB.prepare('SELECT * FROM work_contracts WHERE id = ? AND deleted_at IS NULL').bind(id).first()
   
   if (!result) {
     return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
