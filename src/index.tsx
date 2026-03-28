@@ -6982,6 +6982,79 @@ app.post('/api/upload/id-card', async (c) => {
   }
 })
 
+// 일반 파일 업로드 (오토바이 사진 등) (R2 Storage)
+app.post('/api/upload', async (c) => {
+  const R2 = c.env.R2_ID_CARDS
+  
+  if (!R2) {
+    return c.json({ error: 'R2 storage not configured' }, 500)
+  }
+  
+  try {
+    const formData = await c.req.formData()
+    const file = formData.get('file') as File
+    
+    if (!file) {
+      return c.json({ error: '파일이 없습니다.' }, 400)
+    }
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+      return c.json({ error: '이미지 파일만 업로드 가능합니다.' }, 400)
+    }
+    
+    // 파일 크기 검증 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+      return c.json({ error: '파일 크기는 10MB 이하여야 합니다.' }, 400)
+    }
+    
+    // 파일을 ArrayBuffer로 변환
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = new Uint8Array(arrayBuffer)
+    
+    // 파일 확장자 추출
+    const ext = file.name.split('.').pop() || 'jpg'
+    
+    // 파일명 생성 (타임스탬프 + 랜덤)
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    const fileName = `motorcycle-photos/${timestamp}-${random}.${ext}`
+    
+    console.log('📤 R2에 파일 업로드:', {
+      fileName,
+      originalName: file.name,
+      type: file.type,
+      size: file.size,
+      sizeKB: (file.size / 1024).toFixed(2) + 'KB'
+    })
+    
+    // R2에 업로드
+    await R2.put(fileName, buffer, {
+      httpMetadata: {
+        contentType: file.type
+      }
+    })
+    
+    // Workers를 통한 공개 URL 생성
+    const justFileName = fileName.replace('motorcycle-photos/', '')
+    const publicUrl = `/api/r2/motorcycle-photos/${justFileName}`
+    
+    console.log('✅ R2 업로드 성공:', publicUrl)
+    
+    return c.json({
+      success: true,
+      url: publicUrl,
+      fileName: fileName
+    })
+  } catch (error) {
+    console.error('❌ R2 업로드 실패:', error)
+    return c.json({ 
+      error: '파일 업로드 중 오류가 발생했습니다.',
+      details: error.message 
+    }, 500)
+  }
+})
+
 // 업체 등록
 app.post('/api/companies', async (c) => {
   const DB = c.env.DB || c.env.db
@@ -7439,6 +7512,42 @@ app.get('/api/r2/id-cards/:fileName', async (c) => {
     })
   } catch (error) {
     console.error('❌ R2 이미지 로드 실패:', error)
+    return c.json({ error: '이미지를 불러올 수 없습니다.' }, 500)
+  }
+})
+
+// R2 오토바이 사진 서빙 (공개 접근)
+app.get('/api/r2/motorcycle-photos/:fileName', async (c) => {
+  const R2 = c.env.R2_ID_CARDS
+  
+  if (!R2) {
+    return c.json({ error: 'R2 storage not configured' }, 500)
+  }
+  
+  try {
+    const fileName = c.req.param('fileName')
+    const fullPath = `motorcycle-photos/${fileName}`
+    
+    console.log('📥 R2 오토바이 사진 요청:', fullPath)
+    
+    const object = await R2.get(fullPath)
+    
+    if (!object) {
+      console.error('❌ R2에서 오토바이 사진을 찾을 수 없음:', fullPath)
+      return c.notFound()
+    }
+    
+    console.log('✅ R2 오토바이 사진 로드 성공:', fullPath)
+    
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000', // 1년 캐시
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
+  } catch (error) {
+    console.error('❌ R2 오토바이 사진 로드 실패:', error)
     return c.json({ error: '이미지를 불러올 수 없습니다.' }, 500)
   }
 })
