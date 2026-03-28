@@ -713,6 +713,12 @@
             filteredContracts = contracts;
             console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
             filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
+            
+            // 로딩 스피너 제거
+            const loadingElement = document.querySelector('#contractList .text-center.py-12');
+            if (loadingElement && loadingElement.textContent.includes('로딩 중')) {
+                loadingElement.remove();
+            }
         }
         
         // 백그라운드에서 계약 목록 업데이트 (조용히)
