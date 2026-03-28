@@ -1682,8 +1682,26 @@
             const modal = document.getElementById('imageModal');
             modal.classList.remove('hidden');
             
-            // 배경 클릭 시 닫기
+            // 닫기 버튼 이벤트 (모바일 터치 + 클릭)
+            const closeBtn = document.getElementById('closeModalBtn');
+            closeBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeImageModal();
+            };
+            closeBtn.ontouchend = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeImageModal();
+            };
+            
+            // 배경 클릭/터치 시 닫기
             modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeImageModal();
+                }
+            };
+            modal.ontouchend = function(e) {
                 if (e.target === modal) {
                     closeImageModal();
                 }
@@ -1740,6 +1758,15 @@
                         }
                     }
                 });
+                
+                // Swiper 컨테이너 클릭/터치 이벤트 전파 막기
+                const swiperContainer = document.getElementById('swiperContainer');
+                swiperContainer.onclick = function(e) {
+                    e.stopPropagation();
+                };
+                swiperContainer.ontouchend = function(e) {
+                    e.stopPropagation();
+                };
                 
                 console.log('✅ Swiper 갤러리 초기화 완료');
             }, 100);
@@ -2746,13 +2773,19 @@
     <!-- 이미지 확대 모달 -->
     <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-95 hidden z-[9999]">
         <div class="relative w-full h-full flex items-center justify-center p-4">
-            <!-- 닫기 버튼 -->
-            <button onclick="closeImageModal(); event.stopPropagation();" class="absolute top-4 right-4 text-white hover:text-gray-300 text-4xl z-[10000]">
+            <!-- 닫기 버튼 (모바일 친화적) -->
+            <button 
+                id="closeModalBtn"
+                class="absolute top-2 right-2 md:top-4 md:right-4 text-white hover:text-gray-300 z-[10000] 
+                       bg-black bg-opacity-50 rounded-full w-12 h-12 md:w-14 md:h-14 
+                       flex items-center justify-center text-2xl md:text-4xl
+                       active:bg-opacity-70 transition-all"
+                style="touch-action: manipulation;">
                 <i class="fas fa-times"></i>
             </button>
             
             <!-- Swiper 갤러리 -->
-            <div class="w-full h-full max-w-6xl max-h-screen" onclick="event.stopPropagation()">
+            <div class="w-full h-full max-w-6xl max-h-screen" id="swiperContainer">
                 <div class="swiper modalSwiper h-full">
                     <div class="swiper-wrapper" id="modalSwiperWrapper"></div>
                     
