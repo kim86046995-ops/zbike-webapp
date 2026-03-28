@@ -7,6 +7,7 @@ type Bindings = {
   DB: D1Database;
   db: D1Database;
   R2_ID_CARDS: R2Bucket;
+  ASSETS: Fetcher;
   SMS_ENABLED?: string;
   SMS_AWS_LAMBDA_URL?: string;
   SMS_AWS_API_KEY?: string;
@@ -62,8 +63,18 @@ app.use('*', async (c, next) => {
   c.res.headers.set('Expires', '0')
 })
 
-// 정적 파일 서빙 (Cloudflare Pages는 public/ 폴더를 자동으로 매핑)
-app.use('/static/*', serveStatic())
+// 정적 파일 서빙 (Cloudflare Pages ASSETS 바인딩 사용)
+app.use('/static/*', async (c, next) => {
+  // ASSETS 바인딩을 통해 정적 파일 서빙
+  const url = new URL(c.req.url)
+  const response = await c.env.ASSETS.fetch(url)
+  
+  if (response.status === 404) {
+    return next()
+  }
+  
+  return response
+})
 
 // ============================================
 // 인증 헬퍼 함수
