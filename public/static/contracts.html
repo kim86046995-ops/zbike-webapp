@@ -1682,26 +1682,8 @@
             const modal = document.getElementById('imageModal');
             modal.classList.remove('hidden');
             
-            // 닫기 버튼 이벤트 (모바일 터치 + 클릭)
-            const closeBtn = document.getElementById('closeModalBtn');
-            closeBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                closeImageModal();
-            };
-            closeBtn.ontouchend = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                closeImageModal();
-            };
-            
             // 배경 클릭/터치 시 닫기
             modal.onclick = function(e) {
-                if (e.target === modal) {
-                    closeImageModal();
-                }
-            };
-            modal.ontouchend = function(e) {
                 if (e.target === modal) {
                     closeImageModal();
                 }
@@ -2775,12 +2757,12 @@
         <div class="relative w-full h-full flex items-center justify-center p-4">
             <!-- 닫기 버튼 (모바일 친화적) -->
             <button 
-                id="closeModalBtn"
+                onclick="closeImageModal(); return false;"
                 class="absolute top-2 right-2 md:top-4 md:right-4 text-white hover:text-gray-300 z-[10000] 
                        bg-black bg-opacity-50 rounded-full w-12 h-12 md:w-14 md:h-14 
                        flex items-center justify-center text-2xl md:text-4xl
                        active:bg-opacity-70 transition-all"
-                style="touch-action: manipulation;">
+                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
                 <i class="fas fa-times"></i>
             </button>
             
