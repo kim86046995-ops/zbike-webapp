@@ -1,0 +1,166 @@
+
+                <!-- 오토바이 출고 사진 업로드 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden mt-6">
+                    <div class="bg-blue-100 px-6 py-4 border-b-2 border-blue-300">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                            오토바이 출고 상태 사진 <span class="text-red-600">*</span>
+                        </h2>
+                        <p class="text-sm text-gray-600 mt-2">
+                            ⚠️ 반납 시 파손 여부 확인을 위해 출고 시 오토바이의 현재 상태를 촬영합니다<br>
+                            <strong>4장의 사진(앞, 뒤, 왼쪽, 오른쪽)을 모두 업로드해야 계약서가 완료됩니다</strong>
+                        </p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- 촬영 가이드 -->
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                            <h3 class="font-bold text-gray-800 mb-2">
+                                <i class="fas fa-info-circle text-yellow-600 mr-2"></i>촬영 가이드
+                            </h3>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li>✅ 번호판이 선명하게 보이도록 촬영해주세요</li>
+                                <li>✅ 밝은 곳에서 촬영해주세요 (실내조명 또는 자연광)</li>
+                                <li>✅ 오토바이 전체가 프레임 안에 들어오도록 촬영해주세요</li>
+                                <li>✅ 기존 파손 부위가 있다면 명확하게 보이도록 촬영해주세요</li>
+                            </ul>
+                        </div>
+
+                        <!-- 사진 업로드 그리드 (2x2) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 앞면 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-up text-blue-600 mr-2"></i>
+                                    앞면 (정면) <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="frontUploadBtn">
+                                    <input type="file" id="frontPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'front')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>앞면 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="frontPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="frontPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('front')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 뒷면 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-down text-blue-600 mr-2"></i>
+                                    뒷면 (후면) <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="backUploadBtn">
+                                    <input type="file" id="backPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'back')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>뒷면 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="backPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="backPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('back')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 왼쪽 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-left text-blue-600 mr-2"></i>
+                                    왼쪽 <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="leftUploadBtn">
+                                    <input type="file" id="leftPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'left')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>왼쪽 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="leftPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="leftPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('left')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 오른쪽 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-right text-blue-600 mr-2"></i>
+                                    오른쪽 <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="rightUploadBtn">
+                                    <input type="file" id="rightPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'right')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>오른쪽 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="rightPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="rightPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('right')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 업로드 진행 상태 -->
+                        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 class="font-bold text-gray-800 mb-2">
+                                <i class="fas fa-tasks text-blue-600 mr-2"></i>업로드 진행 상태
+                            </h3>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div id="frontPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>앞면
+                                </div>
+                                <div id="backPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>뒷면
+                                </div>
+                                <div id="leftPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>왼쪽
+                                </div>
+                                <div id="rightPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>오른쪽
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+

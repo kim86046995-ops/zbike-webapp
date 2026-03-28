@@ -2640,7 +2640,14 @@ app.get('/api/contracts/:id/sign', async (c) => {
 app.put('/api/contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { signature_data, id_card_photo } = await c.req.json()
+  const { 
+    signature_data, 
+    id_card_photo,
+    motorcycle_photo_front,
+    motorcycle_photo_back,
+    motorcycle_photo_left,
+    motorcycle_photo_right
+  } = await c.req.json()
   
   // 계약서 조회
   const contract = await DB.prepare(`
@@ -2658,9 +2665,25 @@ app.put('/api/contracts/:id/sign', async (c) => {
   // 서명 추가 및 상태 업데이트
   await DB.prepare(`
     UPDATE contracts 
-    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET signature_data = ?, 
+        id_card_photo = ?, 
+        motorcycle_photo_front = ?,
+        motorcycle_photo_back = ?,
+        motorcycle_photo_left = ?,
+        motorcycle_photo_right = ?,
+        motorcycle_photo_upload_date = datetime("now"),
+        status = 'active', 
+        updated_at = datetime("now")
     WHERE id = ?
-  `).bind(signature_data, id_card_photo || '', id).run()
+  `).bind(
+    signature_data, 
+    id_card_photo || '', 
+    motorcycle_photo_front || '',
+    motorcycle_photo_back || '',
+    motorcycle_photo_left || '',
+    motorcycle_photo_right || '',
+    id
+  ).run()
   
   // 오토바이 상태 업데이트
   await DB.prepare(`
@@ -4104,7 +4127,13 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
 app.put('/api/business-contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { signature_data } = await c.req.json()
+  const { 
+    signature_data,
+    motorcycle_photo_front,
+    motorcycle_photo_back,
+    motorcycle_photo_left,
+    motorcycle_photo_right
+  } = await c.req.json()
   
   // 계약서 조회 (업체 정보와 함께)
   const contract = await DB.prepare(`
@@ -4128,9 +4157,25 @@ app.put('/api/business-contracts/:id/sign', async (c) => {
   // 서명 추가 및 상태 업데이트
   await DB.prepare(`
     UPDATE business_contracts 
-    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET signature_data = ?, 
+        id_card_photo = ?, 
+        motorcycle_photo_front = ?,
+        motorcycle_photo_back = ?,
+        motorcycle_photo_left = ?,
+        motorcycle_photo_right = ?,
+        motorcycle_photo_upload_date = datetime("now"),
+        status = 'active', 
+        updated_at = datetime("now")
     WHERE id = ?
-  `).bind(signature_data, idCardPhoto, id).run()
+  `).bind(
+    signature_data, 
+    idCardPhoto, 
+    motorcycle_photo_front || '',
+    motorcycle_photo_back || '',
+    motorcycle_photo_left || '',
+    motorcycle_photo_right || '',
+    id
+  ).run()
   
   // 오토바이 상태 업데이트
   await DB.prepare(`
