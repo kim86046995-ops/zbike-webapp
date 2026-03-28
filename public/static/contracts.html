@@ -659,6 +659,73 @@
             }
         }
 
+        // API에서 계약 목록 로드
+        async function loadContractsFromAPI() {
+            const now = Date.now();
+            const cacheKey = 'contracts_cache';
+            const cacheTimeKey = 'contracts_cache_time';
+            
+            // 개인 계약서와 업체 계약서를 모두 불러오기
+            const [personalResponse, businessResponse] = await Promise.all([
+                axios.get('/api/contracts'),
+                axios.get('/api/business-contracts')
+            ]);
+            
+            // 개인 계약서 데이터 (원본 contract_type 유지)
+            const personalContracts = personalResponse.data.map(c => ({
+                ...c,
+                // contract_type은 원본 유지 (temp_rent, lease, rent 등)
+            }));
+            
+            // 업체 계약서 데이터
+            const businessContracts = businessResponse.data.map(c => ({
+                ...c,
+                contract_type: 'business',
+                customer_name: c.company_name,  // 업체명을 customer_name으로 매핑
+                plate_number: c.plate_number || ''  // 번호판 정보
+            }));
+            
+            // 두 목록을 합치고 생성일 기준 정렬
+            contracts = [...personalContracts, ...businessContracts].sort((a, b) => {
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+            
+            // 임시렌트 계약 개수 확인
+            const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
+            console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
+            
+            // 캐시에 저장 (quota 에러 처리)
+            try {
+                // 캐시 크기 줄이기: signature_data와 id_card_photo 같은 큰 데이터는 제외
+                const contractsForCache = contracts.map(c => {
+                    const { signature_data, id_card_photo, business_license_photo, motorcycle_photo_front, motorcycle_photo_back, motorcycle_photo_left, motorcycle_photo_right, ...rest } = c;
+                    return rest;
+                });
+                
+                sessionStorage.setItem(cacheKey, JSON.stringify(contractsForCache));
+                sessionStorage.setItem(cacheTimeKey, now.toString());
+                console.log('✅ 캐시 저장 완료:', contractsForCache.length, '건');
+            } catch (cacheError) {
+                console.warn('⚠️ 캐시 저장 실패 (quota 초과 가능):', cacheError.message);
+                // 캐시 저장 실패해도 계속 진행
+            }
+            
+            filteredContracts = contracts;
+            console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
+            filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
+        }
+        
+        // 백그라운드에서 계약 목록 업데이트 (조용히)
+        async function loadContractsInBackground() {
+            try {
+                await loadContractsFromAPI();
+                console.log('🔄 백그라운드 업데이트 완료');
+            } catch (error) {
+                console.warn('⚠️ 백그라운드 업데이트 실패 (무시):', error.message);
+                // 에러는 무시하고 캐시된 데이터 계속 사용
+            }
+        }
+
         // 캐시 클리어 함수
         function clearContractsCache() {
             sessionStorage.removeItem('contracts_cache');
@@ -680,8 +747,8 @@
                 const cacheTime = sessionStorage.getItem(cacheTimeKey);
                 const now = Date.now();
                 
-                // 캐시가 유효하면 즉시 표시
-                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
+                // 캐시가 유효하면 즉시 표시하고 백그라운드에서 업데이트
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000 && !forceRefresh) {
                     console.log('✅ 캐시된 계약서 데이터 즉시 표시');
                     contracts = JSON.parse(cachedData);
                     filteredContracts = contracts;
@@ -691,57 +758,16 @@
                     console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
                     
                     filterContracts();
+                    
+                    // 백그라운드에서 최신 데이터 로드 (조용히)
+                    console.log('🔄 백그라운드에서 최신 데이터 로드 시작...');
+                    loadContractsInBackground();
                     return;
                 }
                 
-                // 개인 계약서와 업체 계약서를 모두 불러오기
-                const [personalResponse, businessResponse] = await Promise.all([
-                    axios.get('/api/contracts'),
-                    axios.get('/api/business-contracts')
-                ]);
+                // 캐시가 없거나 만료된 경우에만 로딩 표시
+                await loadContractsFromAPI();
                 
-                // 개인 계약서 데이터 (원본 contract_type 유지)
-                const personalContracts = personalResponse.data.map(c => ({
-                    ...c,
-                    // contract_type은 원본 유지 (temp_rent, lease, rent 등)
-                }));
-                
-                // 업체 계약서 데이터
-                const businessContracts = businessResponse.data.map(c => ({
-                    ...c,
-                    contract_type: 'business',
-                    customer_name: c.company_name,  // 업체명을 customer_name으로 매핑
-                    plate_number: c.plate_number || ''  // 번호판 정보
-                }));
-                
-                // 두 목록을 합치고 생성일 기준 정렬
-                contracts = [...personalContracts, ...businessContracts].sort((a, b) => {
-                    return new Date(b.created_at) - new Date(a.created_at);
-                });
-                
-                // 임시렌트 계약 개수 확인
-                const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
-                console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
-                
-                // 캐시에 저장 (quota 에러 처리)
-                try {
-                    // 캐시 크기 줄이기: signature_data와 id_card_photo 같은 큰 데이터는 제외
-                    const contractsForCache = contracts.map(c => {
-                        const { signature_data, id_card_photo, business_license_photo, ...rest } = c;
-                        return rest;
-                    });
-                    
-                    sessionStorage.setItem(cacheKey, JSON.stringify(contractsForCache));
-                    sessionStorage.setItem(cacheTimeKey, now.toString());
-                    console.log('✅ 캐시 저장 완료:', contractsForCache.length, '건');
-                } catch (cacheError) {
-                    console.warn('⚠️ 캐시 저장 실패 (quota 초과 가능):', cacheError.message);
-                    // 캐시 저장 실패해도 계속 진행
-                }
-                
-                filteredContracts = contracts;
-                console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
-                filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
             } catch (error) {
                 console.error('Error loading contracts:', error);
                 console.error('Error details:', error.response?.data || error.message);
@@ -1030,15 +1056,48 @@
 
         async function showDetail(contractType, id) {
             console.log('🔍 상세보기 클릭:', { contractType, id });
+            
+            // 계약 상세 캐시 확인 (5분 유효)
+            const detailCacheKey = `contract_detail_${contractType}_${id}`;
+            const cachedDetail = sessionStorage.getItem(detailCacheKey);
+            const cacheTime = sessionStorage.getItem(`${detailCacheKey}_time`);
+            const now = Date.now();
+            
+            // 캐시가 있으면 즉시 표시
+            if (cachedDetail && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                console.log('✅ 캐시된 계약 상세 즉시 표시');
+                document.getElementById('detailModal').classList.remove('hidden');
+                currentContract = JSON.parse(cachedDetail);
+                renderDetail();
+                
+                // 진행중인 계약일 때만 해지 버튼 표시
+                const cancelBtn = document.getElementById('cancelContractBtn');
+                if (currentContract.status === 'active') {
+                    cancelBtn.style.display = 'block';
+                } else {
+                    cancelBtn.style.display = 'none';
+                }
+                
+                // active 상태인 계약서만 실시간 보험 정보 업데이트 시작
+                if (currentContract.status === 'active' && currentContract.motorcycle_id) {
+                    console.log('✅ [진행중 계약서] 실시간 보험 정보 업데이트 시작:', currentContract.contract_number);
+                    startInsuranceAutoUpdate();
+                }
+                
+                // 백그라운드에서 최신 데이터 로드
+                loadContractDetailInBackground(contractType, id, detailCacheKey);
+                return;
+            }
+            
             try {
-                // 즉시 모달 표시 (로딩 상태)
+                // 즉시 모달 표시 (간단한 로딩 상태)
+                document.getElementById('detailModal').classList.remove('hidden');
                 document.getElementById('contractDetail').innerHTML = `
-                    <div class="text-center py-12">
-                        <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
-                        <p class="text-gray-600 mt-4 text-lg">계약서를 불러오는 중...</p>
+                    <div class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p class="text-gray-600 mt-3 text-base">로딩중...</p>
                     </div>
                 `;
-                document.getElementById('detailModal').classList.remove('hidden');
                 
                 let response;
                 if (contractType === 'business') {
@@ -1052,8 +1111,17 @@
                 }
                 
                 console.log('✅ 계약서 데이터 로드 완료:', response.data);
-                console.log('🔍 고객 전화번호 확인:', response.data.customer_phone);
                 currentContract = response.data;
+                
+                // 캐시 저장
+                try {
+                    sessionStorage.setItem(detailCacheKey, JSON.stringify(currentContract));
+                    sessionStorage.setItem(`${detailCacheKey}_time`, now.toString());
+                    console.log('✅ 계약 상세 캐시 저장');
+                } catch (e) {
+                    console.warn('⚠️ 캐시 저장 실패:', e.message);
+                }
+                
                 renderDetail();
                 console.log('✅ 모달 표시 완료');
                 
@@ -1074,6 +1142,34 @@
                 console.error('❌ 계약서 로딩 실패:', error);
                 console.error('❌ 에러 상세:', error.response?.data);
                 alert('계약서 상세 정보를 불러오는데 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+        
+        // 백그라운드에서 계약 상세 업데이트
+        async function loadContractDetailInBackground(contractType, id, cacheKey) {
+            try {
+                let response;
+                if (contractType === 'business') {
+                    response = await axios.get(`/api/business-contracts/${id}`);
+                } else {
+                    response = await axios.get(`/api/contracts/${id}`);
+                }
+                
+                const now = Date.now();
+                const newData = response.data;
+                
+                // 데이터가 변경되었으면 업데이트
+                if (JSON.stringify(currentContract) !== JSON.stringify(newData)) {
+                    console.log('🔄 백그라운드: 계약 데이터 변경 감지, 업데이트');
+                    currentContract = newData;
+                    sessionStorage.setItem(cacheKey, JSON.stringify(newData));
+                    sessionStorage.setItem(`${cacheKey}_time`, now.toString());
+                    renderDetail();
+                } else {
+                    console.log('✅ 백그라운드: 계약 데이터 변경 없음');
+                }
+            } catch (error) {
+                console.warn('⚠️ 백그라운드 업데이트 실패 (무시):', error.message);
             }
         }
 
