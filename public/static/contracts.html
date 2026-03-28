@@ -1662,7 +1662,7 @@
         }
         
         // 이미지 갤러리 열기 (Swiper)
-        let modalSwiper = null;
+        window.modalSwiper = null;
         
         function openImageGallery(startIndex = 0) {
             const c = currentContract;
@@ -1709,13 +1709,13 @@
             `).join('');
             
             // 기존 Swiper 제거
-            if (modalSwiper) {
-                modalSwiper.destroy(true, true);
+            if (window.modalSwiper) {
+                window.modalSwiper.destroy(true, true);
             }
             
             // Swiper 초기화
             setTimeout(() => {
-                modalSwiper = new Swiper('.modalSwiper', {
+                window.modalSwiper = new Swiper('.modalSwiper', {
                     slidesPerView: 1,
                     spaceBetween: 0,
                     initialSlide: startIndex,
@@ -1754,12 +1754,15 @@
             }, 100);
         }
         
-        // 이미지 모달 닫기
-        function closeImageModal() {
-            document.getElementById('imageModal').classList.add('hidden');
-            if (modalSwiper) {
-                modalSwiper.destroy(true, true);
-                modalSwiper = null;
+        // 이미지 모달 닫기 (전역 함수로 정의)
+        window.closeImageModal = function() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            if (window.modalSwiper) {
+                window.modalSwiper.destroy(true, true);
+                window.modalSwiper = null;
             }
             // ESC 키 이벤트 제거
             document.removeEventListener('keydown', handleEscKey);
@@ -1768,7 +1771,7 @@
         // ESC 키 핸들러
         function handleEscKey(e) {
             if (e.key === 'Escape') {
-                closeImageModal();
+                window.closeImageModal();
             }
         }
         
@@ -2588,7 +2591,7 @@
                 imageModal = document.createElement('div');
                 imageModal.className = 'image-modal';
                 imageModal.innerHTML = `
-                    <div class="image-modal-close" onclick="closeImageModal()">
+                    <div class="image-modal-close" onclick="closeIdCardModal()">
                         <i class="fas fa-times"></i>
                     </div>
                     <img id="modalImage" src="" alt="신분증 확대">
@@ -2602,14 +2605,14 @@
                 // 배경 클릭시 닫기
                 imageModal.addEventListener('click', (e) => {
                     if (e.target === imageModal) {
-                        closeImageModal();
+                        closeIdCardModal();
                     }
                 });
                 
                 // ESC 키로 닫기
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && imageModal && imageModal.classList.contains('active')) {
-                        closeImageModal();
+                        closeIdCardModal();
                     }
                 });
             }
@@ -2620,7 +2623,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function closeImageModal() {
+        function closeIdCardModal() {
             if (imageModal) {
                 imageModal.classList.remove('active');
                 document.body.style.overflow = '';
