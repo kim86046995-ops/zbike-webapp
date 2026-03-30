@@ -1571,7 +1571,9 @@
                 return;
             }
             
-            const signatureData = canvas.toDataURL('image/png');
+            // 서명 데이터를 고해상도로 저장 (원본 크기 그대로)
+            console.log('📝 서명 저장 - 캔버스 크기:', canvas.width, 'x', canvas.height);
+            const signatureData = canvas.toDataURL('image/png', 1.0); // 최대 품질로 저장
             
             // 신분증 확인
             if (!idCardPhoto) {
