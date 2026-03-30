@@ -821,9 +821,12 @@
                             ${loan.borrower_id_card_photo ? `
                                 <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
                                     <h4 class="font-bold mb-3 text-center text-lg">차용인 신분증</h4>
-                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;">
-                                        <img src="${loan.borrower_id_card_photo}" alt="차용인 신분증" style="width: 100%; height: 100%; object-fit: contain;">
+                                    <div class="border rounded bg-white mx-auto cursor-pointer hover:opacity-90 transition-opacity" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;" onclick="openImageModal('${loan.borrower_id_card_photo}')" title="클릭하여 확대">
+                                        <img src="${loan.borrower_id_card_photo}" alt="차용인 신분증" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;">
                                     </div>
+                                    <p class="text-center text-sm text-blue-600 mt-2 cursor-pointer hover:text-blue-800" onclick="openImageModal('${loan.borrower_id_card_photo}')">
+                                        <i class="fas fa-search-plus mr-1"></i>클릭하여 확대
+                                    </p>
                                 </div>
                             ` : ''}
                         </div>
@@ -972,8 +975,31 @@
         document.getElementById('search').addEventListener('input', applyFilters);
         document.getElementById('filter').addEventListener('change', applyFilters);
 
+        // 이미지 모달 함수
+        function openImageModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = imageSrc;
+            modal.classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+        }
+
         // 페이지 로드 시 실행
         window.addEventListener('DOMContentLoaded', loadData);
     </script>
+
+    <!-- 이미지 확대 모달 -->
+    <div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-95 z-[9999] flex items-center justify-center" onclick="closeImageModal()">
+        <button onclick="closeImageModal(); event.stopPropagation();" class="absolute top-4 right-4 text-white hover:text-gray-300 text-4xl z-[10000] w-14 h-14 rounded-full bg-black bg-opacity-50 flex items-center justify-center">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="w-full h-full p-4 flex items-center justify-center" onclick="event.stopPropagation()">
+            <img id="modalImage" src="" alt="확대 이미지" class="max-w-full max-h-full object-contain rounded-lg">
+        </div>
+    </div>
 </body>
 </html>
