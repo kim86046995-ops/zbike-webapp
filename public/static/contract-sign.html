@@ -1266,8 +1266,12 @@
             function stopDrawing() {
                 if (isDrawing) {
                     isDrawing = false;
-                    // 서명이 끝났을 때 버튼 상태 업데이트
-                    updateSubmitButton();
+                    // 서명이 끝났을 때 버튼 상태 업데이트 (렌더링 완료 후)
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            updateSubmitButton();
+                        }, 50);
+                    });
                 }
             }
         }
@@ -1683,10 +1687,17 @@
             mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
             mainCtx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
             
+            console.log('✅ 서명 저장됨 - 메인 캔버스 크기:', mainCanvas.width, 'x', mainCanvas.height);
+            
             closeSignatureModal();
             
-            // 제출 버튼 상태 업데이트
-            updateSubmitButton();
+            // 렌더링 완료 후 버튼 상태 업데이트
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    updateSubmitButton();
+                    console.log('✅ 서명 저장 완료 - 버튼 상태 업데이트됨');
+                }, 100);
+            });
         }
 
         // 모달 서명 패드 초기화
