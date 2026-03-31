@@ -2721,7 +2721,7 @@
                     try {
                         const shareUrl = `${window.location.origin}/static/${contract.type === 'business' ? 'business-contract' : 'contract'}-sign.html?contract_id=${contract.id}`;
                         
-                        await axios.post('/api/send-sms', {
+                        const response = await axios.post('/api/send-sms', {
                             phone: contract.phone,
                             customer_name: contract.name,
                             share_url: shareUrl
@@ -2729,14 +2729,17 @@
                             headers: { 'X-Session-ID': sessionId }
                         });
                         
+                        console.log(`✅ SMS 발송 성공 (${contract.name}):`, response.data);
                         successCount++;
                     } catch (err) {
-                        console.error(`SMS 발송 실패 (${contract.name}):`, err);
+                        console.error(`❌ SMS 발송 실패 (${contract.name}):`, err);
+                        console.error('에러 상세:', err.response?.data);
                         failCount++;
                     }
                 }
                 
-                alert(`✅ SMS 발송 완료\n\n성공: ${successCount}건\n실패: ${failCount}건`);
+                alert(`✅ SMS 발송 완료\n\n성공: ${successCount}건\n실패: ${failCount}건${failCount > 0 ? '\n\n❌ 실패한 SMS가 있습니다.\n브라우저 콘솔(F12)에서 자세한 오류를 확인하세요.' : ''}`);
+
                 
                 // 체크박스 초기화
                 document.querySelectorAll('.contract-checkbox').forEach(cb => cb.checked = false);
