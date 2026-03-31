@@ -1408,44 +1408,59 @@
             updateSubmitButton();
         }
 
-        // 오토바이 사진 업로드
+        // 이미지 압축 (Promise 기반)
+        function compressImage(file, maxSize = 1200, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    resizeImage(e.target.result, maxSize, maxSize, (resizedDataUrl) => {
+                        resolve(resizedDataUrl);
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 오토바이 사진 업로드 (이미지 압축 + Base64 변환으로 즉시 처리)
         async function uploadMotorcyclePhoto(event, position) {
             const file = event.target.files[0];
             if (!file) return;
             
             console.log(`🚴 ${position} 사진 업로드 시작...`);
             
+            // 로딩 표시
+            const statusEl = document.getElementById(`${position}PhotoStatus`);
+            statusEl.innerHTML = `<i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>업로드 중...`;
+            statusEl.className = 'text-blue-600';
+            
             try {
-                const formData = new FormData();
-                formData.append('file', file);
+                // 이미지 압축 및 Base64 변환
+                const compressedBase64 = await compressImage(file, 1200, 0.8);
                 
-                const response = await axios.post('/api/upload', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                });
-                
-                // URL 저장
-                motorcyclePhotos[position] = response.data.url;
-                console.log(`✅ ${position} 사진 업로드 완료:`, response.data.url);
+                // 즉시 저장 (서버 업로드 없이 Base64로 직접 저장)
+                motorcyclePhotos[position] = compressedBase64;
+                console.log(`✅ ${position} 사진 처리 완료 (크기: ${(compressedBase64.length / 1024).toFixed(0)}KB)`);
                 
                 // 미리보기 표시
                 document.getElementById(`${position}PhotoPreview`).classList.remove('hidden');
-                document.getElementById(`${position}PhotoImg`).src = response.data.url;
+                document.getElementById(`${position}PhotoImg`).src = compressedBase64;
                 document.getElementById(`${position}UploadBtn`).classList.add('hidden');
                 
                 // 상태 체크박스 업데이트
-                document.getElementById(`${position}PhotoStatus`).innerHTML = `
+                statusEl.innerHTML = `
                     <i class="fas fa-check-square text-green-600 mr-2"></i>${getPositionName(position)}
                 `;
-                document.getElementById(`${position}PhotoStatus`).className = 'text-green-600 font-semibold';
+                statusEl.className = 'text-green-600 font-semibold';
                 
                 // 제출 버튼 상태 업데이트
                 updateSubmitButton();
                 
             } catch (error) {
                 console.error(`❌ ${position} 사진 업로드 실패:`, error);
-                alert(`사진 업로드에 실패했습니다. 다시 시도해주세요.\n오류: ${error.response?.data?.error || error.message}`);
+                statusEl.innerHTML = `<i class="far fa-square mr-2"></i>${getPositionName(position)}`;
+                statusEl.className = 'text-gray-500';
+                alert(`사진 처리에 실패했습니다. 다시 시도해주세요.\n오류: ${error.message}`);
             }
         }
         
