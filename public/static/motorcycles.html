@@ -739,11 +739,16 @@
                     const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
                     const insuranceCompany = (m.insurance_company || '').toLowerCase();
                     
-                    return plateNumber.includes(searchTerm) || 
+                    const matchesSearch = plateNumber.includes(searchTerm) || 
                            chassisNumber.includes(searchTerm) ||
                            ownerName.includes(searchTerm) || 
                            contractorName.includes(searchTerm) ||
                            insuranceCompany.includes(searchTerm);
+                    
+                    // 검색어가 있는데 매칭되지 않으면 제외
+                    if (!matchesSearch) {
+                        return false;
+                    }
                 }
                 
                 return true;
