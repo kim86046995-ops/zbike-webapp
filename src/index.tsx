@@ -989,17 +989,30 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
 app.get('/api/motorcycles/check-duplicate', async (c) => {
   const DB = c.env.DB || c.env.db
   const plateNumber = c.req.query('plate_number')
+  const chassisNumber = c.req.query('chassis_number')
   
-  if (!plateNumber) {
-    return c.json({ error: 'Plate number is required' }, 400)
+  if (!plateNumber && !chassisNumber) {
+    return c.json({ error: 'Plate number or chassis number is required' }, 400)
   }
   
   try {
-    const motorcycle = await DB.prepare(`
-      SELECT id, plate_number, vehicle_name, status
-      FROM motorcycles
-      WHERE plate_number = ?
-    `).bind(plateNumber).first()
+    let motorcycle
+    
+    if (chassisNumber) {
+      // 차대번호로 중복 체크
+      motorcycle = await DB.prepare(`
+        SELECT id, plate_number, vehicle_name, chassis_number, status
+        FROM motorcycles
+        WHERE chassis_number = ?
+      `).bind(chassisNumber).first()
+    } else if (plateNumber) {
+      // 번호판으로 중복 체크
+      motorcycle = await DB.prepare(`
+        SELECT id, plate_number, vehicle_name, chassis_number, status
+        FROM motorcycles
+        WHERE plate_number = ?
+      `).bind(plateNumber).first()
+    }
     
     if (motorcycle) {
       return c.json({ 
@@ -1008,6 +1021,7 @@ app.get('/api/motorcycles/check-duplicate', async (c) => {
           id: motorcycle.id,
           plate_number: motorcycle.plate_number,
           vehicle_name: motorcycle.vehicle_name,
+          chassis_number: motorcycle.chassis_number,
           status: motorcycle.status
         }
       })

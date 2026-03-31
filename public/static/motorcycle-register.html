@@ -38,6 +38,7 @@
                     <div>
                         <label class="block text-sm font-bold mb-2">차대번호 *</label>
                         <input type="text" id="chassisNumber" required class="w-full px-3 py-2 border rounded-lg">
+                        <div id="chassisNumberMessage" class="mt-1 text-sm"></div>
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-2">키로수 *</label>
@@ -194,13 +195,76 @@
             }, 500);
         });
 
+        // 차대번호 중복 체크
+        let chassisCheckTimeout;
+        document.getElementById('chassisNumber').addEventListener('input', async (e) => {
+            const chassisNumber = e.target.value.trim();
+            const messageEl = document.getElementById('chassisNumberMessage');
+            
+            // 입력이 비어있으면 메시지 숨김
+            if (!chassisNumber) {
+                messageEl.innerHTML = '';
+                e.target.classList.remove('border-red-500', 'border-green-500');
+                return;
+            }
+            
+            // 이전 타이머 취소
+            clearTimeout(chassisCheckTimeout);
+            
+            // 500ms 후 중복 체크 실행 (타이핑 완료 대기)
+            chassisCheckTimeout = setTimeout(async () => {
+                try {
+                    const response = await axios.get(`/api/motorcycles/check-duplicate?chassis_number=${encodeURIComponent(chassisNumber)}`);
+                    
+                    if (response.data.exists) {
+                        // 중복 메시지 표시
+                        messageEl.className = 'mt-1 text-sm p-2 bg-red-100 border border-red-400 text-red-700 rounded flex items-center';
+                        messageEl.innerHTML = `
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span>⚠️ 동일한 차대번호가 이미 등록되어 있습니다. (${response.data.motorcycle.vehicle_name || '이름 없음'} - ${response.data.motorcycle.plate_number || ''})</span>
+                        `;
+                        e.target.classList.add('border-red-500');
+                        e.target.classList.remove('border-green-500');
+                    } else {
+                        // 사용 가능 메시지 표시
+                        messageEl.className = 'mt-1 text-sm p-2 bg-green-100 border border-green-400 text-green-700 rounded flex items-center';
+                        messageEl.innerHTML = `
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span>✅ 사용 가능한 차대번호입니다.</span>
+                        `;
+                        e.target.classList.add('border-green-500');
+                        e.target.classList.remove('border-red-500');
+                    }
+                } catch (error) {
+                    console.error('차대번호 중복 체크 실패:', error);
+                    messageEl.innerHTML = '';
+                    e.target.classList.remove('border-red-500', 'border-green-500');
+                }
+            }, 500);
+        });
+
         document.getElementById('motorcycleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // 차대번호 중복 체크
+            const chassisNumber = document.getElementById('chassisNumber').value.trim();
+            if (chassisNumber) {
+                try {
+                    const checkResponse = await axios.get(`/api/motorcycles/check-duplicate?chassis_number=${encodeURIComponent(chassisNumber)}`);
+                    if (checkResponse.data.exists) {
+                        alert('⚠️ 동일한 차대번호가 이미 등록되어 있습니다.\n\n차량: ' + (checkResponse.data.motorcycle.vehicle_name || '이름 없음') + '\n번호판: ' + (checkResponse.data.motorcycle.plate_number || '') + '\n\n다른 차대번호를 입력해주세요.');
+                        document.getElementById('chassisNumber').focus();
+                        return;
+                    }
+                } catch (error) {
+                    console.error('차대번호 중복 체크 실패:', error);
+                }
+            }
 
             const data = {
                 plate_number: document.getElementById('plateNumber').value,
                 vehicle_name: document.getElementById('vehicleName').value,
-                chassis_number: document.getElementById('chassisNumber').value,
+                chassis_number: chassisNumber,
                 mileage: parseInt(document.getElementById('mileage').value),
                 model_year: parseInt(document.getElementById('modelYear').value),
                 insurance_company: document.getElementById('insuranceCompany').value,
@@ -232,8 +296,15 @@
                 document.getElementById('motorcycleForm').reset();
                 
                 // 중복 체크 메시지 제거
-                const messageEl = document.getElementById('plateNumberMessage');
-                if (messageEl) messageEl.remove();
+                const plateMessageEl = document.getElementById('plateNumberMessage');
+                if (plateMessageEl) plateMessageEl.remove();
+                
+                const chassisMessageEl = document.getElementById('chassisNumberMessage');
+                if (chassisMessageEl) chassisMessageEl.innerHTML = '';
+                
+                // 입력 필드 테두리 초기화
+                document.getElementById('plateNumber').classList.remove('border-red-500', 'border-green-500');
+                document.getElementById('chassisNumber').classList.remove('border-red-500', 'border-green-500');
                 
                 // 첫 번째 입력 필드에 포커스
                 document.getElementById('plateNumber').focus();
