@@ -1530,12 +1530,12 @@
                     <div class="border-2 border-gray-300 p-6 rounded-lg mb-6 signature-section">
                         <h3 class="font-bold text-lg mb-4 text-center">계약자 서명</h3>
                         <div class="space-y-6">
-                            <!-- 임차인 서명 - 모바일 최적화 (정사각형 10cm = 380px) -->
+                            <!-- 임차인 서명 - 모바일 최적화 (4:1 비율) -->
                             ${c.signature_data ? `
                                 <div class="border-2 border-gray-400 p-4 rounded-lg bg-white mb-6">
                                     <h4 class="font-bold mb-3 text-center text-lg">임차인 서명</h4>
-                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 600px; aspect-ratio: 4 / 1; display: flex; align-items: center; justify-content: center;">
-                                        <img src="${c.signature_data}" alt="임차인 서명" style="width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
+                                    <div class="border rounded bg-white mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 = 100% / 4 */">
+                                        <img src="${c.signature_data}" alt="임차인 서명" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
                                     </div>
                                     <p class="text-center mt-3 font-bold">서명인: ${c.customer_name}</p>
                                     <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
@@ -1543,8 +1543,8 @@
                             ` : `
                                 <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50 mb-6">
                                     <h4 class="font-bold mb-3 text-center text-gray-500 text-lg">임차인 서명</h4>
-                                    <div class="flex items-center justify-center bg-white border rounded mx-auto" style="width: 100%; max-width: 600px; aspect-ratio: 4 / 1;">
-                                        <p class="text-gray-400">서명 없음</p>
+                                    <div class="flex items-center justify-center bg-white border rounded mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 */">
+                                        <p class="text-gray-400" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">서명 없음</p>
                                     </div>
                                 </div>
                             `}
@@ -2396,16 +2396,16 @@
                         <h3 class="font-bold text-lg mb-4 text-center">대표자 서명</h3>
                         ${c.signature_data ? `
                             <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
-                                <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 600px; aspect-ratio: 4 / 1; display: flex; align-items: center; justify-content: center;">
-                                    <img src="${c.signature_data}" alt="대표자 서명" style="width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
+                                <div class="border rounded bg-white mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 */">
+                                    <img src="${c.signature_data}" alt="대표자 서명" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
                                 </div>
                                 <p class="text-center mt-3 font-bold">서명인: ${c.representative}</p>
                                 <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
                             </div>
                         ` : `
                             <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50">
-                                <div class="flex items-center justify-center bg-white border rounded mx-auto" style="width: 100%; max-width: 600px; aspect-ratio: 4 / 1;">
-                                    <p class="text-gray-400">서명 없음</p>
+                                <div class="flex items-center justify-center bg-white border rounded mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 */">
+                                    <p class="text-gray-400" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">서명 없음</p>
                                 </div>
                             </div>
                         `}
