@@ -1428,6 +1428,9 @@
             document.getElementById('preview').src = dataUrl;
             document.getElementById('previewSection').classList.remove('hidden');
             document.getElementById('captureButtons').classList.add('hidden');
+            
+            // 제출 버튼 상태 업데이트
+            updateSubmitButton();
         }
 
         // 사진 삭제

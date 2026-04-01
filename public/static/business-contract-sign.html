@@ -345,7 +345,7 @@
     <!-- 서명 확대 모달 -->
     <script>
         // 버전 관리 및 캐시 무효화
-        const CURRENT_VERSION = '2026-04-01-v6-submit-function';
+        const CURRENT_VERSION = '2026-04-01-v7-image-resize-upload';
         const storedVersion = localStorage.getItem('businessContractVersion');
         
         if (storedVersion !== CURRENT_VERSION) {
@@ -1360,11 +1360,21 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            console.log(`🚴 ${position} 사진 업로드 시작...`);
+            console.log(`🚴 ${position} 사진 업로드 시작... 원본 크기: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            
+            // 업로딩 상태 표시
+            document.getElementById(`${position}PhotoStatus`).innerHTML = `
+                <i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>업로드 중...
+            `;
+            document.getElementById(`${position}PhotoStatus`).className = 'text-blue-600 font-semibold';
             
             try {
+                // 이미지 리사이징 (1920x1080 최대 크기, 품질 0.85)
+                const resizedBlob = await resizeImageFile(file, 1920, 1080, 0.85);
+                console.log(`📦 리사이징 완료: ${(resizedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+                
                 const formData = new FormData();
-                formData.append('file', file);
+                formData.append('file', resizedBlob, file.name);
                 
                 const response = await axios.post('/api/upload', formData, {
                     headers: {
@@ -1388,8 +1398,51 @@
                 
             } catch (error) {
                 console.error(`❌ ${position} 사진 업로드 실패:`, error);
+                document.getElementById(`${position}PhotoStatus`).innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>업로드 실패
+                `;
+                document.getElementById(`${position}PhotoStatus`).className = 'text-red-600 font-semibold';
                 alert(`사진 업로드에 실패했습니다. 다시 시도해주세요.\n오류: ${error.response?.data?.error || error.message}`);
             }
+        }
+        
+        // 이미지 파일 리사이징 (Blob 반환)
+        function resizeImageFile(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // 비율 유지하면서 리사이징
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        if (height > maxHeight) {
+                            width = (width * maxHeight) / height;
+                            height = maxHeight;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve(blob);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
         
         // 오토바이 사진 삭제
