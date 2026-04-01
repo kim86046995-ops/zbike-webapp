@@ -2420,6 +2420,55 @@
                             </div>
                         </div>
                     ` : ''}
+                    
+                    <!-- 9. 오토바이 출고 사진 4장 -->
+                    ${(c.motorcycle_photo_front || c.motorcycle_photo_back || c.motorcycle_photo_left || c.motorcycle_photo_right) ? `
+                        <div class="border-2 border-blue-400 p-6 rounded-lg bg-blue-50 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">
+                                <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                                오토바이 출고 상태 사진
+                            </h3>
+                            <p class="text-sm text-center text-gray-600 mb-4">출고일: ${c.motorcycle_photo_upload_date ? new Date(c.motorcycle_photo_upload_date).toLocaleDateString('ko-KR') : new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                ${c.motorcycle_photo_front ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-up mr-1"></i>앞면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_front}" alt="오토바이 앞면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_back ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-down mr-1"></i>뒷면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_back}" alt="오토바이 뒷면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_left ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-left mr-1"></i>왼쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_left}" alt="오토바이 왼쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_right ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-right mr-1"></i>오른쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_right}" alt="오토바이 오른쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
             
