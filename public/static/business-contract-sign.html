@@ -1076,10 +1076,64 @@
                 openSignatureModal();
             }, { passive: false });
             
-            canvas.addEventListener('mousedown', (e) => {
+            canvas.addEventListener('dblclick', (e) => {
                 e.preventDefault();
                 openSignatureModal();
             });
+            
+            // 데스크톱에서도 직접 그리기 가능하도록 이벤트 추가
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            function startDrawing(e) {
+                // 더블클릭이 아닌 경우에만 그리기 시작
+                isDrawing = true;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                lastX = (e.clientX - rect.left) * scaleX;
+                lastY = (e.clientY - rect.top) * scaleY;
+            }
+            
+            function draw(e) {
+                if (!isDrawing) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+                
+                lastX = x;
+                lastY = y;
+            }
+            
+            function stopDrawing() {
+                if (isDrawing) {
+                    isDrawing = false;
+                    // 서명이 끝났을 때 버튼 상태 업데이트 (렌더링 완료 후)
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            updateSubmitButton();
+                        }, 50);
+                    });
+                }
+            }
+            
+            // 마우스 이벤트 (데스크톱)
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
         }
 
         // 서명 지우기
