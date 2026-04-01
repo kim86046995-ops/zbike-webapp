@@ -345,7 +345,7 @@
     <!-- 서명 확대 모달 -->
     <script>
         // 버전 관리 및 캐시 무효화
-        const CURRENT_VERSION = '2026-04-01-v3-force-refresh';
+        const CURRENT_VERSION = '2026-04-01-v4-debug-await-fix';
         const storedVersion = localStorage.getItem('businessContractVersion');
         
         if (storedVersion !== CURRENT_VERSION) {
@@ -395,7 +395,7 @@
             }
             
             // 계약서 정보 로드 (회사 정보 포함)
-            loadContract();
+            await loadContract();
             initSignaturePad();
             
             // 체크박스 이벤트 리스너 추가
@@ -441,12 +441,16 @@
                 displayContract(contractData);
             } catch (error) {
                 console.error('계약서 로드 실패:', error);
+                alert('계약서 로드 실패: ' + error.message);
                 showExpired();
             }
         }
 
         // 계약서 표시
         function displayContract(data) {
+            console.log('✅ displayContract 호출됨', data);
+            alert('계약서 로드 완료! 데이터: ' + JSON.stringify(data).substring(0, 100));
+            
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('contractContent').classList.remove('hidden');
             
