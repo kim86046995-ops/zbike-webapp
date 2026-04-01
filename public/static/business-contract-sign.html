@@ -344,6 +344,39 @@
 
     <!-- 서명 확대 모달 -->
     <script>
+        // 버전 관리 및 캐시 무효화
+        const CURRENT_VERSION = '2026-04-01-v2-signature-fix';
+        const storedVersion = localStorage.getItem('businessContractVersion');
+        
+        if (storedVersion !== CURRENT_VERSION) {
+            console.log('🔄 새 버전 감지:', CURRENT_VERSION);
+            console.log('이전 버전:', storedVersion);
+            
+            // 서비스 워커 제거
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    registrations.forEach(reg => reg.unregister());
+                    console.log('✅ 서비스 워커 제거 완료');
+                });
+            }
+            
+            // 캐시 스토리지 삭제
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                    console.log('✅ 캐시 스토리지 삭제 완료');
+                });
+            }
+            
+            localStorage.setItem('businessContractVersion', CURRENT_VERSION);
+            console.log('✅ 버전 업데이트 완료');
+            
+            // 페이지 새로고침
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 100);
+        }
+        
         let signaturePad = null;
         let currentStream = null;
         let idCardPhoto = '';
