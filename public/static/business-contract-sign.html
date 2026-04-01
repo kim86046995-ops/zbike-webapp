@@ -345,7 +345,7 @@
     <!-- 서명 확대 모달 -->
     <script>
         // 버전 관리 및 캐시 무효화
-        const CURRENT_VERSION = '2026-04-01-v5-motorcycle-photos-fix';
+        const CURRENT_VERSION = '2026-04-01-v6-submit-function';
         const storedVersion = localStorage.getItem('businessContractVersion');
         
         if (storedVersion !== CURRENT_VERSION) {
@@ -1477,6 +1477,56 @@
             }
         }
 
+        // 계약서 제출
+        async function submitContract() {
+            // 약관 동의 확인
+            if (!document.getElementById('agreeTerms').checked) {
+                alert('약관에 동의해주세요.');
+                return;
+            }
+            
+            // 서명 확인
+            const canvas = document.getElementById('signatureCanvas');
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const hasSignature = imageData.data.some(channel => channel !== 0);
+            
+            if (!hasSignature) {
+                alert('서명을 해주세요.');
+                return;
+            }
+            
+            // 서명 데이터를 고해상도로 저장 (원본 크기 그대로)
+            console.log('📝 서명 저장 - 캔버스 크기:', canvas.width, 'x', canvas.height);
+            const signatureData = canvas.toDataURL('image/png', 1.0); // 최대 품질로 저장
+            
+            // 오토바이 사진 4장 확인
+            if (!motorcyclePhotos.front || !motorcyclePhotos.back || 
+                !motorcyclePhotos.left || !motorcyclePhotos.right) {
+                alert('오토바이 사진 4장(앞, 뒤, 왼쪽, 오른쪽)을 모두 업로드해주세요.');
+                return;
+            }
+            
+            try {
+                await axios.put(`/api/business-contracts/${contractId}/sign`, {
+                    signature_data: signatureData,
+                    motorcycle_photo_front: motorcyclePhotos.front,
+                    motorcycle_photo_back: motorcyclePhotos.back,
+                    motorcycle_photo_left: motorcyclePhotos.left,
+                    motorcycle_photo_right: motorcyclePhotos.right
+                });
+                
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
+                showCompleted();
+            } catch (error) {
+                alert('제출에 실패했습니다. 다시 시도해주세요.');
+                console.error('제출 오류:', error);
+            }
+        }
         
         function showExpired() {
             document.getElementById('loading').classList.add('hidden');
