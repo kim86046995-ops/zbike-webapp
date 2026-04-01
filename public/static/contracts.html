@@ -2719,7 +2719,7 @@
                 
                 for (const contract of validContracts) {
                     try {
-                        const shareUrl = `${window.location.origin}/static/${contract.type === 'business' ? 'business-contract-sign' : 'contract-sign'}.html?contract_id=${contract.id}`;
+                        const shareUrl = `${window.location.origin}/static/${contract.type === 'business' ? 'business-contract-sign' : 'contract-sign'}?contract_id=${contract.id}`;
                         
                         const response = await axios.post('/api/send-sms', {
                             phone: contract.phone,
