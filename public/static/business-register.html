@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-BIKE 전자계약서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- 헤더 -->
+    <header class="bg-purple-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <!-- 뒤로가기 버튼 -->
+                <button onclick="history.back()" class="text-white hover:bg-purple-700 px-3 py-2 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    <span class="hidden sm:inline">뒤로가기</span>
+                </button>
+                
+                <!-- 타이틀 (중앙) -->
+                <div class="flex-1 text-center">
+                    <h1 class="text-xl sm:text-2xl font-bold">
+                        <i class="fas fa-building mr-2"></i>
+                        Z-BIKE 업체 정보 등록
+                    </h1>
+                    <p class="text-xs sm:text-sm text-purple-100 mt-1">협력 업체 정보를 입력해주세요</p>
+                </div>
+                
+                <!-- 오른쪽 여백 (레이아웃 균형) -->
+                <div class="w-24"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-building mr-2 text-purple-600"></i>업체 정보 등록
+                </h2>
+                
+                <form id="businessForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 업체명 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-store mr-1 text-purple-500"></i>업체명 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="businessName" 
+                                required
+                                placeholder="예: (주)케이모터스" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                        </div>
+
+                        <!-- 사업자등록번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-file-invoice mr-1 text-purple-500"></i>사업자등록번호 <span class="text-red-500">*</span>
+                                <span class="text-xs text-gray-500 font-normal ml-2">(숫자 10자리, 하이픈 자동 입력)</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="businessNumber" 
+                                required
+                                placeholder="예: 123-45-67890" 
+                                maxlength="12"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                        </div>
+
+                        <!-- 대표자명 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-user-tie mr-1 text-purple-500"></i>대표자명 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="representativeName" 
+                                required
+                                placeholder="홍길동" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                        </div>
+
+                        <!-- 전화번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-phone mr-1 text-purple-500"></i>전화번호 <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                id="businessPhone" 
+                                required
+                                placeholder="010-1234-5678" 
+                                maxlength="13"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                        </div>
+
+                        <!-- 우편번호 -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-map-marker-alt mr-1 text-purple-500"></i>우편번호 <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    id="businessPostcode" 
+                                    required
+                                    readonly
+                                    placeholder="12345" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
+                                    onclick="searchAddress()"
+                                >
+                                <button 
+                                    type="button" 
+                                    onclick="searchAddress()" 
+                                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
+                                    <i class="fas fa-search mr-1"></i>검색
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 이메일 (선택) -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <i class="fas fa-envelope mr-1 text-purple-500"></i>이메일
+                                <span class="text-xs text-gray-500 font-normal ml-2">(선택사항)</span>
+                            </label>
+                            <input 
+                                type="email" 
+                                id="businessEmail" 
+                                placeholder="business@example.com" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- 주소 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-building mr-1 text-purple-500"></i>사업장 주소 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="businessAddress" 
+                            required
+                            readonly
+                            placeholder="우편번호 검색 버튼을 클릭하세요" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer mb-2"
+                            onclick="searchAddress()"
+                        >
+                        <input 
+                            type="text" 
+                            id="businessDetailAddress" 
+                            placeholder="상세주소 (층/호수 등)" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                    </div>
+
+                    <!-- 업종 -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-industry mr-1 text-purple-500"></i>업종
+                            <span class="text-xs text-gray-500 font-normal ml-2">(선택사항)</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="businessType" 
+                            placeholder="예: 오토바이 정비, 중고차 판매" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                    </div>
+
+                    <!-- 버튼 -->
+                    <div class="flex justify-end gap-3">
+                        <button 
+                            type="button" 
+                            onclick="history.back()" 
+                            class="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-times mr-2"></i>취소하기
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-save mr-2"></i>등록하기
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // 로그인 없이 사용 가능 (업체용 페이지)
+        
+        // 우편번호 검색
+        function searchAddress() {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    document.getElementById('businessPostcode').value = data.zonecode;
+                    document.getElementById('businessAddress').value = data.address;
+                    document.getElementById('businessDetailAddress').focus();
+                }
+            }).open();
+        }
+
+        // 폼 초기화
+        function clearForm() {
+            document.getElementById('businessForm').reset();
+            document.getElementById('businessName').focus();
+        }
+
+        // 사업자등록번호 자동 하이픈 (입력 및 붙여넣기 모두 처리)
+        function formatBusinessNumber(value) {
+            // 숫자만 추출
+            let numbers = value.replace(/[^0-9]/g, '');
+            // 10자리로 제한
+            numbers = numbers.substring(0, 10);
+            // XXX-XX-XXXXX 형식으로 변환
+            if (numbers.length > 5) {
+                return numbers.substring(0, 3) + '-' + numbers.substring(3, 5) + '-' + numbers.substring(5);
+            } else if (numbers.length > 3) {
+                return numbers.substring(0, 3) + '-' + numbers.substring(3);
+            }
+            return numbers;
+        }
+
+        document.getElementById('businessNumber').addEventListener('input', function(e) {
+            e.target.value = formatBusinessNumber(e.target.value);
+        });
+
+        document.getElementById('businessNumber').addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            e.target.value = formatBusinessNumber(pastedText);
+        });
+
+        // 전화번호 자동 하이픈
+        function formatPhoneNumber(value) {
+            let numbers = value.replace(/[^0-9]/g, '');
+            numbers = numbers.substring(0, 11);
+            if (numbers.length > 7) {
+                return numbers.substring(0, 3) + '-' + numbers.substring(3, 7) + '-' + numbers.substring(7);
+            } else if (numbers.length > 3) {
+                return numbers.substring(0, 3) + '-' + numbers.substring(3);
+            }
+            return numbers;
+        }
+
+        document.getElementById('businessPhone').addEventListener('input', function(e) {
+            e.target.value = formatPhoneNumber(e.target.value);
+        });
+
+        document.getElementById('businessPhone').addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            e.target.value = formatPhoneNumber(pastedText);
+        });
+
+        // 폼 제출 처리
+        document.getElementById('businessForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const businessData = {
+                company_name: document.getElementById('businessName').value.trim(),
+                business_registration_number: document.getElementById('businessNumber').value.trim(),
+                representative_name: document.getElementById('representativeName').value.trim(),
+                manager_phone: document.getElementById('businessPhone').value.trim(),
+                postcode: document.getElementById('businessPostcode').value.trim(),
+                address: document.getElementById('businessAddress').value.trim(),
+                detail_address: document.getElementById('businessDetailAddress').value.trim(),
+                email: document.getElementById('businessEmail').value.trim() || null,
+                business_type: document.getElementById('businessType').value.trim() || null
+            };
+
+            console.log('📤 업체 정보 전송:', businessData);
+
+            try {
+                const response = await axios.post('/api/businesses', businessData);
+                
+                console.log('✅ 업체 등록 성공:', response.data);
+                
+                alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n관리자가 확인 후 승인할 예정입니다.');
+                
+                // 폼 초기화
+                clearForm();
+                
+                // 3초 후 로그인 페이지로 이동
+                setTimeout(() => {
+                    window.location.href = '/static/login.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('❌ 업체 등록 실패:', error);
+                
+                if (error.response) {
+                    const errorMsg = error.response.data.error || '업체 등록에 실패했습니다.';
+                    alert('❌ ' + errorMsg);
+                } else {
+                    alert('❌ 서버 연결에 실패했습니다. 네트워크를 확인해주세요.');
+                }
+            }
+        });
+
+        // 페이지 로드 시 첫 입력 필드에 포커스
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('businessName').focus();
+        });
+    </script>
+</body>
+</html>

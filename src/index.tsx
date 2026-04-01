@@ -2260,6 +2260,223 @@ END`).run()
 
 
 // ============================================
+// 업체 정보 등록 API (Businesses Registration)
+// ============================================
+
+// 업체 등록 (인증 불필요 - 공개 등록)
+app.post('/api/businesses', async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    const data = await c.req.json()
+    
+    console.log('📥 업체 등록 요청 전체 데이터:', JSON.stringify(data, null, 2))
+    
+    // 사업자등록번호 중복 체크
+    if (data.business_registration_number) {
+      const existingBusiness = await DB.prepare(
+        'SELECT id, company_name, business_registration_number FROM businesses WHERE business_registration_number = ?'
+      ).bind(data.business_registration_number).first()
+      
+      if (existingBusiness) {
+        console.log('⚠️ 중복된 사업자등록번호:', data.business_registration_number, '기존 업체:', existingBusiness.company_name)
+        return c.json({ 
+          error: '이미 등록된 사업자등록번호입니다.', 
+          existing: { name: existingBusiness.company_name, business_number: existingBusiness.business_registration_number }
+        }, 409)
+      }
+    }
+    
+    // 전화번호 중복 체크 (선택사항)
+    if (data.manager_phone) {
+      const existingPhone = await DB.prepare(
+        'SELECT id, company_name, manager_phone FROM businesses WHERE manager_phone = ?'
+      ).bind(data.manager_phone).first()
+      
+      if (existingPhone) {
+        console.log('⚠️ 중복된 전화번호:', data.manager_phone, '기존 업체:', existingPhone.company_name)
+        return c.json({ 
+          error: '이미 등록된 전화번호입니다.', 
+          existing: { name: existingPhone.company_name, phone: existingPhone.manager_phone }
+        }, 409)
+      }
+    }
+    
+    console.log('📝 INSERT 할 업체 데이터:', {
+      company_name: data.company_name,
+      business_registration_number: data.business_registration_number,
+      representative_name: data.representative_name,
+      manager_phone: data.manager_phone,
+      postcode: data.postcode || '',
+      address: data.address,
+      detail_address: data.detail_address || '',
+      email: data.email || null,
+      business_type: data.business_type || null
+    })
+    
+    const result = await DB.prepare(`
+      INSERT INTO businesses (
+        company_name, 
+        business_registration_number, 
+        representative_name, 
+        manager_phone, 
+        postcode, 
+        address, 
+        detail_address,
+        email,
+        business_type,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `).bind(
+      data.company_name,
+      data.business_registration_number,
+      data.representative_name,
+      data.manager_phone,
+      data.postcode || '',
+      data.address,
+      data.detail_address || '',
+      data.email || null,
+      data.business_type || null
+    ).run()
+    
+    const businessId = result.meta.last_row_id
+    console.log('✅ 업체 등록 성공:', businessId, data.company_name)
+    
+    // 등록된 데이터 다시 조회해서 확인
+    const insertedBusiness = await DB.prepare('SELECT * FROM businesses WHERE id = ?').bind(businessId).first()
+    console.log('✅ 등록된 업체 데이터 확인:', JSON.stringify(insertedBusiness, null, 2))
+    
+    return c.json({ id: businessId, ...data }, 201)
+  } catch (error) {
+    console.error('❌ 업체 등록 실패:', error)
+    return c.json({ 
+      error: '업체 등록에 실패했습니다.', 
+      details: error.message 
+    }, 500)
+  }
+})
+
+// 업체 목록 조회 (인증 필요 - 관리자만)
+app.get('/api/businesses', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    const businesses = await DB.prepare(`
+      SELECT 
+        id,
+        company_name,
+        business_registration_number,
+        representative_name,
+        manager_phone,
+        postcode,
+        address,
+        detail_address,
+        email,
+        business_type,
+        created_at,
+        updated_at
+      FROM businesses
+      WHERE deleted_at IS NULL
+      ORDER BY created_at DESC
+    `).all()
+    
+    console.log('📋 업체 목록 조회:', businesses.results.length, '개')
+    
+    return c.json(businesses.results)
+  } catch (error) {
+    console.error('❌ 업체 목록 조회 실패:', error)
+    return c.json({ error: '업체 목록 조회에 실패했습니다.' }, 500)
+  }
+})
+
+// 업체 상세 조회 (인증 필요)
+app.get('/api/businesses/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  try {
+    const business = await DB.prepare(`
+      SELECT * FROM businesses WHERE id = ? AND deleted_at IS NULL
+    `).bind(id).first()
+    
+    if (!business) {
+      return c.json({ error: '업체를 찾을 수 없습니다.' }, 404)
+    }
+    
+    return c.json(business)
+  } catch (error) {
+    console.error('❌ 업체 조회 실패:', error)
+    return c.json({ error: '업체 조회에 실패했습니다.' }, 500)
+  }
+})
+
+// 업체 정보 수정 (인증 필요)
+app.put('/api/businesses/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  try {
+    await DB.prepare(`
+      UPDATE businesses SET
+        company_name = ?, 
+        business_registration_number = ?, 
+        representative_name = ?, 
+        manager_phone = ?, 
+        postcode = ?, 
+        address = ?, 
+        detail_address = ?,
+        email = ?,
+        business_type = ?,
+        updated_at = datetime("now")
+      WHERE id = ?
+    `).bind(
+      data.company_name,
+      data.business_registration_number,
+      data.representative_name,
+      data.manager_phone,
+      data.postcode || '',
+      data.address,
+      data.detail_address || '',
+      data.email || null,
+      data.business_type || null,
+      id
+    ).run()
+    
+    console.log('✅ 업체 정보 수정 성공:', id)
+    
+    return c.json({ id, ...data })
+  } catch (error) {
+    console.error('❌ 업체 수정 실패:', error)
+    return c.json({ error: '업체 수정에 실패했습니다.' }, 500)
+  }
+})
+
+// 업체 삭제 (인증 필요 - 관리자만)
+app.delete('/api/businesses/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  try {
+    // Soft delete
+    await DB.prepare(`
+      UPDATE businesses 
+      SET deleted_at = datetime("now")
+      WHERE id = ?
+    `).bind(id).run()
+    
+    console.log('✅ 업체 삭제 성공:', id)
+    
+    return c.json({ message: '업체가 삭제되었습니다.' })
+  } catch (error) {
+    console.error('❌ 업체 삭제 실패:', error)
+    return c.json({ error: '업체 삭제에 실패했습니다.' }, 500)
+  }
+})
+
+
+// ============================================
 // 업체 API (Removed - using version at line 5879)
 // ============================================
 
