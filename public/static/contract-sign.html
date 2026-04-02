@@ -1670,7 +1670,170 @@
         function showCompleted() {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('contractContent').classList.add('hidden');
-            document.getElementById('completed').classList.remove('hidden');
+            
+            // 계약서 상세 내용 렌더링
+            const completedDiv = document.getElementById('completed');
+            const html = renderCompletedContract(contractData);
+            completedDiv.innerHTML = html;
+            completedDiv.classList.remove('hidden');
+        }
+        
+        // 완료된 개인 계약서 상세 렌더링
+        function renderCompletedContract(c) {
+            const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
+            const contractTypeText = c.contract_type === 'lease' ? '리스' : c.contract_type === 'loan' ? '대여금' : '렌트';
+            
+            return `
+                <div class="bg-green-50 border-2 border-green-500 rounded-lg p-6 mb-6">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-5xl text-green-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">✅ 계약서 제출이 완료되었습니다</h2>
+                        <p class="text-gray-600">아래에서 계약 내용을 확인하실 수 있습니다.</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-6 bg-white p-6 rounded-lg shadow-lg" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                    <!-- 계약서 제목 -->
+                    <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
+                        <h1 class="text-3xl font-bold mb-2">Z-BIKE ${contractTypeText} 계약서</h1>
+                        <p class="text-lg">계약번호: ${c.contract_number}</p>
+                        <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : c.status === 'completed' ? 'text-red-600' : 'text-gray-600'}">${statusTexts[c.status] || c.status}</span></p>
+                    </div>
+
+                    <!-- 1. 임대인 정보 (사업자) -->
+                    <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
+                        <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
+                        <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
+                            <p><strong>상호:</strong> ${c.company_settings?.company_name || '대성'}</p>
+                            <p><strong>사업자번호:</strong> ${c.company_settings?.business_number || '487-39-01128'}</p>
+                            <p><strong>대표자:</strong> ${c.company_settings?.representative_name || '김상춘'}</p>
+                            <p><strong>연락처:</strong> ${c.company_settings?.phone || '010-8604-6995'}</p>
+                            <p class="col-span-2"><strong>주소:</strong> ${c.company_settings?.address || '광주광역시 광산구 신가삼효로 31'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. 임차인 정보 (고객) -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">임차인 (고객) 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>성명:</strong> ${c.name}</p>
+                            <p><strong>주민등록번호:</strong> ${c.resident_number ? c.resident_number.substring(0, 8) + '******' : '-'}</p>
+                            <p><strong>면허종류:</strong> ${c.license_type || '-'}</p>
+                            <p><strong>연락처:</strong> ${c.phone || '-'}</p>
+                            <p class="col-span-2"><strong>주소:</strong> ${c.address || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. 오토바이 정보 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">오토바이 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>차량명:</strong> ${c.vehicle_name || '-'}</p>
+                            <p><strong>번호판:</strong> ${c.plate_number || '-'}</p>
+                            <p class="col-span-2"><strong>차대번호:</strong> <span style="font-family: monospace;">${c.chassis_number || '-'}</span></p>
+                            <p><strong>연식:</strong> ${c.model_year ? c.model_year + '년' : '-'}</p>
+                            <p><strong>보험 시작일:</strong> ${c.insurance_start_date || '-'}</p>
+                            <p><strong>보험 종료일:</strong> ${c.insurance_end_date || '-'}</p>
+                            <p><strong>운전범위:</strong> ${c.driving_range || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. 계약 조건 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">계약 조건</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>계약 종류:</strong> ${contractTypeText}</p>
+                            <p><strong>${contractTypeText === '대여금' ? '일일대여료' : contractTypeText + '료'}:</strong> ${Number(c.daily_amount || 0).toLocaleString()}원</p>
+                            <p><strong>계약 시작일:</strong> ${c.contract_start_date || '-'}</p>
+                            <p><strong>계약 종료일:</strong> ${c.contract_end_date || '-'}</p>
+                            ${c.contract_type === 'loan' ? `<p class="col-span-2"><strong>대여금:</strong> ${Number(c.loan_amount || 0).toLocaleString()}원</p>` : ''}
+                            <p class="col-span-2"><strong>계약체결일:</strong> ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                        </div>
+                        ${c.special_terms ? `
+                            <div class="mt-4">
+                                <p class="font-bold mb-2">특약사항:</p>
+                                <p class="whitespace-pre-wrap bg-gray-50 p-4 rounded border">${c.special_terms}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- 5. 신분증 섹션 -->
+                    ${c.id_card_photo ? `
+                        <div class="border-2 border-yellow-400 p-6 rounded-lg bg-yellow-50 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">
+                                <i class="fas fa-id-card mr-2 text-yellow-600"></i>
+                                임차인 신분증
+                            </h3>
+                            <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white mx-auto" style="max-width: 500px;">
+                                <img src="${c.id_card_photo}" alt="신분증" class="w-full" style="max-height: 400px; object-fit: contain;">
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 6. 서명 섹션 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4 text-center">임차인 서명</h3>
+                        ${c.signature_data ? `
+                            <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                <div class="border rounded bg-white mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%;">
+                                    <img src="${c.signature_data}" alt="임차인 서명" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;">
+                                </div>
+                                <p class="text-center mt-3 font-bold">서명인: ${c.name}</p>
+                                <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            </div>
+                        ` : '<p class="text-center text-gray-500">서명 없음</p>'}
+                    </div>
+                    
+                    <!-- 7. 오토바이 출고 사진 4장 -->
+                    ${(c.motorcycle_photo_front || c.motorcycle_photo_back || c.motorcycle_photo_left || c.motorcycle_photo_right) ? `
+                        <div class="border-2 border-blue-400 p-6 rounded-lg bg-blue-50 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">
+                                <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                                오토바이 출고 상태 사진
+                            </h3>
+                            <p class="text-sm text-center text-gray-600 mb-4">출고일: ${c.motorcycle_photo_upload_date ? new Date(c.motorcycle_photo_upload_date).toLocaleDateString('ko-KR') : new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                ${c.motorcycle_photo_front ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-up mr-1"></i>앞면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_front}" alt="오토바이 앞면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_back ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-down mr-1"></i>뒷면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_back}" alt="오토바이 뒷면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_left ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-left mr-1"></i>왼쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_left}" alt="오토바이 왼쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_right ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-right mr-1"></i>오른쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_right}" alt="오토바이 오른쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
         }
 
         // 서명 확대 모달 열기
