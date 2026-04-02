@@ -1746,7 +1746,57 @@
                             </div>
                         </div>
                     ` : ''}
+                    
+                    <!-- 7. 계약 약관 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4 text-center bg-gray-100 p-3 rounded">계약 약관</h3>
+                        ${getCompletedBusinessContractTerms(c.business_type, c.company_settings)}
+                    </div>
                 </div>
+            `;
+        }
+        
+        // 완료된 업체 계약서용 약관 생성
+        function getCompletedBusinessContractTerms(type, companySettings) {
+            const companyName = companySettings?.company_name || 'Z-BIKE';
+            const companyCode = companySettings?.business_number || '사업자등록번호';
+            const representative = companySettings?.representative_name || '대표자';
+            const companyAddress = companySettings?.address || '주소';
+            const companyPhone = companySettings?.phone || '연락처';
+            
+            const contractTypeText = type === 'lease' ? '리스' : '렌트';
+            
+            return `
+                <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                    <h4 class="font-bold text-base mb-3">임대인 (사업자) 정보</h4>
+                    <div class="space-y-1 text-gray-800 text-sm">
+                        <p><span class="font-semibold">상호명:</span> ${companyName}</p>
+                        <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
+                        <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                        <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
+                        <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
+                    </div>
+                </div>
+                
+                <div class="border-t border-b border-gray-400 py-2 my-4">
+                    <p class="text-center font-bold text-sm">- 다 음 -</p>
+                </div>
+                
+                <h4 class="font-bold text-base mb-3">업체 오토바이 ${contractTypeText} 계약 약관</h4>
+                
+                <div class="space-y-3 text-sm">
+                    <div><h5 class="font-bold mb-1">제1조 (계약의 목적)</h5><p class="text-gray-700">본 계약은 임대인이 소유한 오토바이를 업체(임차인)에게 ${contractTypeText}하는 조건과 절차를 정함을 목적으로 합니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제2조 (오토바이의 인도 및 관리)</h5><p class="text-gray-700">임대인은 계약 체결 시 오토바이를 정상 작동 상태로 임차인에게 인도합니다. 임차인은 오토바이를 선량한 관리자의 주의로써 관리하여야 합니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제3조 (사용 제한)</h5><p class="text-gray-700">임차인은 오토바이를 업체의 배달대행 업무 목적으로만 사용할 수 있으며, 음주운전, 무면허 운전 등을 하여서는 안 됩니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제4조 (${contractTypeText}료 납부)</h5><p class="text-gray-700">임차인은 계약서에 명시된 ${contractTypeText}료를 매일 차감 방식으로 납부합니다. ${contractTypeText}료는 계약 기간 동안 유효합니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제5조 (보험 및 사고 처리)</h5><p class="text-gray-700">임대인은 오토바이에 대한 유상운송보험에 가입하여야 합니다. 사고 발생 시 임차인은 즉시 임대인에게 통보하고 보험사에 신고하여야 합니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제6조 (정비 및 소모품)</h5><p class="text-gray-700">엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 임차인이 전액 부담합니다. 무상정비 제외 항목: 엔진, 미션, 구동계.</p></div>
+                    <div><h5 class="font-bold mb-1">제7조 (계약의 해지)</h5><p class="text-gray-700">정당한 사유 없이 3일 이상 연속하여 업무를 수행하지 않은 경우, 음주운전 등 중대한 법규 위반 시 임대인은 계약을 즉시 해지할 수 있습니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제8조 (중도 해지)</h5><p class="text-gray-700">임차인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있으며, 중도 해지 시 위약금(일차감금액의 50일분)을 지불합니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제9조 (무상정비 항목)</h5><p class="text-gray-700">임대인은 계약 기간 중 엔진오일 교환(1,500km마다), 브레이크패드 교체, 타이어 교체 등에 대하여 무상 정비 서비스를 제공합니다.</p></div>
+                    <div><h5 class="font-bold mb-1">제10조 (분쟁 해결)</h5><p class="text-gray-700">본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p></div>
+                </div>
+                <p class="mt-4 text-center font-bold text-sm">본 계약을 증명하기 위하여 계약서를 작성하고 업체 대표자가 서명합니다.</p>
             `;
         }
 
