@@ -340,7 +340,7 @@
     <!-- 서명 확대 모달 -->
     <script>
         // 버전 관리 및 캐시 무효화
-        const CURRENT_VERSION = '2026-04-01-v8-completed-detail-view';
+        const CURRENT_VERSION = '2026-04-01-v9-debug-completed';
         const storedVersion = localStorage.getItem('businessContractVersion');
         
         if (storedVersion !== CURRENT_VERSION) {
@@ -432,6 +432,9 @@
                 }
                 
                 if (contractData.status === 'active' && contractData.signature_data) {
+                    console.log('✅ 계약서 완료 상태 - showCompleted() 호출');
+                    console.log('상태:', contractData.status);
+                    console.log('서명 데이터:', contractData.signature_data ? '있음' : '없음');
                     showCompleted();
                     return;
                 }
@@ -1583,13 +1586,21 @@
 
         // 완료 화면 표시
         function showCompleted() {
+            console.log('🎉 showCompleted 함수 시작');
+            console.log('계약 데이터:', contractData);
+            
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('contractContent').classList.add('hidden');
             
             // 계약서 상세 내용 렌더링
             const completedDiv = document.getElementById('completed');
-            completedDiv.innerHTML = renderCompletedContract(contractData);
+            const html = renderCompletedContract(contractData);
+            console.log('생성된 HTML 길이:', html.length);
+            
+            completedDiv.innerHTML = html;
             completedDiv.classList.remove('hidden');
+            
+            console.log('✅ showCompleted 완료');
         }
         
         // 완료된 계약서 상세 렌더링
