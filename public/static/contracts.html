@@ -1223,6 +1223,10 @@
         
         // 보험 정보 실시간 업데이트 시작
         function startInsuranceAutoUpdate() {
+            // ⚠️ 임시: 보험 자동 업데이트 비활성화 (API 에러 방지)
+            console.log('⏸️  [임시] 보험 정보 자동 업데이트 비활성화 (서명 표시 우선)');
+            return;
+            
             // 기존 인터벌 정리
             if (insuranceUpdateInterval) {
                 clearInterval(insuranceUpdateInterval);
@@ -1252,6 +1256,10 @@
         
         // 오토바이 보험 정보 새로고침
         async function refreshInsuranceInfo() {
+            // ⚠️ 임시: 보험 정보 새로고침 비활성화
+            console.log('⏸️  [임시] 보험 정보 새로고침 비활성화');
+            return;
+            
             if (!currentContract || !currentContract.motorcycle_id) return;
             if (currentContract.status !== 'active') {
                 console.log('⚠️  계약 상태가 active가 아니므로 업데이트하지 않습니다:', currentContract.status);
