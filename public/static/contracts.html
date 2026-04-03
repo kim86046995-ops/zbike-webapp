@@ -1083,15 +1083,15 @@
         async function showDetail(contractType, id) {
             console.log('🔍 상세보기 클릭:', { contractType, id });
             
-            // 계약 상세 캐시 확인 (5분 유효)
+            // 계약 상세 캐시 확인 (5분 유효) - 빠른 표시용으로만 사용
             const detailCacheKey = `contract_detail_${contractType}_${id}`;
             const cachedDetail = sessionStorage.getItem(detailCacheKey);
             const cacheTime = sessionStorage.getItem(`${detailCacheKey}_time`);
             const now = Date.now();
             
-            // 캐시가 있으면 즉시 표시
+            // 캐시가 있으면 즉시 표시하고, 백그라운드에서 전체 데이터(이미지 포함) 로드
             if (cachedDetail && cacheTime && (now - parseInt(cacheTime)) < 300000) {
-                console.log('✅ 캐시된 계약 상세 즉시 표시');
+                console.log('✅ 캐시된 계약 상세 즉시 표시 (이미지 제외)');
                 document.getElementById('detailModal').classList.remove('hidden');
                 currentContract = JSON.parse(cachedDetail);
                 renderDetail();
@@ -1104,14 +1104,16 @@
                     cancelBtn.style.display = 'none';
                 }
                 
+                // ⚠️ 중요: 캐시된 데이터에는 이미지가 없으므로, 항상 API에서 전체 데이터를 다시 로드
+                console.log('🔄 백그라운드에서 전체 데이터(이미지 포함) 로드 시작...');
+                loadContractDetailInBackground(contractType, id, detailCacheKey);
+                
                 // active 상태인 계약서만 실시간 보험 정보 업데이트 시작
                 if (currentContract.status === 'active' && currentContract.motorcycle_id) {
                     console.log('✅ [진행중 계약서] 실시간 보험 정보 업데이트 시작:', currentContract.contract_number);
                     startInsuranceAutoUpdate();
                 }
                 
-                // 백그라운드에서 최신 데이터 로드
-                loadContractDetailInBackground(contractType, id, detailCacheKey);
                 return;
             }
             
@@ -1174,7 +1176,7 @@
             }
         }
         
-        // 백그라운드에서 계약 상세 업데이트
+        // 백그라운드에서 계약 상세 업데이트 (전체 데이터, 이미지 포함)
         async function loadContractDetailInBackground(contractType, id, cacheKey) {
             try {
                 let response;
@@ -1187,26 +1189,24 @@
                 const now = Date.now();
                 const newData = response.data;
                 
-                // 데이터가 변경되었으면 업데이트
-                if (JSON.stringify(currentContract) !== JSON.stringify(newData)) {
-                    console.log('🔄 백그라운드: 계약 데이터 변경 감지, 업데이트');
-                    currentContract = newData;
-                    
-                    // 캐시 저장 (이미지 제외로 용량 절감)
-                    try {
-                        const { signature_data, id_card_photo, business_license_photo, 
-                                motorcycle_photo_front, motorcycle_photo_back, 
-                                motorcycle_photo_left, motorcycle_photo_right, ...cacheData } = newData;
-                        sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
-                        sessionStorage.setItem(`${cacheKey}_time`, now.toString());
-                    } catch (e) {
-                        console.warn('⚠️ 백그라운드 캐시 저장 실패:', e.message);
-                    }
-                    
-                    renderDetail();
-                } else {
-                    console.log('✅ 백그라운드: 계약 데이터 변경 없음');
+                // 전체 데이터(이미지 포함)로 currentContract 업데이트
+                console.log('🔄 백그라운드: 전체 데이터(이미지 포함) 로드 완료');
+                currentContract = newData;
+                
+                // 캐시에는 이미지 제외하고 저장
+                try {
+                    const { signature_data, id_card_photo, business_license_photo, 
+                            motorcycle_photo_front, motorcycle_photo_back, 
+                            motorcycle_photo_left, motorcycle_photo_right, ...cacheData } = newData;
+                    sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                    sessionStorage.setItem(`${cacheKey}_time`, now.toString());
+                } catch (e) {
+                    console.warn('⚠️ 백그라운드 캐시 저장 실패:', e.message);
                 }
+                
+                // 화면 다시 렌더링 (이제 이미지가 포함됨)
+                renderDetail();
+                console.log('✅ 백그라운드: 이미지 포함 화면 렌더링 완료');
             } catch (error) {
                 console.warn('⚠️ 백그라운드 업데이트 실패 (무시):', error.message);
             }
@@ -1635,6 +1635,12 @@
             
             const contentDiv = document.getElementById('deliveryPhotosContent');
             const sectionDiv = document.getElementById('deliveryPhotosSection');
+            
+            // 요소가 없으면 함수 종료 (업체 계약서 등에서는 이 ID가 없음)
+            if (!contentDiv || !sectionDiv) {
+                console.log('📸 deliveryPhotosSection 요소 없음 (업체 계약서에서는 불필요)');
+                return;
+            }
             
             if (validPhotos.length === 0) {
                 sectionDiv.style.display = 'none';
