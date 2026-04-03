@@ -1346,6 +1346,14 @@
                 return;
             }
             
+            // 🔍 디버깅: 개인 계약서 서명 데이터 확인
+            console.log('📝 개인 계약서 렌더링 시작');
+            console.log('🖊️ 서명 데이터 존재:', !!c.signature_data);
+            if (c.signature_data) {
+                console.log('📏 서명 데이터 길이:', c.signature_data.length);
+                console.log('🔤 서명 데이터 시작:', c.signature_data.substring(0, 50));
+            }
+            
             // 업체 계약서인 경우 별도 렌더링
             if (c.contract_type === 'business' || c.company_name) {
                 renderBusinessContractDetail();
