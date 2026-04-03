@@ -1304,7 +1304,12 @@
             if (!currentContract || currentContract.status !== 'active') return;
             
             try {
-                await axios.put(`/api/contracts/${currentContract.id}/insurance`, {
+                // 업체 계약서와 개인 계약서 API 엔드포인트 구분
+                const apiEndpoint = currentContract.company_name 
+                    ? `/api/business-contracts/${currentContract.id}/insurance`
+                    : `/api/contracts/${currentContract.id}/insurance`;
+                
+                await axios.put(apiEndpoint, {
                     insurance_company: currentContract.insurance_company,
                     driving_range: currentContract.driving_range,
                     insurance_start_date: currentContract.insurance_start_date,
@@ -1314,6 +1319,7 @@
                 console.log('💾 [진행중 계약서] DB 보험 정보 업데이트 완료');
             } catch (error) {
                 console.error('[진행중 계약서] DB 보험 정보 업데이트 실패:', error);
+                // 에러 발생해도 화면 표시는 계속 진행
             }
         }
         
