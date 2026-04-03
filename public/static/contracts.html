@@ -2209,6 +2209,14 @@
             const c = currentContract;
             const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
             
+            // 🔍 디버깅: 서명 데이터 확인
+            console.log('📝 업체 계약서 렌더링 시작');
+            console.log('🖊️ 서명 데이터 존재:', !!c.signature_data);
+            if (c.signature_data) {
+                console.log('📏 서명 데이터 길이:', c.signature_data.length);
+                console.log('🔤 서명 데이터 시작:', c.signature_data.substring(0, 50));
+            }
+            
             // business_type 필드 사용 (리스/렌트 구분)
             const contractTypeText = c.business_type === 'lease' ? '리스' : '렌트';
             
