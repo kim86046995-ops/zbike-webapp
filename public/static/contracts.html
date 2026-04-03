@@ -1139,11 +1139,14 @@
                 console.log('✅ 계약서 데이터 로드 완료:', response.data);
                 currentContract = response.data;
                 
-                // 캐시 저장
+                // 캐시 저장 (이미지 제외로 용량 절감)
                 try {
-                    sessionStorage.setItem(detailCacheKey, JSON.stringify(currentContract));
+                    const { signature_data, id_card_photo, business_license_photo, 
+                            motorcycle_photo_front, motorcycle_photo_back, 
+                            motorcycle_photo_left, motorcycle_photo_right, ...cacheData } = currentContract;
+                    sessionStorage.setItem(detailCacheKey, JSON.stringify(cacheData));
                     sessionStorage.setItem(`${detailCacheKey}_time`, now.toString());
-                    console.log('✅ 계약 상세 캐시 저장');
+                    console.log('✅ 계약 상세 캐시 저장 (이미지 제외)');
                 } catch (e) {
                     console.warn('⚠️ 캐시 저장 실패:', e.message);
                 }
@@ -1188,8 +1191,18 @@
                 if (JSON.stringify(currentContract) !== JSON.stringify(newData)) {
                     console.log('🔄 백그라운드: 계약 데이터 변경 감지, 업데이트');
                     currentContract = newData;
-                    sessionStorage.setItem(cacheKey, JSON.stringify(newData));
-                    sessionStorage.setItem(`${cacheKey}_time`, now.toString());
+                    
+                    // 캐시 저장 (이미지 제외로 용량 절감)
+                    try {
+                        const { signature_data, id_card_photo, business_license_photo, 
+                                motorcycle_photo_front, motorcycle_photo_back, 
+                                motorcycle_photo_left, motorcycle_photo_right, ...cacheData } = newData;
+                        sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                        sessionStorage.setItem(`${cacheKey}_time`, now.toString());
+                    } catch (e) {
+                        console.warn('⚠️ 백그라운드 캐시 저장 실패:', e.message);
+                    }
+                    
                     renderDetail();
                 } else {
                     console.log('✅ 백그라운드: 계약 데이터 변경 없음');
