@@ -417,6 +417,7 @@
                             <option value="">전체</option>
                             <option value="lease">리스</option>
                             <option value="rent">렌트</option>
+                            <option value="loan">차용증</option>
                             <option value="business">업체</option>
                             <option value="temp_rent">임시</option>
                             <option value="completed">완료</option>
@@ -854,6 +855,9 @@
                     } else if (typeFilter === 'rent') {
                         // 개인 렌트 (pending도 포함)
                         matchType = c.contract_type === 'rent' && (c.status === 'active' || c.status === 'pending');
+                    } else if (typeFilter === 'loan') {
+                        // 차용증 (pending도 포함)
+                        matchType = c.contract_type === 'loan' && (c.status === 'active' || c.status === 'pending');
                     }
                 }
                 
