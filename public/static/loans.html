@@ -259,6 +259,22 @@
             sessionStorage.removeItem('loans_cache_time');
             console.log('🗑️ 차용증 캐시 클리어');
         }
+        
+        // 오래된 캐시 정리 (10분 이상 된 캐시 삭제)
+        function cleanupOldCache() {
+            try {
+                const cacheTime = sessionStorage.getItem('loans_cache_time');
+                if (cacheTime) {
+                    const age = Date.now() - parseInt(cacheTime);
+                    if (age > 600000) { // 10분 이상
+                        clearLoansCache();
+                        console.log('🧹 오래된 캐시 자동 삭제 (10분 경과)');
+                    }
+                }
+            } catch (err) {
+                console.error('캐시 정리 실패:', err);
+            }
+        }
 
         async function loadData(forceRefresh = false) {
             if (!checkAuth()) return;
@@ -289,21 +305,35 @@
                 });
                 allLoans = res.data;
                 
-                // 캐시에 저장
-                sessionStorage.setItem(cacheKey, JSON.stringify(allLoans));
-                sessionStorage.setItem(cacheTimeKey, now.toString());
+                // 캐시에 저장 (서명 이미지 제외로 용량 절감)
+                try {
+                    const cacheData = allLoans.map(loan => ({
+                        ...loan,
+                        borrower_signature: loan.borrower_signature ? '[IMAGE]' : null,
+                        lender_signature: loan.lender_signature ? '[IMAGE]' : null
+                    }));
+                    sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                } catch (storageErr) {
+                    console.warn('⚠️ 캐시 저장 실패 (용량 초과):', storageErr);
+                    // 캐시 저장 실패해도 계속 진행
+                }
                 
                 applyFilters();
             } catch (err) {
                 console.error('차용증 데이터 로드 실패:', err);
                 
                 // 에러 시 캐시 확인
-                const cachedData = sessionStorage.getItem('loans_cache');
-                if (cachedData) {
-                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
-                    allLoans = JSON.parse(cachedData);
-                    applyFilters();
-                    return;
+                try {
+                    const cachedData = sessionStorage.getItem('loans_cache');
+                    if (cachedData) {
+                        console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
+                        allLoans = JSON.parse(cachedData);
+                        applyFilters();
+                        return;
+                    }
+                } catch (cacheErr) {
+                    console.error('캐시 로드 실패:', cacheErr);
                 }
                 
                 alert('데이터 로드 실패: ' + err.message);
@@ -989,7 +1019,10 @@
         }
 
         // 페이지 로드 시 실행
-        window.addEventListener('DOMContentLoaded', loadData);
+        window.addEventListener('DOMContentLoaded', () => {
+            cleanupOldCache(); // 오래된 캐시 정리
+            loadData();
+        });
     </script>
 
     <!-- 이미지 확대 모달 -->
@@ -1003,3 +1036,4 @@
     </div>
 </body>
 </html>
+<!-- Updated Fri Apr  3 02:51:46 UTC 2026 -->
