@@ -1089,7 +1089,12 @@
             const cacheTime = sessionStorage.getItem(`${detailCacheKey}_time`);
             const now = Date.now();
             
-            // 캐시가 있으면 즉시 표시하고, 백그라운드에서 전체 데이터(이미지 포함) 로드
+            // ⚠️ 긴급 수정: 서명 표시를 위해 캐시 사용 완전 비활성화
+            // 캐시가 있어도 무시하고 항상 API에서 전체 데이터(이미지 포함) 로드
+            console.log('🚫 캐시 사용 비활성화 - 항상 API에서 전체 데이터 로드 (서명 포함)');
+            
+            // 기존 캐시 코드 주석 처리
+            /*
             if (cachedDetail && cacheTime && (now - parseInt(cacheTime)) < 300000) {
                 console.log('✅ 캐시된 계약 상세 즉시 표시 (이미지 제외)');
                 document.getElementById('detailModal').classList.remove('hidden');
@@ -1116,6 +1121,7 @@
                 
                 return;
             }
+            */
             
             try {
                 // 즉시 모달 표시 (간단한 로딩 상태)
