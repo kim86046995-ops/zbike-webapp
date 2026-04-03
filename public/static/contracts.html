@@ -908,8 +908,18 @@
             }
             
             console.log('✅ 계약서 목록 렌더링 시작...');
-
-            listEl.innerHTML = filteredContracts.map(c => {
+            
+            // 성능 최적화: 즉시 로딩 표시
+            listEl.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p class="text-gray-600 mt-2 text-sm">목록 불러오는 중...</p>
+                </div>
+            `;
+            
+            // requestAnimationFrame을 사용하여 다음 프레임에서 렌더링
+            requestAnimationFrame(() => {
+                const htmlArray = filteredContracts.map(c => {
                 const typeColors = {
                     'lease': 'bg-blue-100 text-blue-800',
                     'individual': 'bg-blue-100 text-blue-800',
@@ -1059,9 +1069,11 @@
                         </div>
                     </div>
                 `;
-            }).join('');
-            
-            console.log('✅ renderContracts() 완료 - ', filteredContracts.length, '건 렌더링됨');
+                });
+                
+                listEl.innerHTML = htmlArray.join('');
+                console.log('✅ renderContracts() 완료 - ', filteredContracts.length, '건 렌더링됨');
+            });
         }
 
         async function showDetail(contractType, id) {
@@ -2473,13 +2485,15 @@
             `;
             
             document.getElementById('contractDetail').innerHTML = html;
+            
             // PDF 생성을 위해 pdfContent에도 동일한 HTML 삽입
             const pdfContentElement = document.getElementById('pdfContent');
             if (pdfContentElement) {
                 pdfContentElement.innerHTML = html;
+            }
+            
             // 출고 사진 갤러리 렌더링
             renderDeliveryPhotos();
-            }
         }
 
         // 임시렌트 계약서 상세보기 렌더링
