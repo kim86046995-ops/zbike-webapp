@@ -1613,7 +1613,7 @@
                 // 서명 데이터를 JPEG로 압축 저장 (Safari 호환성 개선)
                 let signatureData;
                 try {
-                    signatureData = canvas.toDataURL('image/jpeg', 0.85);
+                    signatureData = canvas.toDataURL('image/png');
                     console.log('✅ 서명 변환 완료 - 크기:', Math.round(signatureData.length / 1024), 'KB');
                 } catch (e) {
                     console.error('❌ 서명 변환 실패:', e);
