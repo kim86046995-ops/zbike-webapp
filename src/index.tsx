@@ -1532,7 +1532,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   }
   
   // 기존 데이터 조회 (이력 기록용)
-  const existing = await DB.prepare('SELECT status, usage_notes FROM motorcycles WHERE id = ?').bind(id).first()
+  const existing = await DB.prepare('SELECT status, usage_notes, chassis_number FROM motorcycles WHERE id = ?').bind(id).first()
   if (!existing) {
     return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
   }
