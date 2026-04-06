@@ -934,11 +934,31 @@
                                     </p>
                                     <p class="text-white text-lg font-black tracking-tight">${displayNumber}</p>
                                 </div>
-                                <div class="flex flex-col items-center">
-                                    <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-history text-xs text-white"></i>
+                                <div class="flex gap-2 items-center">
+                                    <!-- 이력 버튼 -->
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-history text-xs text-white"></i>
+                                        </div>
+                                        <p class="text-white text-xs mt-0 font-medium">이력</p>
                                     </div>
-                                    <p class="text-white text-xs mt-0 font-medium">이력</p>
+                                    <!-- 정비 버튼 (정비중이 아닐 때만 표시) -->
+                                    ${m.status !== 'maintenance' ? `
+                                    <div class="flex flex-col items-center" onclick="event.stopPropagation(); startMaintenance(${m.id}, '${m.plate_number}')">
+                                        <div class="w-6 h-6 bg-orange-500 bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
+                                            <i class="fas fa-wrench text-xs text-white"></i>
+                                        </div>
+                                        <p class="text-white text-xs mt-0 font-medium">정비</p>
+                                    </div>
+                                    ` : `
+                                    <!-- 정비 완료 버튼 (정비중일 때 표시) -->
+                                    <div class="flex flex-col items-center" onclick="event.stopPropagation(); completeMaintenance(${m.id}, '${m.plate_number}')">
+                                        <div class="w-6 h-6 bg-green-500 bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
+                                            <i class="fas fa-check text-xs text-white"></i>
+                                        </div>
+                                        <p class="text-white text-xs mt-0 font-medium">완료</p>
+                                    </div>
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -2479,6 +2499,104 @@
                 </div>
                 ${historyHtml}
             `;
+        }
+
+        // ============================================
+        // 정비 관련 함수
+        // ============================================
+        
+        async function startMaintenance(motorcycleId, plateNumber) {
+            console.log('🔧 정비 시작:', motorcycleId, plateNumber);
+            
+            // 확인 문구
+            if (!confirm(`${plateNumber} 오토바이를 정비하시겠습니까?\n\n정비 상태로 변경되고 정비,폐지 카드로 이동합니다.`)) {
+                return;
+            }
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+                
+                console.log('📡 정비 상태 변경 API 호출...');
+                const response = await axios.patch(
+                    `/api/motorcycles/${motorcycleId}/status`,
+                    {
+                        status: 'maintenance',
+                        usage_notes: `정비 시작: ${new Date().toLocaleString('ko-KR')}`
+                    },
+                    {
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    }
+                );
+                
+                console.log('✅ 정비 상태 변경 성공:', response.data);
+                
+                // 캐시 삭제
+                clearMotorcyclesCache();
+                
+                // 필터를 "수리중"으로 변경하고 데이터 새로고침
+                document.getElementById('statusFilter').value = 'maintenance';
+                await loadMotorcycles(true);
+                
+                alert(`${plateNumber} 오토바이가 정비 상태로 변경되었습니다.`);
+                
+            } catch (error) {
+                console.error('❌ 정비 상태 변경 실패:', error);
+                alert('정비 상태 변경에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+        
+        async function completeMaintenance(motorcycleId, plateNumber) {
+            console.log('✅ 정비 완료:', motorcycleId, plateNumber);
+            
+            // 확인 문구
+            if (!confirm(`${plateNumber} 오토바이 정비를 완료하시겠습니까?\n\n휴차중 상태로 변경되고 오토바이 관리 화면으로 이동합니다.`)) {
+                return;
+            }
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+                
+                console.log('📡 휴차중 상태 변경 API 호출...');
+                const response = await axios.patch(
+                    `/api/motorcycles/${motorcycleId}/status`,
+                    {
+                        status: 'available',
+                        usage_notes: `정비 완료: ${new Date().toLocaleString('ko-KR')}`
+                    },
+                    {
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    }
+                );
+                
+                console.log('✅ 휴차중 상태 변경 성공:', response.data);
+                
+                // 캐시 삭제
+                clearMotorcyclesCache();
+                
+                // 필터를 "휴차중"으로 변경하고 데이터 새로고침
+                document.getElementById('statusFilter').value = 'available';
+                await loadMotorcycles(true);
+                
+                alert(`${plateNumber} 오토바이 정비가 완료되었습니다.`);
+                
+            } catch (error) {
+                console.error('❌ 정비 완료 처리 실패:', error);
+                alert('정비 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
         }
 
         function hideHistoryModal() {
