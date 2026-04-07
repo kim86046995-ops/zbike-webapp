@@ -3165,15 +3165,43 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   
   const kstNow = getKSTDateTime()
   
+  // 오토바이 ID 검증
+  if (!data.motorcycle_id) {
+    console.error('❌ motorcycle_id가 누락되었습니다')
+    return c.json({ error: '오토바이 정보가 누락되었습니다' }, 400)
+  }
+  
   // 오토바이 정보 조회 (보험 정보 포함)
   const motorcycle = await DB.prepare(`
     SELECT insurance_company, insurance_start_date, insurance_end_date, driving_range 
     FROM motorcycles WHERE id = ?
   `).bind(data.motorcycle_id).first() as any
   
+  if (!motorcycle) {
+    console.error('❌ 오토바이를 찾을 수 없습니다. ID:', data.motorcycle_id)
+    return c.json({ error: `오토바이를 찾을 수 없습니다 (ID: ${data.motorcycle_id})` }, 404)
+  }
+  
+  console.log('✅ 오토바이 정보 조회 성공:', motorcycle)
+  
   // 임시렌트는 무조건 진행중(active) 상태로 저장
   // 다른 계약은 서명 데이터 유무로 판단
   const statusToSave = (data.contract_type === 'temp_rent') ? 'active' : (data.signature_data ? 'active' : 'pending')
+  
+  console.log('🔍 INSERT 직전 데이터 확인:', {
+    contract_type: data.contract_type,
+    motorcycle_id: data.motorcycle_id,
+    customer_id: data.customer_id,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    monthly_fee: data.monthly_fee,
+    deposit: data.deposit,
+    contractNumber,
+    statusToSave,
+    kstNow,
+    motorcycle_driving_range: motorcycle?.driving_range,
+    motorcycle_insurance_company: motorcycle?.insurance_company
+  })
   
   const result = await DB.prepare(`
     INSERT INTO contracts (
@@ -3203,6 +3231,8 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     motorcycle?.insurance_end_date || '',
     motorcycle?.driving_range || ''
   ).run()
+  
+  console.log('✅ INSERT 성공:', result.meta.last_row_id)
   
   const newContractId = result.meta.last_row_id
   
