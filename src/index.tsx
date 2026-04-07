@@ -3096,13 +3096,13 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   }
   
   // 같은 오토바이의 기존 활성 계약을 완료 처리
-  console.log('🔄 Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+  console.log('🔄 Checking for existing active contracts for motorcycle:', motorcycleId)
   
   // 1. 개인 계약 완료 처리 (덮어쓰기)
   const existingContracts = await DB.prepare(`
     SELECT * FROM contracts 
     WHERE motorcycle_id = ? AND status = 'active'
-  `).bind(data.motorcycle_id).all()
+  `).bind(motorcycleId).all()
   
   if (existingContracts.results.length > 0) {
     console.log(`📋 Found ${existingContracts.results.length} active personal contract(s), replacing them...`)
@@ -3143,7 +3143,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   const existingBusinessContracts = await DB.prepare(`
     SELECT * FROM business_contracts 
     WHERE motorcycle_id = ? AND status = 'active'
-  `).bind(data.motorcycle_id).all()
+  `).bind(motorcycleId).all()
   
   if (existingBusinessContracts.results.length > 0) {
     console.log(`📋 Found ${existingBusinessContracts.results.length} active business contract(s), replacing them...`)
@@ -3165,21 +3165,24 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   
   const kstNow = getKSTDateTime()
   
-  // 오토바이 ID 검증
-  if (!data.motorcycle_id) {
-    console.error('❌ motorcycle_id가 누락되었습니다')
-    return c.json({ error: '오토바이 정보가 누락되었습니다' }, 400)
+  // 오토바이 ID 검증 및 변환
+  const motorcycleId = Number(data.motorcycle_id)
+  if (!data.motorcycle_id || isNaN(motorcycleId)) {
+    console.error('❌ motorcycle_id가 누락되었거나 유효하지 않습니다:', data.motorcycle_id, 'type:', typeof data.motorcycle_id)
+    return c.json({ error: '오토바이 정보가 누락되었거나 유효하지 않습니다' }, 400)
   }
+  
+  console.log('✅ motorcycle_id 검증 성공:', motorcycleId)
   
   // 오토바이 정보 조회 (보험 정보 포함)
   const motorcycle = await DB.prepare(`
     SELECT insurance_company, insurance_start_date, insurance_end_date, driving_range 
     FROM motorcycles WHERE id = ?
-  `).bind(data.motorcycle_id).first() as any
+  `).bind(motorcycleId).first() as any
   
   if (!motorcycle) {
-    console.error('❌ 오토바이를 찾을 수 없습니다. ID:', data.motorcycle_id)
-    return c.json({ error: `오토바이를 찾을 수 없습니다 (ID: ${data.motorcycle_id})` }, 404)
+    console.error('❌ 오토바이를 찾을 수 없습니다. ID:', motorcycleId)
+    return c.json({ error: `오토바이를 찾을 수 없습니다 (ID: ${motorcycleId})` }, 404)
   }
   
   console.log('✅ 오토바이 정보 조회 성공:', motorcycle)
@@ -3190,7 +3193,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   
   console.log('🔍 INSERT 직전 데이터 확인:', {
     contract_type: data.contract_type,
-    motorcycle_id: data.motorcycle_id,
+    motorcycle_id: motorcycleId,
     customer_id: data.customer_id,
     start_date: data.start_date,
     end_date: data.end_date,
@@ -3199,8 +3202,8 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     contractNumber,
     statusToSave,
     kstNow,
-    motorcycle_driving_range: motorcycle?.driving_range,
-    motorcycle_insurance_company: motorcycle?.insurance_company
+    motorcycle_driving_range: motorcycle.driving_range,
+    motorcycle_insurance_company: motorcycle.insurance_company
   })
   
   const result = await DB.prepare(`
@@ -3212,7 +3215,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
-    data.motorcycle_id,
+    motorcycleId,
     data.customer_id,
     data.start_date,
     data.end_date,
@@ -3240,7 +3243,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   await recordContractHistory(
     DB,
     Number(newContractId),
-    data.motorcycle_id,
+    motorcycleId,
     data.customer_id,
     contractNumber,
     data.contract_type,
@@ -3258,7 +3261,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   // 오토바이 상태 업데이트 (active 상태일 때만)
   if (statusToSave === 'active') {
     await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
-      .bind('rented', data.motorcycle_id).run()
+      .bind('rented', motorcycleId).run()
   }
   
   // ⭐ SMS 전송 (부가 기능 - 실패해도 계약서 저장에 영향 없음)

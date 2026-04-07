@@ -2180,6 +2180,8 @@
                 return;
             }
 
+            console.log('🔍 [Safari Debug] selectedMotorcycleId:', selectedMotorcycleId, 'type:', typeof selectedMotorcycleId);
+            
             if (!selectedMotorcycleId) {
                 alert('오토바이를 선택해주세요');
                 return;
@@ -2197,11 +2199,13 @@
             const customerName = document.getElementById('customerName').value;
             const customerPhone = document.getElementById('phone').value;
             
+            console.log('🔍 [Safari Debug] Preparing contract data with motorcycle_id:', selectedMotorcycleId);
+            
             // 계약 데이터 준비 (서명과 신분증 제외)
             pendingContractData = {
                 contract_type: contractType,
                 customer_id: selectedCustomerId,  // 고객 ID 추가
-                motorcycle_id: selectedMotorcycleId,
+                motorcycle_id: Number(selectedMotorcycleId),  // 명시적으로 숫자로 변환
                 // 오토바이 제원 정보 추가
                 motorcycle_plate: selectedMotorcycle?.plate_number || '',
                 motorcycle_name: selectedMotorcycle?.vehicle_name || '',
@@ -2563,7 +2567,7 @@
                 const contractData = {
                     contract_type: contractType,
                     customer_id: selectedCustomerId,
-                    motorcycle_id: selectedMotorcycleId,
+                    motorcycle_id: Number(selectedMotorcycleId),
                     // 오토바이 제원 정보
                     motorcycle_plate: selectedMotorcycle?.plate_number || '',
                     motorcycle_name: selectedMotorcycle?.vehicle_name || '',
@@ -2990,7 +2994,7 @@
                 // 계약 데이터 생성 (이름만 필수, 나머지는 선택)
                 const contractData = {
                     contract_type: 'temp_rent',
-                    motorcycle_id: selectedMotorcycleId,
+                    motorcycle_id: Number(selectedMotorcycleId),
                     customer_name: customerName,
                     phone: document.getElementById('tempPhone').value.trim() || '',
                     resident_number: document.getElementById('tempResidentNumber').value.trim() || '',
@@ -3305,7 +3309,7 @@
                 
                 const contractData = {
                     contract_type: contractType === 'lease' ? 'individual' : contractType,
-                    motorcycle_id: selectedMotorcycleId,
+                    motorcycle_id: Number(selectedMotorcycleId),
                     customer_name: customerName,
                     customer_phone: customerPhone,
                     resident_number: document.getElementById('residentNumber').value || '',
