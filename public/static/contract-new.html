@@ -2742,8 +2742,37 @@
                 }, 3000);
                 
             } catch (error) {
-                console.error('계약서 저장 실패:', error);
-                alert('계약서 저장에 실패했습니다:\n\n' + (error.response?.data?.error || error.message));
+                console.error('❌ 계약서 저장 실패 상세:', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    stack: error.stack
+                });
+                
+                let errorMessage = '계약서 저장에 실패했습니다.\n\n';
+                
+                if (error.response) {
+                    // 서버 응답이 있는 경우
+                    errorMessage += `상태 코드: ${error.response.status}\n`;
+                    errorMessage += `오류: ${error.response.data?.error || error.response.data?.details || '알 수 없는 오류'}\n`;
+                    
+                    // 500 에러인 경우 더 자세한 정보
+                    if (error.response.status === 500) {
+                        errorMessage += `\n서버 내부 오류가 발생했습니다.\n`;
+                        errorMessage += `잠시 후 다시 시도해주세요.\n`;
+                        if (error.response.data?.details) {
+                            errorMessage += `\n상세: ${error.response.data.details}`;
+                        }
+                    }
+                } else if (error.request) {
+                    // 요청은 전송되었지만 응답이 없는 경우
+                    errorMessage += '서버와 연결할 수 없습니다.\n인터넷 연결을 확인해주세요.';
+                } else {
+                    // 요청 설정 중 오류 발생
+                    errorMessage += error.message;
+                }
+                
+                alert(errorMessage);
             }
         }
         
