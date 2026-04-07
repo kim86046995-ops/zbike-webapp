@@ -3178,9 +3178,9 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
-      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status, 
-      insurance_company, insurance_start_date, insurance_end_date, insurance_age_limit, driving_range,
-      created_at, updated_at
+      monthly_fee, deposit, special_terms, signature_data, contract_number, status, 
+      created_at, updated_at, id_card_photo,
+      insurance_age_limit, insurance_company, insurance_start_date, insurance_end_date, driving_range
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
@@ -3192,16 +3192,16 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     data.deposit || 0,
     data.special_terms || '',
     data.signature_data || '',
-    data.id_card_photo || '',
     contractNumber,
     statusToSave,
+    kstNow,
+    kstNow,
+    data.id_card_photo || '',
+    motorcycle?.driving_range || '',
     motorcycle?.insurance_company || '',
     motorcycle?.insurance_start_date || '',
     motorcycle?.insurance_end_date || '',
-    motorcycle?.driving_range || '',
-    motorcycle?.driving_range || '',
-    kstNow,
-    kstNow
+    motorcycle?.driving_range || ''
   ).run()
   
   const newContractId = result.meta.last_row_id
