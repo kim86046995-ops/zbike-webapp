@@ -3095,6 +3095,15 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     }
   }
   
+  // ⭐ 오토바이 ID 검증 및 변환 (먼저 해야 함!)
+  const motorcycleId = Number(data.motorcycle_id)
+  if (!data.motorcycle_id || isNaN(motorcycleId)) {
+    console.error('❌ motorcycle_id가 누락되었거나 유효하지 않습니다:', data.motorcycle_id, 'type:', typeof data.motorcycle_id)
+    return c.json({ error: '오토바이 정보가 누락되었거나 유효하지 않습니다' }, 400)
+  }
+  
+  console.log('✅ motorcycle_id 검증 성공:', motorcycleId)
+  
   // 같은 오토바이의 기존 활성 계약을 완료 처리
   console.log('🔄 Checking for existing active contracts for motorcycle:', motorcycleId)
   
@@ -3164,15 +3173,6 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   }
   
   const kstNow = getKSTDateTime()
-  
-  // 오토바이 ID 검증 및 변환
-  const motorcycleId = Number(data.motorcycle_id)
-  if (!data.motorcycle_id || isNaN(motorcycleId)) {
-    console.error('❌ motorcycle_id가 누락되었거나 유효하지 않습니다:', data.motorcycle_id, 'type:', typeof data.motorcycle_id)
-    return c.json({ error: '오토바이 정보가 누락되었거나 유효하지 않습니다' }, 400)
-  }
-  
-  console.log('✅ motorcycle_id 검증 성공:', motorcycleId)
   
   // 오토바이 정보 조회 (보험 정보 포함)
   const motorcycle = await DB.prepare(`
