@@ -539,6 +539,13 @@
             // 계약 정보 표시
             const contractInfo = document.getElementById('contractInfo');
             
+            // 🔍 디버깅: 계약 데이터 확인
+            console.log('🔍 계약 데이터 전체:', data);
+            console.log('🔍 start_date:', data.start_date);
+            console.log('🔍 end_date:', data.end_date);
+            console.log('🔍 monthly_fee:', data.monthly_fee);
+            console.log('🔍 deposit:', data.deposit);
+            
             // contract_data 안전하게 파싱 (없거나 비어있으면 빈 객체 사용)
             let info = {};
             try {
