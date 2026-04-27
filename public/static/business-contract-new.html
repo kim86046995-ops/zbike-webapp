@@ -755,6 +755,19 @@
         // 오토바이 목록 로드
         async function loadMotorcycles() {
             try {
+                // 캐시 확인 (5분 유효)
+                const cacheKey = 'motorcycles_cache';
+                const cacheTimeKey = 'motorcycles_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                    motorcycles = JSON.parse(cachedData);
+                    console.log('✅ 캐시된 오토바이 목록 사용:', motorcycles.length, '대');
+                    return;
+                }
+                
                 const sessionId = localStorage.getItem('sessionId');
                 const response = await axios.get('/api/motorcycles', {
                     headers: { 'X-Session-ID': sessionId }
@@ -764,6 +777,15 @@
                     const bNum = b.plate_number || b.chassis_number;
                     return aNum.localeCompare(bNum);
                 });
+                
+                // 캐시에 저장
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(motorcycles));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                } catch (e) {
+                    console.warn('캐시 저장 실패:', e);
+                }
+                
                 console.log('✅ 오토바이 목록 로드 완료:', motorcycles.length, '대');
                 // 첫 번째 오토바이 보험 정보 확인
                 if (motorcycles.length > 0) {
@@ -784,6 +806,20 @@
         // 업체 목록 로드
         async function loadCompanies() {
             try {
+                // 캐시 확인 (5분 유효)
+                const cacheKey = 'companies_cache';
+                const cacheTimeKey = 'companies_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                    companies = JSON.parse(cachedData);
+                    allCompanies = { companies: companies };
+                    console.log('✅ 캐시된 업체 목록 사용:', companies.length, '건');
+                    return;
+                }
+                
                 console.log('🔍 업체 목록 로드 시작...');
                 const sessionId = localStorage.getItem('sessionId');
                 console.log('📋 세션 ID:', sessionId ? '있음' : '없음');
@@ -799,6 +835,14 @@
                 // API는 배열을 직접 반환함
                 companies = response.data || [];
                 allCompanies = { companies: companies };
+                
+                // 캐시에 저장
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(companies));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                } catch (e) {
+                    console.warn('캐시 저장 실패:', e);
+                }
                 
                 console.log('✅ 업체 목록 로드 완료:', companies.length + '건');
                 if (companies.length > 0) {
