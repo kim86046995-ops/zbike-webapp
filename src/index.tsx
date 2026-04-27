@@ -2918,11 +2918,12 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  // 계약서 전체 정보 조회
+  // 계약서 전체 정보 조회 (오토바이 정보 포함)
   const contract = await DB.prepare(`
-    SELECT c.*, cu.name as customer_name 
+    SELECT c.*, cu.name as customer_name, m.chassis_number, m.plate_number, m.vehicle_name
     FROM contracts c
     LEFT JOIN customers cu ON c.customer_id = cu.id
+    LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
     WHERE c.id = ?
   `).bind(id).first() as any
   
@@ -2952,23 +2953,25 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
   
-  // 계약 완료 이력을 motorcycle_history에 저장
+  // 계약 완료 이력을 motorcycle_history에 저장 (chassis_number, change_type 포함)
   await DB.prepare(`
     INSERT INTO motorcycle_history (
-      motorcycle_id, field_name, old_value, new_value, 
-      changed_by, changed_by_name, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      motorcycle_id, change_type, field_name, old_value, new_value, 
+      changed_by, changed_by_name, notes, chassis_number
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     contract.motorcycle_id,
+    'contract_completed',  // change_type 추가
     '계약 완료',
-    `계약번호: ${contract.contract_number}`,
-    `계약자: ${contract.customer_name || '알 수 없음'}, 기간: ${contract.start_date} ~ ${contract.end_date}, 종료일: ${today}`,
+    `계약자: ${contract.customer_name || '알 수 없음'}`,
+    `완료일: ${today}`,
     null, // changed_by (user_id)
     '시스템',
-    `계약번호: ${contract.contract_number}, 계약자: ${contract.customer_name || '알 수 없음'}, 계약기간: ${contract.start_date} ~ ${contract.end_date}, 계약종료일: ${today}`
+    `📋 계약번호: ${contract.contract_number}\n👤 계약자: ${contract.customer_name || '알 수 없음'}\n📅 계약기간: ${contract.start_date} ~ ${contract.end_date}\n✅ 완료일: ${today}`,
+    contract.chassis_number  // chassis_number 추가
   ).run()
   
-  console.log(`✅ 계약 완료 이력 저장: ${contract.contract_number}, 고객: ${contract.customer_name}`)
+  console.log(`✅ 계약 완료 이력 저장: ${contract.contract_number}, 고객: ${contract.customer_name}, 차대번호: ${contract.chassis_number}`)
   
   return c.json({ message: '계약이 완료 처리되었습니다' })
 })
@@ -4443,11 +4446,12 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  // 계약서 전체 정보 조회
+  // 계약서 전체 정보 조회 (오토바이 정보 포함)
   const contract = await DB.prepare(`
-    SELECT bc.*, comp.company_name 
+    SELECT bc.*, comp.company_name, m.chassis_number, m.plate_number, m.vehicle_name
     FROM business_contracts bc
     LEFT JOIN companies comp ON bc.company_id = comp.id
+    LEFT JOIN motorcycles m ON bc.motorcycle_id = m.id
     WHERE bc.id = ?
   `).bind(id).first() as any
   
@@ -4477,23 +4481,25 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
   
-  // 계약 완료 이력을 motorcycle_history에 저장
+  // 계약 완료 이력을 motorcycle_history에 저장 (chassis_number, change_type 포함)
   await DB.prepare(`
     INSERT INTO motorcycle_history (
-      motorcycle_id, field_name, old_value, new_value, 
-      changed_by, changed_by_name, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      motorcycle_id, change_type, field_name, old_value, new_value, 
+      changed_by, changed_by_name, notes, chassis_number
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     contract.motorcycle_id,
+    'business_contract_completed',  // change_type 추가
     '업체계약 완료',
-    `계약번호: ${contract.contract_number}`,
-    `업체: ${contract.company_name || '알 수 없음'}, 기간: ${contract.start_date} ~ ${contract.end_date}, 종료일: ${today}`,
+    `업체: ${contract.company_name || '알 수 없음'}`,
+    `완료일: ${today}`,
     null, // changed_by (user_id)
     '시스템',
-    `계약번호: ${contract.contract_number}, 업체: ${contract.company_name || '알 수 없음'}, 계약기간: ${contract.start_date} ~ ${contract.end_date}, 계약종료일: ${today}`
+    `📋 계약번호: ${contract.contract_number}\n🏢 업체: ${contract.company_name || '알 수 없음'}\n📅 계약기간: ${contract.contract_start_date || contract.start_date} ~ ${contract.contract_end_date || contract.end_date}\n✅ 완료일: ${today}`,
+    contract.chassis_number  // chassis_number 추가
   ).run()
   
-  console.log(`✅ 업체계약 완료 이력 저장: ${contract.contract_number}, 업체: ${contract.company_name}`)
+  console.log(`✅ 업체계약 완료 이력 저장: ${contract.contract_number}, 업체: ${contract.company_name}, 차대번호: ${contract.chassis_number}`)
   
   return c.json({ message: '계약이 완료 처리되었습니다' })
 })
