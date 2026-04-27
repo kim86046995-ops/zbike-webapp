@@ -1903,6 +1903,11 @@
                     `✅ 기본 정보와 보험 정보는 유지되어 다음 계약에 사용할 수 있습니다.`
                 );
                 
+                // 오토바이 목록 캐시 클리어 (계약자 정보 제거)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 오토바이 목록 캐시 클리어 완료');
+                
                 // 모달 닫기
                 hideDetailModal();
                 
@@ -2178,6 +2183,11 @@
                 
                 alert('✅ 계약이 완료 처리되었습니다.\n\n해당 오토바이는 다시 계약할 수 있습니다.');
                 
+                // 오토바이 목록 캐시 클리어 (계약자 정보 제거)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 오토바이 목록 캐시 클리어 완료');
+                
                 // 상세 모달이 열려있으면 닫기
                 const detailModal = document.getElementById('contractDetailModal');
                 if (detailModal && !detailModal.classList.contains('hidden')) {
@@ -2216,6 +2226,11 @@
                 console.log('✅ 삭제 API 응답:', response.data);
                 
                 alert('계약서가 삭제되었습니다.\n\n※ 오토바이 번호판이나 차대번호로\n사용 이력은 계속 조회할 수 있습니다.');
+                
+                // 오토바이 목록 캐시 클리어 (계약자 정보 제거)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 오토바이 목록 캐시 클리어 완료');
                 
                 // 상세 모달이 열려있으면 닫기
                 const detailModal = document.getElementById('contractDetailModal');
