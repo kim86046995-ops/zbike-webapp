@@ -846,27 +846,24 @@
                                         <col style="width: 75%;">
                                     </colgroup>
                                     <tbody>
-                                        ${data.start_date ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">계약 시작일</td>
-                                            <td class="px-3 py-2">${data.start_date}</td>
-                                        </tr>` : ''}
-                                        ${data.end_date ? `
+                                            <td class="px-3 py-2">${data.start_date || '-'}</td>
+                                        </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">계약 종료일</td>
-                                            <td class="px-3 py-2">${data.end_date}</td>
-                                        </tr>` : ''}
-                                        ${data.monthly_fee ? `
+                                            <td class="px-3 py-2">${data.end_date || '-'}</td>
+                                        </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">렌트 대여료</td>
-                                            <td class="px-3 py-2 font-bold text-blue-600">${parseInt(data.monthly_fee).toLocaleString()}원</td>
-                                        </tr>` : ''}
+                                            <td class="px-3 py-2 font-bold text-blue-600">${data.monthly_fee ? parseInt(data.monthly_fee).toLocaleString() + '원' : '0원'}</td>
+                                        </tr>
                                         ${info.daily_fee ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">일 차감액</td>
                                             <td class="px-3 py-2">${parseInt(info.daily_fee).toLocaleString()}원</td>
                                         </tr>` : ''}
-                                        ${data.deposit ? `
+                                        ${data.deposit && data.deposit > 0 ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">선납금</td>
                                             <td class="px-3 py-2 font-bold text-green-600">${parseInt(data.deposit).toLocaleString()}원</td>
