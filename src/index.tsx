@@ -5486,16 +5486,13 @@ app.put('/api/loan-contracts/:id/complete', authMiddleware, async (c) => {
     return c.json({ error: '이미 상환완료된 차용증입니다' }, 400)
   }
   
-  const today = new Date().toISOString().split('T')[0]
-  
   // 차용증 상태를 완료로 변경
   await DB.prepare(`
     UPDATE loan_contracts 
     SET status = 'completed', 
-        completed_at = ?,
         updated_at = datetime("now") 
     WHERE id = ?
-  `).bind(today, id).run()
+  `).bind(id).run()
   
   console.log(`✅ 차용증 상환완료 처리: ID=${id}, 차용인=${loan.borrower_name}`)
   
