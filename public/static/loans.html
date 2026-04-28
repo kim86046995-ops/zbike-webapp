@@ -345,10 +345,11 @@
             const filterStatus = document.getElementById('filter').value;
 
             filteredLoans = allLoans.filter(loan => {
-                // 연체 상태 계산
+                // 상태 계산 (상환완료는 항상 completed 유지)
                 const today = new Date();
                 const repaymentDate = new Date(loan.repayment_date);
-                const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+                const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                    (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
 
                 const matchSearch = !searchTerm || 
                     (loan.loan_number && loan.loan_number.toLowerCase().includes(searchTerm)) ||
@@ -410,7 +411,8 @@
             filteredLoans.forEach((loan, index) => {
                 const today = new Date();
                 const repaymentDate = new Date(loan.repayment_date);
-                const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+                const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                    (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
                 
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
@@ -518,7 +520,8 @@
             filteredLoans.forEach(loan => {
                 const today = new Date();
                 const repaymentDate = new Date(loan.repayment_date);
-                const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+                const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                    (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
                 
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
@@ -653,7 +656,8 @@
 
             const today = new Date();
             const repaymentDate = new Date(loan.repayment_date);
-            const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+            const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
             
             const statusColors = {
                 'active': 'text-green-600',
