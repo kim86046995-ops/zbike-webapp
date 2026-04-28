@@ -5470,6 +5470,38 @@ app.get('/api/loan-contracts/:id/deductions', authMiddleware, async (c) => {
 })
 
 // 차용증 삭제 (인증 필요)
+// 차용증 상환완료 처리 (인증 필요)
+app.put('/api/loan-contracts/:id/complete', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  // 차용증 존재 확인
+  const loan = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first() as any
+  
+  if (!loan) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  if (loan.status === 'completed') {
+    return c.json({ error: '이미 상환완료된 차용증입니다' }, 400)
+  }
+  
+  const today = new Date().toISOString().split('T')[0]
+  
+  // 차용증 상태를 완료로 변경
+  await DB.prepare(`
+    UPDATE loan_contracts 
+    SET status = 'completed', 
+        completed_at = ?,
+        updated_at = datetime("now") 
+    WHERE id = ?
+  `).bind(today, id).run()
+  
+  console.log(`✅ 차용증 상환완료 처리: ID=${id}, 차용인=${loan.borrower_name}`)
+  
+  return c.json({ message: '차용증이 상환완료 처리되었습니다' })
+})
+
 app.delete('/api/loan-contracts/:id', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')

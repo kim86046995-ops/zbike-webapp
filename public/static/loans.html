@@ -473,11 +473,17 @@
                         </td>
                         <td class="px-3 py-3 text-center">
                             <button onclick="event.stopPropagation(); showDetail(${loan.id})" 
-                                class="text-orange-600 hover:text-orange-800 mx-1">
+                                class="text-orange-600 hover:text-orange-800 mx-1" title="상세보기">
                                 <i class="fas fa-eye"></i>
                             </button>
+                            ${statusText !== '상환완료' ? `
+                            <button onclick="event.stopPropagation(); completeLoan(${loan.id})" 
+                                class="text-green-600 hover:text-green-800 mx-1" title="상환완료">
+                                <i class="fas fa-check-circle"></i>
+                            </button>
+                            ` : ''}
                             <button onclick="event.stopPropagation(); deleteConfirm(${loan.id})" 
-                                class="text-red-600 hover:text-red-800 mx-1">
+                                class="text-red-600 hover:text-red-800 mx-1" title="삭제">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -572,11 +578,17 @@
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="event.stopPropagation(); showDetail(${loan.id})" 
-                                    class="text-orange-600 hover:text-orange-800 touch-target">
+                                    class="text-orange-600 hover:text-orange-800 touch-target" title="상세보기">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                                ${statusText !== '상환완료' ? `
+                                <button onclick="event.stopPropagation(); completeLoan(${loan.id})" 
+                                    class="text-green-600 hover:text-green-800 touch-target" title="상환완료">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                ` : ''}
                                 <button onclick="event.stopPropagation(); deleteConfirm(${loan.id})" 
-                                    class="text-red-600 hover:text-red-800 touch-target">
+                                    class="text-red-600 hover:text-red-800 touch-target" title="삭제">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -906,6 +918,21 @@
         function closeModal(event) {
             if (event && event.target !== event.currentTarget) return;
             document.getElementById('modal').classList.add('hidden');
+        }
+
+        async function completeLoan(id) {
+            if (!confirm('이 차용증을 상환완료 처리하시겠습니까?\n\n상환완료 후에는 목록에서 "상환완료" 상태로 표시됩니다.')) return;
+            
+            try {
+                const sid = localStorage.getItem('sessionId');
+                await axios.put(`/api/loan-contracts/${id}/complete`, {}, {
+                    headers: { 'X-Session-ID': sid }
+                });
+                alert('✅ 상환완료 처리되었습니다.');
+                loadData();
+            } catch (err) {
+                alert('상환완료 처리 실패: ' + (err.response?.data?.error || err.message));
+            }
         }
 
         async function deleteConfirm(id) {
