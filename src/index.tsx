@@ -7504,18 +7504,20 @@ app.get('/api/companies', async (c) => {
     const companies = await env.DB.prepare(`
       SELECT 
         id,
-        name as company_name,
+        company_name,
         company_code,
         representative,
-        phone as representative_phone,
+        representative_phone,
         representative_resident_number,
-        postcode as representative_postcode,
-        address as representative_address,
-        detail_address as representative_detail_address,
+        representative_postcode,
+        representative_address,
+        representative_detail_address,
         id_card_photo,
+        status,
         created_at,
         updated_at
       FROM companies
+      WHERE status = 'active'
       ORDER BY created_at DESC
     `).all()
 
