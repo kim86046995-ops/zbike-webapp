@@ -2350,10 +2350,11 @@
                 // 대시보드 캐시 무효화 (즉시 반영)
                 sessionStorage.removeItem('dashboardStats');
                 sessionStorage.removeItem('dashboardStatsTime');
+                sessionStorage.removeItem('motorcycles_cache');
                 console.log('✅ 대시보드 캐시 무효화 완료');
                 
-                // 캐시를 무시하고 강제 새로고침
-                loadMotorcycles(true);
+                // 페이지 완전 새로고침 (슬라이드 업데이트 보장)
+                window.location.reload();
             } catch (error) {
                 console.error('❌ 계약 해지 실패:', error);
                 alert(`❌ 계약 해지에 실패했습니다.\n\n${error.response?.data?.error || error.message}`);
