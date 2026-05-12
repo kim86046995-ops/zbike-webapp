@@ -1603,8 +1603,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = ?,
-          owner_name = NULL,
-          customer_id = NULL,
+          owner_name = '',
           monthly_fee = NULL,
           contract_type_text = NULL,
           deposit = NULL,
