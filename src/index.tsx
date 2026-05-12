@@ -5406,8 +5406,6 @@ app.post('/api/loan-contracts/public', async (c) => {
 })
 
 // 차용증 상태 변경
-app.patch('/api/loan-contracts/:id/status', async (c) => {
-
 // 업체 계약 상태 변경 (해지/완료 등)
 app.patch('/api/business-contracts/:id/status', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
