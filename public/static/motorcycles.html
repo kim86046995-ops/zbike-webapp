@@ -2311,22 +2311,36 @@
 
                 console.log(`🔄 계약 해지 시작: 오토바이 #${id}`);
 
-                // 1. 해당 오토바이의 진행중인 모든 계약 찾기
+                // 1. 해당 오토바이의 진행중인 모든 계약 찾기 (개인 + 업체)
                 const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
                     headers: { 'X-Session-ID': sessionId }
                 });
                 
-                const activeContracts = contractsResponse.data.filter(c => c.status === 'active');
-                console.log(`📋 진행중인 계약 ${activeContracts.length}건 발견`);
+                const allContracts = contractsResponse.data;
+                const activeContracts = allContracts.filter(c => c.status === 'active');
+                const personalContracts = activeContracts.filter(c => c.contract_source === 'personal');
+                const businessContracts = activeContracts.filter(c => c.contract_source === 'business');
                 
-                // 2. 모든 진행중인 계약을 'cancelled' 상태로 변경
-                for (const contract of activeContracts) {
-                    console.log(`  - 계약 해지: ${contract.contract_number}`);
+                console.log(`📋 진행중인 계약 ${activeContracts.length}건 발견 (개인: ${personalContracts.length}, 업체: ${businessContracts.length})`);
+                
+                // 2. 개인 계약 해지
+                for (const contract of personalContracts) {
+                    console.log(`  - 개인 계약 해지: ${contract.contract_number}`);
                     await axios.patch(`/api/contracts/${contract.id}/status`, 
                         { status: 'cancelled' },
                         { headers: { 'X-Session-ID': sessionId } }
                     );
                 }
+                
+                // 3. 업체 계약 해지 (같은 API 사용)
+                for (const contract of businessContracts) {
+                    console.log(`  - 업체 계약 해지: ${contract.contract_number}`);
+                    await axios.patch(`/api/contracts/${contract.id}/status`, 
+                        { status: 'cancelled' },
+                        { headers: { 'X-Session-ID': sessionId } }
+                    );
+                }
+                
                 console.log(`✅ 계약서 해지 완료: ${activeContracts.length}건`);
                 
                 // 3. 오토바이 상태를 available로 변경 (계약정보만 초기화, 기본정보와 보험정보는 유지)

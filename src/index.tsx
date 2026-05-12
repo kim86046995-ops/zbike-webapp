@@ -5407,6 +5407,52 @@ app.post('/api/loan-contracts/public', async (c) => {
 
 // 차용증 상태 변경
 app.patch('/api/loan-contracts/:id/status', async (c) => {
+
+// 업체 계약 상태 변경 (해지/완료 등)
+app.patch('/api/business-contracts/:id/status', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { status } = await c.req.json()
+  
+  // 업체 계약서 정보 조회
+  const contract = await DB.prepare('SELECT * FROM business_contracts WHERE id = ?').bind(id).first()
+  
+  if (!contract) {
+    return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  const oldContract = contract as any
+  const oldStatus = oldContract.status
+  
+  // 계약서 상태 업데이트
+  const today = new Date().toISOString().split('T')[0]
+  
+  if (status === 'completed' || status === 'cancelled') {
+    const dateField = status === 'cancelled' ? 'cancelled_at' : 'completed_at'
+    
+    await DB.prepare(`
+      UPDATE business_contracts 
+      SET status = ?, contract_end_date = ?, ${dateField} = ?, updated_at = datetime("now") 
+      WHERE id = ?
+    `).bind(status, today, today, id).run()
+    
+    console.log(`📅 Business Contract #${id} ${status} - contract_end_date and ${dateField} set to ${today}`)
+  } else {
+    await DB.prepare(`
+      UPDATE business_contracts 
+      SET status = ?, updated_at = datetime("now") 
+      WHERE id = ?
+    `).bind(status, id).run()
+  }
+  
+  return c.json({ 
+    message: '업체 계약서 상태가 변경되었습니다',
+    old_status: oldStatus,
+    new_status: status
+  })
+})
+
+app.patch('/api/loan-contracts/:id/status', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { status } = await c.req.json()
