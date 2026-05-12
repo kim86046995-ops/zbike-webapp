@@ -1740,7 +1740,7 @@
                         <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> ${c.company_settings?.company_name || '대성'}</p>
                             <p><strong>사업자번호:</strong> ${c.company_settings?.business_number || '487-39-01128'}</p>
-                            <p style="display: flex; align-items: center; flex-wrap: nowrap;"><strong>대표자:</strong> ${c.company_settings?.representative_name || '김상춘'} <img src="/static/stamp-kim.png" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px;"></p>
+                            <p style="display: flex; align-items: center; flex-wrap: nowrap;"><strong>대표자:</strong> ${c.company_settings?.representative_name || '김상춘'}<img src="/static/stamp-kim.png" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
                             <p><strong>연락처:</strong> ${c.company_settings?.phone || '010-8604-6995'}</p>
                             <p class="col-span-2"><strong>주소:</strong> ${c.company_settings?.address || '광주광역시 광산구 신가삼효로 31'}</p>
                         </div>
