@@ -147,7 +147,7 @@
                             type="text" 
                             id="searchInput" 
                             placeholder="번호판, 계약자, 명의자, 보험회사 검색..." 
-                            oninput="filterAndSortMotorcycles()"
+                            oninput="debouncedFilter()"
                             class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                     </div>
@@ -635,8 +635,16 @@
             console.log('🗑️ 오토바이 캐시 클리어');
         }
 
+        // 검색 디바운스 타이머
+        let searchDebounceTimer = null;
+        function debouncedFilter() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                filterAndSortMotorcycles();
+            }, 150);
+        }
+
         async function loadMotorcycles(forceRefresh = false) {
-            console.log('📡 데이터 로딩 시작');
             
             const listEl = document.getElementById('motorcycleList');
             
@@ -652,16 +660,23 @@
             const cacheTime = sessionStorage.getItem(cacheTimeKey);
             const now = Date.now();
             
-            // 캐시가 유효하면 즉시 표시
-            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
+            // 캐시가 유효하면 즉시 표시 (5분 이내)
+            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
                 console.log('✅ 캐시된 데이터 즉시 표시');
                 motorcycles = JSON.parse(cachedData);
                 motorcycles.forEach(m => {
                     motorcycleContracts[m.id] = m.customer_name || '';
                 });
                 filterAndSortMotorcycles();
-                // 백그라운드에서 업데이트는 생략 (필요시 새로고침)
                 return;
+            } else if (cachedData) {
+                // 캐시가 만료되었지만 즉시 표시하고 백그라운드에서 업데이트
+                motorcycles = JSON.parse(cachedData);
+                motorcycles.forEach(m => {
+                    motorcycleContracts[m.id] = m.customer_name || '';
+                });
+                filterAndSortMotorcycles();
+                // 백그라운드 업데이트는 계속 진행
             }
             
             // 캐시가 없으면 로딩 표시
@@ -675,7 +690,6 @@
             try {
                 const response = await axios.get('/api/motorcycles');
                 let rawData = response.data;
-                console.log('✅ 오토바이 데이터 수신:', rawData.length, '대');
                 
                 // 중복 제거: 같은 ID를 가진 오토바이는 하나만 유지
                 const uniqueMap = new Map();
@@ -685,7 +699,6 @@
                     }
                 });
                 motorcycles = Array.from(uniqueMap.values());
-                console.log('✅ 중복 제거 완료:', motorcycles.length, '대 (제거된 중복:', rawData.length - motorcycles.length, '개)');
                 
                 // 캐시에 저장
                 sessionStorage.setItem(cacheKey, JSON.stringify(motorcycles));
@@ -695,14 +708,10 @@
                 motorcycles.forEach(m => {
                     motorcycleContracts[m.id] = m.customer_name || '';
                 });
-                console.log('✅ 계약자 정보 매핑 완료');
                 
                 // 렌더링
-                console.log('🎨 카드 렌더링 시작...');
                 const sortOrder = document.getElementById('sortOrder').value;
-                console.log('🔍 현재 정렬 기준:', sortOrder);
                 filterAndSortMotorcycles();
-                console.log('✅ 카드 렌더링 완료');
             } catch (error) {
                 console.error('❌ 오토바이 목록 로딩 실패:', error);
                 
@@ -790,13 +799,11 @@
             
             // 검색어가 있고 결과가 없으면 폐지 전 번호로 API 재검색
             if (searchTerm && filtered.length === 0) {
-                console.log('🔍 검색 결과 없음 - 폐지 전 번호로 재검색:', searchTerm);
                 try {
                     const response = await axios.get(`/api/motorcycles?search=${encodeURIComponent(searchTerm)}`);
                     const searchResults = response.data;
                     
                     if (searchResults && searchResults.length > 0) {
-                        console.log('✅ 폐지 전 번호로 찾음:', searchResults[0].plate_number);
                         
                         // 검색 결과를 전역 motorcycles 배열에 추가 (중복 방지)
                         const existingIds = new Set(motorcycles.map(m => m.id));
@@ -825,10 +832,6 @@
                             // 재검색 결과는 무조건 포함
                             return searchResults.some(sr => sr.id === m.id);
                         });
-                        
-                        console.log('✅ 폐지 전 번호 검색 결과:', filtered.length, '대');
-                    } else {
-                        console.log('❌ 폐지 전 번호로도 결과 없음');
                     }
                 } catch (error) {
                     console.error('❌ 폐지 전 번호 검색 실패:', error);
@@ -837,7 +840,6 @@
             
             // 정렬
             filtered.sort((a, b) => {
-                console.log(`🔢 정렬 기준: ${sortOrder}`);
                 
                 // 1순위: 사용페지(scrapped) 오토바이는 항상 맨 아래
                 if (a.status === 'scrapped' && b.status !== 'scrapped') return 1;
@@ -877,8 +879,6 @@
                 }
             });
             
-            console.log('📋 정렬 후 첫 3대:', filtered.slice(0, 3).map(m => `${m.plate_number}: ${m.insurance_end_date}`));
-            
             renderMotorcycles(filtered);
         }
 
@@ -912,9 +912,7 @@
         }
 
         function renderMotorcycles(filteredMotorcycles = motorcycles) {
-            console.log('🎨 renderMotorcycles 호출:', filteredMotorcycles.length, '대');
             const listEl = document.getElementById('motorcycleList');
-            console.log('📍 motorcycleList 요소:', listEl ? '찾음' : '없음');
             
             if (!listEl) {
                 console.error('❌ motorcycleList 요소를 찾을 수 없습니다!');
@@ -922,7 +920,6 @@
             }
             
             if (filteredMotorcycles.length === 0) {
-                console.log('📭 오토바이가 없습니다');
                 listEl.innerHTML = `
                     <div class="col-span-full text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
@@ -932,11 +929,8 @@
                         </button>
                     </div>
                 `;
-                console.log('✅ 빈 상태 메시지 렌더링 완료');
                 return;
             }
-
-            console.log('🔄 카드 HTML 생성 시작...');
             const html = filteredMotorcycles.map(m => {
                 const statusConfig = {
                     'available': { bg: 'bg-green-100', text: 'text-green-800', icon: 'fa-check-circle', label: '휴차중', border: 'status-available' },
@@ -1364,7 +1358,6 @@
                 
                 const sessionId = localStorage.getItem('sessionId');
                 const headers = sessionId ? { 'X-Session-ID': sessionId } : {};
-                console.log('📡 세션 ID:', sessionId ? '있음' : '없음');
                 
                 // 개별적으로 데이터 조회 (한 개 실패해도 나머지 표시)
                 let motorcycle = null;
@@ -1372,32 +1365,26 @@
                 let detailedHistory = [];
                 
                 try {
-                    console.log('📡 오토바이 정보 조회 중...');
                     const motorcycleResponse = await axios.get(`/api/motorcycles/${motorcycleId}`, { headers });
                     motorcycle = motorcycleResponse.data;
-                    console.log('✅ 오토바이 정보 조회 성공:', motorcycle);
                 } catch (error) {
-                    console.error('❌ 오토바이 정보 조회 실패:', error);
+                    console.error('오토바이 정보 조회 실패:', error);
                     throw new Error('오토바이 정보를 불러올 수 없습니다');
                 }
                 
                 try {
-                    console.log('📡 계약 이력 조회 중...');
                     const historyResponse = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`, { headers });
                     contracts = historyResponse.data || [];
-                    console.log('✅ 계약 이력 조회 성공:', contracts.length, '건');
                 } catch (error) {
-                    console.error('❌ 계약 이력 조회 실패:', error);
+                    console.error('계약 이력 조회 실패:', error);
                     contracts = [];
                 }
                 
                 try {
-                    console.log('📡 상세 이력 조회 중...');
                     const detailedHistoryResponse = await axios.get(`/api/motorcycles/${motorcycleId}/history`, { headers });
                     detailedHistory = detailedHistoryResponse.data?.history || [];
-                    console.log('✅ 상세 이력 조회 성공:', detailedHistory.length, '건');
                 } catch (error) {
-                    console.error('❌ 상세 이력 조회 실패:', error);
+                    console.error('상세 이력 조회 실패:', error);
                     detailedHistory = [];
                 }
                 
@@ -1821,25 +1808,14 @@
                 try {
                     const activeContract = contractResponse.data.find(c => c.status === 'active');
                     
-                    console.log('📋 활성 계약 정보:', activeContract);
-                    console.log('📋 계약 타입 원본 값:', activeContract?.contract_type);
-                    
                     if (activeContract) {
                         // 계약 타입 변환
                         let contractTypeText = '';
                         const contractType = activeContract.contract_type;
                         
-                        console.log('🔍 계약 타입 체크:', { 
-                            contractType, 
-                            type: typeof contractType,
-                            isEmpty: !contractType,
-                            value: JSON.stringify(contractType)
-                        });
-                        
                         // 빈 문자열이거나 null/undefined인 경우 '개인'으로 기본값 설정
                         if (!contractType || contractType.trim() === '') {
                             contractTypeText = '개인';
-                            console.log('ℹ️ 계약 타입이 비어있어 기본값 "개인" 설정');
                         } else if (contractType === 'lease') {
                             contractTypeText = '리스';
                         } else if (contractType === 'rent') {
@@ -1851,9 +1827,7 @@
                         } else if (contractType === 'personal') {
                             contractTypeText = '개인';
                         } else {
-                            // 알 수 없는 타입이지만 값이 있으면 그대로 표시
                             contractTypeText = contractType;
-                            console.warn('⚠️ 알 수 없는 계약 타입:', contractType);
                         }
                         
                         document.getElementById('monthlyFee').value = activeContract.monthly_fee || '';
@@ -1862,8 +1836,6 @@
                         document.getElementById('contractStartDate').value = activeContract.start_date || '';
                         document.getElementById('contractEndDate').value = activeContract.end_date || '';
                         
-                        console.log('✅ 계약 종류 설정 완료:', contractTypeText);
-                        
                         // 보험 정보도 계약서에서 가져오기
                         document.getElementById('insuranceCompany').value = activeContract.insurance_company || m.insurance_company || '';
                         document.getElementById('ownerName').value = activeContract.owner_name || m.owner_name || '';
@@ -1871,13 +1843,11 @@
                         document.getElementById('insuranceEndDate').value = activeContract.insurance_end_date || m.insurance_end_date || '';
                         document.getElementById('drivingRange').value = activeContract.driving_range || m.driving_range || '';
                     } else {
-                        console.log('⚠️ 개인 계약 없음, 업체 계약 확인 중...');
                         // 업체 계약 조회
                         const businessResponse = await axios.get('/api/business-contracts');
                         const activeBusiness = businessResponse.data.find(bc => bc.motorcycle_id === id && bc.status === 'active');
                         
                         if (activeBusiness) {
-                            console.log('📋 업체 계약 발견:', activeBusiness);
                             document.getElementById('monthlyFee').value = activeBusiness.daily_amount || '';
                             document.getElementById('contractType').value = '업체';
                             document.getElementById('deposit').value = activeBusiness.deposit || '';
