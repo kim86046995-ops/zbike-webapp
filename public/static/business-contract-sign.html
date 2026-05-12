@@ -869,7 +869,7 @@
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
                             <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
-                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p style="display: flex; align-items: center;"><span class="font-semibold">대표자:</span> ${representative} <img src="/static/stamp-kim.png" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px;"></p>
                             <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
                             <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
                         </div>
@@ -1688,7 +1688,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>업체명:</strong> ${c.company_name}</p>
                             <p><strong>업체코드:</strong> ${c.company_code || c.business_number}</p>
-                            <p><strong>대표자:</strong> ${c.representative}</p>
+                            <p style="display: flex; align-items: center;"><strong>대표자:</strong> ${c.representative} <img src="/static/stamp-kim.png" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px;"></p>
                             <p><strong>업체 연락처:</strong> ${c.business_phone}</p>
                             <p class="col-span-2"><strong>사업장 주소:</strong> ${c.business_address}</p>
                             <p><strong>대표자 연락처:</strong> ${c.representative_phone || '-'}</p>
