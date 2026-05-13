@@ -2451,7 +2451,13 @@
                     alert('등록되었습니다');
                 }
                 hideModal();
-                loadMotorcycles();
+                
+                // 캐시 무효화하고 강제 새로고침
+                sessionStorage.removeItem('motorcycles');
+                sessionStorage.removeItem('motorcyclesTime');
+                console.log('✅ 오토바이 캐시 무효화 완료 - 검사기간 포함 모든 정보 새로고침');
+                
+                loadMotorcycles(true); // 강제 새로고침
             } catch (error) {
                 console.error('Error saving motorcycle:', error);
                 alert('저장에 실패했습니다');
