@@ -644,7 +644,7 @@
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(() => {
                 filterAndSortMotorcycles();
-            }, 150);
+            }, 50); // 150ms -> 50ms로 단축 (즉각 반응)
         }
 
         async function loadMotorcycles(forceRefresh = false) {

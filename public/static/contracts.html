@@ -752,8 +752,8 @@
                 const cacheTime = sessionStorage.getItem(cacheTimeKey);
                 const now = Date.now();
                 
-                // 캐시가 유효하면 즉시 표시하고 백그라운드에서 업데이트
-                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000 && !forceRefresh) {
+                // 캐시가 유효하면 즉시 표시하고 백그라운드에서 업데이트 (5분으로 연장)
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000 && !forceRefresh) {
                     console.log('✅ 캐시된 계약서 데이터 즉시 표시');
                     contracts = JSON.parse(cachedData);
                     filteredContracts = contracts;
@@ -763,11 +763,14 @@
                     console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
                     
                     filterContracts();
-                    
-                    // 백그라운드에서 최신 데이터 로드 (조용히)
-                    console.log('🔄 백그라운드에서 최신 데이터 로드 시작...');
-                    loadContractsInBackground();
-                    return;
+                    return; // 캐시 사용 시 백그라운드 업데이트 생략 (필요시 새로고침)
+                } else if (cachedData && !forceRefresh) {
+                    // 캐시가 만료되었지만 즉시 표시 후 백그라운드 업데이트
+                    console.log('⚠️ 캐시 만료, 즉시 표시 후 백그라운드 업데이트');
+                    contracts = JSON.parse(cachedData);
+                    filteredContracts = contracts;
+                    filterContracts();
+                    // 백그라운드 업데이트 계속 진행
                 }
                 
                 // 캐시가 없거나 만료된 경우에만 로딩 표시
