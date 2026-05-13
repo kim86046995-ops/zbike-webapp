@@ -1129,17 +1129,16 @@
                 `;
             }).join('');
             
-            console.log('🔧 HTML 문자열 생성 완료, DOM에 적용 중...');
             listEl.innerHTML = html;
-            console.log('✅ 카드 렌더링 완료, DOM 업데이트됨');
             
             // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드
-            console.log('📋 계약/검사 정보 로딩 시작...');
-            motorcycles.forEach(m => {
-                loadContractInfo(m.id);
-                loadInspectionInfo(m);
+            // requestAnimationFrame으로 DOM 업데이트 후 실행 보장
+            requestAnimationFrame(() => {
+                filteredMotorcycles.forEach(m => {
+                    loadContractInfo(m.id);
+                    loadInspectionInfo(m);
+                });
             });
-            console.log('✅ 모든 정보 로딩 요청 완료');
         }
         
         // 검사 기간 정보 로드 함수
