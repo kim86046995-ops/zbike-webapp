@@ -1099,6 +1099,15 @@
                                             <p class="font-semibold text-gray-700 text-xs">${m.driving_range}</p>
                                         </div>
                                     </div>
+                                    ${m.usage_notes ? `
+                                    <div class="flex items-start col-span-2 bg-gray-50 p-1 rounded">
+                                        <i class="fas fa-sticky-note w-3 text-orange-500 mr-1 mt-0.5"></i>
+                                        <div class="flex-1">
+                                            <p class="text-xs text-gray-500">메모</p>
+                                            <p class="text-xs text-gray-700 whitespace-pre-wrap">${m.usage_notes}</p>
+                                        </div>
+                                    </div>
+                                    ` : ''}
                                     <div class="flex items-center col-span-2" id="contractor-info-${m.id}">
                                         <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
                                         <div>
