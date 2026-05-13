@@ -2452,10 +2452,10 @@
                 }
                 hideModal();
                 
-                // 캐시 무효화하고 강제 새로고침
-                sessionStorage.removeItem('motorcycles');
-                sessionStorage.removeItem('motorcyclesTime');
-                console.log('✅ 오토바이 캐시 무효화 완료 - 검사기간 포함 모든 정보 새로고침');
+                // 캐시 무효화하고 강제 새로고침 (올바른 캐시 키 사용)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('✅ 오토바이 캐시 무효화 완료 - 특이사항, 검사기간 등 모든 정보 즉시 새로고침');
                 
                 loadMotorcycles(true); // 강제 새로고침
             } catch (error) {
