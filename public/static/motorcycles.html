@@ -429,8 +429,11 @@
                                 </div>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-bold mb-2">사용페지</label>
-                                <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white" placeholder="오토바이 사용 관련 특이사항을 입력하세요"></textarea>
+                                <label class="block text-sm font-bold mb-2">사용페지 (참고용 메모)</label>
+                                <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white" placeholder="오토바이 사용 관련 특이사항을 입력하세요 (이력에 기록되지 않음)"></textarea>
+                                <button type="button" onclick="saveUsageNotes()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition">
+                                    <i class="fas fa-save mr-2"></i>특이사항 저장
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2000,6 +2003,40 @@
         }
 
         // 보험 정보 저장
+        // 특이사항 저장 (이력에 기록되지 않음)
+        async function saveUsageNotes() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+
+                const id = document.getElementById('motorcycleId').value;
+                if (!id) {
+                    alert('오토바이 ID가 없습니다');
+                    return;
+                }
+                
+                const usageNotes = document.getElementById('usageNotes').value;
+                
+                await axios.put(`/api/motorcycles/${id}`, {
+                    usage_notes: usageNotes
+                }, {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+                
+                alert('✅ 특이사항이 저장되었습니다');
+                loadMotorcycles();
+            } catch (error) {
+                console.error('특이사항 저장 실패:', error);
+                alert(`❌ 특이사항 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
+            }
+        }
+
         async function saveInsuranceInfo() {
             console.log('🔄 보험 정보 저장 시작...');
             try {
