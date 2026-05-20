@@ -45,7 +45,7 @@
             <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
                 <div class="flex flex-col md:flex-row gap-2 md:gap-4">
                     <div class="flex-1">
-                        <input type="text" id="searchInput" placeholder="업체명, 사업자번호, 대표자명으로 검색..." 
+                        <input type="text" id="searchInput" placeholder="업체명, 업체코드, 대표자명으로 검색..." 
                             class="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             onkeyup="searchCompanies()">
                     </div>
@@ -174,12 +174,7 @@
                                 </span>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                <div class="flex items-center text-gray-600">
-                                    <i class="fas fa-id-card mr-2 text-blue-600 w-4"></i>
-                                    <span class="font-semibold mr-2">사업자번호:</span>
-                                    <span>${company.company_code}</span>
-                                </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div class="flex items-center text-gray-600">
                                     <i class="fas fa-user mr-2 text-blue-600 w-4"></i>
                                     <span class="font-semibold mr-2">대표자:</span>
@@ -274,7 +269,6 @@
                 const companyId = company.id;
                 const companyName = company.company_name || 'N/A';
                 const companyCode = company.company_code || 'N/A';
-                const businessNumber = company.business_number;
                 const representative = company.representative || 'N/A';
                 const representativePhone = company.representative_phone || 'N/A';
                 const representativeResidentNumber = company.representative_resident_number;
@@ -319,12 +313,6 @@
                                     <label class="block text-sm font-semibold text-gray-600 mb-1">업체 코드</label>
                                     <p class="text-gray-800 font-mono bg-blue-50 px-2 py-1 rounded">${companyCode}</p>
                                 </div>
-                                ${businessNumber ? `
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-600 mb-1">사업자번호</label>
-                                    <p class="text-gray-800">${businessNumber}</p>
-                                </div>
-                                ` : ''}
                             </div>
                         </div>
 
