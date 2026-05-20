@@ -98,11 +98,21 @@
             <div id="detailContent" class="p-6">
                 <!-- 상세 정보가 여기에 표시됩니다 -->
             </div>
+            <!-- 버튼 영역 -->
+            <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex gap-3 justify-end">
+                <button id="editButton" onclick="editCompany()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                    <i class="fas fa-edit mr-2"></i>수정
+                </button>
+                <button onclick="closeDetailModal()" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                    <i class="fas fa-times mr-2"></i>닫기
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
         let allCompanies = [];
+        let currentCompanyId = null; // 현재 선택된 업체 ID 저장
 
         // 페이지 로드 시 업체 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
@@ -238,6 +248,7 @@
         // 상세보기
         async function showDetail(id) {
             try {
+                currentCompanyId = id; // 현재 업체 ID 저장
                 console.log('🔍 업체 상세 정보 로드 중... ID:', id);
                 const response = await axios.get(`/api/companies/${id}`);
                 console.log('📋 전체 응답:', response.data);
@@ -426,6 +437,16 @@
         // 모달 닫기
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        // 업체 수정
+        function editCompany() {
+            if (!currentCompanyId) {
+                alert('업체 정보를 찾을 수 없습니다.');
+                return;
+            }
+            // 업체 수정 페이지로 이동 (ID를 URL 파라미터로 전달)
+            location.href = `/static/company-register.html?id=${currentCompanyId}&mode=edit`;
         }
 
         // 모달 외부 클릭시 닫기
