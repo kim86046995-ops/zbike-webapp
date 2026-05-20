@@ -127,7 +127,7 @@ async function validateSession(DB: D1Database, sessionId: string | undefined) {
     SELECT s.*, u.username, u.name, u.role 
     FROM sessions s 
     JOIN users u ON s.user_id = u.id 
-    WHERE s.id = ? AND s.expires_at > datetime('now')
+    WHERE s.id = ? AND s.expires_at > datetime('now', '+9 hours')
   `).bind(sessionId).first()
   
   return session
@@ -150,7 +150,7 @@ async function authMiddleware(c: any, next: any) {
     if (DB) {
       const session = await DB.prepare(`
         SELECT * FROM sessions 
-        WHERE id = ? AND expires_at > datetime('now')
+        WHERE id = ? AND expires_at > datetime('now', '+9 hours')
       `).bind(sessionId).first()
       
       if (session) {
@@ -445,7 +445,7 @@ app.get('/api/auth/check', async (c) => {
     if (DB) {
       const session = await DB.prepare(`
         SELECT * FROM sessions 
-        WHERE id = ? AND expires_at > datetime('now')
+        WHERE id = ? AND expires_at > datetime('now', '+9 hours')
       `).bind(sessionId).first()
       
       if (session) {
@@ -797,7 +797,7 @@ app.post('/api/auth/reset-password', async (c) => {
   // 토큰 확인
   const resetToken = await DB.prepare(`
     SELECT * FROM password_reset_tokens 
-    WHERE token = ? AND used = 0 AND expires_at > datetime('now')
+    WHERE token = ? AND used = 0 AND expires_at > datetime('now', '+9 hours')
   `).bind(token).first()
   
   if (!resetToken) {
@@ -1489,9 +1489,9 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
     // 소프트 삭제 (deleted_at 설정)
     await DB.prepare(`
       UPDATE motorcycles 
-      SET deleted_at = datetime('now'), 
+      SET deleted_at = datetime('now', '+9 hours'), 
           status = 'deleted',
-          updated_at = datetime('now')
+          updated_at = datetime('now', '+9 hours')
       WHERE id = ?
     `).bind(id).run()
     
@@ -1693,7 +1693,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           changed_by, 
           change_date,
           notes
-        ) VALUES (?, ?, 'scrapped', '폐지 처리', ?, ?, ?, datetime('now'), ?)
+        ) VALUES (?, ?, 'scrapped', '폐지 처리', ?, ?, ?, datetime('now', '+9 hours'), ?)
       `).bind(
         id,
         motorcycle.chassis_number,
@@ -2328,7 +2328,7 @@ app.post('/api/businesses', async (c) => {
         business_type,
         created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
     `).bind(
       data.company_name,
       data.business_registration_number,
@@ -4185,7 +4185,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
         UPDATE contracts 
         SET status = 'completed', 
             completed_at = ?,
-            updated_at = datetime('now') 
+            updated_at = datetime('now', '+9 hours') 
         WHERE id = ?
       `).bind(today, (contract as any).id).run()
       console.log(`✅ [Business] Completed personal contract: ${(contract as any).contract_number}`)
@@ -4206,7 +4206,7 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
         UPDATE business_contracts 
         SET status = 'completed', 
             completed_at = ?,
-            updated_at = datetime('now') 
+            updated_at = datetime('now', '+9 hours') 
         WHERE id = ?
       `).bind(today, (contract as any).id).run()
       console.log(`✅ [Business] Completed business contract: ${(contract as any).contract_number}`)
@@ -5985,7 +5985,7 @@ app.post('/api/import/motorcycles', authMiddleware, async (c) => {
           plate_number, vehicle_name, chassis_number, mileage, model_year,
           insurance_company, insurance_start_date, insurance_end_date,
           status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available', datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available', datetime('now', '+9 hours'))
       `).bind(
         bike.plate_number || '',
         bike.vehicle_name || '',
@@ -6049,7 +6049,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
         if (!customer) {
           const result = await DB.prepare(`
             INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
           `).bind(
             contract.customer_name || '미입력',
             contract.customer_phone,
@@ -6082,7 +6082,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
         const result = await DB.prepare(`
           INSERT INTO motorcycles (
             plate_number, vehicle_name, driving_range, status, created_at
-          ) VALUES (?, ?, ?, 'active', datetime('now'))
+          ) VALUES (?, ?, ?, 'active', datetime('now', '+9 hours'))
         `).bind(
           contract.plate_number || '미등록',
           contract.vehicle_name || '미입력',
@@ -6114,7 +6114,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
           contract_number, contract_type, motorcycle_id, customer_id,
           start_date, end_date, monthly_fee, deposit,
           contract_data, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now', '+9 hours'))
       `).bind(
         contractNumber,
         finalType,
@@ -6213,7 +6213,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
       if (!customer) {
         const result = await DB.prepare(`
           INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
         `).bind(
           data.customer_name, 
           data.phone, 
@@ -6233,7 +6233,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
       // 전화번호가 없으면 이름만으로 새 고객 생성 (약식 계약)
       const result = await DB.prepare(`
         INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         data.customer_name, 
         '', // 전화번호 없음
@@ -6326,7 +6326,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
         contract_number, contract_type, motorcycle_id, customer_id,
         start_date, end_date, monthly_fee, deposit, special_terms,
         signature_data, id_card_photo, status, created_at
-      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, ?, 'active', datetime('now'))
+      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, ?, 'active', datetime('now', '+9 hours'))
     `).bind(
       contractNumber,
       data.motorcycle_id,
@@ -7447,7 +7447,7 @@ app.post('/api/companies', async (c) => {
         status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now', '+9 hours'), datetime('now', '+9 hours'))
     `).bind(
       data.company_name,
       uniqueBusinessNumber, // 타임스탬프를 추가하여 고유성 보장
@@ -7692,7 +7692,7 @@ app.put('/api/companies/:id', async (c) => {
     // 세션 검증
     console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
-      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now')
+      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now', '+9 hours')
     `).bind(sessionId).first()
     
     if (!session) {
@@ -7922,7 +7922,7 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
     // 세션 검증
     console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
-      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now')
+      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now', '+9 hours')
     `).bind(sessionId).first()
     
     if (!session) {
@@ -7964,7 +7964,7 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
         // URL 업데이트
         await DB.prepare(`
           UPDATE companies 
-          SET id_card_photo = ?, updated_at = datetime('now')
+          SET id_card_photo = ?, updated_at = datetime('now', '+9 hours')
           WHERE id = ?
         `).bind(newUrl, company.id).run()
         
