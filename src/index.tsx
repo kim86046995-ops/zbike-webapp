@@ -7406,8 +7406,27 @@ app.post('/api/companies', async (c) => {
       id_card_photo: data.id_card_photo?.startsWith('http') ? 'URL (R2)' : `Base64 (${data.id_card_photo?.length} bytes)`
     })
 
-    // 사업자번호 중복 체크 제거 (자동 생성되므로 중복 불가)
-    // AUTO-YYYYMMDD-XXX 형식으로 항상 고유함
+    // ✅ 중복 체크: 업체명 + 대표자 전화번호 조합으로 확인
+    const existingCompany = await DB.prepare(`
+      SELECT id, company_name, representative, representative_phone 
+      FROM companies 
+      WHERE company_name = ? AND representative_phone = ?
+      LIMIT 1
+    `).bind(data.company_name, data.representative_phone).first()
+
+    if (existingCompany) {
+      console.log('⚠️ 중복된 업체 발견:', existingCompany)
+      return c.json({ 
+        error: '이미 등록된 업체입니다.',
+        details: `업체명 "${data.company_name}"과 전화번호 "${data.representative_phone}"가 일치하는 업체가 이미 존재합니다.`,
+        duplicate: true,
+        existing_company: {
+          id: existingCompany.id,
+          company_name: existingCompany.company_name,
+          representative: existingCompany.representative
+        }
+      }, 409) // 409 Conflict
+    }
 
     // 업체 정보 저장
     // business_number는 고유 제약조건이 있으므로 현재 타임스탬프를 추가하여 고유성 보장

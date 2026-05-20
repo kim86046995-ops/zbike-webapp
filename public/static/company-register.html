@@ -424,15 +424,21 @@
                         const status = error.response.status;
                         const serverError = error.response.data?.error;
                         const serverDetails = error.response.data?.details;
+                        const existingCompany = error.response.data?.existing_company;
                         
                         console.log('🔍 에러 분석:', { 
                             status, 
                             serverError, 
                             serverDetails,
+                            existingCompany,
                             fullData: error.response.data 
                         });
                         
-                        if (status === 400) {
+                        if (status === 409) {
+                            // 중복 업체
+                            errorMessage = '⚠️ 이미 등록된 업체입니다!';
+                            errorDetails = `\n\n업체명: ${existingCompany?.company_name || formData.company_name}\n대표자: ${existingCompany?.representative || formData.representative}\n전화번호: ${formData.representative_phone}\n\n💡 동일한 업체명과 전화번호로 등록된 업체가 이미 존재합니다.\n업체 목록에서 기존 업체를 확인하세요.`;
+                        } else if (status === 400) {
                             errorMessage = serverError || '이미 등록된 사업자번호입니다.';
                             errorDetails = '\n\n💡 다른 사업자번호로 시도해주세요.';
                         } else if (status === 500) {
