@@ -1598,21 +1598,20 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       `해지날짜: ${scrapDate}\n폐지 사유: ${usage_notes || '폐지'}`
     ).run()
   } else if (status === 'available') {
-    // 해지 처리: 기본정보와 보험정보는 유지, 계약정보와 계약자 정보 초기화
-    console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info and contractor info (keeping basic and insurance info)`)
+    // 해지 처리: 기본정보와 보험정보는 유지, 계약정보 초기화 (보험 명의자는 유지)
+    console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info (keeping basic, insurance info, and owner_name)`)
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = ?,
-          owner_name = '',
           monthly_fee = NULL,
           contract_type_text = NULL,
           deposit = NULL,
           contract_start_date = NULL,
           contract_end_date = NULL,
-          updated_at = datetime("now") 
+          updated_at = datetime("now", '+9 hours') 
       WHERE id = ?
     `).bind(status, id).run()
-    console.log(`✅ Contract info and contractor info cleared for motorcycle #${id} (basic info and insurance info preserved)`)
+    console.log(`✅ Contract info cleared for motorcycle #${id} (basic info, insurance info, and owner_name preserved)`)
     
     // 이력 기록: 상태 변경
     if (existing.status !== status) {
