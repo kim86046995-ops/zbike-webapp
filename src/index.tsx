@@ -1225,13 +1225,20 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       contract_end_date: data.contract_end_date !== undefined ? data.contract_end_date : (existing.contract_end_date || '')
     }
     
-    // 🔄 폐지/정비 상태에서 차량번호 변경 시 무조건 휴차중으로 전환
+    // 🔄 폐지/정비 상태에서 기본정보 변경 시 무조건 휴차중으로 전환
     const isScrappedOrMaintenance = existing.status === 'scrapped' || existing.status === 'maintenance'
-    const isPlateNumberChanged = data.plate_number !== undefined && data.plate_number !== existing.plate_number
     
-    // ✅ 조건: 차량번호만 변경되어도 무조건 휴차중으로 전환
-    if (isScrappedOrMaintenance && isPlateNumberChanged) {
-      console.log(`🔄 [Motorcycle Update] 폐지/정비 → 휴차중 자동 전환 (차량번호 변경): ID=${id}, 새 번호판=${data.plate_number}`)
+    // 기본정보 필드 변경 확인
+    const basicInfoChanged = 
+      (data.plate_number !== undefined && data.plate_number !== existing.plate_number) ||
+      (data.vehicle_name !== undefined && data.vehicle_name !== existing.vehicle_name) ||
+      (data.chassis_number !== undefined && data.chassis_number !== existing.chassis_number) ||
+      (data.model_year !== undefined && data.model_year !== existing.model_year) ||
+      (data.mileage !== undefined && data.mileage !== existing.mileage)
+    
+    // ✅ 조건: 폐지/정비 상태에서 기본정보 변경 시 무조건 휴차중으로 전환
+    if (isScrappedOrMaintenance && basicInfoChanged) {
+      console.log(`🔄 [Motorcycle Update] 폐지/정비 → 휴차중 자동 전환 (기본정보 변경): ID=${id}`)
       mergedData.status = 'available'
     }
     
