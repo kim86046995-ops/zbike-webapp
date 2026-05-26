@@ -1276,20 +1276,35 @@
                 }
                 
                 if (activeContract) {
-                    // 계약자 정보 업데이트
-                    const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
-                    if (contractorEl) {
-                        contractorEl.innerHTML = `
-                            <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
-                            <div>
-                                <p class="text-xs text-gray-500">계약자</p>
-                                <p class="font-bold text-gray-900 truncate">${activeContract.customer_name || '-'}</p>
-                            </div>
-                        `;
+                    // 계약자 정보 업데이트 (폐지 상태가 아닐 때만)
+                    if (motorcycle && motorcycle.status !== 'scrapped') {
+                        const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                        if (contractorEl) {
+                            contractorEl.innerHTML = `
+                                <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
+                                <div>
+                                    <p class="text-xs text-gray-500">계약자</p>
+                                    <p class="font-bold text-gray-900 truncate">${activeContract.customer_name || '-'}</p>
+                                </div>
+                            `;
+                        }
+                    } else if (motorcycle && motorcycle.status === 'scrapped') {
+                        // 폐지 상태면 계약자 정보 숨기기
+                        const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                        if (contractorEl) {
+                            contractorEl.innerHTML = `
+                                <i class="fas fa-user-tie w-3 text-gray-400 mr-1"></i>
+                                <div>
+                                    <p class="text-xs text-gray-500">계약자</p>
+                                    <p class="font-bold text-gray-400 truncate">-</p>
+                                </div>
+                            `;
+                        }
                     }
                     
-                    // 계약 기간 프로그레스 바 업데이트
-                    const progress = calculateInsuranceProgress(activeContract.start_date, activeContract.end_date);
+                    // 계약 기간 프로그레스 바 업데이트 (폐지 상태가 아닐 때만)
+                    if (motorcycle && motorcycle.status !== 'scrapped') {
+                        const progress = calculateInsuranceProgress(activeContract.start_date, activeContract.end_date);
                     
                     let progressClass = 'progress-safe';
                     let warningMessage = '';
@@ -1348,6 +1363,7 @@
                             <span>${activeContract.end_date || '-'}</span>
                         `;
                     }
+                    } // 폐지 상태가 아닐 때만 계약 기간 정보 업데이트
                 }
             } catch (error) {
                 console.error(`Error loading contract info for motorcycle ${motorcycleId}:`, error);
