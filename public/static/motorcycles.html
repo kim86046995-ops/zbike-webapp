@@ -1960,6 +1960,7 @@
                 
                 console.log('✅ 기본 정보 수정 완료');
                 alert('✅ 기본 정보가 수정되었습니다');
+                hideModal();  // 모달 닫기
                 loadMotorcycles();
             } catch (error) {
                 console.error('❌ 기본 정보 저장 실패:', error);
@@ -2001,6 +2002,7 @@
                 
                 console.log('✅ 계약 정보 수정 완료');
                 alert('✅ 계약 정보가 수정되었습니다');
+                hideModal();  // 모달 닫기
                 loadMotorcycles();
             } catch (error) {
                 console.error('❌ 계약 정보 저장 실패:', error);
