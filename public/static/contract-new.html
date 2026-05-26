@@ -2709,9 +2709,12 @@
                 // 8. 성공 메시지 표시
                 alert(`✅ 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명 및 신분증이 저장되었습니다.\n\n계약서 목록 페이지로 이동합니다.`);
 
-                // 9. 계약서 목록으로 이동
+                // 9. 캐시 클리어 후 계약서 목록으로 이동
                 setTimeout(() => {
-                    window.location.href = '/static/contracts.html';
+                    sessionStorage.removeItem('contracts_cache');
+                    sessionStorage.removeItem('contracts_cache_time');
+                    console.log('🗑️ 계약서 캐시 클리어 완료');
+                    window.location.href = '/static/contracts.html?refresh=1';
                 }, 2000);
 
             } catch (error) {
@@ -3115,8 +3118,11 @@
                 
                 alert(`✅ 임시렌트 약식 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}\n고객: ${customerName}`);
                 
-                // 계약서 목록으로 이동
-                window.location.href = '/static/contracts.html';
+                // 캐시 클리어 후 계약서 목록으로 이동
+                sessionStorage.removeItem('contracts_cache');
+                sessionStorage.removeItem('contracts_cache_time');
+                console.log('🗑️ 계약서 캐시 클리어 완료');
+                window.location.href = '/static/contracts.html?refresh=1';
                 
             } catch (error) {
                 console.error('❌ 임시렌트 계약서 생성 실패:', error);
