@@ -2897,9 +2897,9 @@ app.put('/api/contracts/:id/sign', async (c) => {
         motorcycle_photo_back = ?,
         motorcycle_photo_left = ?,
         motorcycle_photo_right = ?,
-        motorcycle_photo_upload_date = datetime("now"),
+        motorcycle_photo_upload_date = datetime('now', '+9 hours'),
         status = 'active', 
-        updated_at = datetime("now")
+        updated_at = datetime('now', '+9 hours')
     WHERE id = ?
   `).bind(
     signature_data, 
@@ -4425,9 +4425,9 @@ app.put('/api/business-contracts/:id/sign', async (c) => {
         motorcycle_photo_back = ?,
         motorcycle_photo_left = ?,
         motorcycle_photo_right = ?,
-        motorcycle_photo_upload_date = datetime("now"),
+        motorcycle_photo_upload_date = datetime('now', '+9 hours'),
         status = 'active', 
-        updated_at = datetime("now")
+        updated_at = datetime('now', '+9 hours')
     WHERE id = ?
   `).bind(
     signature_data, 
@@ -5232,7 +5232,7 @@ app.put('/api/loan-contracts/:id/sign', async (c) => {
   // borrower_signature와 borrower_id_card_photo 필드로 저장
   await DB.prepare(`
     UPDATE loan_contracts 
-    SET borrower_signature = ?, borrower_id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET borrower_signature = ?, borrower_id_card_photo = ?, status = 'active', updated_at = datetime('now', '+9 hours')
     WHERE id = ?
   `).bind(signature_data, id_card_photo || '', id).run()
   
