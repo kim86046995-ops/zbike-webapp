@@ -1590,6 +1590,47 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     
     console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved, all else cleared`)
     
+    // 활성 계약 완료 처리 (폐지 시 계약도 종료)
+    try {
+      // 개인 계약 완료
+      const activePersonalContracts = await DB.prepare(`
+        SELECT id, contract_number FROM contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activePersonalContracts.results || []) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 개인 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      // 업체 계약 완료
+      const activeBusinessContracts = await DB.prepare(`
+        SELECT id, contract_number FROM business_contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activeBusinessContracts.results || []) {
+        await DB.prepare(`
+          UPDATE business_contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 업체 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      console.log(`✅ 활성 계약 완료 처리: 개인 ${activePersonalContracts.results?.length || 0}건, 업체 ${activeBusinessContracts.results?.length || 0}건`)
+    } catch (contractErr) {
+      console.warn(`⚠️ Failed to complete contracts:`, contractErr)
+    }
+    
     // 이력 기록: 폐지 처리
     await DB.prepare(`
       INSERT INTO motorcycle_history 
@@ -1712,6 +1753,47 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
       console.log(`✅ 폐지 이력 저장 완료: ${motorcycle.plate_number} → (폐지)`)
     } catch (historyErr) {
       console.warn(`⚠️ Failed to save history (table may not exist):`, historyErr)
+    }
+    
+    // 2.5. 활성 계약 완료 처리 (폐지 시 계약도 종료)
+    try {
+      // 개인 계약 완료
+      const activePersonalContracts = await DB.prepare(`
+        SELECT id, contract_number FROM contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activePersonalContracts.results || []) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 개인 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      // 업체 계약 완료
+      const activeBusinessContracts = await DB.prepare(`
+        SELECT id, contract_number FROM business_contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activeBusinessContracts.results || []) {
+        await DB.prepare(`
+          UPDATE business_contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 업체 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      console.log(`✅ 활성 계약 완료 처리: 개인 ${activePersonalContracts.results?.length || 0}건, 업체 ${activeBusinessContracts.results?.length || 0}건`)
+    } catch (contractErr) {
+      console.warn(`⚠️ Failed to complete contracts:`, contractErr)
     }
     
     // 3. 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
