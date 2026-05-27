@@ -1581,11 +1581,11 @@
                     
                     <!-- 약관 동의 표시 -->
                     <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded mb-6 terms-agreement">
-                        <div class="mt-1 w-5 h-5 bg-green-600 rounded flex items-center justify-center">
-                            <i class="fas fa-check text-white text-xs"></i>
+                        <div class="mt-1 w-5 h-5 ${c.signature_data ? 'bg-green-600' : 'bg-red-600'} rounded flex items-center justify-center">
+                            <i class="fas ${c.signature_data ? 'fa-check' : 'fa-times'} text-white text-xs"></i>
                         </div>
-                        <label class="ml-3 text-base font-bold text-gray-800">
-                            위 계약 약관을 모두 확인하였으며 이에 동의합니다 <span class="text-red-600">*</span>
+                        <label class="ml-3 text-base font-bold ${c.signature_data ? 'text-gray-800' : 'text-red-600'}">
+                            위 계약 약관을 모두 확인하였으며 이에 ${c.signature_data ? '동의합니다' : '동의하지 않았습니다'} <span class="text-red-600">*</span>
                         </label>
                     </div>
 
