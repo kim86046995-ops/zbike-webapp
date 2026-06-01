@@ -17,8 +17,16 @@
     {
       "binding": "R2_ID_CARDS",
       "bucket_name": "zbike-id-cards"
+    },
+    {
+      "binding": "R2_BACKUPS",
+      "bucket_name": "zbike-backups"
     }
-  ]
+  ],
+  // Cron 트리거: 매일 오전 3시 (KST 기준 자정)에 자동 백업
+  "triggers": {
+    "crons": ["0 18 * * *"]  // UTC 18:00 = KST 03:00 (다음날)
+  }
   // SMS 환경변수는 Cloudflare Pages Secrets로 관리됩니다
   // SMS_ENABLED, SMS_TEST_MODE, SMS_AWS_LAMBDA_URL, ADMIN_PHONE
 }

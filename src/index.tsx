@@ -7,6 +7,7 @@ type Bindings = {
   DB: D1Database;
   db: D1Database;
   R2_ID_CARDS: R2Bucket;
+  R2_BACKUPS: R2Bucket;
   ASSETS: Fetcher;
   SMS_ENABLED?: string;
   SMS_AWS_LAMBDA_URL?: string;
@@ -97,6 +98,143 @@ async function autoBackupDatabase(
   } catch (error) {
     console.error('❌ 자동 백업 실패:', error)
     // 백업 실패해도 원래 작업은 계속 진행
+  }
+}
+
+// ============================================
+// 정기 자동 백업 함수 (Cron Trigger)
+// ============================================
+
+async function performScheduledBackup(env: Bindings) {
+  try {
+    console.log('🕐 정기 자동 백업 시작...')
+    const DB = env.DB || env.db
+    const R2 = env.R2_BACKUPS
+
+    if (!DB) {
+      console.error('❌ DB 바인딩 없음')
+      return
+    }
+
+    if (!R2) {
+      console.error('❌ R2_BACKUPS 바인딩 없음')
+      return
+    }
+
+    // 모든 테이블 데이터 조회
+    const tables = [
+      'users',
+      'motorcycles', 
+      'customers',
+      'contracts',
+      'business_contracts',
+      'work_contracts',
+      'loan_contracts',
+      'insurances',
+      'companies',
+      'contract_history',
+      'motorcycle_history',
+      'backup_logs',
+      'sessions'
+    ]
+
+    const backup: Record<string, any[]> = {}
+
+    for (const table of tables) {
+      try {
+        const data = await DB.prepare(`SELECT * FROM ${table}`).all()
+        backup[table] = data.results || []
+        console.log(`📦 ${table}: ${backup[table].length}개 레코드`)
+      } catch (error) {
+        console.error(`⚠️ ${table} 백업 실패:`, error)
+        backup[table] = []
+      }
+    }
+
+    // 백업 메타데이터
+    const backupData = {
+      metadata: {
+        backup_time: getKSTDateTime(),
+        backup_type: 'scheduled',
+        version: '1.0',
+        total_records: Object.values(backup).reduce((sum, arr) => sum + arr.length, 0),
+        total_tables: tables.length
+      },
+      data: backup
+    }
+
+    // JSON으로 변환
+    const backupJson = JSON.stringify(backupData, null, 2)
+    
+    // R2에 저장
+    const timestamp = Date.now()
+    const filename = `scheduled-backup-${timestamp}.json`
+    
+    await R2.put(filename, backupJson, {
+      httpMetadata: {
+        contentType: 'application/json'
+      },
+      customMetadata: {
+        backupTime: backupData.metadata.backup_time,
+        totalRecords: String(backupData.metadata.total_records)
+      }
+    })
+
+    console.log(`✅ 정기 자동 백업 완료: ${filename}`)
+    console.log(`📊 총 ${backupData.metadata.total_records}개 레코드 백업됨`)
+
+    // 백업 로그 기록
+    await DB.prepare(`
+      INSERT INTO backup_logs (
+        action_type,
+        table_name,
+        record_id,
+        backup_time
+      ) VALUES ('SCHEDULED_BACKUP', 'ALL', NULL, datetime('now', '+9 hours'))
+    `).run()
+
+    // 오래된 백업 정리 (30일 이상)
+    await cleanupOldBackups(R2)
+
+    return {
+      success: true,
+      filename,
+      total_records: backupData.metadata.total_records
+    }
+  } catch (error) {
+    console.error('❌ 정기 백업 실패:', error)
+    throw error
+  }
+}
+
+// 오래된 백업 정리 함수
+async function cleanupOldBackups(R2: R2Bucket) {
+  try {
+    console.log('🧹 오래된 백업 정리 시작...')
+    
+    // R2에서 모든 백업 파일 목록 조회
+    const listed = await R2.list()
+    const now = Date.now()
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000) // 30일 전
+
+    let deletedCount = 0
+
+    for (const object of listed.objects) {
+      // 파일명에서 타임스탬프 추출
+      const match = object.key.match(/scheduled-backup-(\d+)\.json/)
+      if (match) {
+        const timestamp = parseInt(match[1])
+        if (timestamp < thirtyDaysAgo) {
+          await R2.delete(object.key)
+          deletedCount++
+          console.log(`🗑️ 삭제된 백업: ${object.key}`)
+        }
+      }
+    }
+
+    console.log(`✅ 백업 정리 완료: ${deletedCount}개 파일 삭제됨`)
+  } catch (error) {
+    console.error('❌ 백업 정리 실패:', error)
   }
 }
 
@@ -8613,4 +8751,123 @@ app.get('/api/backups/export/:table', async (c) => {
   }
 })
 
-export default app
+// 수동 백업 로그 기록
+app.post('/api/backups/manual', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+
+    // 수동 백업 로그 기록
+    await DB.prepare(`
+      INSERT INTO backup_logs (
+        action_type,
+        table_name,
+        record_id,
+        backup_time
+      ) VALUES ('MANUAL_BACKUP', 'ALL', NULL, datetime('now', '+9 hours'))
+    `).run()
+
+    console.log('✅ 수동 백업 로그 기록 완료')
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('❌ 수동 백업 로그 기록 실패:', error)
+    return c.json({ error: '로그 기록 실패' }, 500)
+  }
+})
+
+// 수동 정기 백업 트리거
+app.post('/api/backups/trigger', async (c) => {
+  try {
+    const { env } = c
+
+    console.log('🔧 수동 백업 트리거 시작...')
+    const result = await performScheduledBackup(env)
+
+    return c.json({
+      success: true,
+      message: '백업이 성공적으로 완료되었습니다.',
+      ...result
+    })
+  } catch (error) {
+    console.error('❌ 수동 백업 실패:', error)
+    return c.json({ error: '백업 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// R2에 저장된 백업 목록 조회
+app.get('/api/backups/list', async (c) => {
+  try {
+    const { env } = c
+    const R2 = env.R2_BACKUPS
+
+    if (!R2) {
+      return c.json({ error: 'R2 백업 스토리지가 설정되지 않았습니다.' }, 500)
+    }
+
+    const listed = await R2.list()
+
+    const backups = listed.objects.map(obj => ({
+      filename: obj.key,
+      size: obj.size,
+      uploaded: obj.uploaded,
+      customMetadata: obj.customMetadata
+    }))
+
+    // 최신순으로 정렬
+    backups.sort((a, b) => new Date(b.uploaded).getTime() - new Date(a.uploaded).getTime())
+
+    console.log('📋 백업 목록 조회:', backups.length, '개')
+    return c.json(backups)
+  } catch (error) {
+    console.error('❌ 백업 목록 조회 실패:', error)
+    return c.json({ error: '백업 목록 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// R2에서 특정 백업 다운로드
+app.get('/api/backups/download/:filename', async (c) => {
+  try {
+    const { env } = c
+    const R2 = env.R2_BACKUPS
+    const filename = c.req.param('filename')
+
+    if (!R2) {
+      return c.json({ error: 'R2 백업 스토리지가 설정되지 않았습니다.' }, 500)
+    }
+
+    const object = await R2.get(filename)
+
+    if (!object) {
+      return c.json({ error: '백업 파일을 찾을 수 없습니다.' }, 404)
+    }
+
+    const data = await object.text()
+
+    return c.json(JSON.parse(data), 200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="${filename}"`
+    })
+  } catch (error) {
+    console.error('❌ 백업 다운로드 실패:', error)
+    return c.json({ error: '백업 다운로드 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// ============================================
+// Scheduled 이벤트 핸들러 (Cron Trigger)
+// ============================================
+export default {
+  async fetch(request: Request, env: Bindings, ctx: ExecutionContext) {
+    return app.fetch(request, env, ctx)
+  },
+  async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
+    console.log('⏰ Cron Trigger 실행:', new Date(event.scheduledTime).toISOString())
+    
+    try {
+      const result = await performScheduledBackup(env)
+      console.log('✅ 정기 백업 완료:', result)
+    } catch (error) {
+      console.error('❌ 정기 백업 실패:', error)
+    }
+  }
+}
