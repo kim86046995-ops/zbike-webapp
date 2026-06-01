@@ -7109,6 +7109,10 @@ app.get('/dashboard', (c) => {
                         <i class="fas fa-file-contract text-4xl sm:text-5xl text-pink-600 mb-2 sm:mb-3"></i>
                         <p class="text-base sm:text-sm font-medium text-gray-700">업무위탁계약서</p>
                     </a>
+                    <a href="/static/backup.html" class="bg-green-50 hover:bg-green-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-database text-4xl sm:text-5xl text-green-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">백업 관리</p>
+                    </a>
                 </div>
             </div>
         </div>
