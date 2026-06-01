@@ -71,6 +71,36 @@ function getKSTDateTime() {
 }
 
 // ============================================
+// 자동 백업 헬퍼 함수
+// ============================================
+
+async function autoBackupDatabase(
+  DB: D1Database,
+  actionType: string,
+  tableName: string,
+  recordId?: number
+) {
+  try {
+    console.log(`📦 자동 백업 시작: ${actionType} on ${tableName}${recordId ? ` (ID: ${recordId})` : ''}`)
+    
+    // 백업 기록 저장
+    await DB.prepare(`
+      INSERT INTO backup_logs (
+        action_type,
+        table_name,
+        record_id,
+        backup_time
+      ) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+    `).bind(actionType, tableName, recordId || null).run()
+    
+    console.log(`✅ 백업 로그 기록 완료`)
+  } catch (error) {
+    console.error('❌ 자동 백업 실패:', error)
+    // 백업 실패해도 원래 작업은 계속 진행
+  }
+}
+
+// ============================================
 // 계약 이력 기록 헬퍼 함수
 // ============================================
 
@@ -7551,6 +7581,9 @@ app.post('/api/companies', async (c) => {
 
     console.log('✅ 업체 등록 성공:', result.meta.last_row_id)
 
+    // 자동 백업
+    await autoBackupDatabase(DB, 'INSERT', 'companies', result.meta.last_row_id as number)
+
     return c.json({
       success: true,
       id: result.meta.last_row_id,
@@ -7726,6 +7759,10 @@ app.delete('/api/companies/:id', async (c) => {
     `).bind(id).run()
 
     console.log('🗑️ 업체 삭제 완료:', company.company_name, `(ID: ${id})`)
+    
+    // 자동 백업
+    await autoBackupDatabase(env.DB, 'DELETE', 'companies', parseInt(id))
+    
     return c.json({ 
       success: true, 
       message: '업체가 성공적으로 삭제되었습니다.',
@@ -7898,6 +7935,10 @@ app.put('/api/companies/:id', async (c) => {
     }
 
     console.log('✅ 업체 수정 완료:', companyName)
+    
+    // 자동 백업
+    await autoBackupDatabase(DB, 'UPDATE', 'companies', parseInt(id))
+    
     return c.json({ 
       success: true, 
       message: '업체 정보가 성공적으로 수정되었습니다.',
@@ -8439,6 +8480,136 @@ app.post('/api/admin/migrate-completed-dates', authMiddleware, async (c) => {
       success: false,
       error: error.message
     }, 500)
+  }
+})
+
+// ============================================
+// 백업 관리 API
+// ============================================
+
+// 백업 로그 조회
+app.get('/api/backups/logs', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+
+    const logs = await DB.prepare(`
+      SELECT 
+        id,
+        action_type,
+        table_name,
+        record_id,
+        backup_time,
+        created_at
+      FROM backup_logs
+      ORDER BY backup_time DESC
+      LIMIT 100
+    `).all()
+
+    console.log('📋 백업 로그 조회:', logs.results?.length || 0, '개')
+    return c.json(logs.results || [])
+  } catch (error) {
+    console.error('❌ 백업 로그 조회 실패:', error)
+    return c.json({ error: '백업 로그 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 전체 데이터베이스 백업 (JSON 형식)
+app.get('/api/backups/export', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+
+    // 모든 테이블 데이터 조회
+    const tables = [
+      'users',
+      'motorcycles', 
+      'customers',
+      'contracts',
+      'business_contracts',
+      'work_contracts',
+      'loan_contracts',
+      'insurances',
+      'companies',
+      'contract_history',
+      'motorcycle_history',
+      'backup_logs'
+    ]
+
+    const backup: Record<string, any[]> = {}
+
+    for (const table of tables) {
+      try {
+        const data = await DB.prepare(`SELECT * FROM ${table}`).all()
+        backup[table] = data.results || []
+        console.log(`📦 ${table}: ${backup[table].length}개 레코드`)
+      } catch (error) {
+        console.error(`⚠️ ${table} 백업 실패:`, error)
+        backup[table] = []
+      }
+    }
+
+    // 백업 메타데이터
+    const backupData = {
+      metadata: {
+        backup_time: getKSTDateTime(),
+        version: '1.0',
+        total_records: Object.values(backup).reduce((sum, arr) => sum + arr.length, 0)
+      },
+      data: backup
+    }
+
+    console.log('✅ 전체 데이터베이스 백업 완료:', backupData.metadata.total_records, '개 레코드')
+
+    // JSON 파일로 다운로드
+    return c.json(backupData, 200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="zbike-backup-${Date.now()}.json"`
+    })
+  } catch (error) {
+    console.error('❌ 데이터베이스 백업 실패:', error)
+    return c.json({ error: '데이터베이스 백업 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 특정 테이블만 백업
+app.get('/api/backups/export/:table', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+    const table = c.req.param('table')
+
+    // 허용된 테이블 목록
+    const allowedTables = [
+      'users', 'motorcycles', 'customers', 'contracts', 
+      'business_contracts', 'work_contracts', 'loan_contracts',
+      'insurances', 'companies', 'contract_history', 'motorcycle_history'
+    ]
+
+    if (!allowedTables.includes(table)) {
+      return c.json({ error: '유효하지 않은 테이블명입니다.' }, 400)
+    }
+
+    const data = await DB.prepare(`SELECT * FROM ${table}`).all()
+
+    const backupData = {
+      metadata: {
+        backup_time: getKSTDateTime(),
+        table_name: table,
+        total_records: data.results?.length || 0
+      },
+      data: data.results || []
+    }
+
+    console.log(`✅ ${table} 테이블 백업 완료:`, backupData.metadata.total_records, '개 레코드')
+
+    return c.json(backupData, 200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="zbike-${table}-backup-${Date.now()}.json"`
+    })
+  } catch (error) {
+    console.error('❌ 테이블 백업 실패:', error)
+    return c.json({ error: '테이블 백업 중 오류가 발생했습니다.' }, 500)
   }
 })
 
