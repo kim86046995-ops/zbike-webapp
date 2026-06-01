@@ -6,6 +6,17 @@
     <title>백업 관리 - 전자계약서</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // 즉시 실행: 로그인 체크
+        (function() {
+            var sessionId = localStorage.getItem('sessionId');
+            var user = localStorage.getItem('user');
+            if (!sessionId || !user) {
+                alert('로그인이 필요합니다.');
+                window.location.replace('/login?redirect=' + encodeURIComponent(window.location.pathname));
+            }
+        })();
+    </script>
 </head>
 <body class="bg-gray-50">
     <!-- 헤더 -->
@@ -189,14 +200,10 @@
     </div>
 
     <script>
-        // 세션 체크
+        // 세션 정보 가져오기
         const sessionId = localStorage.getItem('sessionId');
-        const username = localStorage.getItem('username');
-
-        if (!sessionId || !username) {
-            alert('로그인이 필요합니다.');
-            window.location.href = '/static/login';
-        }
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const username = user.username || localStorage.getItem('username') || '사용자';
 
         document.getElementById('userName').textContent = username;
 
