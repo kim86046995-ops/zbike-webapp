@@ -8661,6 +8661,7 @@ app.get('/api/backups/export', async (c) => {
   try {
     const { env } = c
     const DB = env.DB || env.db
+    const R2 = env.R2_BACKUPS
 
     // 모든 테이블 데이터 조회
     const tables = [
@@ -8695,6 +8696,7 @@ app.get('/api/backups/export', async (c) => {
     const backupData = {
       metadata: {
         backup_time: getKSTDateTime(),
+        backup_type: 'manual',
         version: '1.0',
         total_records: Object.values(backup).reduce((sum, arr) => sum + arr.length, 0)
       },
@@ -8703,10 +8705,46 @@ app.get('/api/backups/export', async (c) => {
 
     console.log('✅ 전체 데이터베이스 백업 완료:', backupData.metadata.total_records, '개 레코드')
 
+    // JSON으로 변환
+    const backupJson = JSON.stringify(backupData, null, 2)
+    const timestamp = Date.now()
+    const filename = `manual-backup-${timestamp}.json`
+
+    // R2에 저장 (R2가 있는 경우에만)
+    if (R2) {
+      try {
+        await R2.put(filename, backupJson, {
+          httpMetadata: {
+            contentType: 'application/json'
+          },
+          customMetadata: {
+            backupTime: backupData.metadata.backup_time,
+            backupType: 'manual',
+            totalRecords: String(backupData.metadata.total_records)
+          }
+        })
+        console.log(`✅ R2에 수동 백업 저장 완료: ${filename}`)
+      } catch (r2Error) {
+        console.error('⚠️ R2 저장 실패 (다운로드는 계속 진행):', r2Error)
+      }
+    }
+
+    // 백업 로그 기록
+    try {
+      await DB.prepare(`
+        INSERT INTO backup_logs (
+          action_type, table_name, record_id, backup_time
+        ) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+      `).bind('MANUAL_FULL_BACKUP', 'all_tables', null).run()
+      console.log('✅ 수동 백업 로그 기록 완료')
+    } catch (logError) {
+      console.error('⚠️ 백업 로그 기록 실패:', logError)
+    }
+
     // JSON 파일로 다운로드
     return c.json(backupData, 200, {
       'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="zbike-backup-${Date.now()}.json"`
+      'Content-Disposition': `attachment; filename="zbike-backup-${timestamp}.json"`
     })
   } catch (error) {
     console.error('❌ 데이터베이스 백업 실패:', error)
@@ -8719,6 +8757,7 @@ app.get('/api/backups/export/:table', async (c) => {
   try {
     const { env } = c
     const DB = env.DB || env.db
+    const R2 = env.R2_BACKUPS
     const table = c.req.param('table')
 
     // 허용된 테이블 목록
@@ -8737,6 +8776,7 @@ app.get('/api/backups/export/:table', async (c) => {
     const backupData = {
       metadata: {
         backup_time: getKSTDateTime(),
+        backup_type: 'manual_table',
         table_name: table,
         total_records: data.results?.length || 0
       },
@@ -8745,9 +8785,46 @@ app.get('/api/backups/export/:table', async (c) => {
 
     console.log(`✅ ${table} 테이블 백업 완료:`, backupData.metadata.total_records, '개 레코드')
 
+    // JSON으로 변환
+    const backupJson = JSON.stringify(backupData, null, 2)
+    const timestamp = Date.now()
+    const filename = `manual-${table}-backup-${timestamp}.json`
+
+    // R2에 저장 (R2가 있는 경우에만)
+    if (R2) {
+      try {
+        await R2.put(filename, backupJson, {
+          httpMetadata: {
+            contentType: 'application/json'
+          },
+          customMetadata: {
+            backupTime: backupData.metadata.backup_time,
+            backupType: 'manual_table',
+            tableName: table,
+            totalRecords: String(backupData.metadata.total_records)
+          }
+        })
+        console.log(`✅ R2에 ${table} 테이블 백업 저장 완료: ${filename}`)
+      } catch (r2Error) {
+        console.error('⚠️ R2 저장 실패 (다운로드는 계속 진행):', r2Error)
+      }
+    }
+
+    // 백업 로그 기록
+    try {
+      await DB.prepare(`
+        INSERT INTO backup_logs (
+          action_type, table_name, record_id, backup_time
+        ) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+      `).bind('MANUAL_TABLE_BACKUP', table, null).run()
+      console.log(`✅ ${table} 백업 로그 기록 완료`)
+    } catch (logError) {
+      console.error('⚠️ 백업 로그 기록 실패:', logError)
+    }
+
     return c.json(backupData, 200, {
       'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="zbike-${table}-backup-${Date.now()}.json"`
+      'Content-Disposition': `attachment; filename="zbike-${table}-backup-${timestamp}.json"`
     })
   } catch (error) {
     console.error('❌ 테이블 백업 실패:', error)
