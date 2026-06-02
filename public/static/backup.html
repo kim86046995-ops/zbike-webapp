@@ -283,8 +283,13 @@
 
         // 통계 업데이트
         function updateStats() {
-            const scheduledBackups = allLogs.filter(log => log.action_type === 'SCHEDULED_BACKUP');
-            const lastBackup = allLogs.length > 0 ? allLogs[0] : null;
+            // 백업 관련 액션만 카운트 (SCHEDULED_BACKUP, MANUAL_FULL_BACKUP, MANUAL_TABLE_BACKUP)
+            const backupActions = allLogs.filter(log => 
+                log.action_type === 'SCHEDULED_BACKUP' || 
+                log.action_type === 'MANUAL_FULL_BACKUP' ||
+                log.action_type === 'MANUAL_TABLE_BACKUP'
+            );
+            const lastBackup = backupActions.length > 0 ? backupActions[0] : null;
 
             // 마지막 백업 시간
             if (lastBackup) {
@@ -294,8 +299,8 @@
                 document.getElementById('lastBackupTime').textContent = '백업 없음';
             }
 
-            // 총 백업 횟수 (자동 백업만)
-            document.getElementById('totalBackups').textContent = `${scheduledBackups.length}회`;
+            // 총 백업 횟수 (자동 + 수동 백업 모두 포함)
+            document.getElementById('totalBackups').textContent = `${backupActions.length}회`;
 
             // 총 로그 수
             document.getElementById('totalLogs').textContent = allLogs.length;
@@ -579,6 +584,8 @@
         function getActionTypeBadge(type) {
             const badges = {
                 'SCHEDULED_BACKUP': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"><i class="fas fa-clock mr-1"></i> 자동 백업</span>',
+                'MANUAL_FULL_BACKUP': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><i class="fas fa-hand-pointer mr-1"></i> 수동 전체</span>',
+                'MANUAL_TABLE_BACKUP': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-table mr-1"></i> 수동 테이블</span>',
                 'MANUAL_BACKUP': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><i class="fas fa-hand-pointer mr-1"></i> 수동 백업</span>',
                 'INSERT': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-plus mr-1"></i> 추가</span>',
                 'UPDATE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-edit mr-1"></i> 수정</span>',
