@@ -638,13 +638,9 @@
             console.log('🗑️ 오토바이 캐시 클리어');
         }
 
-        // 검색 디바운스 타이머
-        let searchDebounceTimer = null;
+        // 검색 즉각 반응 (디바운스 제거)
         function debouncedFilter() {
-            clearTimeout(searchDebounceTimer);
-            searchDebounceTimer = setTimeout(() => {
-                filterAndSortMotorcycles();
-            }, 50); // 150ms -> 50ms로 단축 (즉각 반응)
+            filterAndSortMotorcycles();
         }
 
         async function loadMotorcycles(forceRefresh = false) {
