@@ -1969,10 +1969,11 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     }
     
     // 3. 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
+    // ✅ usage_notes(특약사항)는 유지 - 관리자가 직접 삭제 가능
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = 'scrapped',
-          usage_notes = ?,
+          -- ✅ usage_notes는 기존 값 유지 (변경하지 않음)
           -- ❌ 보험정보 초기화
           insurance_company = '',
           insurance_start_date = '',
@@ -1990,7 +1991,7 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           daily_rental_fee = 0,
           driving_range = '',
           certificate_photo = '',
-          -- ✅ 유지되는 정보 (스크린샷 기준 7개):
+          -- ✅ 유지되는 정보 (스크린샷 기준 8개):
           --    1. plate_number (차량번호)
           --    2. vehicle_name (차량이름)
           --    3. model_year (연식)
@@ -1998,14 +1999,15 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           --    5. mileage (키로수)
           --    6. inspection_start_date (검사 시작일)
           --    7. inspection_end_date (검사 종료일)
+          --    8. usage_notes (특약사항) ← 새로 추가
           updated_at = datetime("now", "+9 hours")
       WHERE id = ?
-    `).bind(scrap_reason || '폐지', id).run()
+    `).bind(id).run()
     
-    console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved (screenshot spec)`)
+    console.log(`✅ Motorcycle #${id} scrapped - 8 fields preserved including usage_notes`)
     
     return c.json({ 
-      message: '폐지 처리되었습니다. 차량번호, 차량이름, 연식, 차대번호, 키로수, 검사일만 보존되었습니다.',
+      message: '폐지 처리되었습니다. 차량번호, 차량이름, 연식, 차대번호, 키로수, 검사일, 특약사항이 보존되었습니다.',
       motorcycle: {
         id: motorcycle.id,
         plate_number: motorcycle.plate_number,
@@ -2015,9 +2017,10 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         mileage: motorcycle.mileage,
         inspection_start_date: motorcycle.inspection_start_date,
         inspection_end_date: motorcycle.inspection_end_date,
+        usage_notes: motorcycle.usage_notes,
         status: 'scrapped'
       },
-      preserved_info: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일'],
+      preserved_info: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일', '특약사항'],
       cleared_info: ['보험정보', '계약정보', '차량가격', '일대여료', '운전범위', '등록증사진']
     })
   } catch (error: any) {
