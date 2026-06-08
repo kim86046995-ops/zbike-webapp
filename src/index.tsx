@@ -1367,6 +1367,9 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
     }
     
     // 기존 데이터와 새 데이터 병합 (새 데이터가 우선)
+    // 단, 폐지(scrapped) 상태로 변경 시 usage_notes(특약사항)는 보존
+    const isChangingToScrapped = data.status === 'scrapped' && existing.status !== 'scrapped'
+    
     const mergedData = {
       plate_number: data.plate_number !== undefined ? data.plate_number : existing.plate_number,
       vehicle_name: data.vehicle_name !== undefined ? data.vehicle_name : existing.vehicle_name,
@@ -1383,7 +1386,8 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       insurance_fee: data.insurance_fee !== undefined ? data.insurance_fee : existing.insurance_fee,
       vehicle_price: data.vehicle_price !== undefined ? data.vehicle_price : existing.vehicle_price,
       daily_rental_fee: data.daily_rental_fee !== undefined ? data.daily_rental_fee : (existing.daily_rental_fee || 0),
-      usage_notes: data.usage_notes !== undefined ? data.usage_notes : (existing.usage_notes || ''),
+      // 폐지로 변경 시 usage_notes는 보존 (삭제하지 않음)
+      usage_notes: isChangingToScrapped ? existing.usage_notes : (data.usage_notes !== undefined ? data.usage_notes : (existing.usage_notes || '')),
       status: data.status !== undefined ? data.status : existing.status,
       certificate_photo: data.certificate_photo !== undefined ? data.certificate_photo : existing.certificate_photo,
       monthly_fee: data.monthly_fee !== undefined ? data.monthly_fee : (existing.monthly_fee || 0),

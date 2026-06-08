@@ -1342,6 +1342,12 @@
                     
                     const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
                     if (contractBarEl) {
+                        // 기존 경고 메시지 제거 (중복 방지)
+                        const existingWarning = contractBarEl.nextElementSibling;
+                        if (existingWarning && existingWarning.classList.contains('bg-gradient-to-r')) {
+                            existingWarning.remove();
+                        }
+                        
                         contractBarEl.innerHTML = `
                             <div class="progress-bar ${progressClass}" style="width: ${progress.percentage}%">
                                 ${progress.percentage > 15 ? `${progress.percentage}%` : ''}
