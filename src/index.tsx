@@ -1408,10 +1408,10 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       (data.model_year !== undefined && data.model_year !== existing.model_year) ||
       (data.mileage !== undefined && data.mileage !== existing.mileage)
     
-    // ✅ 조건: 폐지/정비 상태에서 기본정보 변경 시 무조건 휴차중으로 전환
+    // ✅ 조건: 폐지/정비 상태에서 기본정보 변경 시 무조건 휴차(idle)로 전환
     if (isScrappedOrMaintenance && basicInfoChanged) {
-      console.log(`🔄 [Motorcycle Update] 폐지/정비 → 휴차중 자동 전환 (기본정보 변경): ID=${id}`)
-      mergedData.status = 'available'
+      console.log(`🔄 [Motorcycle Update] 폐지/정비 → 휴차(idle) 자동 전환 (기본정보 변경): ID=${id}`)
+      mergedData.status = 'idle'
     }
     
     // 변경 이력 저장 (모든 중요 필드 - 이력보호 절대원칙)
