@@ -749,7 +749,17 @@
         // 통계 카드 업데이트
         async function filterAndSortMotorcycles() {
             // 검색어
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) {
+                console.error('❌ 검색 입력창을 찾을 수 없습니다');
+                return;
+            }
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            // 디버깅 로그
+            if (searchTerm) {
+                console.log(`🔍 검색어: "${searchTerm}"`);
+            }
             
             // 상태 필터
             const statusFilter = document.getElementById('statusFilter').value;
@@ -884,6 +894,9 @@
                         return b.id - a.id;
                 }
             });
+            
+            // 디버깅: 검색 결과 개수 로그
+            console.log(`✅ 검색 결과: ${filtered.length}개 (전체: ${motorcycles.length}개)`);
             
             renderMotorcycles(filtered);
         }
