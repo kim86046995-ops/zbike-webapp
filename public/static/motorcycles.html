@@ -638,9 +638,20 @@
             console.log('🗑️ 오토바이 캐시 클리어');
         }
 
-        // 검색 즉각 반응 (디바운스 제거)
+        // 검색 즉각 반응 - 타이머 변수
+        let filterTimer = null;
+        
+        // 검색 입력 즉시 반응 (입력은 즉시, 렌더링만 약간 지연)
         function debouncedFilter() {
-            filterAndSortMotorcycles();
+            // 이전 타이머 취소
+            if (filterTimer) {
+                clearTimeout(filterTimer);
+            }
+            
+            // 즉시 필터링 실행 (20ms 지연으로 입력 반응성 보장)
+            filterTimer = setTimeout(() => {
+                filterAndSortMotorcycles();
+            }, 20);
         }
 
         async function loadMotorcycles(forceRefresh = false) {
