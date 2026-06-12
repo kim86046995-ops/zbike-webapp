@@ -1970,7 +1970,9 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     
     // 3. 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
     // ✅ usage_notes(특약사항)는 유지 - 관리자가 직접 삭제 가능
-    await DB.prepare(`
+    console.log(`🔄 Starting scrap update for motorcycle ID=${id}`)
+    
+    const updateResult = await DB.prepare(`
       UPDATE motorcycles 
       SET status = 'scrapped',
           -- ✅ usage_notes는 기존 값 유지 (변경하지 않음)
@@ -2003,6 +2005,12 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           updated_at = datetime("now", "+9 hours")
       WHERE id = ?
     `).bind(id).run()
+    
+    console.log(`✅ Scrap update result:`, updateResult)
+    
+    if (!updateResult.success) {
+      throw new Error('Database update failed')
+    }
     
     console.log(`✅ Motorcycle #${id} scrapped - 8 fields preserved including usage_notes`)
     
