@@ -185,9 +185,14 @@
 
                 <!-- 사용 이력 검색 -->
                 <div class="border-t pt-4 mt-4">
-                    <label class="block text-sm font-bold mb-2">
-                        <i class="fas fa-history mr-1 text-orange-500"></i>사용 이력 조회 (번호판 또는 차대번호)
-                    </label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-bold">
+                            <i class="fas fa-history mr-1 text-orange-500"></i>사용 이력 조회 (번호판 또는 차대번호)
+                        </label>
+                        <button onclick="migrateContractHistory()" class="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">
+                            <i class="fas fa-database mr-1"></i>기존 이력 통합
+                        </button>
+                    </div>
                     <div class="flex gap-2">
                         <input 
                             type="text" 
@@ -2533,6 +2538,24 @@
                 loadMotorcycles(true);
             }
         });
+
+        // 기존 계약 이력 통합 (마이그레이션)
+        async function migrateContractHistory() {
+            if (!confirm('⚠️ 기존 계약 이력을 통합 이력으로 마이그레이션하시겠습니까?\n\n이미 마이그레이션된 이력은 건너뜁니다.')) {
+                return;
+            }
+            
+            try {
+                console.log('🔄 계약 이력 마이그레이션 시작...');
+                const response = await axios.post('/api/motorcycles/migrate-contract-history');
+                
+                console.log('✅ 마이그레이션 완료:', response.data);
+                alert(`✅ 마이그레이션 완료!\n\n마이그레이션: ${response.data.migrated}건\n건너뜀: ${response.data.skipped}건\n총: ${response.data.total}건`);
+            } catch (error) {
+                console.error('❌ 마이그레이션 실패:', error);
+                alert('❌ 마이그레이션 실패: ' + (error.response?.data?.error || error.message));
+            }
+        }
 
         // 사용 이력 조회
         async function searchHistory() {

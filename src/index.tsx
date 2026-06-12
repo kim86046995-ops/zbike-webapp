@@ -4268,6 +4268,112 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
   }
 })
 
+// 기존 계약 이력을 motorcycle_history로 마이그레이션
+app.post('/api/motorcycles/migrate-contract-history', authMiddleware, async (c) => {
+  try {
+    const DB = c.env.DB || c.env.db
+    const user = c.get('user')
+    
+    // 관리자 권한 체크
+    if (user?.role !== 'super_admin' && user?.id !== 1) {
+      return c.json({ error: '권한이 없습니다' }, 403)
+    }
+    
+    console.log(`🔄 [History Migration] 계약 이력 마이그레이션 시작...`)
+    
+    // 1. 모든 계약 조회 (완료/취소된 계약)
+    const contracts = await DB.prepare(`
+      SELECT 
+        c.id,
+        c.contract_number,
+        c.contract_type,
+        c.motorcycle_id,
+        c.customer_id,
+        c.start_date,
+        c.end_date,
+        c.monthly_fee,
+        c.deposit,
+        c.status,
+        c.created_at,
+        c.completed_at,
+        c.deleted_at,
+        cu.name as customer_name,
+        m.chassis_number,
+        m.plate_number
+      FROM contracts c
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
+      WHERE c.status IN ('completed', 'cancelled') OR c.deleted_at IS NOT NULL
+      ORDER BY c.created_at ASC
+    `).all()
+    
+    let migratedCount = 0
+    let skippedCount = 0
+    
+    for (const contract of (contracts.results || [])) {
+      const c = contract as any
+      
+      // 이미 마이그레이션되었는지 확인
+      const existing = await DB.prepare(`
+        SELECT id FROM motorcycle_history 
+        WHERE motorcycle_id = ? 
+          AND change_type = 'contract_completed'
+          AND notes LIKE ?
+      `).bind(c.motorcycle_id, `%${c.contract_number}%`).first()
+      
+      if (existing) {
+        skippedCount++
+        continue
+      }
+      
+      // motorcycle_history에 저장
+      const changeType = c.deleted_at ? 'contract_cancelled' : 'contract_completed'
+      const fieldName = c.deleted_at ? '계약 해지' : '계약 완료'
+      const actionDate = c.completed_at || c.deleted_at || c.created_at
+      
+      await DB.prepare(`
+        INSERT INTO motorcycle_history (
+          motorcycle_id,
+          chassis_number,
+          change_type,
+          field_name,
+          old_value,
+          new_value,
+          change_date,
+          notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        c.motorcycle_id,
+        c.chassis_number,
+        changeType,
+        fieldName,
+        `계약자: ${c.customer_name || '알 수 없음'}`,
+        `${c.deleted_at ? '해지' : '완료'}일: ${actionDate}`,
+        actionDate,
+        `📋 계약번호: ${c.contract_number}\n👤 계약자: ${c.customer_name || '알 수 없음'}\n📅 계약기간: ${c.start_date} ~ ${c.end_date}\n💰 일대여료: ${Number(c.monthly_fee || 0).toLocaleString()}원\n✅ ${c.deleted_at ? '해지' : '완료'}일: ${actionDate}`
+      ).run()
+      
+      migratedCount++
+    }
+    
+    console.log(`✅ [History Migration] 완료: 마이그레이션 ${migratedCount}건, 건너뜀 ${skippedCount}건`)
+    
+    return c.json({
+      message: '계약 이력 마이그레이션이 완료되었습니다',
+      migrated: migratedCount,
+      skipped: skippedCount,
+      total: contracts.results?.length || 0
+    })
+    
+  } catch (error: any) {
+    console.error('❌ [History Migration] 마이그레이션 실패:', error)
+    return c.json({
+      error: '마이그레이션 중 오류가 발생했습니다',
+      details: error.message
+    }, 500)
+  }
+})
+
 // 오토바이 이력 삭제
 app.delete('/api/motorcycle-history/:id', authMiddleware, async (c) => {
   try {
