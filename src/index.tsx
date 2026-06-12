@@ -1968,40 +1968,27 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
       console.warn(`⚠️ Failed to complete contracts:`, contractErr)
     }
     
-    // 3. 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
-    // ✅ usage_notes(특약사항)는 유지 - 관리자가 직접 삭제 가능
+    // 3. 폐지 처리: 스크린샷 기준 8개 필드만 유지, 나머지 전부 초기화
+    // usage_notes(특약사항)는 유지 - 관리자가 직접 삭제 가능
     console.log(`🔄 Starting scrap update for motorcycle ID=${id}`)
     
     const updateResult = await DB.prepare(`
       UPDATE motorcycles 
       SET status = 'scrapped',
-          -- ✅ usage_notes는 기존 값 유지 (변경하지 않음)
-          -- ❌ 보험정보 초기화
           insurance_company = '',
           insurance_start_date = '',
           insurance_end_date = '',
           insurance_fee = 0,
-          -- ❌ 계약정보 초기화
           owner_name = '',
           monthly_fee = 0,
           contract_type_text = '',
           deposit = 0,
           contract_start_date = '',
           contract_end_date = '',
-          -- ❌ 기타정보 초기화
           vehicle_price = 0,
           daily_rental_fee = 0,
           driving_range = '',
           certificate_photo = '',
-          -- ✅ 유지되는 정보 (스크린샷 기준 8개):
-          --    1. plate_number (차량번호)
-          --    2. vehicle_name (차량이름)
-          --    3. model_year (연식)
-          --    4. chassis_number (차대번호)
-          --    5. mileage (키로수)
-          --    6. inspection_start_date (검사 시작일)
-          --    7. inspection_end_date (검사 종료일)
-          --    8. usage_notes (특약사항) ← 새로 추가
           updated_at = datetime("now", "+9 hours")
       WHERE id = ?
     `).bind(id).run()
