@@ -2584,8 +2584,39 @@
             
             const typeTexts = { 'lease': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
             const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소', 'pending': '대기' };
+            const changeTypeTexts = { 
+                'update': '정보수정', 
+                'status_change': '상태변경', 
+                'insurance_update': '보험변경',
+                'inspection_update': '검사변경',
+                'scrapped': '폐지처리',
+                'maintenance': '정비'
+            };
             
             const historyHtml = history.map((h, index) => {
+                // 변경 이력인 경우
+                if (h.history_type === 'change') {
+                    return `
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-edit text-purple-600"></i>
+                                    <span class="font-bold text-purple-900">${changeTypeTexts[h.change_type] || h.change_type}</span>
+                                    <span class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-700">${h.field_name}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">${new Date(h.created_at).toLocaleString('ko-KR')}</span>
+                            </div>
+                            <div class="text-sm space-y-1">
+                                ${h.old_value ? `<p><strong>변경 전:</strong> ${h.old_value}</p>` : ''}
+                                ${h.new_value ? `<p><strong>변경 후:</strong> ${h.new_value}</p>` : ''}
+                                ${h.notes ? `<p class="text-gray-600 mt-2"><i class="fas fa-sticky-note mr-1"></i>${h.notes}</p>` : ''}
+                                ${h.changed_by_name ? `<p class="text-xs text-gray-500 mt-1">변경자: ${h.changed_by_name}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 계약 이력인 경우
                 const isDeleted = h.deleted_at !== null;
                 const statusBadge = isDeleted 
                     ? '<span class="px-2 py-1 text-xs rounded bg-red-100 text-red-600">삭제됨</span>'

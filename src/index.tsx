@@ -4203,7 +4203,7 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
       return c.json({ error: '해당 오토바이를 찾을 수 없습니다' }, 404)
     }
     
-    // 모든 계약 이력 조회 (삭제된 것 포함)
+    // 1. 모든 계약 이력 조회 (삭제된 것 포함)
     const contracts = await DB.prepare(`
       SELECT 
         c.id,
@@ -4219,16 +4219,48 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
         c.deleted_at,
         cu.name as customer_name,
         cu.phone as customer_phone,
-        cu.resident_number
+        cu.resident_number,
+        'contract' as history_type
       FROM contracts c
       JOIN customers cu ON c.customer_id = cu.id
       WHERE c.motorcycle_id = ?
-      ORDER BY c.created_at DESC
     `).bind((motorcycle as any).id).all()
+    
+    // 2. 오토바이 변경 이력 조회 (보험, 정비, 폐지 등)
+    const changes = await DB.prepare(`
+      SELECT 
+        mh.id,
+        mh.change_type,
+        mh.field_name,
+        mh.old_value,
+        mh.new_value,
+        mh.change_date as created_at,
+        mh.notes,
+        u.username as changed_by_name,
+        'change' as history_type
+      FROM motorcycle_history mh
+      LEFT JOIN users u ON mh.changed_by = u.id
+      WHERE mh.motorcycle_id = ?
+    `).bind((motorcycle as any).id).all()
+    
+    // 3. 통합 이력 생성 (계약 + 변경 이력)
+    const allHistory = [
+      ...(contracts.results || []),
+      ...(changes.results || [])
+    ]
+    
+    // 4. 시간순으로 정렬 (최신순)
+    allHistory.sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateB - dateA
+    })
+    
+    console.log(`✅ 통합 이력 조회: 계약 ${contracts.results?.length || 0}건, 변경 ${changes.results?.length || 0}건, 총 ${allHistory.length}건`)
     
     return c.json({
       motorcycle: motorcycle,
-      history: contracts.results
+      history: allHistory
     })
   } catch (error) {
     console.error('사용 이력 조회 오류:', error)
