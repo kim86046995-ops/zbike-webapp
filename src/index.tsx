@@ -1881,7 +1881,16 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     const DB = c.env.DB || c.env.db
     const id = c.req.param('id')
     const sessionUser = c.get('user')
-    const { scrap_reason } = await c.req.json()
+    
+    // body가 비어있을 수 있으므로 안전하게 처리
+    let scrap_reason = '폐지'
+    try {
+      const body = await c.req.json()
+      scrap_reason = body.scrap_reason || '폐지'
+    } catch (e) {
+      // body가 없으면 기본값 사용
+      scrap_reason = '폐지'
+    }
     
     console.log(`🗑️ Scrapping motorcycle #${id}`)
     
