@@ -60,12 +60,12 @@ SET created_at = datetime(created_at, '+9 hours'),
 WHERE created_at IS NOT NULL;
 
 UPDATE business_contracts 
-SET start_date = datetime(start_date, '+9 hours')
-WHERE start_date IS NOT NULL;
+SET contract_start_date = datetime(contract_start_date, '+9 hours')
+WHERE contract_start_date IS NOT NULL;
 
 UPDATE business_contracts 
-SET end_date = datetime(end_date, '+9 hours')
-WHERE end_date IS NOT NULL;
+SET contract_end_date = datetime(contract_end_date, '+9 hours')
+WHERE contract_end_date IS NOT NULL;
 
 UPDATE business_contracts 
 SET cancelled_at = datetime(cancelled_at, '+9 hours')
@@ -89,43 +89,11 @@ SET created_at = datetime(created_at, '+9 hours'),
     updated_at = datetime(updated_at, '+9 hours')
 WHERE created_at IS NOT NULL;
 
-UPDATE work_contracts 
-SET start_date = datetime(start_date, '+9 hours')
-WHERE start_date IS NOT NULL;
-
-UPDATE work_contracts 
-SET end_date = datetime(end_date, '+9 hours')
-WHERE end_date IS NOT NULL;
-
-UPDATE work_contracts 
-SET cancelled_at = datetime(cancelled_at, '+9 hours')
-WHERE cancelled_at IS NOT NULL;
-
-UPDATE work_contracts 
-SET completed_at = datetime(completed_at, '+9 hours')
-WHERE completed_at IS NOT NULL;
-
 -- Loan contracts table
 UPDATE loan_contracts 
 SET created_at = datetime(created_at, '+9 hours'),
     updated_at = datetime(updated_at, '+9 hours')
 WHERE created_at IS NOT NULL;
-
-UPDATE loan_contracts 
-SET contract_start_date = datetime(contract_start_date, '+9 hours')
-WHERE contract_start_date IS NOT NULL;
-
-UPDATE loan_contracts 
-SET contract_end_date = datetime(contract_end_date, '+9 hours')
-WHERE contract_end_date IS NOT NULL;
-
-UPDATE loan_contracts 
-SET last_deduction_date = date(last_deduction_date, '+9 hours')
-WHERE last_deduction_date IS NOT NULL;
-
-UPDATE loan_contracts 
-SET terminated_at = datetime(terminated_at, '+9 hours')
-WHERE terminated_at IS NOT NULL;
 
 -- Insurances table
 UPDATE insurances 

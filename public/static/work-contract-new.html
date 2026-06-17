@@ -18,6 +18,24 @@
             </div>
             
             <form id="form" class="space-y-4">
+                <!-- 오토바이 선택 -->
+                <div>
+                    <label class="block font-bold mb-2">오토바이 선택 (선택사항)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="motorcycleSearch" placeholder="번호판 또는 차대번호로 검색" class="flex-1 border p-2 rounded">
+                        <button type="button" onclick="searchMotorcycle()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" name="motorcycle_id" id="motorcycleId">
+                    <div id="selectedMotorcycle" class="mt-2 p-3 bg-gray-100 rounded hidden">
+                        <span id="motorcycleInfo"></span>
+                        <button type="button" onclick="clearMotorcycle()" class="ml-2 text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block font-bold mb-2">근로자명 *</label>
@@ -82,6 +100,51 @@
         if (sessionId) {
             axios.defaults.headers.common['X-Session-ID'] = sessionId;
         }
+        
+        // 오토바이 검색
+        async function searchMotorcycle() {
+            const searchTerm = document.getElementById('motorcycleSearch').value.trim();
+            if (!searchTerm) {
+                alert('번호판 또는 차대번호를 입력해주세요');
+                return;
+            }
+            
+            try {
+                const response = await axios.get(`/api/motorcycles?search=${encodeURIComponent(searchTerm)}`);
+                const motorcycles = response.data;
+                
+                if (motorcycles.length === 0) {
+                    alert('해당 오토바이를 찾을 수 없습니다');
+                    return;
+                }
+                
+                // 첫 번째 검색 결과 선택
+                const motorcycle = motorcycles[0];
+                document.getElementById('motorcycleId').value = motorcycle.id;
+                document.getElementById('motorcycleInfo').textContent = `${motorcycle.plate_number} (${motorcycle.chassis_number})`;
+                document.getElementById('selectedMotorcycle').classList.remove('hidden');
+                
+                console.log('✅ 오토바이 선택:', motorcycle);
+            } catch (error) {
+                console.error('오토바이 검색 실패:', error);
+                alert('오토바이 검색 중 오류가 발생했습니다');
+            }
+        }
+        
+        // 오토바이 선택 해제
+        function clearMotorcycle() {
+            document.getElementById('motorcycleId').value = '';
+            document.getElementById('motorcycleSearch').value = '';
+            document.getElementById('selectedMotorcycle').classList.add('hidden');
+        }
+        
+        // Enter 키로 검색
+        document.getElementById('motorcycleSearch')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchMotorcycle();
+            }
+        });
         
         // 전화번호 자동 하이픈
         document.getElementById('worker_phone').addEventListener('input', function(e) {

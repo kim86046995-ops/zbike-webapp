@@ -8499,6 +8499,7 @@ app.post('/api/work-contracts', async (c) => {
   try {
     const session = c.get('session')
     const created_by = session?.username || null
+    const user = session?.user
     
     // 계약번호 생성 (WORK-YYYYMMDD-XXX)
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
@@ -8510,14 +8511,27 @@ app.post('/api/work-contracts', async (c) => {
     const sequence = String((count as any).count + 1).padStart(3, '0')
     const contract_number = `WORK-${today}-${sequence}`
     
+    // 오토바이 정보 조회 (motorcycle_id가 있는 경우)
+    let motorcycleInfo: any = null
+    if (data.motorcycle_id) {
+      motorcycleInfo = await DB.prepare(`
+        SELECT id, plate_number, chassis_number FROM motorcycles WHERE id = ?
+      `).bind(data.motorcycle_id).first()
+      
+      if (!motorcycleInfo) {
+        return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+      }
+    }
+    
     // 계약서 저장
     const result = await DB.prepare(`
       INSERT INTO work_contracts (
-        contract_number, worker_name, worker_phone, worker_id_number,
+        contract_number, motorcycle_id, worker_name, worker_phone, worker_id_number,
         worker_address, special_terms, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now", "+9 hours"))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now", "+9 hours"))
     `).bind(
       contract_number,
+      data.motorcycle_id || null,
       data.worker_name,
       data.worker_phone,
       data.worker_id_number || '',
@@ -8525,6 +8539,28 @@ app.post('/api/work-contracts', async (c) => {
       data.special_terms || '',
       created_by
     ).run()
+    
+    // motorcycle_history에 이력 저장 (motorcycle_id가 있는 경우)
+    if (data.motorcycle_id && motorcycleInfo) {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history (
+          motorcycle_id, change_type, field_name, old_value, new_value, 
+          changed_by, changed_by_name, notes, chassis_number
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        data.motorcycle_id,
+        'work_contract_created',
+        '임시렌트 계약 생성',
+        '',
+        `근로자: ${data.worker_name}`,
+        user?.id || null,
+        user?.name || created_by || '시스템',
+        `📋 계약번호: ${contract_number}\n👤 근로자: ${data.worker_name}\n📞 전화번호: ${data.worker_phone}\n📅 생성일: ${today}`,
+        motorcycleInfo.chassis_number
+      ).run()
+      
+      console.log(`✅ 임시렌트 계약 이력 저장 완료: ${contract_number}, 오토바이: ${motorcycleInfo.plate_number}`)
+    }
     
     return c.json({
       success: true,
