@@ -647,16 +647,30 @@
         let filterTimer = null;
         
         // 검색 입력 즉시 반응 (입력은 즉시, 렌더링만 약간 지연)
-        function debouncedFilter() {
+        async function debouncedFilter() {
             // 이전 타이머 취소
             if (filterTimer) {
                 clearTimeout(filterTimer);
             }
             
-            // 즉시 필터링 실행 (20ms 지연으로 입력 반응성 보장)
-            filterTimer = setTimeout(() => {
-                filterAndSortMotorcycles();
-            }, 20);
+            const searchTerm = document.getElementById('searchInput')?.value?.trim();
+            
+            // 검색어가 있으면 캐시 무효화하고 서버에서 최신 데이터 가져오기
+            if (searchTerm) {
+                console.log('🔍 검색어 입력됨, 캐시 무효화하고 최신 데이터 로드');
+                clearMotorcyclesCache();
+                
+                // 즉시 서버에서 최신 데이터 로드
+                filterTimer = setTimeout(async () => {
+                    await loadMotorcycles(true);
+                    filterAndSortMotorcycles();
+                }, 20);
+            } else {
+                // 검색어가 없으면 일반 필터링
+                filterTimer = setTimeout(() => {
+                    filterAndSortMotorcycles();
+                }, 20);
+            }
         }
 
         async function loadMotorcycles(forceRefresh = false) {
