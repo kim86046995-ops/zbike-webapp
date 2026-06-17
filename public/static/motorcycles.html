@@ -646,31 +646,17 @@
         // 검색 즉각 반응 - 타이머 변수
         let filterTimer = null;
         
-        // 검색 입력 즉시 반응 (입력은 즉시, 렌더링만 약간 지연)
-        async function debouncedFilter() {
+        // 검색 입력 즉시 반응 (로컬 필터링으로 빠른 반응)
+        function debouncedFilter() {
             // 이전 타이머 취소
             if (filterTimer) {
                 clearTimeout(filterTimer);
             }
             
-            const searchTerm = document.getElementById('searchInput')?.value?.trim();
-            
-            // 검색어가 있으면 캐시 무효화하고 서버에서 최신 데이터 가져오기
-            if (searchTerm) {
-                console.log('🔍 검색어 입력됨, 캐시 무효화하고 최신 데이터 로드');
-                clearMotorcyclesCache();
-                
-                // 즉시 서버에서 최신 데이터 로드
-                filterTimer = setTimeout(async () => {
-                    await loadMotorcycles(true);
-                    filterAndSortMotorcycles();
-                }, 20);
-            } else {
-                // 검색어가 없으면 일반 필터링
-                filterTimer = setTimeout(() => {
-                    filterAndSortMotorcycles();
-                }, 20);
-            }
+            // 즉시 로컬 필터링 (빠른 반응)
+            filterTimer = setTimeout(() => {
+                filterAndSortMotorcycles();
+            }, 20);
         }
 
         async function loadMotorcycles(forceRefresh = false) {
@@ -828,7 +814,13 @@
                     const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
                     const insuranceCompany = (m.insurance_company || '').toLowerCase();
                     
-                    const matchesSearch = plateNumber.includes(searchTerm) || 
+                    // 번호판은 공백/특수문자로 분리하여 각 부분이 검색어로 시작하는지 확인
+                    const plateTokens = plateNumber.split(/[\s\-]+/);
+                    const plateMatches = plateTokens.some(token => token.startsWith(searchTerm));
+                    
+                    // 다른 필드는 포함 여부만 확인
+                    const matchesSearch = plateMatches ||
+                           plateNumber.includes(searchTerm) ||
                            chassisNumber.includes(searchTerm) ||
                            ownerName.includes(searchTerm) || 
                            contractorName.includes(searchTerm) ||
