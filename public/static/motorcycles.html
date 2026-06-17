@@ -806,10 +806,9 @@
                     }
                 }
                 
-                // 검색어 필터 (번호판, 차대번호, 명의자, 계약자, 보험회사)
+                // 검색어 필터 (번호판, 명의자, 계약자, 보험회사만 - 차대번호는 사용이력조회에서만 검색)
                 if (searchTerm) {
                     const plateNumber = (m.plate_number || '').toLowerCase();
-                    const chassisNumber = (m.chassis_number || '').toLowerCase();
                     const ownerName = (m.owner_name || '').toLowerCase();
                     const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
                     const insuranceCompany = (m.insurance_company || '').toLowerCase();
@@ -818,9 +817,8 @@
                     const plateTokens = plateNumber.split(/[\s\-]+/).filter(t => t.length > 0);
                     const plateMatches = plateTokens.some(token => token.startsWith(searchTerm));
                     
-                    // 다른 필드는 포함 여부만 확인
+                    // 다른 필드는 포함 여부만 확인 (차대번호 제외)
                     const matchesSearch = plateMatches ||
-                           chassisNumber.includes(searchTerm) ||
                            ownerName.includes(searchTerm) || 
                            contractorName.includes(searchTerm) ||
                            insuranceCompany.includes(searchTerm);
