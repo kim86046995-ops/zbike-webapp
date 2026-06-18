@@ -2465,15 +2465,19 @@
             try {
                 // ✅ usage_notes 파라미터 제거 - 기존 메모 보존
                 await axios.post(`/api/motorcycles/${id}/scrap`);
-                alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 유지된 정보: 차량번호, 차량명, 연식, 차대번호, 키로수, 검사기간, 특약사항\n• 초기화된 정보: 보험정보, 계약정보, 기타 정보');
                 
-                // 대시보드 캐시 무효화 (즉시 반영)
+                // ✅ 모든 캐시 완전 무효화
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
                 sessionStorage.removeItem('dashboardStats');
                 sessionStorage.removeItem('dashboardStatsTime');
-                console.log('✅ 대시보드 캐시 무효화 완료');
+                console.log('✅ 모든 캐시 무효화 완료');
                 
-                // 캐시를 무시하고 강제 새로고침
-                loadMotorcycles(true);
+                alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 유지된 정보: 차량번호, 차량명, 연식, 차대번호, 키로수, 검사기간, 특약사항\n• 초기화된 정보: 보험정보, 계약정보, 기타 정보');
+                
+                // ✅ 캐시를 무시하고 강제 새로고침 (await로 완료 대기)
+                await loadMotorcycles(true);
+                console.log('✅ UI 업데이트 완료');
             } catch (error) {
                 console.error('Error scrapping motorcycle:', error);
                 alert('❌ 폐지 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
@@ -2513,33 +2517,33 @@
             }
 
             try {
-                // ✅ 즉시 모달 닫기 (반응성 향상)
-                hideModal();
-                
-                // ✅ 모든 캐시 즉시 무효화 (대시보드 + 오토바이 목록)
-                sessionStorage.removeItem('motorcycles_cache');
-                sessionStorage.removeItem('motorcycles_cache_time');
-                sessionStorage.removeItem('dashboardStats');
-                sessionStorage.removeItem('dashboardStatsTime');
-                console.log('✅ 모든 캐시 무효화 완료 - 즉시 UI 업데이트 시작');
-                
-                // ✅ 서버 요청과 동시에 UI 즉시 새로고침 (병렬 처리)
+                // ✅ 서버 요청 먼저 완료 대기 (데이터 확정 후 UI 업데이트)
                 const savePromise = id 
                     ? axios.put(`/api/motorcycles/${id}`, data)
                     : axios.post('/api/motorcycles', data);
                 
-                // 즉시 새로고침 시작 (서버 응답 기다리지 않음)
-                loadMotorcycles(true);
-                
-                // 서버 응답 확인 (에러 처리용)
                 await savePromise;
-                console.log('✅ 오토바이 저장 완료');
+                console.log('✅ 오토바이 저장 완료 - 서버 응답 확인');
+                
+                // ✅ 저장 완료 후 모달 닫기
+                hideModal();
+                
+                // ✅ 모든 캐시 완전 무효화 (대시보드 + 오토바이 목록)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 모든 캐시 무효화 완료');
+                
+                // ✅ 서버 저장 완료 후 즉시 최신 데이터 가져오기 (forceRefresh=true)
+                await loadMotorcycles(true);
+                console.log('✅ UI 업데이트 완료');
                 
             } catch (error) {
                 console.error('Error saving motorcycle:', error);
                 alert('저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
                 // 에러 발생 시에도 다시 로드 (서버 상태 동기화)
-                loadMotorcycles(true);
+                await loadMotorcycles(true);
             }
         });
 
