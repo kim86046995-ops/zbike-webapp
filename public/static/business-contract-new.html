@@ -570,9 +570,14 @@
                 <h3 class="text-xl font-bold">
                     <i class="fas fa-building mr-2"></i>업체 선택
                 </h3>
-                <button onclick="hideCompanySelectModal()" class="text-white hover:text-gray-200">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="refreshCompanies()" class="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded text-sm" title="업체 목록 새로고침">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button onclick="hideCompanySelectModal()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
             </div>
             
             <!-- 검색창 -->
@@ -883,6 +888,24 @@
             const modal = document.getElementById('companySelectModal');
             modal.classList.add('hidden');
             document.getElementById('companySearch').value = '';
+        }
+        
+        // 업체 목록 강제 새로고침
+        async function refreshCompanies() {
+            console.log('🔄 업체 목록 강제 새로고침...');
+            
+            // 캐시 클리어
+            sessionStorage.removeItem('companies_cache');
+            sessionStorage.removeItem('companies_cache_time');
+            
+            // 업체 목록 다시 로드
+            await loadCompanies();
+            
+            // 모달 업데이트
+            renderCompanyList(companies);
+            
+            console.log('✅ 업체 목록 새로고침 완료:', companies.length + '건');
+            alert('✅ 업체 목록이 새로고침되었습니다.\n\n현재 ' + companies.length + '개의 업체가 있습니다.');
         }
         
         // 모달 내 업체 검색 필터 (업체코드, 이름, 전화번호 뒷자리, 주민번호 앞 6자리)

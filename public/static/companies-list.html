@@ -461,6 +461,11 @@
                 console.log('✅ 업체 삭제 완료:', response.data);
                 alert(`"${response.data.company_name}" 업체가 성공적으로 삭제되었습니다.`);
                 
+                // 캐시 무효화 (업체 계약서 작성 페이지용)
+                sessionStorage.removeItem('companies_cache');
+                sessionStorage.removeItem('companies_cache_time');
+                console.log('🗑️ 업체 캐시 클리어 완료');
+                
                 // 목록 새로고침
                 await loadCompanies();
             } catch (error) {
