@@ -338,6 +338,34 @@
         </div>
     </div>
 
+    <!-- 오토바이 사진 확인 모달 -->
+    <div id="photoConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                    <i class="fas fa-camera text-yellow-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">오토바이 사진 확인</h3>
+                <p class="text-sm text-gray-600">
+                    오토바이 사진은 선택사항입니다.<br>
+                    사진 없이 제출하시겠습니까?
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="scrollToPhotoSection()" 
+                        class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-camera mr-2"></i>
+                    사진 찍고 제출
+                </button>
+                <button onclick="proceedWithoutPhotos()" 
+                        class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-check mr-2"></i>
+                    바로 제출
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 서명 확대 모달 -->
     <script>
         // 버전 관리 및 캐시 무효화
@@ -1553,6 +1581,16 @@
                     return;
                 }
                 
+                // 오토바이 사진 확인 (선택사항이지만 없으면 확인 다이얼로그 표시)
+                const hasAnyPhoto = motorcyclePhotos.front || motorcyclePhotos.back || 
+                                   motorcyclePhotos.left || motorcyclePhotos.right;
+                
+                if (!hasAnyPhoto) {
+                    // 사진이 하나도 없으면 확인 모달 표시
+                    showPhotoConfirmModal();
+                    return;
+                }
+                
                 console.log('📝 서명 변환 시작 - 캔버스 크기:', canvas.width, 'x', canvas.height);
                 
                 // 서명 데이터를 PNG로 저장 (고품질 유지)
@@ -1619,6 +1657,101 @@
                 
                 alert(errorMessage);
             }
+        }
+        
+        // 실제 제출 처리 (사진 확인 후)
+        async function actuallySubmitContract() {
+            try {
+                console.log('🚀 실제 제출 시작 (사진 확인 완료)');
+                
+                const canvas = document.getElementById('signatureCanvas');
+                const signatureData = canvas.toDataURL('image/png');
+                
+                console.log('📤 서버 전송 시작');
+                console.log('데이터 크기:', {
+                    signature: Math.round(signatureData.length / 1024) + 'KB',
+                    front: motorcyclePhotos.front ? Math.round(motorcyclePhotos.front.length / 1024) + 'KB' : 'null',
+                    back: motorcyclePhotos.back ? Math.round(motorcyclePhotos.back.length / 1024) + 'KB' : 'null',
+                    left: motorcyclePhotos.left ? Math.round(motorcyclePhotos.left.length / 1024) + 'KB' : 'null',
+                    right: motorcyclePhotos.right ? Math.round(motorcyclePhotos.right.length / 1024) + 'KB' : 'null'
+                });
+                
+                const response = await axios.put(`/api/business-contracts/${contractId}/sign`, {
+                    signature_data: signatureData,
+                    motorcycle_photo_front: motorcyclePhotos.front || null,
+                    motorcycle_photo_back: motorcyclePhotos.back || null,
+                    motorcycle_photo_left: motorcyclePhotos.left || null,
+                    motorcycle_photo_right: motorcyclePhotos.right || null
+                }, {
+                    timeout: 60000,
+                    maxContentLength: 50 * 1024 * 1024,
+                    maxBodyLength: 50 * 1024 * 1024
+                });
+                
+                console.log('✅ 서버 전송 완료:', response.data);
+                
+                // 대시보드 캐시 무효화
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
+                showCompleted();
+            } catch (error) {
+                console.error('❌ 제출 오류 상세:', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    stack: error.stack
+                });
+                
+                let errorMessage = '제출에 실패했습니다. 다시 시도해주세요.';
+                
+                if (error.response) {
+                    errorMessage = `서버 오류: ${error.response.status} - ${error.response.data?.message || '알 수 없는 오류'}`;
+                } else if (error.request) {
+                    errorMessage = '서버와 연결할 수 없습니다. 인터넷 연결을 확인해주세요.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage = '전송 시간이 초과되었습니다. 다시 시도해주세요.';
+                }
+                
+                alert(errorMessage);
+            }
+        }
+        
+        // 사진 확인 모달 표시
+        function showPhotoConfirmModal() {
+            const modal = document.getElementById('photoConfirmModal');
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+        }
+        
+        // 사진 확인 모달 숨기기
+        function hidePhotoConfirmModal() {
+            const modal = document.getElementById('photoConfirmModal');
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        }
+        
+        // 사진 섹션으로 스크롤
+        function scrollToPhotoSection() {
+            hidePhotoConfirmModal();
+            const photoSection = document.getElementById('motorcyclePhotoSection');
+            if (photoSection) {
+                photoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // 첫 번째 사진 촬영 버튼에 포커스
+                setTimeout(() => {
+                    const firstPhotoBtn = document.querySelector('[onclick="takeMotorcyclePhoto(\'front\')"]');
+                    if (firstPhotoBtn) {
+                        firstPhotoBtn.focus();
+                    }
+                }, 500);
+            }
+        }
+        
+        // 사진 없이 제출
+        function proceedWithoutPhotos() {
+            hidePhotoConfirmModal();
+            actuallySubmitContract();
         }
         
         function showExpired() {
