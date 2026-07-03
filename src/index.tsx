@@ -1055,7 +1055,14 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
           vehicle_name: currentMotorcycle.vehicle_name,
           chassis_number: currentMotorcycle.chassis_number,
           status: currentMotorcycle.status,
+          insurance_start_date: currentMotorcycle.insurance_start_date,
           insurance_end_date: currentMotorcycle.insurance_end_date,
+          inspection_start_date: currentMotorcycle.inspection_start_date,
+          inspection_end_date: currentMotorcycle.inspection_end_date,
+          model_year: currentMotorcycle.model_year,
+          owner_name: currentMotorcycle.owner_name,
+          driving_range: currentMotorcycle.driving_range,
+          usage_notes: currentMotorcycle.usage_notes,
           created_at: currentMotorcycle.created_at,
           notes: currentMotorcycle.notes
         }
@@ -1142,7 +1149,14 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
       vehicle_name: m.vehicle_name,
       chassis_number: m.chassis_number,
       status: m.status,
+      insurance_start_date: m.insurance_start_date,
       insurance_end_date: m.insurance_end_date,
+      inspection_start_date: m.inspection_start_date,
+      inspection_end_date: m.inspection_end_date,
+      model_year: m.model_year,
+      owner_name: m.owner_name,
+      driving_range: m.driving_range,
+      usage_notes: m.usage_notes,
       created_at: m.created_at,
       notes: m.notes
     }
