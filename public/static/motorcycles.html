@@ -20,17 +20,33 @@
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
         }
-        .insurance-progress {
-            transition: width 0.3s ease;
+        
+        /* 스크롤 성능 최적화 - 하드웨어 가속 */
+        #motorcycleList {
+            will-change: contents;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
+        
         .motorcycle-card {
             transition: all 0.3s ease;
             border-left: 4px solid #3b82f6;
+            /* 하드웨어 가속 활성화 */
+            will-change: transform;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         .motorcycle-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) translateZ(0);
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
+        
+        .insurance-progress {
+            transition: width 0.3s ease;
+        }
+        
         .motorcycle-card.status-available {
             border-left-color: #10b981;
         }
@@ -1177,12 +1193,13 @@
             
             listEl.innerHTML = html;
             
-            // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드
+            // 렌더링 후 검사 기간 정보만 로드 (계약 정보는 이미 백엔드에서 JOIN으로 가져왔음)
             // requestAnimationFrame으로 DOM 업데이트 후 실행 보장
             requestAnimationFrame(() => {
                 filteredMotorcycles.forEach(m => {
-                    loadContractInfo(m.id);
+                    // loadContractInfo 제거 - 이미 백엔드에서 JOIN으로 계약 정보 포함됨
                     loadInspectionInfo(m);
+                    updateContractUI(m); // 백엔드 데이터로 직접 UI 업데이트
                 });
             });
         }
@@ -1252,7 +1269,106 @@
         }
         
         // 계약 정보 로드 함수
-        async function loadContractInfo(motorcycleId) {
+        // 백엔드에서 받은 계약 정보로 UI 업데이트 (추가 API 호출 없음)
+        function updateContractUI(motorcycle) {
+            const motorcycleId = motorcycle.id;
+            
+            // 폐지 상태면 계약 정보 표시 안 함
+            if (motorcycle.status === 'scrapped') {
+                return;
+            }
+            
+            // 백엔드에서 이미 JOIN으로 가져온 계약 정보 사용
+            const hasContract = motorcycle.customer_name && motorcycle.contract_status === 'active';
+            
+            // 상태 배지 업데이트 (폐지, 수리중이 아닌 경우만)
+            if (motorcycle.status !== 'scrapped' && motorcycle.status !== 'maintenance') {
+                const statusBadge = document.getElementById(`status-badge-${motorcycleId}`);
+                const statusIcon = document.getElementById(`status-icon-${motorcycleId}`);
+                const statusLabel = document.getElementById(`status-label-${motorcycleId}`);
+                
+                if (statusBadge && statusIcon && statusLabel) {
+                    if (hasContract) {
+                        statusIcon.className = 'fas fa-motorcycle mr-1';
+                        
+                        // 계약 타입별 표시 및 색상 구분
+                        if (motorcycle.contract_type === 'temp_rent') {
+                            statusBadge.className = 'info-badge bg-orange-100 text-orange-800 text-xs';
+                            statusLabel.textContent = '사용중 (임시렌트)';
+                        } else if (motorcycle.contract_type === 'business') {
+                            statusBadge.className = 'info-badge bg-blue-100 text-blue-800 text-xs';
+                            statusLabel.textContent = '사용중 (업체)';
+                        } else if (motorcycle.contract_type === 'lease') {
+                            statusBadge.className = 'info-badge bg-blue-100 text-blue-800 text-xs';
+                            statusLabel.textContent = '사용중 (리스)';
+                        } else if (motorcycle.contract_type === 'rent') {
+                            statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
+                            statusLabel.textContent = '사용중 (렌트)';
+                        } else {
+                            statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
+                            statusLabel.textContent = '사용중';
+                        }
+                    } else {
+                        statusBadge.className = 'info-badge bg-green-100 text-green-800 text-xs';
+                        statusIcon.className = 'fas fa-check-circle mr-1';
+                        statusLabel.textContent = '휴차중';
+                    }
+                }
+            }
+            
+            if (hasContract) {
+                // 계약자 정보 업데이트
+                const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                if (contractorEl) {
+                    contractorEl.innerHTML = `
+                        <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
+                        <div>
+                            <p class="text-xs text-gray-500">계약자</p>
+                            <p class="font-bold text-gray-900 truncate">${motorcycle.customer_name || '-'}</p>
+                        </div>
+                    `;
+                }
+                
+                // 계약 기간 진행률 업데이트
+                if (motorcycle.start_date && motorcycle.end_date) {
+                    const contractProgress = calculateInsuranceProgress(motorcycle.start_date, motorcycle.end_date);
+                    
+                    const contractStatusEl = document.getElementById(`contract-status-${motorcycleId}`);
+                    if (contractStatusEl) {
+                        contractStatusEl.innerHTML = `
+                            <span class="font-bold ${contractProgress.isExpired ? 'text-red-600' : contractProgress.isExpiringSoon ? 'text-yellow-600' : 'text-blue-600'}">
+                                ${contractProgress.isExpired ? '⚠️ 만료' : `${contractProgress.remainingDays}일`}
+                            </span>
+                        `;
+                    }
+                    
+                    const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
+                    if (contractBarEl) {
+                        let progressClass = 'progress-safe';
+                        if (contractProgress.isExpired) progressClass = 'progress-danger';
+                        else if (contractProgress.isExpiringSoon) progressClass = 'progress-warning';
+                        else if (contractProgress.remainingPercentage < 50) progressClass = 'progress-warning';
+                        
+                        contractBarEl.innerHTML = `
+                            <div class="progress-bar ${progressClass}" style="width: ${contractProgress.percentage}%">
+                                ${contractProgress.percentage > 20 ? `${contractProgress.percentage}%` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    const contractDatesEl = document.getElementById(`contract-dates-${motorcycleId}`);
+                    if (contractDatesEl) {
+                        contractDatesEl.innerHTML = `
+                            <span>${motorcycle.start_date}</span>
+                            <span>${motorcycle.end_date}</span>
+                        `;
+                    }
+                }
+            }
+        }
+        
+        // 이전 loadContractInfo 함수 (사용 안 함 - 주석 처리)
+        async function loadContractInfo_OLD(motorcycleId) {
             try {
                 const response = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`);
                 const contracts = response.data;
