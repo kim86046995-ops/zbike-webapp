@@ -1050,7 +1050,7 @@
                             <div class="flex justify-between items-start mb-0.5">
                                 <div>
                                     <h3 class="text-xs font-bold text-gray-800">${m.vehicle_name}</h3>
-                                    <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year}년식</p>
+                                    <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year || '-'}년식</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span id="status-badge-${m.id}" class="info-badge ${status.bg} ${status.text} text-xs">
@@ -1143,7 +1143,7 @@
                                         <i class="fas fa-user w-3 text-blue-500 mr-1"></i>
                                         <div>
                                             <p class="text-xs text-gray-500">명의자</p>
-                                            <p class="font-semibold text-gray-700 truncate">${m.owner_name}</p>
+                                            <p class="font-semibold text-gray-700 truncate">${m.owner_name || '-'}</p>
                                         </div>
                                     </div>
                                     <div>
@@ -1151,7 +1151,7 @@
                                             <i class="fas fa-id-card w-3 text-green-500 mr-1"></i>
                                             <div>
                                                 <p class="text-xs text-gray-500">연령</p>
-                                                <p class="font-semibold text-gray-700 text-xs">${m.driving_range}</p>
+                                                <p class="font-semibold text-gray-700 text-xs">${m.driving_range || '-'}</p>
                                             </div>
                                         </div>
                                         ${m.usage_notes ? `
