@@ -8016,6 +8016,7 @@ app.get('/api/companies', async (c) => {
         id,
         company_name,
         company_code,
+        business_number,
         representative,
         representative_phone,
         representative_resident_number,
@@ -8030,9 +8031,19 @@ app.get('/api/companies', async (c) => {
       WHERE status = 'active'
       ORDER BY created_at DESC
     `).all()
+    
+    // 프론트엔드 호환성을 위해 필드명 매핑
+    const mappedCompanies = (companies.results || []).map(company => ({
+      ...company,
+      // 별칭 필드 추가 (기존 코드와의 호환성)
+      phone: company.representative_phone,
+      address: company.representative_address,
+      postcode: company.representative_postcode,
+      detail_address: company.representative_detail_address
+    }))
 
-    console.log('📋 업체 목록 조회:', companies.results?.length || 0, '개')
-    return c.json(companies.results || [])
+    console.log('📋 업체 목록 조회:', mappedCompanies.length, '개')
+    return c.json(mappedCompanies)
   } catch (error) {
     console.error('❌ 업체 목록 조회 실패:', error)
     return c.json({ error: '업체 목록 조회 중 오류가 발생했습니다.' }, 500)
