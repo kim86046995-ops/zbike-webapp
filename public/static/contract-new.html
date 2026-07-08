@@ -514,8 +514,12 @@
                             <input type="date" id="startDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">계약 종료일 *</label>
-                            <input type="date" id="endDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <label class="block text-sm font-bold mb-2">
+                                계약 종료일
+                                <span class="text-xs text-gray-500 font-normal ml-2">(미입력 시 무기한)</span>
+                            </label>
+                            <input type="date" id="endDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <p class="text-xs text-gray-500 mt-1">비워두면 무기한 계약으로 등록됩니다</p>
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">
@@ -3406,6 +3410,11 @@
                 const insuranceAgeLimit = document.getElementById('drivingRange').value || '전연령';
                 console.log('📝 보험운전범위:', insuranceAgeLimit);
                 
+                // 종료일 처리: 비어있으면 9999-12-31로 설정
+                const endDateValue = document.getElementById('endDate').value;
+                const finalEndDate = endDateValue || '9999-12-31';
+                console.log('📝 종료일:', endDateValue ? endDateValue : '미입력 → 9999-12-31 (무기한)');
+                
                 const contractData = {
                     contract_type: contractType === 'lease' ? 'individual' : contractType,
                     motorcycle_id: Number(selectedMotorcycleId),
@@ -3416,7 +3425,7 @@
                     license_type: insuranceAgeLimit,  // 면허종류
                     insurance_age_limit: insuranceAgeLimit,  // 보험운전범위
                     start_date: document.getElementById('startDate').value || '',
-                    end_date: document.getElementById('endDate').value || '',
+                    end_date: finalEndDate,
                     monthly_fee: unformatNumber(document.getElementById('dailyFee').value || '0'),  // 일차감금액을 monthly_fee로 저장
                     deposit: unformatNumber(document.getElementById('deposit').value || '0'),
                     special_terms: document.getElementById('specialTerms').value || '',

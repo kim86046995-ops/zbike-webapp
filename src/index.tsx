@@ -1111,14 +1111,12 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
     FROM motorcycles m
     LEFT JOIN (
       SELECT * FROM contracts 
-      WHERE status = 'active' 
-        AND date(end_date) >= date('now')
+      WHERE status = 'active'
     ) pc ON m.id = pc.motorcycle_id
     LEFT JOIN customers cu ON pc.customer_id = cu.id
     LEFT JOIN (
       SELECT * FROM business_contracts 
-      WHERE status = 'active' 
-        AND date(contract_end_date) >= date('now')
+      WHERE status = 'active'
     ) bc ON m.id = bc.motorcycle_id AND pc.id IS NULL
     WHERE (m.status != 'deleted' OR m.status IS NULL)
   `
