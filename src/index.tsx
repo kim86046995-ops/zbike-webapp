@@ -8893,6 +8893,7 @@ app.get('/api/backups/export', async (c) => {
 
     // 모든 테이블 데이터 조회
     const tables = [
+      'admin_users',
       'users',
       'motorcycles', 
       'customers',
@@ -8900,9 +8901,10 @@ app.get('/api/backups/export', async (c) => {
       'business_contracts',
       'work_contracts',
       'loan_contracts',
-      'insurances',
+      'loan_deductions',
       'companies',
       'contract_history',
+      'contract_shares',
       'motorcycle_history',
       'backup_logs'
     ]
