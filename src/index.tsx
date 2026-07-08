@@ -142,7 +142,26 @@ async function performScheduledBackup(env: Bindings) {
 
     for (const table of tables) {
       try {
-        const data = await DB.prepare(`SELECT * FROM ${table}`).all()
+        let query = `SELECT * FROM ${table}`
+        
+        // 이미지 데이터가 포함된 테이블은 이미지 필드 제외
+        if (table === 'contracts') {
+          query = `SELECT id, contract_type, contract_number, motorcycle_id, customer_id, 
+                   start_date, end_date, monthly_fee, deposit, special_terms, 
+                   status, insurance_age_limit, created_at, updated_at,
+                   'excluded' as signature_data, 'excluded' as id_card_photo 
+                   FROM ${table}`
+        } else if (table === 'admin_users') {
+          query = `SELECT id, username, role, email, created_at, updated_at FROM ${table}`
+        } else if (table === 'companies') {
+          query = `SELECT id, company_name, company_code, business_number, representative,
+                   representative_phone, representative_resident_number, 
+                   representative_postcode, representative_address, representative_detail_address,
+                   status, created_at, updated_at,
+                   'excluded' as id_card_photo FROM ${table}`
+        }
+        
+        const data = await DB.prepare(query).all()
         backup[table] = data.results || []
         console.log(`📦 ${table}: ${backup[table].length}개 레코드`)
       } catch (error) {
@@ -8913,7 +8932,26 @@ app.get('/api/backups/export', async (c) => {
 
     for (const table of tables) {
       try {
-        const data = await DB.prepare(`SELECT * FROM ${table}`).all()
+        let query = `SELECT * FROM ${table}`
+        
+        // 이미지 데이터가 포함된 테이블은 이미지 필드 제외
+        if (table === 'contracts') {
+          query = `SELECT id, contract_type, contract_number, motorcycle_id, customer_id, 
+                   start_date, end_date, monthly_fee, deposit, special_terms, 
+                   status, insurance_age_limit, created_at, updated_at,
+                   'excluded' as signature_data, 'excluded' as id_card_photo 
+                   FROM ${table}`
+        } else if (table === 'admin_users') {
+          query = `SELECT id, username, role, email, created_at, updated_at FROM ${table}`
+        } else if (table === 'companies') {
+          query = `SELECT id, company_name, company_code, business_number, representative,
+                   representative_phone, representative_resident_number, 
+                   representative_postcode, representative_address, representative_detail_address,
+                   status, created_at, updated_at,
+                   'excluded' as id_card_photo FROM ${table}`
+        }
+        
+        const data = await DB.prepare(query).all()
         backup[table] = data.results || []
         console.log(`📦 ${table}: ${backup[table].length}개 레코드`)
       } catch (error) {
