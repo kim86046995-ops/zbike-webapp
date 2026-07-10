@@ -118,19 +118,24 @@
                         <i class="fas fa-handshake mr-2 text-purple-600"></i>
                         공급자 선택 (임대인)
                     </h2>
-                    <label class="cursor-pointer flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg hover:border-purple-400 transition" id="supplierToggle">
-                        <input type="checkbox" id="isCorporateSupplier" class="hidden" onchange="toggleSupplierType()">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" id="supplierIcon">
-                                <i class="fas fa-building text-2xl text-gray-400"></i>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="supplier_type" value="daesung" required class="peer hidden" onchange="toggleSupplierType()" checked>
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                <i class="fas fa-store text-3xl text-green-600 mb-2"></i>
+                                <p class="font-bold text-lg">대성</p>
+                                <p class="text-sm text-gray-600 mt-2">개인사업자</p>
                             </div>
-                            <div class="text-left">
-                                <p class="font-bold text-lg" id="supplierLabel">법인 계약</p>
-                                <p class="text-sm text-gray-600">클릭하여 법인 (아형동)으로 전환</p>
-                                <p class="text-xs text-gray-500 mt-1">기본: 대성 (개인사업자)</p>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="supplier_type" value="corporate" required class="peer hidden" onchange="toggleSupplierType()">
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-purple-600 peer-checked:bg-purple-50 hover:border-purple-400 transition">
+                                <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
+                                <p class="font-bold text-lg">(주)아형동</p>
+                                <p class="text-sm text-gray-600 mt-2">법인사업자</p>
                             </div>
-                        </div>
-                    </label>
+                        </label>
+                    </div>
                 </div>
                 
                 <!-- 1. 업체 및 대표자 정보 -->
@@ -718,27 +723,16 @@
 
         // 공급자 선택 변경 함수
         function toggleSupplierType() {
-            const isCorporate = document.getElementById('isCorporateSupplier').checked;
-            const supplierToggle = document.getElementById('supplierToggle');
-            const supplierIcon = document.getElementById('supplierIcon');
-            const supplierLabel = document.getElementById('supplierLabel');
+            const supplierType = document.querySelector('input[name="supplier_type"]:checked')?.value;
             
-            if (isCorporate) {
+            if (supplierType === 'corporate') {
                 // 아형동 법인 정보로 변경
                 document.getElementById('supplierName').textContent = '(주)아형동';
                 document.getElementById('supplierBusinessNumber').textContent = '431-81-03914';
                 document.getElementById('supplierRepresentative').textContent = '김상춘';
                 document.getElementById('supplierStamp').src = '/static/stamp-ahyeongdong.png?v=' + Date.now();
                 
-                // UI 업데이트
-                supplierToggle.classList.remove('border-gray-300');
-                supplierToggle.classList.add('border-purple-600', 'bg-purple-50');
-                supplierIcon.classList.remove('border-gray-300');
-                supplierIcon.classList.add('border-purple-600', 'bg-purple-600');
-                supplierIcon.innerHTML = '<i class="fas fa-building text-2xl text-white"></i>';
-                supplierLabel.textContent = '법인 계약 (활성)';
-                
-                console.log('법인 계약 활성화: 아형동');
+                console.log('법인 선택: 아형동');
             } else {
                 // 대성 개인사업자 정보로 복원
                 document.getElementById('supplierName').textContent = '대성';
@@ -746,15 +740,7 @@
                 document.getElementById('supplierRepresentative').textContent = '김상춘';
                 document.getElementById('supplierStamp').src = '/static/stamp-kim.png?v=20260520';
                 
-                // UI 업데이트
-                supplierToggle.classList.remove('border-purple-600', 'bg-purple-50');
-                supplierToggle.classList.add('border-gray-300');
-                supplierIcon.classList.remove('border-purple-600', 'bg-purple-600');
-                supplierIcon.classList.add('border-gray-300');
-                supplierIcon.innerHTML = '<i class="fas fa-building text-2xl text-gray-400"></i>';
-                supplierLabel.textContent = '법인 계약';
-                
-                console.log('법인 계약 해제: 대성');
+                console.log('개인사업자 선택: 대성');
             }
         }
 
