@@ -178,9 +178,9 @@
                         <i class="fas fa-file-contract mr-2 text-green-600"></i>
                         1. 계약 타입
                     </h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" onchange="toggleContractType()" checked>
+                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" checked>
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-calendar-alt text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">리스</p>
@@ -188,7 +188,7 @@
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="rent" required class="peer hidden" onchange="toggleContractType()">
+                            <input type="radio" name="contract_type" value="rent" required class="peer hidden">
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-clock text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">렌트</p>
@@ -203,12 +203,20 @@
                                 <p class="text-sm text-gray-600 mt-2">단기 임시 대여</p>
                             </div>
                         </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="corporate" required class="peer hidden" onchange="toggleContractType()">
-                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-purple-600 peer-checked:bg-purple-50 hover:border-purple-400 transition">
-                                <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
-                                <p class="font-bold text-lg">법인</p>
-                                <p class="text-sm text-gray-600 mt-2">법인 계약</p>
+                    </div>
+                    
+                    <!-- 법인 계약 토글 버튼 -->
+                    <div class="mt-4 pt-4 border-t">
+                        <label class="cursor-pointer flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg hover:border-purple-400 transition" id="corporateToggle">
+                            <input type="checkbox" id="isCorporate" class="hidden" onchange="toggleCorporate()">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" id="corporateIcon">
+                                    <i class="fas fa-building text-2xl text-gray-400"></i>
+                                </div>
+                                <div class="text-left">
+                                    <p class="font-bold text-lg" id="corporateLabel">법인 계약</p>
+                                    <p class="text-sm text-gray-600">클릭하여 법인 계약으로 전환</p>
+                                </div>
                             </div>
                         </label>
                     </div>
@@ -1237,40 +1245,67 @@
             const normalForm = document.getElementById('normalContractForm');
             const tempForm = document.getElementById('tempRentForm');
             
-            console.log('Contract type selected:', contractType); // 디버깅용
+            console.log('Contract type selected:', contractType);
             
             if (!normalForm || !tempForm) {
                 console.error('Form elements not found');
                 return;
             }
             
-            // 임대인 정보 변경 (법인 선택 시)
-            if (contractType === 'corporate') {
-                // 아형동 법인 정보로 변경
+            if (contractType === 'temp_rent') {
+                normalForm.classList.add('hidden');
+                tempForm.classList.remove('hidden');
+                console.log('Showing temp rent form');
+            } else if (contractType === 'lease' || contractType === 'rent') {
+                normalForm.classList.remove('hidden');
+                tempForm.classList.add('hidden');
+                console.log('Showing normal form');
+            }
+        }
+        
+        // 법인 계약 토글 함수
+        function toggleCorporate() {
+            const isCorporate = document.getElementById('isCorporate').checked;
+            const corporateToggle = document.getElementById('corporateToggle');
+            const corporateIcon = document.getElementById('corporateIcon');
+            const corporateLabel = document.getElementById('corporateLabel');
+            
+            if (isCorporate) {
+                // 법인 선택됨 - 아형동 법인 정보로 변경
                 document.getElementById('landlordName').textContent = '(주)아형동';
                 document.getElementById('landlordBusinessNumber').textContent = '431-81-03914';
                 document.getElementById('landlordRepresentative').textContent = '김상춘';
                 document.getElementById('landlordAddress').textContent = '전남 광주광역시 광산구 목련로 315';
                 document.getElementById('landlordPhone').textContent = '010-3997-6991';
                 document.getElementById('landlordStamp').src = '/static/stamp-ahyeongdong.png?v=' + Date.now();
+                
+                // UI 업데이트
+                corporateToggle.classList.remove('border-gray-300');
+                corporateToggle.classList.add('border-purple-600', 'bg-purple-50');
+                corporateIcon.classList.remove('border-gray-300');
+                corporateIcon.classList.add('border-purple-600', 'bg-purple-600');
+                corporateIcon.innerHTML = '<i class="fas fa-building text-2xl text-white"></i>';
+                corporateLabel.textContent = '법인 계약 (활성)';
+                
+                console.log('법인 계약 활성화: 아형동');
             } else {
-                // 대성 개인사업자 정보로 복원
+                // 법인 해제됨 - 대성 개인사업자 정보로 복원
                 document.getElementById('landlordName').textContent = '대성';
                 document.getElementById('landlordBusinessNumber').textContent = '487-39-01128';
                 document.getElementById('landlordRepresentative').textContent = '김상춘';
                 document.getElementById('landlordAddress').textContent = '광주광역시 광산구 신가삼효로 31';
                 document.getElementById('landlordPhone').textContent = '010-3997-6991';
                 document.getElementById('landlordStamp').src = '/static/stamp-kim.png?v=20260512';
-            }
-            
-            if (contractType === 'temp_rent') {
-                normalForm.classList.add('hidden');
-                tempForm.classList.remove('hidden');
-                console.log('Showing temp rent form');
-            } else if (contractType === 'lease' || contractType === 'rent' || contractType === 'corporate') {
-                normalForm.classList.remove('hidden');
-                tempForm.classList.add('hidden');
-                console.log('Showing normal form');
+                
+                // UI 업데이트
+                corporateToggle.classList.remove('border-purple-600', 'bg-purple-50');
+                corporateToggle.classList.add('border-gray-300');
+                corporateIcon.classList.remove('border-purple-600', 'bg-purple-600');
+                corporateIcon.classList.add('border-gray-300');
+                corporateIcon.innerHTML = '<i class="fas fa-building text-2xl text-gray-400"></i>';
+                corporateLabel.textContent = '법인 계약';
+                
+                console.log('법인 계약 해제: 대성');
             }
         }
 
