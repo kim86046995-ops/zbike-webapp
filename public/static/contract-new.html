@@ -178,7 +178,7 @@
                         <i class="fas fa-file-contract mr-2 text-green-600"></i>
                         1. 계약 타입
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <label class="cursor-pointer">
                             <input type="radio" name="contract_type" value="lease" required class="peer hidden" onchange="toggleContractType()" checked>
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
@@ -201,6 +201,14 @@
                                 <i class="fas fa-bolt text-3xl text-blue-600 mb-2"></i>
                                 <p class="font-bold text-lg">임시렌트</p>
                                 <p class="text-sm text-gray-600 mt-2">단기 임시 대여</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="contract_type" value="corporate" required class="peer hidden" onchange="toggleContractType()">
+                            <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-purple-600 peer-checked:bg-purple-50 hover:border-purple-400 transition">
+                                <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
+                                <p class="font-bold text-lg">법인</p>
+                                <p class="text-sm text-gray-600 mt-2">법인 계약</p>
                             </div>
                         </label>
                     </div>
@@ -586,14 +594,14 @@
                     </h2>
                     <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-6">
                         <div class="prose prose-sm max-w-none">
-                            <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                            <div id="landlordInfo" class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
                                 <h3 class="font-bold text-lg mb-3">임대인 (업체) 정보</h3>
                                 <div class="space-y-1 text-gray-800">
-                                    <p><span class="font-semibold">상호명:</span> 대성</p>
-                                    <p><span class="font-semibold">사업자등록번호:</span> 487-39-01128</p>
-                                    <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> 김상춘<img src="/static/stamp-kim.png?v=20260512" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
-                                    <p><span class="font-semibold">주소:</span> 광주광역시 광산구 신가삼효로 31</p>
-                                    <p><span class="font-semibold">연락처:</span> 010-3997-6991</p>
+                                    <p><span class="font-semibold">상호명:</span> <span id="landlordName">대성</span></p>
+                                    <p><span class="font-semibold">사업자등록번호:</span> <span id="landlordBusinessNumber">487-39-01128</span></p>
+                                    <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> <span id="landlordRepresentative">김상춘</span><img id="landlordStamp" src="/static/stamp-kim.png?v=20260512" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
+                                    <p><span class="font-semibold">주소:</span> <span id="landlordAddress">광주광역시 광산구 신가삼효로 31</span></p>
+                                    <p><span class="font-semibold">연락처:</span> <span id="landlordPhone">010-3997-6991</span></p>
                                 </div>
                             </div>
                             
@@ -1236,11 +1244,30 @@
                 return;
             }
             
+            // 임대인 정보 변경 (법인 선택 시)
+            if (contractType === 'corporate') {
+                // 아형동 법인 정보로 변경
+                document.getElementById('landlordName').textContent = '(주)아형동';
+                document.getElementById('landlordBusinessNumber').textContent = '431-81-03914';
+                document.getElementById('landlordRepresentative').textContent = '김상춘';
+                document.getElementById('landlordAddress').textContent = '전남 광주광역시 광산구 목련로 315';
+                document.getElementById('landlordPhone').textContent = '010-3997-6991';
+                document.getElementById('landlordStamp').src = '/static/stamp-ahyeongdong.png?v=' + Date.now();
+            } else {
+                // 대성 개인사업자 정보로 복원
+                document.getElementById('landlordName').textContent = '대성';
+                document.getElementById('landlordBusinessNumber').textContent = '487-39-01128';
+                document.getElementById('landlordRepresentative').textContent = '김상춘';
+                document.getElementById('landlordAddress').textContent = '광주광역시 광산구 신가삼효로 31';
+                document.getElementById('landlordPhone').textContent = '010-3997-6991';
+                document.getElementById('landlordStamp').src = '/static/stamp-kim.png?v=20260512';
+            }
+            
             if (contractType === 'temp_rent') {
                 normalForm.classList.add('hidden');
                 tempForm.classList.remove('hidden');
                 console.log('Showing temp rent form');
-            } else if (contractType === 'lease' || contractType === 'rent') {
+            } else if (contractType === 'lease' || contractType === 'rent' || contractType === 'corporate') {
                 normalForm.classList.remove('hidden');
                 tempForm.classList.add('hidden');
                 console.log('Showing normal form');
