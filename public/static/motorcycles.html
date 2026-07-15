@@ -1006,7 +1006,7 @@
                 const displayLabel = m.status === 'scrapped' ? (m.plate_number ? '번호판' : '차대번호') : '번호판';
 
                 return `
-                    <div class="motorcycle-card ${status.border} bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="motorcycle-card ${status.border} bg-white rounded-lg shadow-md overflow-hidden" data-motorcycle-id="${m.id}">
                         <!-- 상단: 번호판/차대번호 클릭 영역 -->
                         <div class="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-1 cursor-pointer hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all active:scale-95" onclick="showHistory(${m.id})">
                             <div class="flex justify-between items-center">
@@ -1155,11 +1155,11 @@
                                             </div>
                                         </div>
                                         ${m.usage_notes ? `
-                                        <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200">
+                                        <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200 col-span-2 usage-notes-area">
                                             <i class="fas fa-sticky-note w-3 text-orange-500 mr-0.5 mt-0.5 flex-shrink-0"></i>
                                             <p class="text-xs text-gray-700 whitespace-pre-wrap leading-tight">${m.usage_notes}</p>
                                         </div>
-                                        ` : ''}
+                                        ` : '<div class="col-span-2 usage-notes-area"></div>'}
                                     </div>
                                     <div class="flex items-center col-span-2" id="contractor-info-${m.id}">
                                         <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
@@ -2212,6 +2212,46 @@
                 });
                 
                 alert('✅ 특이사항이 저장되었습니다');
+                
+                // 카드의 메모 영역 즉시 업데이트
+                const motorcycleCard = document.querySelector(`[data-motorcycle-id="${id}"]`);
+                if (motorcycleCard) {
+                    // 기존 메모 영역 찾기
+                    const notesArea = motorcycleCard.querySelector('.usage-notes-area');
+                    if (notesArea) {
+                        if (usageNotes) {
+                            // 메모가 있으면 업데이트
+                            notesArea.innerHTML = `
+                                <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200">
+                                    <i class="fas fa-sticky-note w-3 text-orange-500 mr-0.5 mt-0.5 flex-shrink-0"></i>
+                                    <p class="text-xs text-gray-700 whitespace-pre-wrap leading-tight">${usageNotes}</p>
+                                </div>
+                            `;
+                        } else {
+                            // 메모가 없으면 영역 제거
+                            notesArea.innerHTML = '';
+                        }
+                    } else if (usageNotes) {
+                        // 메모 영역이 없었는데 새로 추가된 경우
+                        const infoGrid = motorcycleCard.querySelector('.grid.grid-cols-2.gap-1.text-xs');
+                        if (infoGrid) {
+                            const notesDiv = document.createElement('div');
+                            notesDiv.className = 'col-span-2 usage-notes-area';
+                            notesDiv.innerHTML = `
+                                <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200">
+                                    <i class="fas fa-sticky-note w-3 text-orange-500 mr-0.5 mt-0.5 flex-shrink-0"></i>
+                                    <p class="text-xs text-gray-700 whitespace-pre-wrap leading-tight">${usageNotes}</p>
+                                </div>
+                            `;
+                            // 계약자 정보 앞에 삽입
+                            const contractorInfo = motorcycleCard.querySelector('[id^="contractor-info-"]');
+                            if (contractorInfo) {
+                                contractorInfo.parentNode.insertBefore(notesDiv, contractorInfo);
+                            }
+                        }
+                    }
+                }
+                
                 // 캐시 무효화하고 즉시 반영
                 loadMotorcycles(true);
             } catch (error) {
