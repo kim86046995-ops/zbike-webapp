@@ -1628,10 +1628,14 @@
                 
                 console.log('✅ 서버 전송 완료:', response.data);
                 
-                // 대시보드 캐시 무효화 (즉시 반영)
+                // 대시보드 및 계약 목록 캐시 무효화 (즉시 반영)
                 sessionStorage.removeItem('dashboardStats');
                 sessionStorage.removeItem('dashboardStatsTime');
-                console.log('✅ 대시보드 캐시 무효화 완료');
+                sessionStorage.removeItem('contractsCache');
+                sessionStorage.removeItem('contractsCacheTime');
+                localStorage.removeItem('contractsCache');
+                localStorage.removeItem('contractsCacheTime');
+                console.log('✅ 캐시 무효화 완료 - 대시보드 및 계약 목록');
                 
                 showCompleted();
             } catch (error) {
@@ -1690,10 +1694,14 @@
                 
                 console.log('✅ 서버 전송 완료:', response.data);
                 
-                // 대시보드 캐시 무효화
+                // 대시보드 및 계약 목록 캐시 무효화
                 sessionStorage.removeItem('dashboardStats');
                 sessionStorage.removeItem('dashboardStatsTime');
-                console.log('✅ 대시보드 캐시 무효화 완료');
+                sessionStorage.removeItem('contractsCache');
+                sessionStorage.removeItem('contractsCacheTime');
+                localStorage.removeItem('contractsCache');
+                localStorage.removeItem('contractsCacheTime');
+                console.log('✅ 캐시 무효화 완료 - 대시보드 및 계약 목록');
                 
                 showCompleted();
             } catch (error) {
