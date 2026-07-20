@@ -279,6 +279,10 @@ async function recordContractHistory(
   actionReason: string = ''
 ) {
   try {
+    console.log(`🔍 Recording contract history: ${contractNumber} - ${actionType}`, {
+      contractId, motorcycleId, customerId, contractType, actionType, oldStatus, newStatus
+    })
+    
     await DB.prepare(`
       INSERT INTO contract_history (
         contract_id, motorcycle_id, customer_id, contract_number, contract_type,
@@ -291,9 +295,15 @@ async function recordContractHistory(
       monthlyFee, deposit, specialTerms, actionReason
     ).run()
     
-    console.log(`📝 Contract history recorded: ${contractNumber} - ${actionType}`)
-  } catch (error) {
-    console.error('❌ Failed to record contract history:', error)
+    console.log(`✅ Contract history recorded successfully: ${contractNumber} - ${actionType}`)
+  } catch (error: any) {
+    console.error(`❌ Failed to record contract history for ${contractNumber}:`, {
+      error: error.message,
+      stack: error.stack,
+      contractId, motorcycleId, customerId, contractType, actionType
+    })
+    // 에러 재발생하여 상위에서 감지할 수 있도록
+    throw error
   }
 }
 
@@ -3561,24 +3571,28 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   
   const newContractId = result.meta.last_row_id
   
-  // 새 계약 이력 기록
-  await recordContractHistory(
-    DB,
-    Number(newContractId),
-    motorcycleId,
-    data.customer_id,
-    contractNumber,
-    data.contract_type,
-    'created',
-    null,
-    statusToSave,  // 실제 저장된 상태 사용
-    data.start_date,
-    data.end_date,
-    data.monthly_fee,
-    data.deposit || 0,
-    data.special_terms || '',
-    statusToSave === 'pending' ? '계약 생성 (서명 대기)' : '새 계약 생성'
-  )
+  // 새 계약 이력 기록 (에러 발생해도 계약 생성은 성공)
+  try {
+    await recordContractHistory(
+      DB,
+      Number(newContractId),
+      motorcycleId,
+      data.customer_id,
+      contractNumber,
+      data.contract_type,
+      'created',
+      null,
+      statusToSave,  // 실제 저장된 상태 사용
+      data.start_date,
+      data.end_date,
+      data.monthly_fee,
+      data.deposit || 0,
+      data.special_terms || '',
+      statusToSave === 'pending' ? '계약 생성 (서명 대기)' : '새 계약 생성'
+    )
+  } catch (historyError: any) {
+    console.error(`⚠️ 계약 이력 저장 실패 (계약은 정상 생성됨): ${contractNumber}`, historyError)
+  }
   
   // 오토바이 상태 업데이트 (active 상태일 때만)
   if (statusToSave === 'active') {
