@@ -3024,7 +3024,7 @@ app.get('/api/contracts', async (c) => {
       params.push(residentNumber)
     }
     
-    query += ` ORDER BY c.created_at DESC`
+    query += ` ORDER BY c.created_at DESC LIMIT 500`
     
     const stmt = DB.prepare(query)
     const result = params.length > 0 
@@ -4780,7 +4780,7 @@ app.get('/api/business-contracts', async (c) => {
       params.push(residentNumber)
     }
     
-    query += ` ORDER BY bc.created_at DESC`
+    query += ` ORDER BY bc.created_at DESC LIMIT 500`
     
     const stmt = DB.prepare(query)
     const result = params.length > 0 
