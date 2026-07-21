@@ -792,7 +792,6 @@
                 await loadContractsFromAPI(currentPage, currentSearch);
             } catch (error) {
                 console.error('❌ 계약서 목록 로드 실패:', error);
-                }
                 
                 // 401 에러인 경우 로그인 페이지로
                 if (error.response?.status === 401) {
@@ -811,9 +810,6 @@
                             <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
                                 <i class="fas fa-redo mr-2"></i>새로고침
                             </button>
-                            <button onclick="clearContractsCache(); location.reload()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
-                                <i class="fas fa-trash mr-2"></i>캐시 삭제 후 새로고침
-                            </button>
                         </div>
                     </div>
                 `;
@@ -823,9 +819,8 @@
         function filterContracts() {
             const typeFilter = document.getElementById('typeFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
             
-            console.log('🔍 필터 시작 - 타입:', typeFilter, '상태:', statusFilter, '검색:', searchInput);
+            console.log('🔍 필터 시작 - 타입:', typeFilter, '상태:', statusFilter);
             console.log('📊 전체 계약 수:', contracts.length);
 
             filteredContracts = contracts.filter(c => {
@@ -867,15 +862,10 @@
                     }
                 }
                 
-                const matchSearch = !searchInput || 
-                    c.contract_number.toLowerCase().includes(searchInput) ||
-                    (c.customer_name && c.customer_name.toLowerCase().includes(searchInput)) ||
-                    (c.plate_number && c.plate_number.toLowerCase().includes(searchInput));
-                
-                const finalMatch = matchType && matchStatus && matchSearch;
+                const finalMatch = matchType && matchStatus;
                 
                 if (typeFilter === 'temp_rent') {
-                    console.log('✅ 임시렌트 최종 결과:', c.contract_number, 'matchType:', matchType, 'matchStatus:', matchStatus, 'matchSearch:', matchSearch, '→ 표시:', finalMatch);
+                    console.log('✅ 임시렌트 최종 결과:', c.contract_number, 'matchType:', matchType, 'matchStatus:', matchStatus, '→ 표시:', finalMatch);
                 }
                 
                 return finalMatch;
