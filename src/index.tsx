@@ -3032,27 +3032,19 @@ app.get('/api/contracts', async (c) => {
     const motorcycleIds = [...new Set(contracts.map(c => c.motorcycle_id).filter(id => id))]
     const customerIds = [...new Set(contracts.map(c => c.customer_id).filter(id => id))]
     
-    // 3단계: 오토바이 정보 조회
-    let motorcycles = []
-    if (motorcycleIds.length > 0) {
-      const mResult = await DB.prepare(
-        `SELECT id, plate_number, vehicle_name FROM motorcycles WHERE id IN (${motorcycleIds.join(',')})`
-      ).all()
-      motorcycles = mResult.results || []
-    }
+    // 3단계: 오토바이 정보와 고객 정보를 병렬로 조회
+    const [motorcycles, customers] = await Promise.all([
+      motorcycleIds.length > 0
+        ? DB.prepare(`SELECT id, plate_number, vehicle_name FROM motorcycles WHERE id IN (${motorcycleIds.join(',')})`).all()
+        : Promise.resolve({ results: [] }),
+      customerIds.length > 0
+        ? DB.prepare(`SELECT id, name, phone, postcode, address, detail_address FROM customers WHERE id IN (${customerIds.join(',')})`).all()
+        : Promise.resolve({ results: [] })
+    ])
     
-    // 4단계: 고객 정보 조회
-    let customers = []
-    if (customerIds.length > 0) {
-      const cResult = await DB.prepare(
-        `SELECT id, name, phone, postcode, address, detail_address FROM customers WHERE id IN (${customerIds.join(',')})`
-      ).all()
-      customers = cResult.results || []
-    }
-    
-    // 5단계: 데이터 병합
-    const motorcycleMap = Object.fromEntries(motorcycles.map(m => [m.id, m]))
-    const customerMap = Object.fromEntries(customers.map(c => [c.id, c]))
+    // 4단계: 데이터 병합
+    const motorcycleMap = Object.fromEntries((motorcycles.results || []).map(m => [m.id, m]))
+    const customerMap = Object.fromEntries((customers.results || []).map(c => [c.id, c]))
     
     const enrichedContracts = contracts.map(contract => {
       const motorcycle = motorcycleMap[contract.motorcycle_id] || {}

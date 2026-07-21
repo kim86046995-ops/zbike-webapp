@@ -923,17 +923,8 @@
             
             console.log('✅ 계약서 목록 렌더링 시작...');
             
-            // 성능 최적화: 즉시 로딩 표시
-            listEl.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                    <p class="text-gray-600 mt-2 text-sm">목록 불러오는 중...</p>
-                </div>
-            `;
-            
-            // requestAnimationFrame을 사용하여 다음 프레임에서 렌더링
-            requestAnimationFrame(() => {
-                const htmlArray = filteredContracts.map(c => {
+            // 즉시 렌더링 (requestAnimationFrame 제거)
+            const htmlArray = filteredContracts.map(c => {
                 const typeColors = {
                     'lease': 'bg-blue-100 text-blue-800',
                     'individual': 'bg-blue-100 text-blue-800',
@@ -1087,7 +1078,6 @@
                 
                 listEl.innerHTML = htmlArray.join('');
                 console.log('✅ renderContracts() 완료 - ', filteredContracts.length, '건 렌더링됨');
-            });
         }
 
         async function showDetail(contractType, id) {
