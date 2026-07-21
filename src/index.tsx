@@ -4759,34 +4759,42 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
 
 // 업체 계약서 목록 조회
 app.get('/api/business-contracts', async (c) => {
-  const DB = c.env.DB || c.env.db
-  const residentNumber = c.req.query('resident_number')
-  
-  let query = `
-    SELECT 
-      bc.*,
-      m.plate_number, m.vehicle_name, m.chassis_number
-    FROM business_contracts bc
-    JOIN motorcycles m ON bc.motorcycle_id = m.id
-    WHERE 1=1
-  `
-  
-  const params = []
-  
-  // 주민등록번호로 필터링 (고객 포털용 - 대표자 주민번호)
-  if (residentNumber) {
-    query += ` AND bc.representative_resident_number = ?`
-    params.push(residentNumber)
+  try {
+    const DB = c.env.DB || c.env.db
+    const residentNumber = c.req.query('resident_number')
+    
+    let query = `
+      SELECT 
+        bc.*,
+        m.plate_number, m.vehicle_name, m.chassis_number
+      FROM business_contracts bc
+      LEFT JOIN motorcycles m ON bc.motorcycle_id = m.id
+      WHERE 1=1
+    `
+    
+    const params = []
+    
+    // 주민등록번호로 필터링 (고객 포털용 - 대표자 주민번호)
+    if (residentNumber) {
+      query += ` AND bc.representative_resident_number = ?`
+      params.push(residentNumber)
+    }
+    
+    query += ` ORDER BY bc.created_at DESC`
+    
+    const stmt = DB.prepare(query)
+    const result = params.length > 0 
+      ? await stmt.bind(...params).all()
+      : await stmt.all()
+    
+    return c.json(result.results || [])
+  } catch (error: any) {
+    console.error('❌ 업체 계약서 목록 조회 실패:', error)
+    return c.json({ 
+      error: '업체 계약서 목록을 불러오는데 실패했습니다',
+      details: error.message 
+    }, 500)
   }
-  
-  query += ` ORDER BY bc.created_at DESC`
-  
-  const stmt = DB.prepare(query)
-  const result = params.length > 0 
-    ? await stmt.bind(...params).all()
-    : await stmt.all()
-  
-  return c.json(result.results)
 })
 
 // 업체 계약서 상세 조회
