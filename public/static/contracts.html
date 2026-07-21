@@ -452,6 +452,10 @@
                         <label for="selectAll" class="text-sm md:text-base font-medium text-gray-700">전체 선택</label>
                         <span id="selectedCount" class="text-xs md:text-sm text-gray-500">(0개 선택됨)</span>
                     </div>
+                    
+                    <!-- 상단 페이지네이션 -->
+                    <div id="topPagination" class="flex justify-center"></div>
+                    
                     <button onclick="sendBulkSMS()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-2 rounded-lg text-sm md:text-base font-medium transition flex items-center justify-center gap-2">
                         <i class="fas fa-paper-plane"></i>
                         <span>선택 항목 SMS 발신</span>
@@ -711,13 +715,30 @@
         // 페이지네이션 UI 렌더링
         function renderPagination() {
             const paginationEl = document.getElementById('pagination');
-            if (!paginationEl) return;
+            const topPaginationEl = document.getElementById('topPagination');
             
             if (totalPages <= 1) {
-                paginationEl.innerHTML = '';
+                if (paginationEl) paginationEl.innerHTML = '';
+                if (topPaginationEl) topPaginationEl.innerHTML = '';
                 return;
             }
             
+            // 간단한 페이지 정보 (상단용)
+            const simpleHtml = `
+                <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} 
+                        class="px-2 py-1 ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'hover:text-purple-600'}">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="font-medium">${currentPage} / ${totalPages}</span>
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} 
+                        class="px-2 py-1 ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'hover:text-purple-600'}">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 전체 페이지네이션 (하단용)
             let html = '<div class="flex justify-center items-center gap-2 mt-6">';
             
             // 이전 버튼
@@ -750,7 +771,10 @@
             html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-2 border rounded-lg ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}">다음 &rarr;</button>`;
             
             html += '</div>';
-            paginationEl.innerHTML = html;
+            
+            // 상단과 하단 모두 렌더링
+            if (topPaginationEl) topPaginationEl.innerHTML = simpleHtml;
+            if (paginationEl) paginationEl.innerHTML = html;
         }
         
         // API에서 계약 목록 로드
