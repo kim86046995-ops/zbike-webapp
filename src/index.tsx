@@ -3002,8 +3002,38 @@ app.get('/api/contracts', async (c) => {
   try {
     const DB = c.env.DB || c.env.db
     const residentNumber = c.req.query('resident_number')
+    const search = c.req.query('search') || ''
+    const page = parseInt(c.req.query('page') || '1')
+    const limit = parseInt(c.req.query('limit') || '50')
+    const offset = (page - 1) * limit
     
-    // 1단계: 계약서만 먼저 조회 (JOIN 없이)
+    // 0단계: 전체 개수 조회 (검색 조건 포함)
+    let countQuery = `SELECT COUNT(*) as total FROM contracts c WHERE c.deleted_at IS NULL`
+    const countParams = []
+    
+    if (residentNumber) {
+      countQuery += ` AND c.customer_id IN (SELECT id FROM customers WHERE resident_number = ?)`
+      countParams.push(residentNumber)
+    }
+    
+    // 검색 조건 추가
+    if (search) {
+      countQuery += ` AND (
+        c.contract_number LIKE ? OR
+        c.customer_id IN (SELECT id FROM customers WHERE name LIKE ?) OR
+        c.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      countParams.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    const countStmt = DB.prepare(countQuery)
+    const countResult = countParams.length > 0 
+      ? await countStmt.bind(...countParams).first()
+      : await countStmt.first()
+    const total = countResult?.total || 0
+    
+    // 1단계: 계약서만 먼저 조회 (JOIN 없이, 페이지네이션 적용, 검색 조건 포함)
     let query = `
       SELECT * FROM contracts c
       WHERE c.deleted_at IS NULL
@@ -3019,7 +3049,18 @@ app.get('/api/contracts', async (c) => {
       params.push(residentNumber)
     }
     
-    query += ` ORDER BY c.created_at DESC LIMIT 100`
+    // 검색 조건 추가
+    if (search) {
+      query += ` AND (
+        c.contract_number LIKE ? OR
+        c.customer_id IN (SELECT id FROM customers WHERE name LIKE ?) OR
+        c.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      params.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    query += ` ORDER BY c.created_at DESC LIMIT ${limit} OFFSET ${offset}`
     
     const stmt = DB.prepare(query)
     const result = params.length > 0 
@@ -3062,7 +3103,15 @@ app.get('/api/contracts', async (c) => {
       }
     })
     
-    return c.json(enrichedContracts)
+    return c.json({
+      data: enrichedContracts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error: any) {
     console.error('❌ 계약서 목록 조회 실패:', error)
     return c.json({ 
@@ -4793,8 +4842,38 @@ app.get('/api/business-contracts', async (c) => {
   try {
     const DB = c.env.DB || c.env.db
     const residentNumber = c.req.query('resident_number')
+    const search = c.req.query('search') || ''
+    const page = parseInt(c.req.query('page') || '1')
+    const limit = parseInt(c.req.query('limit') || '50')
+    const offset = (page - 1) * limit
     
-    // 1단계: 업체 계약서만 먼저 조회 (JOIN 없이)
+    // 0단계: 전체 개수 조회 (검색 조건 포함)
+    let countQuery = `SELECT COUNT(*) as total FROM business_contracts bc WHERE 1=1`
+    const countParams = []
+    
+    if (residentNumber) {
+      countQuery += ` AND bc.representative_resident_number = ?`
+      countParams.push(residentNumber)
+    }
+    
+    // 검색 조건 추가
+    if (search) {
+      countQuery += ` AND (
+        bc.contract_number LIKE ? OR
+        bc.company_name LIKE ? OR
+        bc.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      countParams.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    const countStmt = DB.prepare(countQuery)
+    const countResult = countParams.length > 0 
+      ? await countStmt.bind(...countParams).first()
+      : await countStmt.first()
+    const total = countResult?.total || 0
+    
+    // 1단계: 업체 계약서만 먼저 조회 (JOIN 없이, 페이지네이션 적용, 검색 조건 포함)
     let query = `
       SELECT * FROM business_contracts bc
       WHERE 1=1
@@ -4808,7 +4887,18 @@ app.get('/api/business-contracts', async (c) => {
       params.push(residentNumber)
     }
     
-    query += ` ORDER BY bc.created_at DESC LIMIT 100`
+    // 검색 조건 추가
+    if (search) {
+      query += ` AND (
+        bc.contract_number LIKE ? OR
+        bc.company_name LIKE ? OR
+        bc.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      params.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    query += ` ORDER BY bc.created_at DESC LIMIT ${limit} OFFSET ${offset}`
     
     const stmt = DB.prepare(query)
     const result = params.length > 0 
@@ -4843,7 +4933,15 @@ app.get('/api/business-contracts', async (c) => {
       }
     })
     
-    return c.json(enrichedContracts)
+    return c.json({
+      data: enrichedContracts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error: any) {
     console.error('❌ 업체 계약서 목록 조회 실패:', error)
     return c.json({ 

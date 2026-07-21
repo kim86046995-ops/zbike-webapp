@@ -439,7 +439,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-2">검색</label>
-                        <input type="text" id="searchInput" onkeyup="filterContracts()" placeholder="계약번호, 고객명, 번호판" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="계약번호, 고객명, 번호판 (전체 DB 검색)" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                     </div>
                 </div>
             </div>
@@ -467,6 +467,9 @@
                     <p class="mt-2">로딩 중...</p>
                 </div>
             </div>
+            
+            <!-- 페이지네이션 -->
+            <div id="pagination"></div>
         </main>
     </div>
 
@@ -667,26 +670,100 @@
             }
         }
 
-        // API에서 계약 목록 로드
-        async function loadContractsFromAPI() {
-            const now = Date.now();
-            const cacheKey = 'contracts_cache';
-            const cacheTimeKey = 'contracts_cache_time';
+        // 전역 변수
+        let contracts = [];
+        let filteredContracts = [];
+        let currentContract = null;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentSearch = '';
+        let searchTimeout = null;
+        
+        // 검색 debounce (500ms 대기 후 서버 검색)
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const searchValue = document.getElementById('searchInput').value.trim();
+                currentSearch = searchValue;
+                currentPage = 1; // 검색 시 1페이지로 리셋
+                await loadContracts();
+            }, 500);
+        }
+        
+        // 페이지 변경
+        async function changePage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            await loadContracts();
+        }
+        
+        // 페이지네이션 UI 렌더링
+        function renderPagination() {
+            const paginationEl = document.getElementById('pagination');
+            if (!paginationEl) return;
             
-            // 개인 계약서와 업체 계약서를 모두 불러오기
+            if (totalPages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+            
+            let html = '<div class="flex justify-center items-center gap-2 mt-6">';
+            
+            // 이전 버튼
+            html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-2 border rounded-lg ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}">&larr; 이전</button>`;
+            
+            // 페이지 번호 (최대 7개 표시)
+            const maxVisible = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+            
+            if (startPage > 1) {
+                html += `<button onclick="changePage(1)" class="px-3 py-2 border rounded-lg bg-white hover:bg-gray-50">1</button>`;
+                if (startPage > 2) html += '<span class="px-2">...</span>';
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="changePage(${i})" class="px-3 py-2 border rounded-lg ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white hover:bg-gray-50'}">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += '<span class="px-2">...</span>';
+                html += `<button onclick="changePage(${totalPages})" class="px-3 py-2 border rounded-lg bg-white hover:bg-gray-50">${totalPages}</button>`;
+            }
+            
+            // 다음 버튼
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-2 border rounded-lg ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}">다음 &rarr;</button>`;
+            
+            html += '</div>';
+            paginationEl.innerHTML = html;
+        }
+        
+        // API에서 계약 목록 로드
+        async function loadContractsFromAPI(page = 1, search = '') {
+            currentPage = page;
+            currentSearch = search;
+            
+            // 개인 계약서와 업체 계약서를 모두 불러오기 (페이지네이션 + 검색)
+            const params = new URLSearchParams({ page: page.toString(), limit: '50' });
+            if (search) params.append('search', search);
+            
             const [personalResponse, businessResponse] = await Promise.all([
-                axios.get('/api/contracts'),
-                axios.get('/api/business-contracts')
+                axios.get(`/api/contracts?${params.toString()}`),
+                axios.get(`/api/business-contracts?${params.toString()}`)
             ]);
             
-            // 개인 계약서 데이터 (원본 contract_type 유지)
-            const personalContracts = personalResponse.data.map(c => ({
+            // 개인 계약서 데이터
+            const personalContracts = (personalResponse.data.data || []).map(c => ({
                 ...c,
                 // contract_type은 원본 유지 (temp_rent, lease, rent 등)
             }));
             
             // 업체 계약서 데이터
-            const businessContracts = businessResponse.data.map(c => ({
+            const businessContracts = (businessResponse.data.data || []).map(c => ({
                 ...c,
                 contract_type: 'business',
                 customer_name: c.company_name,  // 업체명을 customer_name으로 매핑
@@ -698,117 +775,23 @@
                 return new Date(b.created_at) - new Date(a.created_at);
             });
             
-            // 임시렌트 계약 개수 확인
-            const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
-            console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
+            // 페이지네이션 정보 계산
+            const personalTotal = personalResponse.data.pagination?.total || 0;
+            const businessTotal = businessResponse.data.pagination?.total || 0;
+            const total = personalTotal + businessTotal;
+            totalPages = Math.ceil(total / 50);
             
-            // 캐시에 저장 (quota 에러 처리)
-            try {
-                // 캐시 크기 줄이기: signature_data와 id_card_photo 같은 큰 데이터는 제외
-                const contractsForCache = contracts.map(c => {
-                    const { signature_data, id_card_photo, business_license_photo, motorcycle_photo_front, motorcycle_photo_back, motorcycle_photo_left, motorcycle_photo_right, ...rest } = c;
-                    return rest;
-                });
-                
-                sessionStorage.setItem(cacheKey, JSON.stringify(contractsForCache));
-                sessionStorage.setItem(cacheTimeKey, now.toString());
-                console.log('✅ 캐시 저장 완료:', contractsForCache.length, '건');
-            } catch (cacheError) {
-                console.warn('⚠️ 캐시 저장 실패 (quota 초과 가능):', cacheError.message);
-                // 캐시 저장 실패해도 계속 진행
-            }
+            console.log('📊 전체 계약:', total, '개 (페이지:', currentPage, '/', totalPages, ')');
             
             filteredContracts = contracts;
-            console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
-            console.log('📊 filteredContracts 설정 완료:', filteredContracts.length, '건');
-            
-            // filterContracts() 호출 전에 먼저 렌더링 확인
-            filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
-            console.log('✅ filterContracts() 호출 완료');
-        }
-        
-        // 백그라운드에서 계약 목록 업데이트 (조용히)
-        async function loadContractsInBackground() {
-            try {
-                await loadContractsFromAPI();
-                console.log('🔄 백그라운드 업데이트 완료');
-            } catch (error) {
-                console.warn('⚠️ 백그라운드 업데이트 실패 (무시):', error.message);
-                // 에러는 무시하고 캐시된 데이터 계속 사용
-            }
-        }
-
-        // 캐시 클리어 함수
-        function clearContractsCache() {
-            sessionStorage.removeItem('contracts_cache');
-            sessionStorage.removeItem('contracts_cache_time');
-            console.log('🗑️ 계약서 캐시 클리어');
+            filterContracts(); // 타입/상태 필터 적용
         }
 
         async function loadContracts(forceRefresh = false) {
             try {
-                // 강제 새로고침이면 캐시 클리어
-                if (forceRefresh) {
-                    clearContractsCache();
-                }
-                
-                // 캐시 확인 (3분 이내)
-                const cacheKey = 'contracts_cache';
-                const cacheTimeKey = 'contracts_cache_time';
-                const cachedData = sessionStorage.getItem(cacheKey);
-                const cacheTime = sessionStorage.getItem(cacheTimeKey);
-                const now = Date.now();
-                
-                // 캐시가 유효하면 즉시 표시하고 백그라운드에서 업데이트 (5분으로 연장)
-                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000 && !forceRefresh) {
-                    console.log('✅ 캐시된 계약서 데이터 즉시 표시');
-                    contracts = JSON.parse(cachedData);
-                    filteredContracts = contracts;
-                    
-                    // 임시렌트 계약 개수 확인
-                    const tempRentCount = contracts.filter(c => c.contract_type === 'temp_rent').length;
-                    console.log('📊 전체 계약:', contracts.length, '개, 임시렌트:', tempRentCount, '개');
-                    
-                    filterContracts();
-                    return; // 캐시 사용 시 백그라운드 업데이트 생략 (필요시 새로고침)
-                } else if (cachedData && !forceRefresh) {
-                    // 캐시가 만료되었지만 즉시 표시 후 백그라운드 업데이트
-                    console.log('⚠️ 캐시 만료, 즉시 표시 후 백그라운드 업데이트');
-                    contracts = JSON.parse(cachedData);
-                    filteredContracts = contracts;
-                    filterContracts();
-                    // 백그라운드 업데이트 계속 진행
-                }
-                
-                // 캐시가 없거나 만료된 경우에만 로딩 표시
-                await loadContractsFromAPI();
-                
+                await loadContractsFromAPI(currentPage, currentSearch);
             } catch (error) {
-                console.error('Error loading contracts:', error);
-                console.error('Error details:', error.response?.data || error.message);
-                
-                // 에러 시 캐시 확인
-                const cachedData = sessionStorage.getItem('contracts_cache');
-                if (cachedData) {
-                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
-                    contracts = JSON.parse(cachedData);
-                    filteredContracts = contracts;
-                    filterContracts();
-                    
-                    // 경고 메시지 표시
-                    const warningBanner = document.createElement('div');
-                    warningBanner.className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4';
-                    warningBanner.innerHTML = `
-                        <div class="flex items-center">
-                            <i class="fas fa-exclamation-triangle text-yellow-400 mr-3"></i>
-                            <div>
-                                <p class="text-sm text-yellow-700">최신 데이터를 불러오지 못했습니다. 캐시된 데이터를 표시합니다.</p>
-                                <button onclick="location.reload()" class="text-xs text-yellow-800 underline mt-1">새로고침</button>
-                            </div>
-                        </div>
-                    `;
-                    document.getElementById('contractList').insertAdjacentElement('beforebegin', warningBanner);
-                    return;
+                console.error('❌ 계약서 목록 로드 실패:', error);
                 }
                 
                 // 401 에러인 경우 로그인 페이지로
@@ -1078,6 +1061,7 @@
                 
                 listEl.innerHTML = htmlArray.join('');
                 console.log('✅ renderContracts() 완료 - ', filteredContracts.length, '건 렌더링됨');
+                renderPagination(); // 페이지네이션 UI 렌더링
         }
 
         async function showDetail(contractType, id) {
