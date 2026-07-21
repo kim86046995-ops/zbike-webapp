@@ -302,8 +302,8 @@ async function recordContractHistory(
       stack: error.stack,
       contractId, motorcycleId, customerId, contractType, actionType
     })
-    // 에러 재발생하여 상위에서 감지할 수 있도록
-    throw error
+    // 에러를 throw하지 않고 로그만 남김 (계약 생성/수정은 정상 진행)
+    // throw error
   }
 }
 
