@@ -526,6 +526,10 @@
         let companySettings = null;
         let sessionId = localStorage.getItem('sessionId');
         let currentUser = null; // 현재 사용자 정보
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentSearch = '';
+        let searchTimeout = null;
 
         // 슈퍼관리자 체크 함수
         function isSuperAdmin() {
@@ -670,15 +674,6 @@
             }
         }
 
-        // 전역 변수
-        let contracts = [];
-        let filteredContracts = [];
-        let currentContract = null;
-        let currentPage = 1;
-        let totalPages = 1;
-        let currentSearch = '';
-        let searchTimeout = null;
-        
         // 검색 debounce (500ms 대기 후 서버 검색)
         function debounceSearch() {
             clearTimeout(searchTimeout);
