@@ -2999,38 +2999,46 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
 
 // 계약서 목록 조회
 app.get('/api/contracts', async (c) => {
-  const DB = c.env.DB || c.env.db
-  const residentNumber = c.req.query('resident_number')
-  
-  let query = `
-    SELECT 
-      c.*,
-      m.plate_number, m.vehicle_name,
-      cu.name as customer_name, cu.phone as customer_phone,
-      cu.postcode as customer_postcode, cu.address as customer_address,
-      cu.detail_address as customer_detail_address
-    FROM contracts c
-    JOIN motorcycles m ON c.motorcycle_id = m.id
-    LEFT JOIN customers cu ON c.customer_id = cu.id
-    WHERE c.deleted_at IS NULL
-  `
-  
-  const params = []
-  
-  // 주민등록번호로 필터링 (고객 포털용)
-  if (residentNumber) {
-    query += ` AND cu.resident_number = ?`
-    params.push(residentNumber)
+  try {
+    const DB = c.env.DB || c.env.db
+    const residentNumber = c.req.query('resident_number')
+    
+    let query = `
+      SELECT 
+        c.*,
+        m.plate_number, m.vehicle_name,
+        cu.name as customer_name, cu.phone as customer_phone,
+        cu.postcode as customer_postcode, cu.address as customer_address,
+        cu.detail_address as customer_detail_address
+      FROM contracts c
+      LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      WHERE c.deleted_at IS NULL
+    `
+    
+    const params = []
+    
+    // 주민등록번호로 필터링 (고객 포털용)
+    if (residentNumber) {
+      query += ` AND cu.resident_number = ?`
+      params.push(residentNumber)
+    }
+    
+    query += ` ORDER BY c.created_at DESC`
+    
+    const stmt = DB.prepare(query)
+    const result = params.length > 0 
+      ? await stmt.bind(...params).all()
+      : await stmt.all()
+    
+    return c.json(result.results || [])
+  } catch (error: any) {
+    console.error('❌ 계약서 목록 조회 실패:', error)
+    return c.json({ 
+      error: '계약서 목록을 불러오는데 실패했습니다',
+      details: error.message 
+    }, 500)
   }
-  
-  query += ` ORDER BY c.created_at DESC`
-  
-  const stmt = DB.prepare(query)
-  const result = params.length > 0 
-    ? await stmt.bind(...params).all()
-    : await stmt.all()
-  
-  return c.json(result.results)
 })
 
 // 오토바이별 계약 이력 조회
