@@ -1670,7 +1670,8 @@
                                 console.log(`✅ 이력 추가 [${index}]:`, {
                                     field_name: h.field_name,
                                     current_plate_number: h.current_plate_number,
-                                    current_owner_name: h.current_owner_name
+                                    current_owner_name: h.current_owner_name,
+                                    current_contractor_name: h.current_contractor_name
                                 });
                                 allHistory.push({
                                     change_date: h.change_date,
@@ -1684,7 +1685,8 @@
                                     notes: h.notes,
                                     index: index,
                                     current_plate_number: h.current_plate_number,
-                                    current_owner_name: h.current_owner_name
+                                    current_owner_name: h.current_owner_name,
+                                    current_contractor_name: h.current_contractor_name
                                 });
                             }
                         });
@@ -1720,12 +1722,14 @@
                                                         변경자: <span class="font-bold">${h.changed_by_name}</span>
                                                     </div>
                                                 ` : ''}
-                                                ${h.current_plate_number || h.current_owner_name ? `
+                                                ${h.current_plate_number || h.current_owner_name || h.current_contractor_name ? `
                                                     <div class="text-xs text-blue-600 mt-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
                                                         <i class="fas fa-motorcycle mr-1"></i>
                                                         ${h.current_plate_number ? `번호판: <span class="font-bold">${h.current_plate_number}</span>` : ''}
-                                                        ${h.current_plate_number && h.current_owner_name ? ' / ' : ''}
+                                                        ${h.current_plate_number && (h.current_owner_name || h.current_contractor_name) ? ' / ' : ''}
                                                         ${h.current_owner_name ? `명의자: <span class="font-bold">${h.current_owner_name}</span>` : ''}
+                                                        ${h.current_owner_name && h.current_contractor_name ? ' / ' : ''}
+                                                        ${h.current_contractor_name ? `계약자: <span class="font-bold">${h.current_contractor_name}</span>` : ''}
                                                     </div>
                                                 ` : ''}
                                                 ${h.notes && h.type === 'detail' ? `

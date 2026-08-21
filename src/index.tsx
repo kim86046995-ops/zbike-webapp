@@ -16,6 +16,43 @@ type Bindings = {
   ADMIN_PHONE?: string;
 }
 
+// ============================================
+// 헬퍼 함수: 현재 활성 계약자 이름 조회
+// ============================================
+async function getCurrentContractorName(DB: D1Database, motorcycleId: number): Promise<string> {
+  try {
+    // 개인 계약 조회
+    const personalContract = await DB.prepare(`
+      SELECT cu.name as contractor_name
+      FROM contracts c
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      WHERE c.motorcycle_id = ? AND c.status = 'active'
+      LIMIT 1
+    `).bind(motorcycleId).first()
+    
+    if (personalContract?.contractor_name) {
+      return String(personalContract.contractor_name)
+    }
+    
+    // 업체 계약 조회
+    const businessContract = await DB.prepare(`
+      SELECT contractor_name
+      FROM business_contracts
+      WHERE motorcycle_id = ? AND status = 'active'
+      LIMIT 1
+    `).bind(motorcycleId).first()
+    
+    if (businessContract?.contractor_name) {
+      return String(businessContract.contractor_name)
+    }
+    
+    return '' // 활성 계약 없음
+  } catch (error) {
+    console.warn('⚠️ 계약자 조회 실패:', error)
+    return ''
+  }
+}
+
 const app = new Hono<{ Bindings: Bindings }>()
 
 // ============================================
@@ -1478,6 +1515,10 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
     // 변경 이력 저장 (모든 중요 필드 - 이력보호 절대원칙)
     const user = c.get('user')
     const userId = user?.id || null
+    
+    // 현재 활성 계약자 정보 조회
+    const currentContractorName = await getCurrentContractorName(DB, id)
+    
     const importantFields = [
       { key: 'plate_number', name: '번호판' },
       { key: 'vehicle_name', name: '차명' },
@@ -1510,8 +1551,8 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       if (oldValue !== newValue) {
         await DB.prepare(`
           INSERT INTO motorcycle_history 
-          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, change_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
         `).bind(
           id,
           existing.chassis_number,
@@ -1522,7 +1563,8 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
           userId,
           `${field.name} 변경: ${oldValue} → ${newValue}`,
           String(existing.plate_number || ''),
-          String(existing.owner_name || '')
+          String(existing.owner_name || ''),
+          currentContractorName
         ).run()
       }
     }
@@ -1692,6 +1734,7 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
         h.chassis_number,
         h.current_plate_number,
         h.current_owner_name,
+        h.current_contractor_name,
         u.name as changed_by_name
       FROM motorcycle_history h
       LEFT JOIN users u ON h.changed_by = u.id
@@ -1827,6 +1870,9 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     
     console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved, all else cleared`)
     
+    // 계약 완료 전에 계약자 정보 저장 (이력 기록용)
+    const contractorBeforeScrap = await getCurrentContractorName(DB, id)
+    
     // 활성 계약 완료 처리 (폐지 시 계약도 종료)
     try {
       // 개인 계약 완료
@@ -1871,8 +1917,8 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     // 이력 기록: 폐지 처리
     await DB.prepare(`
       INSERT INTO motorcycle_history 
-      (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, change_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+      (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
     `).bind(
       id,
       (fullInfo as any)?.chassis_number,
@@ -1882,11 +1928,16 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       userId,
       `해지날짜: ${scrapDate}\n폐지 사유: ${usage_notes || '폐지'}`,
       String((fullInfo as any)?.plate_number || ''),
-      String((fullInfo as any)?.owner_name || '')
+      String((fullInfo as any)?.owner_name || ''),
+      contractorBeforeScrap
     ).run()
   } else if (status === 'available') {
     // 해지 처리: 기본정보와 보험정보는 유지, 계약정보 초기화 (보험 명의자는 유지)
     console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info (keeping basic, insurance info, and owner_name)`)
+    
+    // 계약 해지 전 계약자 정보 조회
+    const contractorBeforeTermination = await getCurrentContractorName(DB, id)
+    
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = ?,
@@ -1904,19 +1955,22 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     if (existing.status !== status) {
       await DB.prepare(`
         INSERT INTO motorcycle_history 
-        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, change_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         id, 
         existing.chassis_number,
         'update', '상태', existing.status, status, userId,
         `상태 변경: ${existing.status} → ${status} (계약 해지)`,
         String(existing.plate_number || ''),
-        String(existing.owner_name || '')
+        String(existing.owner_name || ''),
+        contractorBeforeTermination
       ).run()
     }
   } else {
     // 일반 상태 변경
+    const contractorBeforeStatusChange = await getCurrentContractorName(DB, id)
+    
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = ?, updated_at = datetime("now", "+9 hours") 
@@ -1927,15 +1981,16 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     if (existing.status !== status) {
       await DB.prepare(`
         INSERT INTO motorcycle_history 
-        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, change_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         id,
         existing.chassis_number,
         'update', '상태', existing.status, status, userId,
         `상태 변경: ${existing.status} → ${status}`,
         String(existing.plate_number || ''),
-        String(existing.owner_name || '')
+        String(existing.owner_name || ''),
+        contractorBeforeStatusChange
       ).run()
     }
   }
@@ -1976,6 +2031,9 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     console.log(`📋 Previous plate_number: ${motorcycle.plate_number}`)
     
+    // 폐지 전 계약자 정보 조회
+    const contractorBeforeScrapFull = await getCurrentContractorName(DB, id)
+    
     // 현재 날짜 (해지날짜)
     const scrapDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
     
@@ -1993,8 +2051,9 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           notes,
           current_plate_number,
           current_owner_name,
+          current_contractor_name,
           change_date
-        ) VALUES (?, ?, 'scrapped', '폐지 처리', ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+        ) VALUES (?, ?, 'scrapped', '폐지 처리', ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         id,
         motorcycle.chassis_number,
@@ -2003,7 +2062,8 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         sessionUser?.id || null,
         `해지날짜: ${scrapDate}\n폐지 사유: ${scrap_reason || '폐지'}`,
         String(motorcycle.plate_number || ''),
-        String(motorcycle.owner_name || '')
+        String(motorcycle.owner_name || ''),
+        contractorBeforeScrapFull
       ).run()
       
       console.log(`✅ 폐지 이력 저장 완료: ${motorcycle.plate_number} → (폐지)`)
@@ -2146,6 +2206,9 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
     const scrapDate = new Date().toISOString().split('T')[0]
     
     for (const m of scrappedMotorcycles.results) {
+      // 폐지된 오토바이의 계약자 정보 조회
+      const contractorForBulkScrap = await getCurrentContractorName(DB, (m as any).id)
+      
       // 기존 폐지 이력 조회
       const existingHistory = await DB.prepare(`
         SELECT id, old_value, notes 
@@ -2173,8 +2236,8 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
         // 이력이 없으면 새로 생성
         await DB.prepare(`
           INSERT INTO motorcycle_history 
-          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, change_date)
-          VALUES (?, ?, 'scrapped', '폐지 처리', ?, '-', ?, ?, ?, ?, datetime('now', '+9 hours'))
+          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+          VALUES (?, ?, 'scrapped', '폐지 처리', ?, '-', ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
         `).bind(
           (m as any).id,
           (m as any).chassis_number,
@@ -2182,7 +2245,8 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
           user?.id || null,
           `해지날짜: ${scrapDate}\n폐지`,
           String((m as any).plate_number || ''),
-          String((m as any).owner_name || '')
+          String((m as any).owner_name || ''),
+          contractorForBulkScrap
         ).run()
         historyUpdatedCount++
       }
@@ -3395,8 +3459,8 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
   await DB.prepare(`
     INSERT INTO motorcycle_history (
       motorcycle_id, change_type, field_name, old_value, new_value, 
-      changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, change_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+      changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, current_contractor_name, change_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
   `).bind(
     contract.motorcycle_id,
     'contract_completed',  // change_type 추가
@@ -3408,7 +3472,8 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
     `📋 계약번호: ${contract.contract_number}\n👤 계약자: ${contract.customer_name || '알 수 없음'}\n📅 계약기간: ${contract.start_date} ~ ${contract.end_date}\n✅ 완료일: ${today}`,
     contract.chassis_number,  // chassis_number 추가
     String((motorcycle as any)?.plate_number || ''),
-    String((motorcycle as any)?.owner_name || '')
+    String((motorcycle as any)?.owner_name || ''),
+    String(contract.customer_name || '')  // 계약자 이름 (완료되는 계약의 계약자)
   ).run()
   
   console.log(`✅ 계약 완료 이력 저장: ${contract.contract_number}, 고객: ${contract.customer_name}, 차대번호: ${contract.chassis_number}`)
@@ -4518,8 +4583,9 @@ app.post('/api/motorcycles/migrate-contract-history', authMiddleware, async (c) 
           notes,
           current_plate_number,
           current_owner_name,
+          current_contractor_name,
           change_date
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         c.motorcycle_id,
         c.chassis_number,
@@ -4529,7 +4595,8 @@ app.post('/api/motorcycles/migrate-contract-history', authMiddleware, async (c) 
         `${c.deleted_at ? '해지' : '완료'}일: ${actionDate}`,
         `📋 계약번호: ${c.contract_number}\n👤 계약자: ${c.customer_name || '알 수 없음'}\n📅 계약기간: ${c.start_date} ~ ${c.end_date}\n💰 일대여료: ${Number(c.monthly_fee || 0).toLocaleString()}원\n✅ ${c.deleted_at ? '해지' : '완료'}일: ${actionDate}`,
         String(c.plate_number || ''),
-        String(c.owner_name || '')
+        String(c.owner_name || ''),
+        String(c.customer_name || '')
       ).run()
       
       migratedCount++
@@ -5157,8 +5224,8 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
   await DB.prepare(`
     INSERT INTO motorcycle_history (
       motorcycle_id, change_type, field_name, old_value, new_value, 
-      changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, change_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+      changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, current_contractor_name, change_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
   `).bind(
     contract.motorcycle_id,
     'business_contract_completed',  // change_type 추가
@@ -5170,7 +5237,8 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
     `📋 계약번호: ${contract.contract_number}\n🏢 업체: ${contract.company_name || '알 수 없음'}\n📅 계약기간: ${contract.contract_start_date || contract.start_date} ~ ${contract.contract_end_date || contract.end_date}\n✅ 완료일: ${today}`,
     contract.chassis_number,  // chassis_number 추가
     String((motorcycle as any)?.plate_number || ''),
-    String((motorcycle as any)?.owner_name || '')
+    String((motorcycle as any)?.owner_name || ''),
+    String(contract.company_name || '')  // 업체 계약자 이름
   ).run()
   
   console.log(`✅ 업체계약 완료 이력 저장: ${contract.contract_number}, 업체: ${contract.company_name}, 차대번호: ${contract.chassis_number}`)
@@ -8824,8 +8892,8 @@ app.post('/api/work-contracts', async (c) => {
       await DB.prepare(`
         INSERT INTO motorcycle_history (
           motorcycle_id, change_type, field_name, old_value, new_value, 
-          changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, change_date
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+          changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, current_contractor_name, change_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         data.motorcycle_id,
         'work_contract_created',
@@ -8837,7 +8905,8 @@ app.post('/api/work-contracts', async (c) => {
         `📋 계약번호: ${contract_number}\n👤 근로자: ${data.worker_name}\n📞 전화번호: ${data.worker_phone}\n📅 생성일: ${today}`,
         motorcycleInfo.chassis_number,
         String(motorcycleInfo.plate_number || ''),
-        String(motorcycleInfo.owner_name || '')
+        String(motorcycleInfo.owner_name || ''),
+        String(data.worker_name || '')  // 임시렌트 계약자(근로자) 이름
       ).run()
       
       console.log(`✅ 임시렌트 계약 이력 저장 완료: ${contract_number}, 오토바이: ${motorcycleInfo.plate_number}`)
