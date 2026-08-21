@@ -796,9 +796,9 @@
                 const params = new URLSearchParams({ page: page.toString(), limit: '50' });
                 if (search) params.append('search', search);
                 
-                console.log('📡 API 요청:', `/api/all-contracts?${params.toString()}`);
+                console.log('📡 API 요청:', `/api/contracts?${params.toString()}`);
                 
-                const response = await axios.get(`/api/all-contracts?${params.toString()}`);
+                const response = await axios.get(`/api/contracts?${params.toString()}`);
                 
                 // 서버에서 이미 정렬된 데이터 (프론트엔드 정렬 불필요)
                 contracts = response.data.data || [];
