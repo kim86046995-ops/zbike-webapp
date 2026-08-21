@@ -3113,9 +3113,20 @@ app.get('/api/contracts', async (c) => {
       : await countStmt.first()
     const total = countResult?.total || 0
     
-    // 1단계: 계약서만 먼저 조회 (JOIN 없이, 페이지네이션 적용, 검색 조건 포함)
+    // 최적화된 단일 쿼리: JOIN으로 한 번에 모든 데이터 가져오기
     let query = `
-      SELECT * FROM contracts c
+      SELECT 
+        c.*,
+        m.plate_number,
+        m.vehicle_name,
+        cu.name as customer_name,
+        cu.phone as customer_phone,
+        cu.postcode as customer_postcode,
+        cu.address as customer_address,
+        cu.detail_address as customer_detail_address
+      FROM contracts c
+      LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
+      LEFT JOIN customers cu ON c.customer_id = cu.id
       WHERE c.deleted_at IS NULL
     `
     
@@ -3123,9 +3134,7 @@ app.get('/api/contracts', async (c) => {
     
     // 주민등록번호로 필터링 (고객 포털용)
     if (residentNumber) {
-      query += ` AND c.customer_id IN (
-        SELECT id FROM customers WHERE resident_number = ?
-      )`
+      query += ` AND cu.resident_number = ?`
       params.push(residentNumber)
     }
     
@@ -3133,8 +3142,8 @@ app.get('/api/contracts', async (c) => {
     if (search) {
       query += ` AND (
         c.contract_number LIKE ? OR
-        c.customer_id IN (SELECT id FROM customers WHERE name LIKE ?) OR
-        c.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+        cu.name LIKE ? OR
+        m.plate_number LIKE ?
       )`
       const searchPattern = `%${search}%`
       params.push(searchPattern, searchPattern, searchPattern)
@@ -3149,42 +3158,8 @@ app.get('/api/contracts', async (c) => {
     
     const contracts = result.results || []
     
-    // 2단계: 필요한 motorcycle_id와 customer_id 수집
-    const motorcycleIds = [...new Set(contracts.map(c => c.motorcycle_id).filter(id => id))]
-    const customerIds = [...new Set(contracts.map(c => c.customer_id).filter(id => id))]
-    
-    // 3단계: 오토바이 정보와 고객 정보를 병렬로 조회
-    const [motorcycles, customers] = await Promise.all([
-      motorcycleIds.length > 0
-        ? DB.prepare(`SELECT id, plate_number, vehicle_name FROM motorcycles WHERE id IN (${motorcycleIds.join(',')})`).all()
-        : Promise.resolve({ results: [] }),
-      customerIds.length > 0
-        ? DB.prepare(`SELECT id, name, phone, postcode, address, detail_address FROM customers WHERE id IN (${customerIds.join(',')})`).all()
-        : Promise.resolve({ results: [] })
-    ])
-    
-    // 4단계: 데이터 병합
-    const motorcycleMap = Object.fromEntries((motorcycles.results || []).map(m => [m.id, m]))
-    const customerMap = Object.fromEntries((customers.results || []).map(c => [c.id, c]))
-    
-    const enrichedContracts = contracts.map(contract => {
-      const motorcycle = motorcycleMap[contract.motorcycle_id] || {}
-      const customer = customerMap[contract.customer_id] || {}
-      
-      return {
-        ...contract,
-        plate_number: motorcycle.plate_number,
-        vehicle_name: motorcycle.vehicle_name,
-        customer_name: customer.name,
-        customer_phone: customer.phone,
-        customer_postcode: customer.postcode,
-        customer_address: customer.address,
-        customer_detail_address: customer.detail_address
-      }
-    })
-    
     return c.json({
-      data: enrichedContracts,
+      data: contracts,
       pagination: {
         page,
         limit,
