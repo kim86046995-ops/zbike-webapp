@@ -787,6 +787,7 @@
         
         // API에서 계약 목록 로드 (통합 API 사용 - 최적화)
         async function loadContractsFromAPI(page = 1, search = '') {
+            const startTime = performance.now();
             try {
                 console.log('🚀 loadContractsFromAPI 시작:', { page, search });
                 currentPage = page;
@@ -797,8 +798,12 @@
                 if (search) params.append('search', search);
                 
                 console.log('📡 API 요청:', `/api/contracts?${params.toString()}`);
+                const apiStartTime = performance.now();
                 
                 const response = await axios.get(`/api/contracts?${params.toString()}`);
+                
+                const apiEndTime = performance.now();
+                console.log(`⏱️ API 응답 시간: ${(apiEndTime - apiStartTime).toFixed(0)}ms`);
                 
                 // 서버에서 이미 정렬된 데이터 (프론트엔드 정렬 불필요)
                 contracts = response.data.data || [];
@@ -812,12 +817,18 @@
                 
                 filteredContracts = contracts;
                 try {
+                    const filterStartTime = performance.now();
                     filterContracts(); // 타입/상태 필터 적용
+                    const filterEndTime = performance.now();
+                    console.log(`⏱️ 필터 처리 시간: ${(filterEndTime - filterStartTime).toFixed(0)}ms`);
                 } catch (filterError) {
                     console.error('❌ filterContracts 에러:', filterError);
                     // 필터 에러가 발생해도 전체 목록은 표시
                     renderContracts();
                 }
+                
+                const endTime = performance.now();
+                console.log(`⏱️ 전체 로딩 시간: ${(endTime - startTime).toFixed(0)}ms`);
             } catch (error) {
                 console.error('❌ loadContractsFromAPI 에러:', error);
                 console.error('❌ 에러 상세:', error.response?.data, error.message, error.stack);
@@ -946,6 +957,7 @@
         }
 
         function renderContracts() {
+            const renderStartTime = performance.now();
             console.log('🎨 renderContracts() 시작, filteredContracts:', filteredContracts.length, '건');
             const listEl = document.getElementById('contractList');
             
@@ -1119,7 +1131,8 @@
                 });
                 
                 listEl.innerHTML = htmlArray.join('');
-                console.log('✅ renderContracts() 완료 - ', filteredContracts.length, '건 렌더링됨');
+                const renderEndTime = performance.now();
+                console.log(`✅ renderContracts() 완료 - ${filteredContracts.length}건 렌더링됨 (${(renderEndTime - renderStartTime).toFixed(0)}ms)`);
                 renderPagination(); // 페이지네이션 UI 렌더링
         }
 
