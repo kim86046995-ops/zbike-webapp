@@ -1663,9 +1663,15 @@
                     
                     // 2. 상세 이력 추가 (보험, 오토바이 정보 변경 등)
                     if (detailedHistory && detailedHistory.length > 0) {
+                        console.log('🔍 상세 이력 데이터:', detailedHistory);
                         detailedHistory.forEach((h, index) => {
                             // 계약 완료/해지 이력은 제외 (위에서 이미 추가함)
                             if (h.field_name !== '계약 완료' && h.field_name !== '업체계약 완료' && h.field_name !== '계약 해지') {
+                                console.log(`✅ 이력 추가 [${index}]:`, {
+                                    field_name: h.field_name,
+                                    current_plate_number: h.current_plate_number,
+                                    current_owner_name: h.current_owner_name
+                                });
                                 allHistory.push({
                                     change_date: h.change_date,
                                     field_name: h.field_name,
@@ -1683,6 +1689,8 @@
                             }
                         });
                     }
+                    
+                    console.log('📋 최종 통합 이력:', allHistory);
                     
                     // 날짜순 정렬 (최신순)
                     allHistory.sort((a, b) => new Date(b.change_date) - new Date(a.change_date));

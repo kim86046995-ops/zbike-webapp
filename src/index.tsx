@@ -1690,6 +1690,8 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
         h.change_date,
         h.notes,
         h.chassis_number,
+        h.current_plate_number,
+        h.current_owner_name,
         u.name as changed_by_name
       FROM motorcycle_history h
       LEFT JOIN users u ON h.changed_by = u.id
