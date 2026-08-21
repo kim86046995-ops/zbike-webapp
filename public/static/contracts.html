@@ -811,16 +811,23 @@
                 console.log('📊 전체 계약:', pagination.total || 0, '개 - 페이지:', currentPage, '/', totalPages);
                 
                 filteredContracts = contracts;
-                filterContracts(); // 타입/상태 필터 적용
+                try {
+                    filterContracts(); // 타입/상태 필터 적용
+                } catch (filterError) {
+                    console.error('❌ filterContracts 에러:', filterError);
+                    // 필터 에러가 발생해도 전체 목록은 표시
+                    renderContracts();
+                }
             } catch (error) {
                 console.error('❌ loadContractsFromAPI 에러:', error);
-                alert('계약서 목록을 불러오는 중 오류가 발생했습니다.\n' + (error.response?.data?.error || error.message));
+                console.error('❌ 에러 상세:', error.response?.data, error.message, error.stack);
                 // 에러 시에도 빈 배열로 초기화하고 UI 업데이트
                 contracts = [];
                 filteredContracts = [];
                 // renderContracts()를 직접 호출하여 빈 상태 UI 표시
                 renderContracts();
-                // 에러를 상위로 전파하지 않음 (무한 로딩 방지)
+                // 에러를 상위로 전파
+                throw error;
             }
         }
 
