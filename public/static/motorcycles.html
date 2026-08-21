@@ -1676,7 +1676,9 @@
                                     bgColor: 'bg-purple-50',
                                     changed_by_name: h.changed_by_name,
                                     notes: h.notes,
-                                    index: index
+                                    index: index,
+                                    current_plate_number: h.current_plate_number,
+                                    current_owner_name: h.current_owner_name
                                 });
                             }
                         });
@@ -1714,6 +1716,14 @@
                                                     <div class="text-xs text-gray-600 mt-1 bg-white p-2 rounded">
                                                         <i class="fas fa-comment-alt mr-1"></i>
                                                         ${h.notes}
+                                                    </div>
+                                                ` : ''}
+                                                ${h.current_plate_number || h.current_owner_name ? `
+                                                    <div class="text-xs text-blue-600 mt-1 bg-blue-50 px-2 py-1 rounded inline-block">
+                                                        <i class="fas fa-motorcycle mr-1"></i>
+                                                        ${h.current_plate_number ? `번호판: <span class="font-bold">${h.current_plate_number}</span>` : ''}
+                                                        ${h.current_plate_number && h.current_owner_name ? ' / ' : ''}
+                                                        ${h.current_owner_name ? `명의자: <span class="font-bold">${h.current_owner_name}</span>` : ''}
                                                     </div>
                                                 ` : ''}
                                             </div>
@@ -1840,6 +1850,30 @@
                                 <p class="text-sm text-gray-800 whitespace-pre-wrap">
                                     ${history.change_type === 'scrapped' && history.field_name === '폐지 처리' && history.old_value && history.old_value !== '-' ? `폐지 전 번호판: ${history.old_value}\n\n` : ''}${history.notes || ''}
                                 </p>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- 변경 당시 오토바이 정보 -->
+                        ${history.current_plate_number || history.current_owner_name ? `
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <p class="text-xs text-blue-600 font-semibold mb-3">
+                                    <i class="fas fa-motorcycle mr-1"></i>
+                                    변경 당시 오토바이 정보
+                                </p>
+                                <div class="grid grid-cols-2 gap-4">
+                                    ${history.current_plate_number ? `
+                                    <div>
+                                        <p class="text-xs text-gray-600 mb-1">번호판</p>
+                                        <p class="text-sm font-bold text-blue-700">${history.current_plate_number}</p>
+                                    </div>
+                                    ` : ''}
+                                    ${history.current_owner_name ? `
+                                    <div>
+                                        <p class="text-xs text-gray-600 mb-1">명의자</p>
+                                        <p class="text-sm font-bold text-blue-700">${history.current_owner_name}</p>
+                                    </div>
+                                    ` : ''}
+                                </div>
                             </div>
                         ` : ''}
                     </div>
