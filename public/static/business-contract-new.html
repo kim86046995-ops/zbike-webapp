@@ -123,7 +123,7 @@
                             <input type="radio" name="supplier_type" value="daesung" required class="peer hidden" onchange="toggleSupplierType()" checked>
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-store text-3xl text-green-600 mb-2"></i>
-                                <p class="font-bold text-lg">대성</p>
+                                <p class="font-bold text-lg">제트바이크</p>
                                 <p class="text-sm text-gray-600 mt-2">개인사업자</p>
                             </div>
                         </label>
@@ -323,9 +323,9 @@
                         <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
                             <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">공급자 (사업자) 정보</h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="font-size: 1.1rem;">
-                                <p><strong>상호:</strong> <span id="supplierName">대성</span></p>
-                                <p><strong>사업자등록번호:</strong> <span id="supplierBusinessNumber">487-39-01128</span></p>
-                                <p style="display: flex; align-items: center; flex-wrap: wrap;"><strong>대표자:</strong> <span id="supplierRepresentative">김상춘</span><span style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 100px; min-width: 100px; min-height: 100px; flex-shrink: 0; margin-left: 12px; border: 3px solid #4F46E5; border-radius: 50%; background: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);"><img id="supplierStamp" src="/static/stamp-kim.png?v=20260520" alt="도장" style="width: 85px; height: 85px; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=color:#4F46E5;font-weight:bold;font-size:1.2rem;>인</span>'"></span></p>
+                                <p><strong>상호:</strong> <span id="supplierName">제트바이크</span></p>
+                                <p><strong>사업자등록번호:</strong> <span id="supplierBusinessNumber">331-18-02703</span></p>
+                                <p style="display: flex; align-items: center; flex-wrap: wrap;"><strong>대표자:</strong> <span id="supplierRepresentative">김용현</span><span style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 100px; min-width: 100px; min-height: 100px; flex-shrink: 0; margin-left: 12px; border: 3px solid #4F46E5; border-radius: 50%; background: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);"><img id="supplierStamp" src="/static/stamp-kim.png?v=20260805" alt="도장" style="width: 85px; height: 85px; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=color:#4F46E5;font-weight:bold;font-size:1.2rem;>인</span>'"></span></p>
                             </div>
                         </div>
                         
@@ -729,18 +729,18 @@
                 // 아형동 법인 정보로 변경
                 document.getElementById('supplierName').textContent = '(주)아형동';
                 document.getElementById('supplierBusinessNumber').textContent = '431-81-03914';
-                document.getElementById('supplierRepresentative').textContent = '김상춘';
+                document.getElementById('supplierRepresentative').textContent = '김용현';
                 document.getElementById('supplierStamp').src = '/static/stamp-ahyeongdong.png?v=' + Date.now();
                 
                 console.log('법인 선택: 아형동');
             } else {
-                // 대성 개인사업자 정보로 복원
-                document.getElementById('supplierName').textContent = '대성';
-                document.getElementById('supplierBusinessNumber').textContent = '487-39-01128';
-                document.getElementById('supplierRepresentative').textContent = '김상춘';
-                document.getElementById('supplierStamp').src = '/static/stamp-kim.png?v=20260520';
+                // 제트바이크 개인사업자 정보로 복원
+                document.getElementById('supplierName').textContent = '제트바이크';
+                document.getElementById('supplierBusinessNumber').textContent = '331-18-02703';
+                document.getElementById('supplierRepresentative').textContent = '김용현';
+                document.getElementById('supplierStamp').src = '/static/stamp-kim.png?v=20260805';
                 
-                console.log('개인사업자 선택: 대성');
+                console.log('개인사업자 선택: 제트바이크');
             }
         }
 

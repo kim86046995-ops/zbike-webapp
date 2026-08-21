@@ -417,7 +417,15 @@
         <main class="w-full px-4 py-4 md:py-8">
             <!-- 필터 -->
             <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">회사명</label>
+                        <select id="companyFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="">전체</option>
+                            <option value="대성">대성</option>
+                            <option value="(주)아형동">(주)아형동</option>
+                        </select>
+                    </div>
                     <div>
                         <label class="block text-sm font-bold mb-2">계약 타입</label>
                         <select id="typeFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" style="max-height: none;">
@@ -439,7 +447,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-2">검색</label>
-                        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="계약번호, 고객명, 번호판 (전체 DB 검색)" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="계약번호, 고객명, 번호판" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                     </div>
                 </div>
             </div>
@@ -655,8 +663,8 @@
                     statusFilterElement.value = statusParam;
                 }
                 
-                loadCompanySettings();
-                loadContracts();
+                await loadCompanySettings();
+                await loadContracts();
             }
         });
 
@@ -777,54 +785,60 @@
             if (paginationEl) paginationEl.innerHTML = html;
         }
         
-        // API에서 계약 목록 로드
+        // API에서 계약 목록 로드 (통합 API 사용 - 최적화)
         async function loadContractsFromAPI(page = 1, search = '') {
-            currentPage = page;
-            currentSearch = search;
-            
-            // 개인 계약서와 업체 계약서를 모두 불러오기 (페이지네이션 + 검색)
-            const params = new URLSearchParams({ page: page.toString(), limit: '50' });
-            if (search) params.append('search', search);
-            
-            const [personalResponse, businessResponse] = await Promise.all([
-                axios.get(`/api/contracts?${params.toString()}`),
-                axios.get(`/api/business-contracts?${params.toString()}`)
-            ]);
-            
-            // 개인 계약서 데이터
-            const personalContracts = (personalResponse.data.data || []).map(c => ({
-                ...c,
-                // contract_type은 원본 유지 (temp_rent, lease, rent 등)
-            }));
-            
-            // 업체 계약서 데이터
-            const businessContracts = (businessResponse.data.data || []).map(c => ({
-                ...c,
-                contract_type: 'business',
-                customer_name: c.company_name,  // 업체명을 customer_name으로 매핑
-                plate_number: c.plate_number || ''  // 번호판 정보
-            }));
-            
-            // 두 목록을 합치고 생성일 기준 정렬
-            contracts = [...personalContracts, ...businessContracts].sort((a, b) => {
-                return new Date(b.created_at) - new Date(a.created_at);
-            });
-            
-            // 페이지네이션 정보 계산
-            const personalTotal = personalResponse.data.pagination?.total || 0;
-            const businessTotal = businessResponse.data.pagination?.total || 0;
-            const total = personalTotal + businessTotal;
-            totalPages = Math.ceil(total / 50);
-            
-            console.log('📊 전체 계약:', total, '개 (페이지:', currentPage, '/', totalPages, ')');
-            
-            filteredContracts = contracts;
-            filterContracts(); // 타입/상태 필터 적용
+            try {
+                console.log('🚀 loadContractsFromAPI 시작:', { page, search });
+                currentPage = page;
+                currentSearch = search;
+                
+                // 통합 API 호출 (서버에서 이미 정렬됨)
+                const params = new URLSearchParams({ page: page.toString(), limit: '50' });
+                if (search) params.append('search', search);
+                
+                console.log('📡 API 요청:', `/api/all-contracts?${params.toString()}`);
+                
+                const response = await axios.get(`/api/all-contracts?${params.toString()}`);
+                
+                // 서버에서 이미 정렬된 데이터 (프론트엔드 정렬 불필요)
+                contracts = response.data.data || [];
+                
+                // 페이지네이션 정보
+                const pagination = response.data.pagination || {};
+                currentPage = pagination.page || 1;
+                totalPages = pagination.totalPages || 1;
+                
+                console.log('📊 전체 계약:', pagination.total || 0, '개 - 페이지:', currentPage, '/', totalPages);
+                
+                filteredContracts = contracts;
+                filterContracts(); // 타입/상태 필터 적용
+            } catch (error) {
+                console.error('❌ loadContractsFromAPI 에러:', error);
+                alert('계약서 목록을 불러오는 중 오류가 발생했습니다.\n' + (error.response?.data?.error || error.message));
+                // 에러 시에도 빈 배열로 초기화하고 UI 업데이트
+                contracts = [];
+                filteredContracts = [];
+                // renderContracts()를 직접 호출하여 빈 상태 UI 표시
+                renderContracts();
+                // 에러를 상위로 전파하지 않음 (무한 로딩 방지)
+            }
         }
 
         async function loadContracts(forceRefresh = false) {
+            console.log('🔄 loadContracts 시작');
+            
+            // 로딩 UI 표시
+            const listEl = document.getElementById('contractList');
+            listEl.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                    <p class="text-lg font-bold text-gray-800">계약서 목록 불러오는 중...</p>
+                </div>
+            `;
+            
             try {
                 await loadContractsFromAPI(currentPage, currentSearch);
+                console.log('✅ loadContracts 완료');
             } catch (error) {
                 console.error('❌ 계약서 목록 로드 실패:', error);
                 
@@ -836,7 +850,7 @@
                     return;
                 }
                 
-                document.getElementById('contractList').innerHTML = `
+                listEl.innerHTML = `
                     <div class="text-center py-12">
                         <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
                         <p class="text-lg font-bold text-gray-800 mb-2">계약서 목록을 불러오는데 실패했습니다</p>
@@ -852,13 +866,26 @@
         }
 
         function filterContracts() {
+            const companyFilter = document.getElementById('companyFilter').value;
             const typeFilter = document.getElementById('typeFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
             
-            console.log('🔍 필터 시작 - 타입:', typeFilter, '상태:', statusFilter);
+            console.log('🔍 필터 시작 - 회사명:', companyFilter, '타입:', typeFilter, '상태:', statusFilter);
             console.log('📊 전체 계약 수:', contracts.length);
 
             filteredContracts = contracts.filter(c => {
+                // 회사명 매칭 (최우선)
+                let matchCompany = !companyFilter;
+                if (companyFilter) {
+                    if (companyFilter === '대성') {
+                        // 대성 = 일반 개인 계약서 (source_type이 'personal')
+                        matchCompany = c.source_type === 'personal';
+                    } else {
+                        // 법인 계약서 = company_name으로 필터링
+                        matchCompany = c.company_name === companyFilter;
+                    }
+                }
+                
                 // 타입 매칭 로직 개선
                 let matchType = !typeFilter;
                 if (typeFilter) {
@@ -897,7 +924,7 @@
                     }
                 }
                 
-                const finalMatch = matchType && matchStatus;
+                const finalMatch = matchCompany && matchType && matchStatus;
                 
                 if (typeFilter === 'temp_rent') {
                     console.log('✅ 임시렌트 최종 결과:', c.contract_number, 'matchType:', matchType, 'matchStatus:', matchStatus, '→ 표시:', finalMatch);
@@ -981,8 +1008,8 @@
                 // 서명 여부에 따라 상태 텍스트 결정
                 let statusText = '';
                 if (c.status === 'pending') {
-                    // pending 상태는 무조건 "서명대기"
-                    statusText = '서명대기';
+                    // pending 상태: 서명 데이터 있으면 "진행중", 없으면 "서명대기"
+                    statusText = (c.signature_data && c.signature_data !== '') ? '진행중' : '서명대기';
                 } else if (c.status === 'active') {
                     // 임시렌트는 무조건 "진행중"으로 표시
                     if (c.contract_type === 'temp_rent') {

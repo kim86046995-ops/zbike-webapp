@@ -605,10 +605,10 @@
                             <div id="landlordInfo" class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
                                 <h3 class="font-bold text-lg mb-3">임대인 (업체) 정보</h3>
                                 <div class="space-y-1 text-gray-800">
-                                    <p><span class="font-semibold">상호명:</span> <span id="landlordName">대성</span></p>
-                                    <p><span class="font-semibold">사업자등록번호:</span> <span id="landlordBusinessNumber">487-39-01128</span></p>
-                                    <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> <span id="landlordRepresentative">김상춘</span><img id="landlordStamp" src="/static/stamp-kim.png?v=20260512" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
-                                    <p><span class="font-semibold">주소:</span> <span id="landlordAddress">광주광역시 광산구 신가삼효로 31</span></p>
+                                    <p><span class="font-semibold">상호명:</span> <span id="landlordName">제트바이크</span></p>
+                                    <p><span class="font-semibold">사업자등록번호:</span> <span id="landlordBusinessNumber">331-18-02703</span></p>
+                                    <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> <span id="landlordRepresentative">김용현</span><img id="landlordStamp" src="/static/stamp-kim.png?v=20260805" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
+                                    <p><span class="font-semibold">주소:</span> <span id="landlordAddress">전남광주통합특별시 광산구 목련로 315</span></p>
                                     <p><span class="font-semibold">연락처:</span> <span id="landlordPhone">010-3997-6991</span></p>
                                 </div>
                             </div>
@@ -1289,13 +1289,13 @@
                 
                 console.log('법인 계약 활성화: 아형동');
             } else {
-                // 법인 해제됨 - 대성 개인사업자 정보로 복원
-                document.getElementById('landlordName').textContent = '대성';
-                document.getElementById('landlordBusinessNumber').textContent = '487-39-01128';
-                document.getElementById('landlordRepresentative').textContent = '김상춘';
-                document.getElementById('landlordAddress').textContent = '광주광역시 광산구 신가삼효로 31';
+                // 법인 해제됨 - 제트바이크 개인사업자 정보로 복원
+                document.getElementById('landlordName').textContent = '제트바이크';
+                document.getElementById('landlordBusinessNumber').textContent = '331-18-02703';
+                document.getElementById('landlordRepresentative').textContent = '김용현';
+                document.getElementById('landlordAddress').textContent = '전남광주통합특별시 광산구 목련로 315';
                 document.getElementById('landlordPhone').textContent = '010-3997-6991';
-                document.getElementById('landlordStamp').src = '/static/stamp-kim.png?v=20260512';
+                document.getElementById('landlordStamp').src = '/static/stamp-kim.png?v=20260805';
                 
                 // UI 업데이트
                 corporateToggle.classList.remove('border-purple-600', 'bg-purple-50');
