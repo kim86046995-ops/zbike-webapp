@@ -624,6 +624,7 @@
                 // URL 파라미터로 전달된 상태 필터 확인
                 const urlParams = new URLSearchParams(window.location.search);
                 const statusParam = urlParams.get('status');
+                const forceRefreshParam = urlParams.get('_');  // 강제 새로고침 파라미터
                 
                 // 상태 필터 설정
                 if (statusParam) {
@@ -645,7 +646,8 @@
                 }
                 
                 console.log('📋 오토바이 목록 로딩 시작...');
-                await loadMotorcycles();
+                // 강제 새로고침 파라미터가 있으면 캐시 무시
+                await loadMotorcycles(!!forceRefreshParam);
                 console.log('✅ 오토바이 목록 로딩 완료');
             } else {
                 console.log('❌ 인증 실패');
