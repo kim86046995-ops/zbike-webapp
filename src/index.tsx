@@ -4164,24 +4164,28 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
       .bind(status, today, today, id).run()
     console.log(`📅 ${isBusinessContract ? 'Business ' : ''}Contract #${id} ${status} - ${endDateField} and ${dateField} set to ${today}`)
     
-    // 이력 기록: 계약 해지/완료
-    await recordContractHistory(
-      DB,
-      Number(id),
-      oldContract.motorcycle_id,
-      oldContract.customer_id,
-      oldContract.contract_number,
-      oldContract.contract_type,
-      status,
-      oldStatus,
-      status,
-      oldContract.start_date,
-      endDate,
-      oldContract.monthly_fee,
-      oldContract.deposit,
-      oldContract.special_terms,
-      status === 'cancelled' ? '수동 해지' : '계약 완료'
-    )
+    // 이력 기록: 계약 해지/완료 (개인 계약만)
+    if (!isBusinessContract) {
+      await recordContractHistory(
+        DB,
+        Number(id),
+        oldContract.motorcycle_id,
+        oldContract.customer_id,
+        oldContract.contract_number,
+        oldContract.contract_type,
+        status,
+        oldStatus,
+        status,
+        oldContract.start_date,
+        endDate,
+        oldContract.monthly_fee,
+        oldContract.deposit,
+        oldContract.special_terms,
+        status === 'cancelled' ? '수동 해지' : '계약 완료'
+      )
+    } else {
+      console.log(`ℹ️ 업체 계약 해지/완료 - contract_history 기록 생략 (customer_id 없음)`)
+    }
   } else {
     const tableName = isBusinessContract ? 'business_contracts' : 'contracts'
     await DB.prepare(`UPDATE ${tableName} SET status = ?, updated_at = datetime("now", "+9 hours") WHERE id = ?`)
