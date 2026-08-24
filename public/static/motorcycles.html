@@ -2646,14 +2646,14 @@
                     `💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.`
                 );
                 
-                // 대시보드 캐시 무효화 (즉시 반영)
-                sessionStorage.removeItem('dashboardStats');
-                sessionStorage.removeItem('dashboardStatsTime');
-                sessionStorage.removeItem('motorcycles_cache');
-                console.log('✅ 대시보드 캐시 무효화 완료');
+                // 🔥 모든 캐시 강제 삭제
+                sessionStorage.clear();
+                localStorage.removeItem('motorcycles_cache');
+                localStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 모든 캐시 강제 삭제 완료');
                 
-                // 페이지 완전 새로고침 (슬라이드 업데이트 보장)
-                window.location.reload();
+                // 🔄 강제 새로고침 (캐시 무시)
+                window.location.href = window.location.href.split('?')[0] + '?_=' + Date.now();
             } catch (error) {
                 console.error('❌ 계약 해지 실패:', error);
                 alert(`❌ 계약 해지에 실패했습니다.\n\n${error.response?.data?.error || error.message}`);
