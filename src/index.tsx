@@ -3680,6 +3680,8 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     customer_id: data.customer_id,
     start_date: data.start_date,
     end_date: data.end_date,
+    end_date_type: typeof data.end_date,
+    end_date_empty: !data.end_date,
     monthly_fee: data.monthly_fee,
     deposit: data.deposit,
     contractNumber,
@@ -3688,6 +3690,12 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     motorcycle_driving_range: motorcycle.driving_range,
     motorcycle_insurance_company: motorcycle.insurance_company
   })
+  
+  // 🚨 end_date 필수 값 검증
+  if (!data.end_date || data.end_date === '' || data.end_date === 'undefined') {
+    console.error('❌ end_date가 비어있거나 유효하지 않습니다:', data.end_date)
+    return c.json({ error: '계약 종료일이 필요합니다' }, 400)
+  }
   
   const result = await DB.prepare(`
     INSERT INTO contracts (
