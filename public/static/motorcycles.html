@@ -829,9 +829,10 @@
                     const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
                     const insuranceCompany = (m.insurance_company || '').toLowerCase();
                     
-                    // 번호판은 공백/특수문자로 분리하여 각 토큰이 검색어로 시작하는지 확인
-                    const plateTokens = plateNumber.split(/[\s\-]+/).filter(t => t.length > 0);
-                    const plateMatches = plateTokens.some(token => token.startsWith(searchTerm));
+                    // 번호판은 공백/특수문자 제거하고 포함 여부 확인 (여러 번호 검색 가능)
+                    const plateClean = plateNumber.replace(/[\s\-]+/g, '');
+                    const searchClean = searchTerm.replace(/[\s\-]+/g, '');
+                    const plateMatches = plateClean.includes(searchClean);
                     
                     // 다른 필드는 포함 여부만 확인 (차대번호 제외)
                     const matchesSearch = plateMatches ||
