@@ -3176,8 +3176,8 @@ app.get('/api/contracts', async (c) => {
   }
 })
 
-// 오토바이별 계약 이력 조회
-app.get('/api/motorcycles/:id/contracts', async (c) => {
+// 오토바이별 계약 이력 조회 (인증 필요)
+app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const motorcycleId = c.req.param('id')
   
@@ -6163,6 +6163,29 @@ app.patch('/api/business-contracts/:id/status', authMiddleware, async (c) => {
     `).bind(status, today, today, id).run()
     
     console.log(`📅 Business Contract #${id} ${status} - contract_end_date and ${dateField} set to ${today}`)
+    
+    // ✅ 업체 계약 해지/완료 시 오토바이 상태 변경 추가 (개인 계약과 동일하게)
+    const motorcycleId = oldContract.motorcycle_id
+    
+    if (motorcycleId) {
+      // 1. 오토바이 상태를 '휴차중(available)'으로 변경
+      await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+        .bind('available', motorcycleId).run()
+      
+      // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지, owner_name도 유지)
+      await DB.prepare(`
+        UPDATE motorcycles 
+        SET monthly_fee = NULL,
+            contract_type_text = NULL,
+            deposit = NULL,
+            contract_start_date = NULL,
+            contract_end_date = NULL,
+            updated_at = datetime("now", "+9 hours") 
+        WHERE id = ?
+      `).bind(motorcycleId).run()
+      
+      console.log(`✅ Business Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic info, insurance info, and owner_name preserved)`)
+    }
   } else {
     await DB.prepare(`
       UPDATE business_contracts 
