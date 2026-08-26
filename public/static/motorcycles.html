@@ -848,9 +848,12 @@
                         .filter(Boolean);  // null/undefined 제거
                     
                     let plateMatches = false;
+                    let isNumberSearch = false;  // 숫자 검색인지 플래그
                     
                     // 숫자 검색어가 있으면 번호판에서 4자리 숫자 추출 후 비교
                     if (numberSearchTerms.length > 0) {
+                        isNumberSearch = true;  // 숫자 검색 플래그 설정
+                        
                         // 번호판에서 4자리 연속 숫자만 추출 (예: "금주읍의1983" → ["1983"])
                         const plateNumbers = plateNumber.match(/\d{4}/g) || [];
                         
@@ -887,8 +890,16 @@
                 return true;
             });
             
-            // 검색어가 있고 결과가 없으면 폐지 전 번호로 API 재검색
-            if (searchTerm && filtered.length === 0) {
+            // 검색어에서 숫자 검색인지 확인
+            const searchTerms = searchTerm.split(/\s+/).filter(t => t.length > 0);
+            const numberSearchTerms = searchTerms
+                .map(term => term.match(/\d{4}/g))
+                .flat()
+                .filter(Boolean);
+            const isNumberSearch = numberSearchTerms.length > 0;
+            
+            // ✅ 숫자 검색이 아닐 때만 API 재검색 (무한 루프 방지)
+            if (searchTerm && filtered.length === 0 && !isNumberSearch) {
                 try {
                     const response = await axios.get(`/api/motorcycles?search=${encodeURIComponent(searchTerm)}`);
                     const searchResults = response.data;
