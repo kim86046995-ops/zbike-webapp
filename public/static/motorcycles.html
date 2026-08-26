@@ -2233,7 +2233,9 @@
                 console.log('✅ 기본 정보 수정 완료');
                 alert('✅ 기본 정보가 수정되었습니다');
                 hideModal();  // 모달 닫기
-                loadMotorcycles();
+                // 검색어 유지하면서 데이터만 새로고침
+                await loadMotorcycles(true);  // 강제 새로고침으로 최신 데이터 가져오기
+                filterAndSortMotorcycles();  // 현재 검색어/필터로 다시 필터링
             } catch (error) {
                 console.error('❌ 기본 정보 저장 실패:', error);
                 alert(`❌ 기본 정보 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
@@ -2275,7 +2277,9 @@
                 console.log('✅ 계약 정보 수정 완료');
                 alert('✅ 계약 정보가 수정되었습니다');
                 hideModal();  // 모달 닫기
-                loadMotorcycles();
+                // 검색어 유지하면서 데이터만 새로고침
+                await loadMotorcycles(true); filterAndSortMotorcycles();
+                filterAndSortMotorcycles();
             } catch (error) {
                 console.error('❌ 계약 정보 저장 실패:', error);
                 alert(`❌ 계약 정보 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
@@ -2351,7 +2355,7 @@
                 }
                 
                 // 캐시 무효화하고 즉시 반영
-                loadMotorcycles(true);
+                loadMotorcycles(true).then(() => filterAndSortMotorcycles());
             } catch (error) {
                 console.error('특이사항 저장 실패:', error);
                 alert(`❌ 특이사항 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
@@ -2470,6 +2474,7 @@
                 console.log('🔄 오토바이 목록 새로고침 시작...');
                 loadMotorcycles(true).then(() => {
                     console.log('✅ 목록 새로고침 완료');
+                    filterAndSortMotorcycles();  // 검색어 유지
                 }).catch(err => {
                     console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
                 });
@@ -2513,7 +2518,7 @@
                 console.log('✅ 대시보드 캐시 무효화 완료');
                 
                 // 캐시를 무시하고 강제 새로고침
-                loadMotorcycles(true);
+                loadMotorcycles(true).then(() => filterAndSortMotorcycles());
             } catch (error) {
                 console.error('Error deleting motorcycle:', error);
                 alert('❌ 삭제에 실패했습니다');
@@ -2605,6 +2610,7 @@
                 console.log('🔄 오토바이 목록 새로고침 시작...');
                 loadMotorcycles(true).then(() => {
                     console.log('✅ 목록 새로고침 완료');
+                    filterAndSortMotorcycles();  // 검색어 유지
                 }).catch(err => {
                     console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
                 });
@@ -2772,7 +2778,7 @@
                 alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 유지된 정보: 차량번호, 차량명, 연식, 차대번호, 키로수, 검사기간, 특약사항\n• 초기화된 정보: 보험정보, 계약정보, 기타 정보');
                 
                 // ✅ 캐시를 무시하고 강제 새로고침 (await로 완료 대기)
-                await loadMotorcycles(true);
+                await loadMotorcycles(true); filterAndSortMotorcycles();
                 console.log('✅ UI 업데이트 완료');
             } catch (error) {
                 console.error('Error scrapping motorcycle:', error);
@@ -2832,14 +2838,14 @@
                 console.log('✅ 모든 캐시 무효화 완료');
                 
                 // ✅ 서버 저장 완료 후 즉시 최신 데이터 가져오기 (forceRefresh=true)
-                await loadMotorcycles(true);
+                await loadMotorcycles(true); filterAndSortMotorcycles();
                 console.log('✅ UI 업데이트 완료');
                 
             } catch (error) {
                 console.error('Error saving motorcycle:', error);
                 alert('저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
                 // 에러 발생 시에도 다시 로드 (서버 상태 동기화)
-                await loadMotorcycles(true);
+                await loadMotorcycles(true); filterAndSortMotorcycles();
             }
         });
 
@@ -3039,7 +3045,7 @@
                 
                 // 필터를 "수리중"으로 변경하고 데이터 새로고침
                 document.getElementById('statusFilter').value = 'maintenance';
-                await loadMotorcycles(true);
+                await loadMotorcycles(true); filterAndSortMotorcycles();
                 
                 alert(`${plateNumber} 오토바이가 정비 상태로 변경되었습니다.`);
                 
@@ -3086,7 +3092,7 @@
                 
                 // 필터를 "휴차중"으로 변경하고 데이터 새로고침
                 document.getElementById('statusFilter').value = 'available';
-                await loadMotorcycles(true);
+                await loadMotorcycles(true); filterAndSortMotorcycles();
                 
                 alert(`${plateNumber} 오토바이 정비가 완료되었습니다.`);
                 
