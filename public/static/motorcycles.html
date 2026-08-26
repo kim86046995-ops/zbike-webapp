@@ -838,12 +838,31 @@
                     const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
                     const insuranceCompany = (m.insurance_company || '').toLowerCase();
                     
-                    // 번호판은 공백/특수문자 제거하고 포함 여부 확인 (여러 번호 검색 가능)
-                    const plateClean = plateNumber.replace(/[\s\-]+/g, '');
-                    const searchClean = searchTerm.replace(/[\s\-]+/g, '');
-                    const plateMatches = plateClean.includes(searchClean);
+                    // ✅ 공백으로 구분된 여러 검색어 처리 (예: "2636 9264" → ["2636", "9264"])
+                    const searchTerms = searchTerm.split(/\s+/).filter(t => t.length > 0);
                     
-                    // 다른 필드는 포함 여부만 확인 (차대번호 제외)
+                    let plateMatches = false;
+                    
+                    // 여러 검색어가 있으면 각각 확인 (OR 조건)
+                    if (searchTerms.length > 1) {
+                        // 번호판에서 공백/특수문자 제거
+                        const plateClean = plateNumber.replace(/[\s\-]+/g, '');
+                        
+                        // 각 검색어를 번호판과 비교
+                        plateMatches = searchTerms.some(term => {
+                            const termClean = term.replace(/[\s\-]+/g, '');
+                            return plateClean.includes(termClean);
+                        });
+                        
+                        console.log(`🔍 [다중 검색] "${searchTerm}" → [${searchTerms.join(', ')}] | 번호판: ${plateNumber} | 매칭: ${plateMatches}`);
+                    } else {
+                        // 단일 검색어는 기존 방식 사용
+                        const plateClean = plateNumber.replace(/[\s\-]+/g, '');
+                        const searchClean = searchTerm.replace(/[\s\-]+/g, '');
+                        plateMatches = plateClean.includes(searchClean);
+                    }
+                    
+                    // 다른 필드는 원본 검색어로 포함 여부만 확인 (차대번호 제외)
                     const matchesSearch = plateMatches ||
                            ownerName.includes(searchTerm) || 
                            contractorName.includes(searchTerm) ||
