@@ -12,12 +12,24 @@
     <!-- 헤더 -->
     <header class="bg-indigo-600 text-white shadow-lg">
         <div class="container mx-auto px-4 py-4">
-            <div class="text-center">
-                <h1 class="text-2xl font-bold">
-                    <i class="fas fa-motorcycle mr-2"></i>
-                    Z-BIKE 고객 정보 등록
-                </h1>
-                <p class="text-sm text-indigo-100 mt-1">전자계약서 작성을 위한 정보를 입력해주세요</p>
+            <div class="flex items-center justify-between">
+                <!-- 뒤로가기 버튼 -->
+                <button onclick="history.back()" class="text-white hover:bg-indigo-700 px-3 py-2 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    <span class="hidden sm:inline">뒤로가기</span>
+                </button>
+                
+                <!-- 타이틀 (중앙) -->
+                <div class="flex-1 text-center">
+                    <h1 class="text-xl sm:text-2xl font-bold">
+                        <i class="fas fa-motorcycle mr-2"></i>
+                        Z-BIKE 고객 정보 등록
+                    </h1>
+                    <p class="text-xs sm:text-sm text-indigo-100 mt-1">전자계약서 작성을 위한 정보를 입력해주세요</p>
+                </div>
+                
+                <!-- 오른쪽 여백 (레이아웃 균형) -->
+                <div class="w-24"></div>
             </div>
         </div>
     </header>
@@ -128,9 +140,9 @@
                     <div class="flex justify-end gap-3">
                         <button 
                             type="button" 
-                            onclick="clearForm()" 
+                            onclick="history.back()" 
                             class="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-medium transition">
-                            <i class="fas fa-redo mr-2"></i>초기화
+                            <i class="fas fa-times mr-2"></i>취소하기
                         </button>
                         <button 
                             type="submit" 

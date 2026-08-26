@@ -58,8 +58,8 @@
             <div id="expired" class="hidden">
                 <div class="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
                     <i class="fas fa-exclamation-triangle text-5xl text-red-600 mb-4"></i>
-                    <h2 class="text-xl font-bold text-gray-800 mb-2">계약서가 만료되었습니다</h2>
-                    <p class="text-gray-600">이 계약서 링크는 이미 만료되었거나 완료되었습니다.</p>
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">계약서를 찾을 수 없습니다</h2>
+                    <p class="text-gray-600">요청하신 계약서가 존재하지 않거나 삭제되었습니다.</p>
                     <p class="text-sm text-gray-500 mt-2">관리자에게 문의해주세요.</p>
                 </div>
             </div>
@@ -187,22 +187,189 @@
                     </div>
                 </div>
 
+                <!-- 오토바이 출고 사진 업로드 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden mt-6">
+                    <div class="bg-blue-100 px-6 py-4 border-b-2 border-blue-300">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                            오토바이 출고 상태 사진 <span class="text-red-600">*</span>
+                        </h2>
+                        <p class="text-sm text-gray-600 mt-2">
+                            ⚠️ 반납 시 파손 여부 확인을 위해 출고 시 오토바이의 현재 상태를 촬영합니다<br>
+                            <strong>4장의 사진(앞, 뒤, 왼쪽, 오른쪽)을 모두 업로드해야 계약서가 완료됩니다</strong>
+                        </p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- 촬영 가이드 -->
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                            <h3 class="font-bold text-gray-800 mb-2">
+                                <i class="fas fa-info-circle text-yellow-600 mr-2"></i>촬영 가이드
+                            </h3>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li>✅ 번호판이 선명하게 보이도록 촬영해주세요</li>
+                                <li>✅ 밝은 곳에서 촬영해주세요 (실내조명 또는 자연광)</li>
+                                <li>✅ 오토바이 전체가 프레임 안에 들어오도록 촬영해주세요</li>
+                                <li>✅ 기존 파손 부위가 있다면 명확하게 보이도록 촬영해주세요</li>
+                            </ul>
+                        </div>
+
+                        <!-- 사진 업로드 그리드 (2x2) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 앞면 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-up text-blue-600 mr-2"></i>
+                                    앞면 (정면) <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="frontUploadBtn">
+                                    <input type="file" id="frontPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'front')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>앞면 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="frontPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="frontPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('front')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 뒷면 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-down text-blue-600 mr-2"></i>
+                                    뒷면 (후면) <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="backUploadBtn">
+                                    <input type="file" id="backPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'back')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>뒷면 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="backPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="backPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('back')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 왼쪽 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-left text-blue-600 mr-2"></i>
+                                    왼쪽 <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="leftUploadBtn">
+                                    <input type="file" id="leftPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'left')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>왼쪽 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="leftPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="leftPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('left')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 오른쪽 -->
+                            <div class="border-2 border-gray-300 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-arrow-right text-blue-600 mr-2"></i>
+                                    오른쪽 <span class="text-red-600 ml-1">*</span>
+                                </h3>
+                                
+                                <label class="block w-full mb-3" id="rightUploadBtn">
+                                    <input type="file" id="rightPhotoUpload" accept="image/*" class="hidden" onchange="uploadMotorcyclePhoto(event, 'right')">
+                                    <div class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold text-center cursor-pointer">
+                                        <i class="fas fa-camera mr-2"></i>오른쪽 촬영
+                                    </div>
+                                </label>
+                                
+                                <div id="rightPhotoPreview" class="hidden">
+                                    <div class="relative inline-block w-full">
+                                        <img id="rightPhotoImg" class="w-full h-48 object-cover rounded-lg border-2 border-green-300">
+                                        <button type="button" onclick="deleteMotorcyclePhoto('right')" 
+                                                class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 shadow-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                            <i class="fas fa-check mr-1"></i>업로드 완료
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 업로드 진행 상태 -->
+                        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 class="font-bold text-gray-800 mb-2">
+                                <i class="fas fa-tasks text-blue-600 mr-2"></i>업로드 진행 상태
+                            </h3>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div id="frontPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>앞면
+                                </div>
+                                <div id="backPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>뒷면
+                                </div>
+                                <div id="leftPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>왼쪽
+                                </div>
+                                <div id="rightPhotoStatus" class="text-gray-500">
+                                    <i class="far fa-square mr-2"></i>오른쪽
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 제출 버튼 -->
-                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-8 text-center">
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-8 text-center mt-6">
                     <p class="text-white mb-4 text-sm">
                         <strong class="text-lg">⚠️ 제출 전 필수 확인사항:</strong><br>
-                        ✅ 약관 동의 체크<br>
-                        ✅ 서명 작성<br>
-                        ✅ 신분증 업로드<br>
-                        <span class="text-yellow-300 font-bold">위 3가지 항목을 모두 완료해야 제출할 수 있습니다.</span>
+                        <span id="checkAgree" class="text-gray-400">⬜ 약관 동의 체크</span><br>
+                        <span id="checkSignature" class="text-gray-400">⬜ 서명 작성</span><br>
+                        <span id="checkIdCard" class="text-gray-400">⬜ 신분증 업로드</span><br>
+                        <span id="checkMotorcyclePhotos" class="text-gray-400">⬜ 오토바이 사진 4장 업로드</span><br>
+                        <span class="text-yellow-300 font-bold mt-2 inline-block">위 4가지 항목을 모두 완료해야 제출할 수 있습니다.</span>
                     </p>
                     <button 
                         type="button" 
                         id="submitBtn"
                         onclick="submitContract()"
-                        class="w-full bg-white text-indigo-600 py-4 px-6 rounded-lg hover:bg-gray-100 transition font-bold text-lg shadow-lg hover:shadow-xl"
+                        disabled
+                        class="w-full py-4 px-6 rounded-lg transition font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-gray-400 text-gray-200"
                     >
-                        <i class="fas fa-check-circle mr-2"></i>계약서 제출 (자동 저장됨)
+                        <i class="fas fa-lock mr-2"></i>4가지 항목을 모두 완료해주세요
                     </button>
                     <p class="text-indigo-100 text-xs mt-4">
                         ⚠️ 제출 후 계약 내용은 수정할 수 없습니다
@@ -258,6 +425,14 @@
         let contractId = '';
         let contractData = null;
         let companySettings = null;
+        
+        // 오토바이 출고 사진 URL 저장
+        let motorcyclePhotos = {
+            front: '',
+            back: '',
+            left: '',
+            right: ''
+        };
 
         // URL에서 계약 ID 가져오기
         window.addEventListener('DOMContentLoaded', async () => {
@@ -273,6 +448,15 @@
             await loadCompanySettings();
             await loadContract();
             initSignaturePad();
+            
+            // 체크박스 이벤트 리스너 추가
+            const agreeCheckbox = document.getElementById('agreeTerms');
+            if (agreeCheckbox) {
+                agreeCheckbox.addEventListener('change', updateSubmitButton);
+            }
+            
+            // 초기 버튼 상태 업데이트
+            updateSubmitButton();
         });
 
         // 업체 정보 로드 (Public API 사용 - 인증 불필요)
@@ -313,27 +497,11 @@
                 contractData = response.data;
                 
                 // 이미 서명된 계약서인 경우에도 내용을 표시 (고객이 언제든지 확인 가능)
-                displayContract(contractData);
-                
-                // 이미 서명이 완료된 경우 서명 영역 숨기기
+                // 이미 서명이 완료된 경우 완료 화면 표시
                 if (contractData.status === 'active' && contractData.signature_data) {
-                    const signatureSection = document.getElementById('signatureSection');
-                    const idCardSection = document.getElementById('idCardSection');
-                    const submitBtn = document.getElementById('submitBtn');
-                    
-                    if (signatureSection) signatureSection.classList.add('hidden');
-                    if (idCardSection) idCardSection.classList.add('hidden');
-                    if (submitBtn) submitBtn.classList.add('hidden');
-                    
-                    // 완료 메시지 표시
-                    const completedMessage = document.createElement('div');
-                    completedMessage.className = 'bg-green-50 border border-green-200 rounded-lg p-6 text-center mt-6';
-                    completedMessage.innerHTML = `
-                        <i class="fas fa-check-circle text-4xl text-green-600 mb-3"></i>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">✅ 계약이 완료되었습니다</h3>
-                        <p class="text-gray-600">계약 내용을 확인하실 수 있습니다.</p>
-                    `;
-                    document.getElementById('contractContent').appendChild(completedMessage);
+                    showCompleted();
+                } else {
+                    displayContract(contractData);
                 }
             } catch (error) {
                 console.error('계약서 로드 실패:', error);
@@ -370,6 +538,13 @@
             
             // 계약 정보 표시
             const contractInfo = document.getElementById('contractInfo');
+            
+            // 🔍 디버깅: 계약 데이터 확인
+            console.log('🔍 계약 데이터 전체:', data);
+            console.log('🔍 start_date:', data.start_date);
+            console.log('🔍 end_date:', data.end_date);
+            console.log('🔍 monthly_fee:', data.monthly_fee);
+            console.log('🔍 deposit:', data.deposit);
             
             // contract_data 안전하게 파싱 (없거나 비어있으면 빈 객체 사용)
             let info = {};
@@ -671,27 +846,24 @@
                                         <col style="width: 75%;">
                                     </colgroup>
                                     <tbody>
-                                        ${data.start_date ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">계약 시작일</td>
-                                            <td class="px-3 py-2">${data.start_date}</td>
-                                        </tr>` : ''}
-                                        ${data.end_date ? `
+                                            <td class="px-3 py-2">${data.start_date || '-'}</td>
+                                        </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">계약 종료일</td>
-                                            <td class="px-3 py-2">${data.end_date}</td>
-                                        </tr>` : ''}
-                                        ${data.monthly_fee ? `
+                                            <td class="px-3 py-2">${data.end_date || '-'}</td>
+                                        </tr>
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">렌트 대여료</td>
-                                            <td class="px-3 py-2 font-bold text-blue-600">${parseInt(data.monthly_fee).toLocaleString()}원</td>
-                                        </tr>` : ''}
+                                            <td class="px-3 py-2 font-bold text-blue-600">${data.monthly_fee ? parseInt(data.monthly_fee).toLocaleString() + '원' : '0원'}</td>
+                                        </tr>
                                         ${info.daily_fee ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">일 차감액</td>
                                             <td class="px-3 py-2">${parseInt(info.daily_fee).toLocaleString()}원</td>
                                         </tr>` : ''}
-                                        ${data.deposit ? `
+                                        ${data.deposit && data.deposit > 0 ? `
                                         <tr class="border-b">
                                             <td class="px-3 py-2 bg-gray-100 font-semibold">선납금</td>
                                             <td class="px-3 py-2 font-bold text-green-600">${parseInt(data.deposit).toLocaleString()}원</td>
@@ -986,6 +1158,56 @@
             const wrapper = document.getElementById('signatureWrapper');
             const ctx = canvas.getContext('2d');
             
+            // 캔버스 크기를 컨테이너에 맞게 조정 (종횡비 유지)
+            function resizeCanvas() {
+                // 기존 서명 데이터 저장
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const hasExistingSignature = Array.from(imageData.data).some(channel => channel !== 0);
+                
+                // 기존 서명이 있으면 임시 캔버스에 저장
+                let tempCanvas = null;
+                if (hasExistingSignature) {
+                    tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(canvas, 0, 0);
+                    console.log('💾 서명 데이터 임시 저장 (리사이즈 전)');
+                }
+                
+                const containerWidth = wrapper.offsetWidth;
+                const aspectRatio = 4; // 4:1 비율 (800:200)
+                
+                const oldWidth = canvas.width;
+                const oldHeight = canvas.height;
+                
+                // 실제 캔버스 크기 설정 (고해상도)
+                canvas.width = containerWidth * 2; // 2배 해상도
+                canvas.height = (containerWidth / aspectRatio) * 2;
+                
+                // CSS 표시 크기
+                canvas.style.width = containerWidth + 'px';
+                canvas.style.height = (containerWidth / aspectRatio) + 'px';
+                
+                // 기존 서명 복원
+                if (tempCanvas && hasExistingSignature) {
+                    ctx.drawImage(tempCanvas, 0, 0, oldWidth, oldHeight, 0, 0, canvas.width, canvas.height);
+                    console.log('✅ 서명 데이터 복원 완료 (리사이즈 후)');
+                }
+                
+                console.log('📏 캔버스 크기:', canvas.width, 'x', canvas.height);
+            }
+            
+            // 초기 크기 설정
+            resizeCanvas();
+            
+            // 창 크기 변경 시 재조정 (디바운싱 적용하여 과도한 호출 방지)
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(resizeCanvas, 200);
+            });
+            
             let isDrawing = false;
             let lastX = 0;
             let lastY = 0;
@@ -1030,22 +1252,27 @@
             function startDrawing(e) {
                 isDrawing = true;
                 const rect = canvas.getBoundingClientRect();
-                lastX = e.clientX - rect.left;
-                lastY = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                lastX = (e.clientX - rect.left) * scaleX;
+                lastY = (e.clientY - rect.top) * scaleY;
             }
             
             function draw(e) {
                 if (!isDrawing) return;
                 const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
                 
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
                 ctx.lineTo(x, y);
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 3; // 고해상도를 위해 두께 증가
                 ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.stroke();
                 
                 lastX = x;
@@ -1053,7 +1280,15 @@
             }
             
             function stopDrawing() {
-                isDrawing = false;
+                if (isDrawing) {
+                    isDrawing = false;
+                    // 서명이 끝났을 때 버튼 상태 업데이트 (렌더링 완료 후)
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            updateSubmitButton();
+                        }, 50);
+                    });
+                }
             }
         }
 
@@ -1062,6 +1297,9 @@
             const canvas = document.getElementById('signatureCanvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 제출 버튼 상태 업데이트
+            updateSubmitButton();
         }
 
         // 카메라 시작
@@ -1178,6 +1416,9 @@
             document.getElementById('preview').src = dataUrl;
             document.getElementById('previewSection').classList.remove('hidden');
             document.getElementById('captureButtons').classList.add('hidden');
+            
+            // 제출 버튼 상태 업데이트
+            updateSubmitButton();
         }
 
         // 사진 삭제
@@ -1185,45 +1426,275 @@
             idCardPhoto = '';
             document.getElementById('previewSection').classList.add('hidden');
             document.getElementById('captureButtons').classList.remove('hidden');
+            
+            // 제출 버튼 상태 업데이트
+            updateSubmitButton();
         }
 
-        // 계약서 제출
-        async function submitContract() {
-            // 약관 동의 확인
-            if (!document.getElementById('agreeTerms').checked) {
-                alert('약관에 동의해주세요.');
-                return;
-            }
+        // 이미지 압축 (Promise 기반)
+        function compressImage(file, maxSize = 1200, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    resizeImage(e.target.result, maxSize, maxSize, (resizedDataUrl) => {
+                        resolve(resizedDataUrl);
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 오토바이 사진 업로드 (이미지 압축 + Base64 변환으로 즉시 처리)
+        async function uploadMotorcyclePhoto(event, position) {
+            const file = event.target.files[0];
+            if (!file) return;
             
-            // 서명 확인
+            console.log(`🚴 ${position} 사진 업로드 시작...`);
+            
+            // 로딩 표시
+            const statusEl = document.getElementById(`${position}PhotoStatus`);
+            statusEl.innerHTML = `<i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>업로드 중...`;
+            statusEl.className = 'text-blue-600';
+            
+            try {
+                // 이미지 압축 및 Base64 변환
+                const compressedBase64 = await compressImage(file, 1200, 0.8);
+                
+                // 즉시 저장 (서버 업로드 없이 Base64로 직접 저장)
+                motorcyclePhotos[position] = compressedBase64;
+                console.log(`✅ ${position} 사진 처리 완료 (크기: ${(compressedBase64.length / 1024).toFixed(0)}KB)`);
+                
+                // 미리보기 표시
+                document.getElementById(`${position}PhotoPreview`).classList.remove('hidden');
+                document.getElementById(`${position}PhotoImg`).src = compressedBase64;
+                document.getElementById(`${position}UploadBtn`).classList.add('hidden');
+                
+                // 상태 체크박스 업데이트
+                statusEl.innerHTML = `
+                    <i class="fas fa-check-square text-green-600 mr-2"></i>${getPositionName(position)}
+                `;
+                statusEl.className = 'text-green-600 font-semibold';
+                
+                // 제출 버튼 상태 업데이트
+                updateSubmitButton();
+                
+            } catch (error) {
+                console.error(`❌ ${position} 사진 업로드 실패:`, error);
+                statusEl.innerHTML = `<i class="far fa-square mr-2"></i>${getPositionName(position)}`;
+                statusEl.className = 'text-gray-500';
+                alert(`사진 처리에 실패했습니다. 다시 시도해주세요.\n오류: ${error.message}`);
+            }
+        }
+        
+        // 오토바이 사진 삭제
+        function deleteMotorcyclePhoto(position) {
+            motorcyclePhotos[position] = '';
+            document.getElementById(`${position}PhotoPreview`).classList.add('hidden');
+            document.getElementById(`${position}UploadBtn`).classList.remove('hidden');
+            
+            // 상태 체크박스 업데이트
+            document.getElementById(`${position}PhotoStatus`).innerHTML = `
+                <i class="far fa-square mr-2"></i>${getPositionName(position)}
+            `;
+            document.getElementById(`${position}PhotoStatus`).className = 'text-gray-500';
+            
+            // 제출 버튼 상태 업데이트
+            updateSubmitButton();
+            
+            console.log(`🗑️ ${position} 사진 삭제됨`);
+        }
+        
+        // 위치 이름 한글 변환
+        function getPositionName(position) {
+            const names = {
+                'front': '앞면',
+                'back': '뒷면',
+                'left': '왼쪽',
+                'right': '오른쪽'
+            };
+            return names[position] || position;
+        }
+
+        // 제출 버튼 상태 업데이트
+        function updateSubmitButton() {
+            const agreeChecked = document.getElementById('agreeTerms').checked;
             const canvas = document.getElementById('signatureCanvas');
             const ctx = canvas.getContext('2d');
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const hasSignature = imageData.data.some(channel => channel !== 0);
+            const hasIdCard = idCardPhoto !== null && idCardPhoto !== '';
+            const hasAllMotorcyclePhotos = motorcyclePhotos.front && motorcyclePhotos.back && 
+                                            motorcyclePhotos.left && motorcyclePhotos.right;
             
-            if (!hasSignature) {
-                alert('서명을 해주세요.');
-                return;
+            // 디버깅 로그
+            console.log('🔍 버튼 상태 체크:', {
+                agreeChecked,
+                hasSignature,
+                hasIdCard,
+                hasAllMotorcyclePhotos,
+                motorcyclePhotos
+            });
+            
+            // 체크리스트 표시 업데이트
+            const checkAgree = document.getElementById('checkAgree');
+            const checkSignature = document.getElementById('checkSignature');
+            const checkIdCard = document.getElementById('checkIdCard');
+            const checkMotorcyclePhotos = document.getElementById('checkMotorcyclePhotos');
+            
+            if (agreeChecked) {
+                checkAgree.innerHTML = '<span class="text-green-300">✅ 약관 동의 체크</span>';
+                checkAgree.className = '';
+            } else {
+                checkAgree.innerHTML = '⬜ 약관 동의 체크';
+                checkAgree.className = 'text-gray-400';
             }
             
-            const signatureData = canvas.toDataURL('image/png');
-            
-            // 신분증 확인
-            if (!idCardPhoto) {
-                alert('신분증을 촬영하거나 업로드해주세요.');
-                return;
+            if (hasSignature) {
+                checkSignature.innerHTML = '<span class="text-green-300">✅ 서명 작성</span>';
+                checkSignature.className = '';
+            } else {
+                checkSignature.innerHTML = '⬜ 서명 작성';
+                checkSignature.className = 'text-gray-400';
             }
             
+            if (hasIdCard) {
+                checkIdCard.innerHTML = '<span class="text-green-300">✅ 신분증 업로드</span>';
+                checkIdCard.className = '';
+            } else {
+                checkIdCard.innerHTML = '⬜ 신분증 업로드';
+                checkIdCard.className = 'text-gray-400';
+            }
+            
+            if (hasAllMotorcyclePhotos) {
+                checkMotorcyclePhotos.innerHTML = '<span class="text-green-300">✅ 오토바이 사진 4장 업로드</span>';
+                checkMotorcyclePhotos.className = '';
+            } else {
+                checkMotorcyclePhotos.innerHTML = '⬜ 오토바이 사진 4장 업로드';
+                checkMotorcyclePhotos.className = 'text-gray-400';
+            }
+            
+            // 버튼 활성화 상태 업데이트
+            const submitBtn = document.getElementById('submitBtn');
+            const allComplete = agreeChecked && hasSignature && hasIdCard && hasAllMotorcyclePhotos;
+            
+            if (allComplete) {
+                submitBtn.disabled = false;
+                submitBtn.className = 'w-full py-4 px-6 rounded-lg transition font-bold text-lg shadow-lg bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 hover:shadow-2xl transform hover:scale-105 animate-pulse';
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>계약서 제출하기 (준비완료!)';
+                console.log('✅ 모든 조건 충족 - 제출 버튼 활성화');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.className = 'w-full py-4 px-6 rounded-lg transition font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-gray-400 text-gray-200';
+                submitBtn.innerHTML = '<i class="fas fa-lock mr-2"></i>4가지 항목을 모두 완료해주세요';
+            }
+        }
+        
+        // 계약서 제출
+        async function submitContract() {
             try {
-                await axios.put(`/api/contracts/${contractId}/sign`, {
-                    signature_data: signatureData,
-                    id_card_photo: idCardPhoto
+                console.log('🚀 계약서 제출 시작');
+                
+                // 약관 동의 확인
+                if (!document.getElementById('agreeTerms').checked) {
+                    alert('약관에 동의해주세요.');
+                    return;
+                }
+                
+                // 서명 확인
+                const canvas = document.getElementById('signatureCanvas');
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const hasSignature = imageData.data.some(channel => channel !== 0);
+                
+                if (!hasSignature) {
+                    alert('서명을 해주세요.');
+                    return;
+                }
+                
+                console.log('📝 서명 변환 시작 - 캔버스 크기:', canvas.width, 'x', canvas.height);
+                
+                // 서명 데이터를 JPEG로 압축 저장 (Safari 호환성 개선)
+                let signatureData;
+                try {
+                    signatureData = canvas.toDataURL('image/png');
+                    console.log('✅ 서명 변환 완료 - 크기:', Math.round(signatureData.length / 1024), 'KB');
+                } catch (e) {
+                    console.error('❌ 서명 변환 실패:', e);
+                    alert('서명 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                    return;
+                }
+                
+                // 신분증 확인
+                if (!idCardPhoto) {
+                    alert('신분증을 촬영하거나 업로드해주세요.');
+                    return;
+                }
+                
+                // 오토바이 사진 4장 확인
+                if (!motorcyclePhotos.front || !motorcyclePhotos.back || 
+                    !motorcyclePhotos.left || !motorcyclePhotos.right) {
+                    alert('오토바이 사진 4장(앞, 뒤, 왼쪽, 오른쪽)을 모두 업로드해주세요.');
+                    return;
+                }
+                
+                console.log('📤 서버 전송 시작');
+                console.log('데이터 크기:', {
+                    signature: Math.round(signatureData.length / 1024) + 'KB',
+                    idCard: Math.round(idCardPhoto.length / 1024) + 'KB',
+                    front: Math.round(motorcyclePhotos.front.length / 1024) + 'KB',
+                    back: Math.round(motorcyclePhotos.back.length / 1024) + 'KB',
+                    left: Math.round(motorcyclePhotos.left.length / 1024) + 'KB',
+                    right: Math.round(motorcyclePhotos.right.length / 1024) + 'KB'
                 });
+                
+                const response = await axios.put(`/api/contracts/${contractId}/sign`, {
+                    signature_data: signatureData,
+                    id_card_photo: idCardPhoto,
+                    motorcycle_photo_front: motorcyclePhotos.front,
+                    motorcycle_photo_back: motorcyclePhotos.back,
+                    motorcycle_photo_left: motorcyclePhotos.left,
+                    motorcycle_photo_right: motorcyclePhotos.right
+                }, {
+                    timeout: 60000, // 60초 타임아웃 (큰 이미지 업로드를 위해)
+                    maxContentLength: 50 * 1024 * 1024, // 50MB
+                    maxBodyLength: 50 * 1024 * 1024 // 50MB
+                });
+                
+                console.log('✅ 서버 전송 완료:', response.data);
+                
+                // 대시보드 및 계약 목록 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                sessionStorage.removeItem('contractsCache');
+                sessionStorage.removeItem('contractsCacheTime');
+                localStorage.removeItem('contractsCache');
+                localStorage.removeItem('contractsCacheTime');
+                console.log('✅ 캐시 무효화 완료 - 대시보드 및 계약 목록');
                 
                 showCompleted();
             } catch (error) {
-                alert('제출에 실패했습니다. 다시 시도해주세요.');
-                console.error('제출 오류:', error);
+                console.error('❌ 제출 오류 상세:', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    stack: error.stack
+                });
+                
+                let errorMessage = '제출에 실패했습니다. 다시 시도해주세요.';
+                
+                if (error.response) {
+                    // 서버 응답이 있는 경우
+                    errorMessage = `서버 오류: ${error.response.status} - ${error.response.data?.message || '알 수 없는 오류'}`;
+                } else if (error.request) {
+                    // 요청은 전송되었지만 응답이 없는 경우
+                    errorMessage = '서버와 연결할 수 없습니다. 인터넷 연결을 확인해주세요.';
+                } else if (error.message.includes('timeout')) {
+                    // 타임아웃
+                    errorMessage = '전송 시간이 초과되었습니다. 다시 시도해주세요.';
+                }
+                
+                alert(errorMessage);
             }
         }
 
@@ -1237,7 +1708,263 @@
         function showCompleted() {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('contractContent').classList.add('hidden');
-            document.getElementById('completed').classList.remove('hidden');
+            
+            // 계약서 상세 내용 렌더링
+            const completedDiv = document.getElementById('completed');
+            const html = renderCompletedContract(contractData);
+            completedDiv.innerHTML = html;
+            completedDiv.classList.remove('hidden');
+        }
+        
+        // 완료된 개인 계약서 상세 렌더링
+        function renderCompletedContract(c) {
+            const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
+            const contractTypeText = c.contract_type === 'lease' ? '리스' : c.contract_type === 'loan' ? '대여금' : '렌트';
+            
+            return `
+                <div class="bg-green-50 border-2 border-green-500 rounded-lg p-6 mb-6">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-5xl text-green-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">✅ 계약서 제출이 완료되었습니다</h2>
+                        <p class="text-gray-600">아래에서 계약 내용을 확인하실 수 있습니다.</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-6 bg-white p-6 rounded-lg shadow-lg" style="font-size: 1.1rem; color: #1a1a1a; font-weight: 500;">
+                    <!-- 계약서 제목 -->
+                    <div class="text-center border-b-2 border-gray-800 pb-4 mb-6">
+                        <h1 class="text-3xl font-bold mb-2">Z-BIKE ${contractTypeText} 계약서</h1>
+                        <p class="text-lg">계약번호: ${c.contract_number}</p>
+                        <p class="text-base mt-2">상태: <span class="font-bold ${c.status === 'active' ? 'text-green-600' : c.status === 'completed' ? 'text-red-600' : 'text-gray-600'}">${statusTexts[c.status] || c.status}</span></p>
+                    </div>
+
+                    <!-- 1. 임대인 정보 (사업자) -->
+                    <div class="bg-indigo-50 p-6 rounded-lg border-2 border-indigo-300 mb-6">
+                        <h3 class="font-bold text-indigo-900 mb-3" style="font-size: 1.4rem;">임대인 (사업자) 정보</h3>
+                        <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
+                            <p><strong>상호:</strong> ${c.company_settings?.company_name || '대성'}</p>
+                            <p><strong>사업자번호:</strong> ${c.company_settings?.business_number || '487-39-01128'}</p>
+                            <p style="display: flex; align-items: center; flex-wrap: nowrap;"><strong>대표자:</strong> ${c.company_settings?.representative_name || '김용현'}<img src="/static/stamp-kim.png?v=20260805" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
+                            <p><strong>연락처:</strong> ${c.company_settings?.phone || '010-8604-6995'}</p>
+                            <p class="col-span-2"><strong>주소:</strong> ${c.company_settings?.address || '광주광역시 광산구 신가삼효로 31'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. 임차인 정보 (고객) -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">임차인 (고객) 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>성명:</strong> ${c.name}</p>
+                            <p><strong>주민등록번호:</strong> ${c.resident_number ? c.resident_number.substring(0, 8) + '******' : '-'}</p>
+                            <p><strong>면허종류:</strong> ${c.license_type || '-'}</p>
+                            <p><strong>연락처:</strong> ${c.phone || '-'}</p>
+                            <p class="col-span-2"><strong>주소:</strong> ${c.address || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. 오토바이 정보 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">오토바이 정보</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>차량명:</strong> ${c.vehicle_name || '-'}</p>
+                            <p><strong>번호판:</strong> ${c.plate_number || '-'}</p>
+                            <p class="col-span-2"><strong>차대번호:</strong> <span style="font-family: monospace;">${c.chassis_number || '-'}</span></p>
+                            <p><strong>연식:</strong> ${c.model_year ? c.model_year + '년' : '-'}</p>
+                            <p><strong>보험 시작일:</strong> ${c.insurance_start_date || '-'}</p>
+                            <p><strong>보험 종료일:</strong> ${c.insurance_end_date || '-'}</p>
+                            <p><strong>운전범위:</strong> ${c.driving_range || '-'}</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. 계약 조건 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4">계약 조건</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <p><strong>계약 종류:</strong> ${contractTypeText}</p>
+                            <p><strong>${contractTypeText === '대여금' ? '일일대여료' : contractTypeText + '료'}:</strong> ${Number(c.daily_amount || 0).toLocaleString()}원</p>
+                            <p><strong>계약 시작일:</strong> ${c.contract_start_date || '-'}</p>
+                            <p><strong>계약 종료일:</strong> ${c.contract_end_date || '-'}</p>
+                            ${c.contract_type === 'loan' ? `<p class="col-span-2"><strong>대여금:</strong> ${Number(c.loan_amount || 0).toLocaleString()}원</p>` : ''}
+                            <p class="col-span-2"><strong>계약체결일:</strong> ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                        </div>
+                        ${c.special_terms ? `
+                            <div class="mt-4">
+                                <p class="font-bold mb-2">특약사항:</p>
+                                <p class="whitespace-pre-wrap bg-gray-50 p-4 rounded border">${c.special_terms}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- 5. 신분증 섹션 -->
+                    ${c.id_card_photo ? `
+                        <div class="border-2 border-yellow-400 p-6 rounded-lg bg-yellow-50 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">
+                                <i class="fas fa-id-card mr-2 text-yellow-600"></i>
+                                임차인 신분증
+                            </h3>
+                            <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white mx-auto" style="max-width: 500px;">
+                                <img src="${c.id_card_photo}" alt="신분증" class="w-full" style="max-height: 400px; object-fit: contain;">
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 6. 서명 섹션 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4 text-center">임차인 서명</h3>
+                        ${c.signature_data ? `
+                            <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
+                                <div class="border rounded bg-white mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%;">
+                                    <img src="${c.signature_data}" alt="임차인 서명" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;">
+                                </div>
+                                <p class="text-center mt-3 font-bold">서명인: ${c.name}</p>
+                                <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            </div>
+                        ` : '<p class="text-center text-gray-500">서명 없음</p>'}
+                    </div>
+                    
+                    <!-- 7. 오토바이 출고 사진 4장 -->
+                    ${(c.motorcycle_photo_front || c.motorcycle_photo_back || c.motorcycle_photo_left || c.motorcycle_photo_right) ? `
+                        <div class="border-2 border-blue-400 p-6 rounded-lg bg-blue-50 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">
+                                <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                                오토바이 출고 상태 사진
+                            </h3>
+                            <p class="text-sm text-center text-gray-600 mb-4">출고일: ${c.motorcycle_photo_upload_date ? new Date(c.motorcycle_photo_upload_date).toLocaleDateString('ko-KR') : new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                ${c.motorcycle_photo_front ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-up mr-1"></i>앞면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_front}" alt="오토바이 앞면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_back ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-down mr-1"></i>뒷면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_back}" alt="오토바이 뒷면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_left ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-left mr-1"></i>왼쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_left}" alt="오토바이 왼쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_right ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-right mr-1"></i>오른쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_right}" alt="오토바이 오른쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- 8. 계약 약관 -->
+                    <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
+                        <h3 class="font-bold text-lg mb-4 text-center bg-gray-100 p-3 rounded">계약 약관</h3>
+                        ${getCompletedContractTerms(c.contract_type, c.company_settings)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 완료된 계약서용 약관 생성
+        function getCompletedContractTerms(type, companySettings) {
+            const companyName = companySettings?.company_name || 'Z-BIKE';
+            const companyCode = companySettings?.business_number || '사업자등록번호';
+            const representative = companySettings?.representative_name || '대표자';
+            const companyAddress = companySettings?.address || '주소';
+            const companyPhone = companySettings?.phone || '연락처';
+            
+            if (type === 'loan') {
+                return `
+                    <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                        <h3 class="font-bold text-lg mb-3">대주 정보</h3>
+                        <div class="space-y-1 text-gray-800">
+                            <p><span class="font-semibold">상호명:</span> ${companyName}</p>
+                            <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
+                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
+                            <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-b border-gray-400 py-2 my-4">
+                        <p class="text-center font-bold text-sm">- 다 음 -</p>
+                    </div>
+                    
+                    <h4 class="font-bold text-base mb-3">금전소비대차 약관</h4>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <h5 class="font-bold mb-1">제1조 (목적)</h5>
+                            <p class="text-gray-700">본 약관은 대주와 차주 간의 금전 대여에 관한 권리와 의무를 명확히 하여 원활한 거래를 도모함을 목적으로 합니다.</p>
+                        </div>
+                        <div>
+                            <h5 class="font-bold mb-1">제2조 (대여금의 지급)</h5>
+                            <p class="text-gray-700">대주는 차주에게 계약서에 명시된 금액을 대여하며, 지급 방법은 현금 또는 계좌이체로 합니다.</p>
+                        </div>
+                        <div>
+                            <h5 class="font-bold mb-1">제3조 (상환 방법)</h5>
+                            <p class="text-gray-700">차주는 매일 명시된 일차감액을 차감하는 방식으로 대여금을 상환합니다.</p>
+                        </div>
+                        <div>
+                            <h5 class="font-bold mb-1">제4조 (이자)</h5>
+                            <p class="text-gray-700">이자율은 법정 최고 이자율을 초과하지 않으며, 구체적인 이자 조건은 계약서에 명시된 바에 따릅니다.</p>
+                        </div>
+                        <div>
+                            <h5 class="font-bold mb-1">제5조 (분쟁 해결)</h5>
+                            <p class="text-gray-700">본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-center font-bold text-sm">본 계약을 증명하기 위하여 계약서를 작성하고 차주가 서명합니다.</p>
+                `;
+            } else {
+                return `
+                    <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                        <h4 class="font-bold text-base mb-3">임대인 (업체) 정보</h4>
+                        <div class="space-y-1 text-gray-800 text-sm">
+                            <p><span class="font-semibold">상호명:</span> ${companyName}</p>
+                            <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
+                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
+                            <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-b border-gray-400 py-2 my-4">
+                        <p class="text-center font-bold text-sm">- 다 음 -</p>
+                    </div>
+                    
+                    <h4 class="font-bold text-base mb-3">오토바이 리스/렌트 계약 약관</h4>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div><h5 class="font-bold mb-1">제1조 (계약의 목적)</h5><p class="text-gray-700">본 계약은 임대인이 소유한 오토바이를 임차인에게 리스 또는 렌트하는 조건과 절차를 정함을 목적으로 합니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제2조 (오토바이의 인도 및 관리)</h5><p class="text-gray-700">임차인은 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제3조 (사용 제한)</h5><p class="text-gray-700">임차인은 오토바이를 배달대행 업무 목적으로만 사용할 수 있으며, 음주운전, 무면허 운전 등을 하여서는 안 됩니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제4조 (일차감 대여료 납부 방식)</h5><p class="text-gray-700">임차인은 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제5조 (보험 및 사고 처리)</h5><p class="text-gray-700">사고 발생 시 임차인은 즉시 임대인에게 통보하고 보험사에 신고하여야 합니다. 임차인의 고의 또는 과실로 발생한 사고의 자기부담금은 임차인이 부담합니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제6조 (정비 및 소모품)</h5><p class="text-gray-700">엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 임차인이 전액 부담합니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제7조 (계약의 해지)</h5><p class="text-gray-700">정당한 사유 없이 3일 이상 연속하여 배달대행 업무를 수행하지 않은 경우, 음주운전, 무면허 운전 등 중대한 법규 위반 시 임대인은 계약을 즉시 해지할 수 있습니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제8조 (중도 해지)</h5><p class="text-gray-700">임차인은 1개월 전 사전 통보로 계약을 중도 해지할 수 있으며, 중도 해지 시 위약금(일차감금액의 50일분)을 지불합니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제9조 (무상정비 항목)</h5><p class="text-gray-700">임대인은 계약 기간 중 엔진오일 교환(1,500km마다), 브레이크패드 교체, 타이어 교체 등에 대하여 무상 정비 서비스를 제공합니다.</p></div>
+                        <div><h5 class="font-bold mb-1">제10조 (분쟁 해결)</h5><p class="text-gray-700">본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p></div>
+                    </div>
+                    <p class="mt-4 text-center font-bold text-sm">본 계약을 증명하기 위하여 계약서를 작성하고 임차인이 서명합니다.</p>
+                `;
+            }
         }
 
         // 서명 확대 모달 열기
@@ -1285,7 +2012,17 @@
             mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
             mainCtx.drawImage(modalCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
             
+            console.log('✅ 서명 저장됨 - 메인 캔버스 크기:', mainCanvas.width, 'x', mainCanvas.height);
+            
             closeSignatureModal();
+            
+            // 렌더링 완료 후 버튼 상태 업데이트
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    updateSubmitButton();
+                    console.log('✅ 서명 저장 완료 - 버튼 상태 업데이트됨');
+                }, 100);
+            });
         }
 
         // 모달 서명 패드 초기화

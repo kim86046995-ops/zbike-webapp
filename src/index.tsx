@@ -7,11 +7,50 @@ type Bindings = {
   DB: D1Database;
   db: D1Database;
   R2_ID_CARDS: R2Bucket;
+  R2_BACKUPS: R2Bucket;
+  ASSETS: Fetcher;
   SMS_ENABLED?: string;
   SMS_AWS_LAMBDA_URL?: string;
   SMS_AWS_API_KEY?: string;
   SMS_TEST_MODE?: string;
   ADMIN_PHONE?: string;
+}
+
+// ============================================
+// 헬퍼 함수: 현재 활성 계약자 이름 조회
+// ============================================
+async function getCurrentContractorName(DB: D1Database, motorcycleId: number): Promise<string> {
+  try {
+    // 개인 계약 조회
+    const personalContract = await DB.prepare(`
+      SELECT cu.name as contractor_name
+      FROM contracts c
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      WHERE c.motorcycle_id = ? AND c.status = 'active'
+      LIMIT 1
+    `).bind(motorcycleId).first()
+    
+    if (personalContract?.contractor_name) {
+      return String(personalContract.contractor_name)
+    }
+    
+    // 업체 계약 조회
+    const businessContract = await DB.prepare(`
+      SELECT contractor_name
+      FROM business_contracts
+      WHERE motorcycle_id = ? AND status = 'active'
+      LIMIT 1
+    `).bind(motorcycleId).first()
+    
+    if (businessContract?.contractor_name) {
+      return String(businessContract.contractor_name)
+    }
+    
+    return '' // 활성 계약 없음
+  } catch (error) {
+    console.warn('⚠️ 계약자 조회 실패:', error)
+    return ''
+  }
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -49,21 +88,8 @@ app.use('*', cors({
 // 루트 경로 - 로그인 페이지로 리다이렉트
 // ============================================
 app.get('/', (c) => {
-  return c.redirect('/static/login.html')
+  return c.redirect('/static/login')  // Cloudflare Pages clean URLs: .html 확장자 제거
 })
-
-// 캐시 무효화 미들웨어 (모든 응답)
-app.use('*', async (c, next) => {
-  await next()
-  
-  // 모든 응답에 캐시 무효화 헤더 추가 (HTML, JS, CSS 포함)
-  c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
-  c.res.headers.set('Pragma', 'no-cache')
-  c.res.headers.set('Expires', '0')
-})
-
-// 정적 파일 서빙 (Cloudflare Pages는 public/ 폴더를 자동으로 매핑)
-app.use('/static/*', serveStatic())
 
 // ============================================
 // 인증 헬퍼 함수
@@ -80,6 +106,192 @@ function getKSTDateTime() {
   const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000))
   // SQLite datetime 형식: YYYY-MM-DD HH:mm:ss
   return kstTime.toISOString().slice(0, 19).replace('T', ' ')
+}
+
+// ============================================
+// 자동 백업 헬퍼 함수
+// ============================================
+
+async function autoBackupDatabase(
+  DB: D1Database,
+  actionType: string,
+  tableName: string,
+  recordId?: number
+) {
+  try {
+    console.log(`📦 자동 백업 시작: ${actionType} on ${tableName}${recordId ? ` (ID: ${recordId})` : ''}`)
+    
+    // 백업 기록 저장
+    await DB.prepare(`
+      INSERT INTO backup_logs (
+        action_type,
+        table_name,
+        record_id,
+        backup_time
+      ) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+    `).bind(actionType, tableName, recordId || null).run()
+    
+    console.log(`✅ 백업 로그 기록 완료`)
+  } catch (error) {
+    console.error('❌ 자동 백업 실패:', error)
+    // 백업 실패해도 원래 작업은 계속 진행
+  }
+}
+
+// ============================================
+// 정기 자동 백업 함수 (Cron Trigger)
+// ============================================
+
+async function performScheduledBackup(env: Bindings) {
+  try {
+    console.log('🕐 정기 자동 백업 시작...')
+    const DB = env.DB || env.db
+    const R2 = env.R2_BACKUPS
+
+    if (!DB) {
+      console.error('❌ DB 바인딩 없음')
+      return
+    }
+
+    if (!R2) {
+      console.error('❌ R2_BACKUPS 바인딩 없음')
+      return
+    }
+
+    // 모든 테이블 데이터 조회
+    const tables = [
+      'users',
+      'motorcycles', 
+      'customers',
+      'contracts',
+      'business_contracts',
+      'work_contracts',
+      'loan_contracts',
+      'insurances',
+      'companies',
+      'contract_history',
+      'motorcycle_history',
+      'backup_logs',
+      'sessions'
+    ]
+
+    const backup: Record<string, any[]> = {}
+
+    for (const table of tables) {
+      try {
+        let query = `SELECT * FROM ${table}`
+        
+        // 이미지 데이터가 포함된 테이블은 이미지 필드 제외
+        if (table === 'contracts') {
+          query = `SELECT id, contract_type, contract_number, motorcycle_id, customer_id, 
+                   start_date, end_date, monthly_fee, deposit, special_terms, 
+                   status, insurance_age_limit, created_at, updated_at,
+                   'excluded' as signature_data, 'excluded' as id_card_photo 
+                   FROM ${table}`
+        } else if (table === 'admin_users') {
+          query = `SELECT id, username, role, email, created_at, updated_at FROM ${table}`
+        } else if (table === 'companies') {
+          query = `SELECT id, company_name, company_code, business_number, representative,
+                   representative_phone, representative_resident_number, 
+                   representative_postcode, representative_address, representative_detail_address,
+                   status, created_at, updated_at,
+                   'excluded' as id_card_photo FROM ${table}`
+        }
+        
+        const data = await DB.prepare(query).all()
+        backup[table] = data.results || []
+        console.log(`📦 ${table}: ${backup[table].length}개 레코드`)
+      } catch (error) {
+        console.error(`⚠️ ${table} 백업 실패:`, error)
+        backup[table] = []
+      }
+    }
+
+    // 백업 메타데이터
+    const backupData = {
+      metadata: {
+        backup_time: getKSTDateTime(),
+        backup_type: 'scheduled',
+        version: '1.0',
+        total_records: Object.values(backup).reduce((sum, arr) => sum + arr.length, 0),
+        total_tables: tables.length
+      },
+      data: backup
+    }
+
+    // JSON으로 변환
+    const backupJson = JSON.stringify(backupData, null, 2)
+    
+    // R2에 저장
+    const timestamp = Date.now()
+    const filename = `scheduled-backup-${timestamp}.json`
+    
+    await R2.put(filename, backupJson, {
+      httpMetadata: {
+        contentType: 'application/json'
+      },
+      customMetadata: {
+        backupTime: backupData.metadata.backup_time,
+        totalRecords: String(backupData.metadata.total_records)
+      }
+    })
+
+    console.log(`✅ 정기 자동 백업 완료: ${filename}`)
+    console.log(`📊 총 ${backupData.metadata.total_records}개 레코드 백업됨`)
+
+    // 백업 로그 기록
+    await DB.prepare(`
+      INSERT INTO backup_logs (
+        action_type,
+        table_name,
+        record_id,
+        backup_time
+      ) VALUES ('SCHEDULED_BACKUP', 'ALL', NULL, datetime('now', '+9 hours'))
+    `).run()
+
+    // 오래된 백업 정리 (30일 이상)
+    await cleanupOldBackups(R2)
+
+    return {
+      success: true,
+      filename,
+      total_records: backupData.metadata.total_records
+    }
+  } catch (error) {
+    console.error('❌ 정기 백업 실패:', error)
+    throw error
+  }
+}
+
+// 오래된 백업 정리 함수
+async function cleanupOldBackups(R2: R2Bucket) {
+  try {
+    console.log('🧹 오래된 백업 정리 시작...')
+    
+    // R2에서 모든 백업 파일 목록 조회
+    const listed = await R2.list()
+    const now = Date.now()
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000) // 30일 전
+
+    let deletedCount = 0
+
+    for (const object of listed.objects) {
+      // 파일명에서 타임스탬프 추출
+      const match = object.key.match(/scheduled-backup-(\d+)\.json/)
+      if (match) {
+        const timestamp = parseInt(match[1])
+        if (timestamp < thirtyDaysAgo) {
+          await R2.delete(object.key)
+          deletedCount++
+          console.log(`🗑️ 삭제된 백업: ${object.key}`)
+        }
+      }
+    }
+
+    console.log(`✅ 백업 정리 완료: ${deletedCount}개 파일 삭제됨`)
+  } catch (error) {
+    console.error('❌ 백업 정리 실패:', error)
+  }
 }
 
 // ============================================
@@ -104,6 +316,10 @@ async function recordContractHistory(
   actionReason: string = ''
 ) {
   try {
+    console.log(`🔍 Recording contract history: ${contractNumber} - ${actionType}`, {
+      contractId, motorcycleId, customerId, contractType, actionType, oldStatus, newStatus
+    })
+    
     await DB.prepare(`
       INSERT INTO contract_history (
         contract_id, motorcycle_id, customer_id, contract_number, contract_type,
@@ -116,9 +332,15 @@ async function recordContractHistory(
       monthlyFee, deposit, specialTerms, actionReason
     ).run()
     
-    console.log(`📝 Contract history recorded: ${contractNumber} - ${actionType}`)
-  } catch (error) {
-    console.error('❌ Failed to record contract history:', error)
+    console.log(`✅ Contract history recorded successfully: ${contractNumber} - ${actionType}`)
+  } catch (error: any) {
+    console.error(`❌ Failed to record contract history for ${contractNumber}:`, {
+      error: error.message,
+      stack: error.stack,
+      contractId, motorcycleId, customerId, contractType, actionType
+    })
+    // 에러를 throw하지 않고 로그만 남김 (계약 생성/수정은 정상 진행)
+    // throw error
   }
 }
 
@@ -139,7 +361,7 @@ async function validateSession(DB: D1Database, sessionId: string | undefined) {
     SELECT s.*, u.username, u.name, u.role 
     FROM sessions s 
     JOIN users u ON s.user_id = u.id 
-    WHERE s.id = ? AND s.expires_at > datetime('now')
+    WHERE s.id = ? AND s.expires_at > datetime('now', '+9 hours')
   `).bind(sessionId).first()
   
   return session
@@ -162,7 +384,7 @@ async function authMiddleware(c: any, next: any) {
     if (DB) {
       const session = await DB.prepare(`
         SELECT * FROM sessions 
-        WHERE id = ? AND expires_at > datetime('now')
+        WHERE id = ? AND expires_at > datetime('now', '+9 hours')
       `).bind(sessionId).first()
       
       if (session) {
@@ -457,7 +679,7 @@ app.get('/api/auth/check', async (c) => {
     if (DB) {
       const session = await DB.prepare(`
         SELECT * FROM sessions 
-        WHERE id = ? AND expires_at > datetime('now')
+        WHERE id = ? AND expires_at > datetime('now', '+9 hours')
       `).bind(sessionId).first()
       
       if (session) {
@@ -621,7 +843,7 @@ app.patch('/api/admin/users/:username/status', async (c) => {
   }
   
   // 상태 업데이트
-  await DB.prepare('UPDATE users SET status = ?, updated_at = datetime("now") WHERE username = ?')
+  await DB.prepare('UPDATE users SET status = ?, updated_at = datetime("now", "+9 hours") WHERE username = ?')
     .bind(status, username)
     .run()
   
@@ -809,7 +1031,7 @@ app.post('/api/auth/reset-password', async (c) => {
   // 토큰 확인
   const resetToken = await DB.prepare(`
     SELECT * FROM password_reset_tokens 
-    WHERE token = ? AND used = 0 AND expires_at > datetime('now')
+    WHERE token = ? AND used = 0 AND expires_at > datetime('now', '+9 hours')
   `).bind(token).first()
   
   if (!resetToken) {
@@ -817,7 +1039,7 @@ app.post('/api/auth/reset-password', async (c) => {
   }
   
   // 비밀번호 업데이트
-  await DB.prepare('UPDATE users SET password = ?, updated_at = datetime("now") WHERE id = ?')
+  await DB.prepare('UPDATE users SET password = ?, updated_at = datetime("now", "+9 hours") WHERE id = ?')
     .bind(new_password, (resetToken as any).user_id).run()
   
   // 토큰 사용 처리
@@ -839,34 +1061,137 @@ app.post('/api/auth/reset-password', async (c) => {
 app.get('/api/motorcycles', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const status = c.req.query('status')
+  const search = c.req.query('search')
   
-  let query = `
+  // 검색어가 있으면 이력에서 폐지 전 번호판 먼저 확인
+  if (search) {
+    console.log(`🔍 Searching for old plate number in history: ${search}`)
+    
+    // motorcycle_history에서 폐지/삭제 전 번호판(old_value) 검색
+    const historyResult = await DB.prepare(`
+      SELECT DISTINCT motorcycle_id, chassis_number
+      FROM motorcycle_history
+      WHERE (change_type = 'scrapped' OR change_type = 'delete')
+        AND (old_value LIKE ? OR notes LIKE ?)
+      ORDER BY change_date DESC
+      LIMIT 1
+    `).bind(`%${search}%`, `%${search}%`).first()
+    
+    if (historyResult) {
+      console.log(`✅ Found old plate in history: motorcycle_id=${historyResult.motorcycle_id}, chassis=${historyResult.chassis_number}`)
+      
+      // 해당 차대번호로 현재 오토바이 조회 (JOIN으로 계약 정보 함께 가져오기)
+      const currentMotorcycle = await DB.prepare(`
+        SELECT 
+          m.*,
+          pc.id as contract_id,
+          pc.contract_type,
+          pc.status as contract_status,
+          cu.name as customer_name,
+          pc.start_date,
+          pc.end_date,
+          bc.id as bc_contract_id,
+          bc.status as bc_contract_status,
+          bc.company_name as bc_customer_name,
+          bc.contract_start_date as bc_start_date,
+          bc.contract_end_date as bc_end_date
+        FROM motorcycles m
+        LEFT JOIN (
+          SELECT * FROM contracts 
+          WHERE status = 'active' 
+            AND date(end_date) >= date('now')
+        ) pc ON m.id = pc.motorcycle_id
+        LEFT JOIN customers cu ON pc.customer_id = cu.id
+        LEFT JOIN (
+          SELECT * FROM business_contracts 
+          WHERE status = 'active' 
+            AND date(contract_end_date) >= date('now')
+        ) bc ON m.id = bc.motorcycle_id AND pc.id IS NULL
+        WHERE m.chassis_number = ?
+          AND (m.status != 'deleted' OR m.status IS NULL)
+      `).bind(historyResult.chassis_number).first()
+      
+      if (currentMotorcycle) {
+        console.log(`✅ Found current motorcycle with chassis ${historyResult.chassis_number}, current plate: ${currentMotorcycle.plate_number}`)
+        
+        // 계약 정보 병합
+        const result: any = {
+          id: currentMotorcycle.id,
+          plate_number: currentMotorcycle.plate_number,
+          vehicle_name: currentMotorcycle.vehicle_name,
+          chassis_number: currentMotorcycle.chassis_number,
+          status: currentMotorcycle.status,
+          insurance_start_date: currentMotorcycle.insurance_start_date,
+          insurance_end_date: currentMotorcycle.insurance_end_date,
+          inspection_start_date: currentMotorcycle.inspection_start_date,
+          inspection_end_date: currentMotorcycle.inspection_end_date,
+          model_year: currentMotorcycle.model_year,
+          owner_name: currentMotorcycle.owner_name,
+          driving_range: currentMotorcycle.driving_range,
+          usage_notes: currentMotorcycle.usage_notes,
+          created_at: currentMotorcycle.created_at,
+          notes: currentMotorcycle.notes
+        }
+        
+        // 개인 계약이 있으면 개인 계약 정보 사용
+        if (currentMotorcycle.contract_id) {
+          result.contract_id = currentMotorcycle.contract_id
+          result.contract_type = currentMotorcycle.contract_type
+          result.contract_status = currentMotorcycle.contract_status
+          result.customer_name = currentMotorcycle.customer_name
+          result.start_date = currentMotorcycle.start_date
+          result.end_date = currentMotorcycle.end_date
+        }
+        // 개인 계약이 없고 업체 계약이 있으면 업체 계약 정보 사용
+        else if (currentMotorcycle.bc_contract_id) {
+          result.contract_id = currentMotorcycle.bc_contract_id
+          result.contract_type = 'business'
+          result.contract_status = currentMotorcycle.bc_contract_status
+          result.customer_name = currentMotorcycle.bc_customer_name
+          result.start_date = currentMotorcycle.bc_start_date
+          result.end_date = currentMotorcycle.bc_end_date
+        }
+        
+        return c.json([result])
+      }
+    }
+  }
+  
+  // 최적화된 오토바이 목록 조회: 한 번의 쿼리로 모든 정보 가져오기 (N+1 문제 해결)
+  let motorcyclesQuery = `
     SELECT 
       m.*,
-      COALESCE(c.id, bc.id) as contract_id,
-      COALESCE(c.contract_type, 'business') as contract_type,
-      COALESCE(c.status, bc.status) as contract_status,
-      COALESCE(cu.name, bc.company_name) as customer_name,
-      COALESCE(c.start_date, bc.contract_start_date) as start_date,
-      COALESCE(c.end_date, bc.contract_end_date) as end_date
+      -- 개인 계약 정보 (우선순위 1)
+      pc.id as contract_id,
+      pc.contract_type,
+      pc.status as contract_status,
+      cu.name as customer_name,
+      pc.start_date,
+      pc.end_date,
+      -- 업체 계약 정보 (우선순위 2, 개인 계약이 없을 때만 사용)
+      bc.id as bc_contract_id,
+      bc.status as bc_contract_status,
+      bc.company_name as bc_customer_name,
+      bc.contract_start_date as bc_start_date,
+      bc.contract_end_date as bc_end_date
     FROM motorcycles m
-    LEFT JOIN contracts c ON m.id = c.motorcycle_id 
-      AND c.status = 'active'
-      AND date(c.end_date) >= date('now')
-    LEFT JOIN customers cu ON c.customer_id = cu.id
-    LEFT JOIN business_contracts bc ON m.id = bc.motorcycle_id
-      AND bc.status = 'active'
-      AND date(bc.contract_end_date) >= date('now')
+    LEFT JOIN (
+      SELECT * FROM contracts 
+      WHERE status = 'active'
+    ) pc ON m.id = pc.motorcycle_id
+    LEFT JOIN customers cu ON pc.customer_id = cu.id
+    LEFT JOIN (
+      SELECT * FROM business_contracts 
+      WHERE status = 'active'
+    ) bc ON m.id = bc.motorcycle_id AND pc.id IS NULL
+    WHERE (m.status != 'deleted' OR m.status IS NULL)
   `
   
   if (status) {
-    query += ` WHERE m.status = '${status}'`
+    motorcyclesQuery += ` AND m.status = ?`
   }
   
-  // 보험 만료일이 가까운 순서대로 정렬
-  // 1순위: 보험 종료일이 가까운 순 (NULL은 마지막)
-  // 2순위: 생성일 최신순
-  query += ` ORDER BY 
+  motorcyclesQuery += ` ORDER BY 
     CASE 
       WHEN m.insurance_end_date IS NULL THEN 1 
       ELSE 0 
@@ -874,8 +1199,55 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
     m.insurance_end_date ASC,
     m.created_at DESC`
   
-  const result = await DB.prepare(query).all()
-  return c.json(result.results)
+  const motorcyclesResult = status 
+    ? await DB.prepare(motorcyclesQuery).bind(status).all()
+    : await DB.prepare(motorcyclesQuery).all()
+  
+  const motorcycles = motorcyclesResult.results || []
+  
+  // 계약 정보 병합 (개인 계약 우선, 없으면 업체 계약)
+  const enrichedMotorcycles = motorcycles.map((m: any) => {
+    const result: any = {
+      id: m.id,
+      plate_number: m.plate_number,
+      vehicle_name: m.vehicle_name,
+      chassis_number: m.chassis_number,
+      status: m.status,
+      insurance_start_date: m.insurance_start_date,
+      insurance_end_date: m.insurance_end_date,
+      inspection_start_date: m.inspection_start_date,
+      inspection_end_date: m.inspection_end_date,
+      model_year: m.model_year,
+      owner_name: m.owner_name,
+      driving_range: m.driving_range,
+      usage_notes: m.usage_notes,
+      created_at: m.created_at,
+      notes: m.notes
+    }
+    
+    // 개인 계약이 있으면 개인 계약 정보 사용
+    if (m.contract_id) {
+      result.contract_id = m.contract_id
+      result.contract_type = m.contract_type
+      result.contract_status = m.contract_status
+      result.customer_name = m.customer_name
+      result.start_date = m.start_date
+      result.end_date = m.end_date
+    }
+    // 개인 계약이 없고 업체 계약이 있으면 업체 계약 정보 사용
+    else if (m.bc_contract_id) {
+      result.contract_id = m.bc_contract_id
+      result.contract_type = 'business'
+      result.contract_status = m.bc_contract_status
+      result.customer_name = m.bc_customer_name
+      result.start_date = m.bc_start_date
+      result.end_date = m.bc_end_date
+    }
+    
+    return result
+  })
+  
+  return c.json(enrichedMotorcycles)
 })
 
 // 공개 API: 고객 계약서 작성용 오토바이 목록 (인증 불필요)
@@ -883,17 +1255,30 @@ app.get('/api/motorcycles', authMiddleware, async (c) => {
 app.get('/api/motorcycles/check-duplicate', async (c) => {
   const DB = c.env.DB || c.env.db
   const plateNumber = c.req.query('plate_number')
+  const chassisNumber = c.req.query('chassis_number')
   
-  if (!plateNumber) {
-    return c.json({ error: 'Plate number is required' }, 400)
+  if (!plateNumber && !chassisNumber) {
+    return c.json({ error: 'Plate number or chassis number is required' }, 400)
   }
   
   try {
-    const motorcycle = await DB.prepare(`
-      SELECT id, plate_number, vehicle_name, status
-      FROM motorcycles
-      WHERE plate_number = ?
-    `).bind(plateNumber).first()
+    let motorcycle
+    
+    if (chassisNumber) {
+      // 차대번호로 중복 체크
+      motorcycle = await DB.prepare(`
+        SELECT id, plate_number, vehicle_name, chassis_number, status
+        FROM motorcycles
+        WHERE chassis_number = ?
+      `).bind(chassisNumber).first()
+    } else if (plateNumber) {
+      // 번호판으로 중복 체크
+      motorcycle = await DB.prepare(`
+        SELECT id, plate_number, vehicle_name, chassis_number, status
+        FROM motorcycles
+        WHERE plate_number = ?
+      `).bind(plateNumber).first()
+    }
     
     if (motorcycle) {
       return c.json({ 
@@ -902,6 +1287,7 @@ app.get('/api/motorcycles/check-duplicate', async (c) => {
           id: motorcycle.id,
           plate_number: motorcycle.plate_number,
           vehicle_name: motorcycle.vehicle_name,
+          chassis_number: motorcycle.chassis_number,
           status: motorcycle.status
         }
       })
@@ -1079,6 +1465,9 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
     }
     
     // 기존 데이터와 새 데이터 병합 (새 데이터가 우선)
+    // 단, 폐지(scrapped) 상태로 변경 시 usage_notes(특약사항)는 보존
+    const isChangingToScrapped = data.status === 'scrapped' && existing.status !== 'scrapped'
+    
     const mergedData = {
       plate_number: data.plate_number !== undefined ? data.plate_number : existing.plate_number,
       vehicle_name: data.vehicle_name !== undefined ? data.vehicle_name : existing.vehicle_name,
@@ -1095,7 +1484,8 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       insurance_fee: data.insurance_fee !== undefined ? data.insurance_fee : existing.insurance_fee,
       vehicle_price: data.vehicle_price !== undefined ? data.vehicle_price : existing.vehicle_price,
       daily_rental_fee: data.daily_rental_fee !== undefined ? data.daily_rental_fee : (existing.daily_rental_fee || 0),
-      usage_notes: data.usage_notes !== undefined ? data.usage_notes : (existing.usage_notes || ''),
+      // 폐지로 변경 시 usage_notes는 보존 (삭제하지 않음)
+      usage_notes: isChangingToScrapped ? existing.usage_notes : (data.usage_notes !== undefined ? data.usage_notes : (existing.usage_notes || '')),
       status: data.status !== undefined ? data.status : existing.status,
       certificate_photo: data.certificate_photo !== undefined ? data.certificate_photo : existing.certificate_photo,
       monthly_fee: data.monthly_fee !== undefined ? data.monthly_fee : (existing.monthly_fee || 0),
@@ -1105,9 +1495,30 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       contract_end_date: data.contract_end_date !== undefined ? data.contract_end_date : (existing.contract_end_date || '')
     }
     
+    // 🔄 폐지/정비 상태에서 기본정보 변경 시 무조건 휴차중으로 전환
+    const isScrappedOrMaintenance = existing.status === 'scrapped' || existing.status === 'maintenance'
+    
+    // 기본정보 필드 변경 확인
+    const basicInfoChanged = 
+      (data.plate_number !== undefined && data.plate_number !== existing.plate_number) ||
+      (data.vehicle_name !== undefined && data.vehicle_name !== existing.vehicle_name) ||
+      (data.chassis_number !== undefined && data.chassis_number !== existing.chassis_number) ||
+      (data.model_year !== undefined && data.model_year !== existing.model_year) ||
+      (data.mileage !== undefined && data.mileage !== existing.mileage)
+    
+    // ✅ 조건: 폐지/정비 상태에서 기본정보 변경 시 무조건 휴차(idle)로 전환
+    if (isScrappedOrMaintenance && basicInfoChanged) {
+      console.log(`🔄 [Motorcycle Update] 폐지/정비 → 휴차(idle) 자동 전환 (기본정보 변경): ID=${id}`)
+      mergedData.status = 'idle'
+    }
+    
     // 변경 이력 저장 (모든 중요 필드 - 이력보호 절대원칙)
     const user = c.get('user')
     const userId = user?.id || null
+    
+    // 현재 활성 계약자 정보 조회
+    const currentContractorName = await getCurrentContractorName(DB, id)
+    
     const importantFields = [
       { key: 'plate_number', name: '번호판' },
       { key: 'vehicle_name', name: '차명' },
@@ -1140,8 +1551,8 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
       if (oldValue !== newValue) {
         await DB.prepare(`
           INSERT INTO motorcycle_history 
-          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
         `).bind(
           id,
           existing.chassis_number,
@@ -1150,7 +1561,10 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
           oldValue,
           newValue,
           userId,
-          `${field.name} 변경: ${oldValue} → ${newValue}`
+          `${field.name} 변경: ${oldValue} → ${newValue}`,
+          String(existing.plate_number || ''),
+          String(existing.owner_name || ''),
+          currentContractorName
         ).run()
       }
     }
@@ -1165,7 +1579,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
         certificate_photo = ?,
         monthly_fee = ?, contract_type_text = ?, deposit = ?,
         contract_start_date = ?, contract_end_date = ?,
-        updated_at = datetime("now")
+        updated_at = datetime("now", "+9 hours")
       WHERE id = ?
     `).bind(
       mergedData.plate_number,
@@ -1210,7 +1624,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
           insurance_start_date = ?,
           insurance_end_date = ?,
           insurance_age_limit = ?,
-          updated_at = datetime("now")
+          updated_at = datetime("now", "+9 hours")
         WHERE motorcycle_id = ? AND status = 'active'
       `).bind(
         mergedData.insurance_company,
@@ -1227,7 +1641,7 @@ app.put('/api/motorcycles/:id', authMiddleware, async (c) => {
           insurance_start_date = ?,
           insurance_end_date = ?,
           driving_range = ?,
-          updated_at = datetime("now")
+          updated_at = datetime("now", "+9 hours")
         WHERE motorcycle_id = ? AND status = 'active'
       `).bind(
         mergedData.insurance_start_date,
@@ -1318,6 +1732,9 @@ app.get('/api/motorcycles/:id/history', authMiddleware, async (c) => {
         h.change_date,
         h.notes,
         h.chassis_number,
+        h.current_plate_number,
+        h.current_owner_name,
+        h.current_contractor_name,
         u.name as changed_by_name
       FROM motorcycle_history h
       LEFT JOIN users u ON h.changed_by = u.id
@@ -1351,53 +1768,41 @@ app.delete('/api/motorcycles/:id', authMiddleware, async (c) => {
       return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
     }
     
-    // ✅ 이력 보존 원칙: motorcycle_history는 절대 삭제하지 않음!
-    // 삭제 이력만 추가
-    await DB.prepare(`
-      INSERT INTO motorcycle_history 
-      (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      id, 
-      (motorcycle as any).chassis_number,
-      'delete', '오토바이 삭제', 
-      (motorcycle as any).vehicle_name, '', userId,
-      `오토바이 삭제: ${(motorcycle as any).vehicle_name} (${(motorcycle as any).plate_number})`
-    ).run()
+    console.log(`🗑️ [Motorcycle Delete] ID=${id}`)
     
-    // ⚠️ 절대원칙: motorcycle_history는 삭제하지 않음!
-    // 1년 후 자동 삭제를 위해 deleted_at 필드를 사용하거나, 
-    // 이력 테이블은 영구 보존
+    // 소프트 삭제만 수행 (FOREIGN KEY 문제 회피)
+    console.log('📦 [Motorcycle] 소프트 삭제 시작')
     
-    // 관련 계약 이력 (contract_history)는 보존!
-    // - 이력은 절대 삭제하지 않음
-    
-    // 관련 계약 삭제 (contracts, business_contracts)
-    await DB.prepare('DELETE FROM contracts WHERE motorcycle_id = ?').bind(id).run()
-    await DB.prepare('DELETE FROM business_contracts WHERE motorcycle_id = ?').bind(id).run()
-    
-    // 오토바이 본체만 삭제 (이력은 보존)
-    // 또는 soft delete로 deleted_at 설정
+    // 소프트 삭제 (deleted_at 설정)
     await DB.prepare(`
       UPDATE motorcycles 
-      SET deleted_at = datetime('now'), 
+      SET deleted_at = datetime('now', '+9 hours'), 
           status = 'deleted',
-          updated_at = datetime('now')
+          updated_at = datetime('now', '+9 hours')
       WHERE id = ?
     `).bind(id).run()
     
-    // 하드 삭제를 원하면 아래 코드 사용:
-    // await DB.prepare('DELETE FROM motorcycles WHERE id = ?').bind(id).run()
-    
+    console.log('✅ [Motorcycle] 소프트 삭제 완료')
     return c.json({ 
-      message: '오토바이가 삭제되었습니다. 이력은 영구 보존됩니다.',
-      note: '오토바이 이력(motorcycle_history)은 삭제되지 않으며 영구 보관됩니다.'
+      success: true, 
+      message: '오토바이가 삭제 처리되었습니다',
+      note: '계약서 데이터는 보존됩니다',
+      type: 'soft'
     })
   } catch (error) {
-    console.error('오토바이 삭제 실패:', error)
-    return c.json({ error: '삭제에 실패했습니다: ' + (error as any).message }, 500)
+    console.error('❌ [Motorcycle Delete] 오토바이 삭제 실패:', error)
+    console.error('❌ [Motorcycle Delete] Error name:', (error as any).name)
+    console.error('❌ [Motorcycle Delete] Error message:', (error as any).message)
+    console.error('❌ [Motorcycle Delete] Error stack:', (error as any).stack)
+    return c.json({ 
+      error: '삭제에 실패했습니다',
+      details: (error as any).message,
+      name: (error as any).name
+    }, 500)
   }
 })
+
+
 
 // 오토바이 상태 변경 (해지/폐지)
 app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
@@ -1414,7 +1819,7 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
   }
   
   // 기존 데이터 조회 (이력 기록용)
-  const existing = await DB.prepare('SELECT status, usage_notes FROM motorcycles WHERE id = ?').bind(id).first()
+  const existing = await DB.prepare('SELECT status, usage_notes, chassis_number FROM motorcycles WHERE id = ?').bind(id).first()
   if (!existing) {
     return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
   }
@@ -1459,17 +1864,61 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
           --    5. 키로수 (mileage)
           --    6. 검사 시작일 (inspection_start_date)
           --    7. 검사 종료일 (inspection_end_date)
-          updated_at = datetime("now") 
+          updated_at = datetime("now", "+9 hours") 
       WHERE id = ?
     `).bind(usage_notes || '폐지', id).run()
     
     console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved, all else cleared`)
     
+    // 계약 완료 전에 계약자 정보 저장 (이력 기록용)
+    const contractorBeforeScrap = await getCurrentContractorName(DB, id)
+    
+    // 활성 계약 완료 처리 (폐지 시 계약도 종료)
+    try {
+      // 개인 계약 완료
+      const activePersonalContracts = await DB.prepare(`
+        SELECT id, contract_number FROM contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activePersonalContracts.results || []) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 개인 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      // 업체 계약 완료
+      const activeBusinessContracts = await DB.prepare(`
+        SELECT id, contract_number FROM business_contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activeBusinessContracts.results || []) {
+        await DB.prepare(`
+          UPDATE business_contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 업체 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      console.log(`✅ 활성 계약 완료 처리: 개인 ${activePersonalContracts.results?.length || 0}건, 업체 ${activeBusinessContracts.results?.length || 0}건`)
+    } catch (contractErr) {
+      console.warn(`⚠️ Failed to complete contracts:`, contractErr)
+    }
+    
     // 이력 기록: 폐지 처리
     await DB.prepare(`
       INSERT INTO motorcycle_history 
-      (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
     `).bind(
       id,
       (fullInfo as any)?.chassis_number,
@@ -1477,11 +1926,18 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
       `${(fullInfo as any)?.plate_number}`,  // 폐지 전 번호판
       '-',  // 계약기간 없음
       userId,
-      `해지날짜: ${scrapDate}\n폐지 사유: ${usage_notes || '폐지'}`
+      `해지날짜: ${scrapDate}\n폐지 사유: ${usage_notes || '폐지'}`,
+      String((fullInfo as any)?.plate_number || ''),
+      String((fullInfo as any)?.owner_name || ''),
+      contractorBeforeScrap
     ).run()
   } else if (status === 'available') {
-    // 해지 처리: 기본정보와 보험정보는 유지, 계약정보만 초기화
-    console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info only (keeping basic and insurance info)`)
+    // 해지 처리: 기본정보와 보험정보는 유지, 계약정보 초기화 (보험 명의자는 유지)
+    console.log(`🔄 Contract termination for motorcycle #${id} - clearing contract info (keeping basic, insurance info, and owner_name)`)
+    
+    // 계약 해지 전 계약자 정보 조회
+    const contractorBeforeTermination = await getCurrentContractorName(DB, id)
+    
     await DB.prepare(`
       UPDATE motorcycles 
       SET status = ?,
@@ -1490,30 +1946,34 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
           deposit = NULL,
           contract_start_date = NULL,
           contract_end_date = NULL,
-          owner_name = '',
-          updated_at = datetime("now") 
+          updated_at = datetime("now", '+9 hours') 
       WHERE id = ?
     `).bind(status, id).run()
-    console.log(`✅ Contract info cleared for motorcycle #${id} (basic info and insurance info preserved)`)
+    console.log(`✅ Contract info cleared for motorcycle #${id} (basic info, insurance info, and owner_name preserved)`)
     
     // 이력 기록: 상태 변경
     if (existing.status !== status) {
       await DB.prepare(`
         INSERT INTO motorcycle_history 
-        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         id, 
         existing.chassis_number,
         'update', '상태', existing.status, status, userId,
-        `상태 변경: ${existing.status} → ${status} (계약 해지)`
+        `상태 변경: ${existing.status} → ${status} (계약 해지)`,
+        String(existing.plate_number || ''),
+        String(existing.owner_name || ''),
+        contractorBeforeTermination
       ).run()
     }
   } else {
     // 일반 상태 변경
+    const contractorBeforeStatusChange = await getCurrentContractorName(DB, id)
+    
     await DB.prepare(`
       UPDATE motorcycles 
-      SET status = ?, updated_at = datetime("now") 
+      SET status = ?, updated_at = datetime("now", "+9 hours") 
       WHERE id = ?
     `).bind(status, id).run()
     
@@ -1521,13 +1981,16 @@ app.patch('/api/motorcycles/:id/status', authMiddleware, async (c) => {
     if (existing.status !== status) {
       await DB.prepare(`
         INSERT INTO motorcycle_history 
-        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         id,
         existing.chassis_number,
         'update', '상태', existing.status, status, userId,
-        `상태 변경: ${existing.status} → ${status}`
+        `상태 변경: ${existing.status} → ${status}`,
+        String(existing.plate_number || ''),
+        String(existing.owner_name || ''),
+        contractorBeforeStatusChange
       ).run()
     }
   }
@@ -1544,7 +2007,16 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     const DB = c.env.DB || c.env.db
     const id = c.req.param('id')
     const sessionUser = c.get('user')
-    const { scrap_reason } = await c.req.json()
+    
+    // body가 비어있을 수 있으므로 안전하게 처리
+    let scrap_reason = '폐지'
+    try {
+      const body = await c.req.json()
+      scrap_reason = body.scrap_reason || '폐지'
+    } catch (e) {
+      // body가 없으면 기본값 사용
+      scrap_reason = '폐지'
+    }
     
     console.log(`🗑️ Scrapping motorcycle #${id}`)
     
@@ -1558,6 +2030,9 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
     
     console.log(`📋 Original motorcycle: ${motorcycle.vehicle_name} (${motorcycle.chassis_number})`)
     console.log(`📋 Previous plate_number: ${motorcycle.plate_number}`)
+    
+    // 폐지 전 계약자 정보 조회
+    const contractorBeforeScrapFull = await getCurrentContractorName(DB, id)
     
     // 현재 날짜 (해지날짜)
     const scrapDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
@@ -1573,16 +2048,22 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
           old_value, 
           new_value, 
           changed_by, 
-          change_date,
-          notes
-        ) VALUES (?, ?, 'scrapped', '폐지 처리', ?, ?, ?, datetime('now'), ?)
+          notes,
+          current_plate_number,
+          current_owner_name,
+          current_contractor_name,
+          change_date
+        ) VALUES (?, ?, 'scrapped', '폐지 처리', ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         id,
         motorcycle.chassis_number,
         `${motorcycle.plate_number}`,  // 폐지 전 번호판
         '-',  // 계약기간 없음
         sessionUser?.id || null,
-        `해지날짜: ${scrapDate}\n폐지 사유: ${scrap_reason || '폐지'}`
+        `해지날짜: ${scrapDate}\n폐지 사유: ${scrap_reason || '폐지'}`,
+        String(motorcycle.plate_number || ''),
+        String(motorcycle.owner_name || ''),
+        contractorBeforeScrapFull
       ).run()
       
       console.log(`✅ 폐지 이력 저장 완료: ${motorcycle.plate_number} → (폐지)`)
@@ -1590,44 +2071,82 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
       console.warn(`⚠️ Failed to save history (table may not exist):`, historyErr)
     }
     
-    // 3. 폐지 처리: 스크린샷 기준 7개 필드만 유지, 나머지 전부 초기화
-    await DB.prepare(`
+    // 2.5. 활성 계약 완료 처리 (폐지 시 계약도 종료)
+    try {
+      // 개인 계약 완료
+      const activePersonalContracts = await DB.prepare(`
+        SELECT id, contract_number FROM contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activePersonalContracts.results || []) {
+        await DB.prepare(`
+          UPDATE contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 개인 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      // 업체 계약 완료
+      const activeBusinessContracts = await DB.prepare(`
+        SELECT id, contract_number FROM business_contracts 
+        WHERE motorcycle_id = ? AND status = 'active'
+      `).bind(id).all()
+      
+      for (const contract of activeBusinessContracts.results || []) {
+        await DB.prepare(`
+          UPDATE business_contracts 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime('now', '+9 hours') 
+          WHERE id = ?
+        `).bind(scrapDate, (contract as any).id).run()
+        console.log(`✅ 업체 계약 완료 처리: ${(contract as any).contract_number}`)
+      }
+      
+      console.log(`✅ 활성 계약 완료 처리: 개인 ${activePersonalContracts.results?.length || 0}건, 업체 ${activeBusinessContracts.results?.length || 0}건`)
+    } catch (contractErr) {
+      console.warn(`⚠️ Failed to complete contracts:`, contractErr)
+    }
+    
+    // 3. 폐지 처리: 스크린샷 기준 8개 필드만 유지, 나머지 전부 초기화
+    // usage_notes(특약사항)는 유지 - 관리자가 직접 삭제 가능
+    console.log(`🔄 Starting scrap update for motorcycle ID=${id}`)
+    
+    const updateResult = await DB.prepare(`
       UPDATE motorcycles 
       SET status = 'scrapped',
-          usage_notes = ?,
-          -- ❌ 보험정보 초기화
           insurance_company = '',
           insurance_start_date = '',
           insurance_end_date = '',
           insurance_fee = 0,
-          -- ❌ 계약정보 초기화
           owner_name = '',
           monthly_fee = 0,
           contract_type_text = '',
           deposit = 0,
           contract_start_date = '',
           contract_end_date = '',
-          -- ❌ 기타정보 초기화
           vehicle_price = 0,
           daily_rental_fee = 0,
           driving_range = '',
           certificate_photo = '',
-          -- ✅ 유지되는 정보 (스크린샷 기준 7개):
-          --    1. plate_number (차량번호)
-          --    2. vehicle_name (차량이름)
-          --    3. model_year (연식)
-          --    4. chassis_number (차대번호)
-          --    5. mileage (키로수)
-          --    6. inspection_start_date (검사 시작일)
-          --    7. inspection_end_date (검사 종료일)
-          updated_at = datetime("now")
+          updated_at = datetime("now", "+9 hours")
       WHERE id = ?
-    `).bind(scrap_reason || '폐지', id).run()
+    `).bind(id).run()
     
-    console.log(`✅ Motorcycle #${id} scrapped - only 7 basic fields preserved (screenshot spec)`)
+    console.log(`✅ Scrap update result:`, updateResult)
+    
+    if (!updateResult.success) {
+      throw new Error('Database update failed')
+    }
+    
+    console.log(`✅ Motorcycle #${id} scrapped - 8 fields preserved including usage_notes`)
     
     return c.json({ 
-      message: '폐지 처리되었습니다. 차량번호, 차량이름, 연식, 차대번호, 키로수, 검사일만 보존되었습니다.',
+      message: '폐지 처리되었습니다. 차량번호, 차량이름, 연식, 차대번호, 키로수, 검사일, 특약사항이 보존되었습니다.',
       motorcycle: {
         id: motorcycle.id,
         plate_number: motorcycle.plate_number,
@@ -1637,9 +2156,10 @@ app.post('/api/motorcycles/:id/scrap', authMiddleware, async (c) => {
         mileage: motorcycle.mileage,
         inspection_start_date: motorcycle.inspection_start_date,
         inspection_end_date: motorcycle.inspection_end_date,
+        usage_notes: motorcycle.usage_notes,
         status: 'scrapped'
       },
-      preserved_info: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일'],
+      preserved_info: ['차량번호', '차량이름', '연식', '차대번호', '키로수', '검사시작일', '검사종료일', '특약사항'],
       cleared_info: ['보험정보', '계약정보', '차량가격', '일대여료', '운전범위', '등록증사진']
     })
   } catch (error: any) {
@@ -1686,6 +2206,9 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
     const scrapDate = new Date().toISOString().split('T')[0]
     
     for (const m of scrappedMotorcycles.results) {
+      // 폐지된 오토바이의 계약자 정보 조회
+      const contractorForBulkScrap = await getCurrentContractorName(DB, (m as any).id)
+      
       // 기존 폐지 이력 조회
       const existingHistory = await DB.prepare(`
         SELECT id, old_value, notes 
@@ -1713,14 +2236,17 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
         // 이력이 없으면 새로 생성
         await DB.prepare(`
           INSERT INTO motorcycle_history 
-          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes)
-          VALUES (?, ?, 'scrapped', '폐지 처리', ?, '-', ?, ?)
+          (motorcycle_id, chassis_number, change_type, field_name, old_value, new_value, changed_by, notes, current_plate_number, current_owner_name, current_contractor_name, change_date)
+          VALUES (?, ?, 'scrapped', '폐지 처리', ?, '-', ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
         `).bind(
           (m as any).id,
           (m as any).chassis_number,
           (m as any).plate_number,
           user?.id || null,
-          `해지날짜: ${scrapDate}\n폐지`
+          `해지날짜: ${scrapDate}\n폐지`,
+          String((m as any).plate_number || ''),
+          String((m as any).owner_name || ''),
+          contractorForBulkScrap
         ).run()
         historyUpdatedCount++
       }
@@ -1754,7 +2280,7 @@ app.post('/api/motorcycles/apply-scrap-rules', authMiddleware, async (c) => {
           --    5. mileage (키로수)
           --    6. inspection_start_date (검사 시작일)
           --    7. inspection_end_date (검사 종료일)
-          updated_at = datetime("now")
+          updated_at = datetime("now", "+9 hours")
       WHERE status = 'scrapped'
     `).run()
     
@@ -1970,7 +2496,7 @@ app.put('/api/customers/:id', authMiddleware, async (c) => {
   await DB.prepare(`
     UPDATE customers SET
       name = ?, resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?,
-      updated_at = datetime("now")
+      updated_at = datetime("now", "+9 hours")
     WHERE id = ?
   `).bind(
     data.name,
@@ -2143,6 +2669,223 @@ END`).run()
 
 
 // ============================================
+// 업체 정보 등록 API (Businesses Registration)
+// ============================================
+
+// 업체 등록 (인증 불필요 - 공개 등록)
+app.post('/api/businesses', async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    const data = await c.req.json()
+    
+    console.log('📥 업체 등록 요청 전체 데이터:', JSON.stringify(data, null, 2))
+    
+    // 사업자등록번호 중복 체크
+    if (data.business_registration_number) {
+      const existingBusiness = await DB.prepare(
+        'SELECT id, company_name, business_registration_number FROM businesses WHERE business_registration_number = ?'
+      ).bind(data.business_registration_number).first()
+      
+      if (existingBusiness) {
+        console.log('⚠️ 중복된 사업자등록번호:', data.business_registration_number, '기존 업체:', existingBusiness.company_name)
+        return c.json({ 
+          error: '이미 등록된 사업자등록번호입니다.', 
+          existing: { name: existingBusiness.company_name, business_number: existingBusiness.business_registration_number }
+        }, 409)
+      }
+    }
+    
+    // 전화번호 중복 체크 (선택사항)
+    if (data.manager_phone) {
+      const existingPhone = await DB.prepare(
+        'SELECT id, company_name, manager_phone FROM businesses WHERE manager_phone = ?'
+      ).bind(data.manager_phone).first()
+      
+      if (existingPhone) {
+        console.log('⚠️ 중복된 전화번호:', data.manager_phone, '기존 업체:', existingPhone.company_name)
+        return c.json({ 
+          error: '이미 등록된 전화번호입니다.', 
+          existing: { name: existingPhone.company_name, phone: existingPhone.manager_phone }
+        }, 409)
+      }
+    }
+    
+    console.log('📝 INSERT 할 업체 데이터:', {
+      company_name: data.company_name,
+      business_registration_number: data.business_registration_number,
+      representative_name: data.representative_name,
+      manager_phone: data.manager_phone,
+      postcode: data.postcode || '',
+      address: data.address,
+      detail_address: data.detail_address || '',
+      email: data.email || null,
+      business_type: data.business_type || null
+    })
+    
+    const result = await DB.prepare(`
+      INSERT INTO businesses (
+        company_name, 
+        business_registration_number, 
+        representative_name, 
+        manager_phone, 
+        postcode, 
+        address, 
+        detail_address,
+        email,
+        business_type,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+    `).bind(
+      data.company_name,
+      data.business_registration_number,
+      data.representative_name,
+      data.manager_phone,
+      data.postcode || '',
+      data.address,
+      data.detail_address || '',
+      data.email || null,
+      data.business_type || null
+    ).run()
+    
+    const businessId = result.meta.last_row_id
+    console.log('✅ 업체 등록 성공:', businessId, data.company_name)
+    
+    // 등록된 데이터 다시 조회해서 확인
+    const insertedBusiness = await DB.prepare('SELECT * FROM businesses WHERE id = ?').bind(businessId).first()
+    console.log('✅ 등록된 업체 데이터 확인:', JSON.stringify(insertedBusiness, null, 2))
+    
+    return c.json({ id: businessId, ...data }, 201)
+  } catch (error) {
+    console.error('❌ 업체 등록 실패:', error)
+    return c.json({ 
+      error: '업체 등록에 실패했습니다.', 
+      details: error.message 
+    }, 500)
+  }
+})
+
+// 업체 목록 조회 (인증 필요 - 관리자만)
+app.get('/api/businesses', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    const businesses = await DB.prepare(`
+      SELECT 
+        id,
+        company_name,
+        business_registration_number,
+        representative_name,
+        manager_phone,
+        postcode,
+        address,
+        detail_address,
+        email,
+        business_type,
+        created_at,
+        updated_at
+      FROM businesses
+      WHERE deleted_at IS NULL
+      ORDER BY created_at DESC
+    `).all()
+    
+    console.log('📋 업체 목록 조회:', businesses.results.length, '개')
+    
+    return c.json(businesses.results)
+  } catch (error) {
+    console.error('❌ 업체 목록 조회 실패:', error)
+    return c.json({ error: '업체 목록 조회에 실패했습니다.' }, 500)
+  }
+})
+
+// 업체 상세 조회 (인증 필요)
+app.get('/api/businesses/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  try {
+    const business = await DB.prepare(`
+      SELECT * FROM businesses WHERE id = ? AND deleted_at IS NULL
+    `).bind(id).first()
+    
+    if (!business) {
+      return c.json({ error: '업체를 찾을 수 없습니다.' }, 404)
+    }
+    
+    return c.json(business)
+  } catch (error) {
+    console.error('❌ 업체 조회 실패:', error)
+    return c.json({ error: '업체 조회에 실패했습니다.' }, 500)
+  }
+})
+
+// 업체 정보 수정 (인증 필요)
+app.put('/api/businesses/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  try {
+    await DB.prepare(`
+      UPDATE businesses SET
+        company_name = ?, 
+        business_registration_number = ?, 
+        representative_name = ?, 
+        manager_phone = ?, 
+        postcode = ?, 
+        address = ?, 
+        detail_address = ?,
+        email = ?,
+        business_type = ?,
+        updated_at = datetime("now", "+9 hours")
+      WHERE id = ?
+    `).bind(
+      data.company_name,
+      data.business_registration_number,
+      data.representative_name,
+      data.manager_phone,
+      data.postcode || '',
+      data.address,
+      data.detail_address || '',
+      data.email || null,
+      data.business_type || null,
+      id
+    ).run()
+    
+    console.log('✅ 업체 정보 수정 성공:', id)
+    
+    return c.json({ id, ...data })
+  } catch (error) {
+    console.error('❌ 업체 수정 실패:', error)
+    return c.json({ error: '업체 수정에 실패했습니다.' }, 500)
+  }
+})
+
+// 업체 삭제 (인증 필요 - 관리자만)
+app.delete('/api/businesses/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  try {
+    // Soft delete
+    await DB.prepare(`
+      UPDATE businesses 
+      SET deleted_at = datetime("now", "+9 hours")
+      WHERE id = ?
+    `).bind(id).run()
+    
+    console.log('✅ 업체 삭제 성공:', id)
+    
+    return c.json({ message: '업체가 삭제되었습니다.' })
+  } catch (error) {
+    console.error('❌ 업체 삭제 실패:', error)
+    return c.json({ error: '업체 삭제에 실패했습니다.' }, 500)
+  }
+})
+
+
+// ============================================
 // 업체 API (Removed - using version at line 5879)
 // ============================================
 
@@ -2159,7 +2902,7 @@ END`).run()
 //     UPDATE companies SET
 //       name = ?, company_code = ?, representative = ?, representative_resident_number = ?, phone = ?, postcode = ?, address = ?, detail_address = ?,
 //       signature_data = ?, id_card_photo = ?,
-//       updated_at = datetime("now")
+//       updated_at = datetime("now", "+9 hours")
 //     WHERE id = ?
 //   `).bind(
 //     data.name,
@@ -2232,6 +2975,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       customers: 0,
       contracts: {
         active: 0,
+        active_contracts_count: 0,  // 진행중 계약 건수
         monthly_revenue: 0,
         total_deposits: 0,
         active_business: 0,
@@ -2318,6 +3062,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
       customers: (customerCount as any)?.count || 0,
       contracts: {
         active: totalActiveContracts,  // 개인계약 + 업체계약
+        active_contracts_count: totalActiveContracts,  // 진행중 계약 건수 (계약서 목록 카드용)
         monthly_revenue: (contractStats as any)?.total_monthly_revenue || 0,
         total_deposits: (contractStats as any)?.total_deposits || 0,
         active_business: (businessContractStats as any)?.active_business_contracts || 0,
@@ -2334,42 +3079,105 @@ app.get('/api/dashboard/stats', authMiddleware, async (c) => {
 
 // 계약서 목록 조회
 app.get('/api/contracts', async (c) => {
-  const DB = c.env.DB || c.env.db
-  const residentNumber = c.req.query('resident_number')
-  
-  let query = `
-    SELECT 
-      c.*,
-      m.plate_number, m.vehicle_name,
-      cu.name as customer_name, cu.phone as customer_phone,
-      cu.postcode as customer_postcode, cu.address as customer_address,
-      cu.detail_address as customer_detail_address
-    FROM contracts c
-    JOIN motorcycles m ON c.motorcycle_id = m.id
-    LEFT JOIN customers cu ON c.customer_id = cu.id
-    WHERE c.deleted_at IS NULL
-  `
-  
-  const params = []
-  
-  // 주민등록번호로 필터링 (고객 포털용)
-  if (residentNumber) {
-    query += ` AND cu.resident_number = ?`
-    params.push(residentNumber)
+  try {
+    const DB = c.env.DB || c.env.db
+    const residentNumber = c.req.query('resident_number')
+    const search = c.req.query('search') || ''
+    const page = parseInt(c.req.query('page') || '1')
+    const limit = parseInt(c.req.query('limit') || '50')
+    const offset = (page - 1) * limit
+    
+    // 0단계: 전체 개수 조회 (검색 조건 포함)
+    let countQuery = `SELECT COUNT(*) as total FROM contracts c WHERE c.deleted_at IS NULL`
+    const countParams = []
+    
+    if (residentNumber) {
+      countQuery += ` AND c.customer_id IN (SELECT id FROM customers WHERE resident_number = ?)`
+      countParams.push(residentNumber)
+    }
+    
+    // 검색 조건 추가
+    if (search) {
+      countQuery += ` AND (
+        c.contract_number LIKE ? OR
+        c.customer_id IN (SELECT id FROM customers WHERE name LIKE ?) OR
+        c.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      countParams.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    const countStmt = DB.prepare(countQuery)
+    const countResult = countParams.length > 0 
+      ? await countStmt.bind(...countParams).first()
+      : await countStmt.first()
+    const total = countResult?.total || 0
+    
+    // 최적화된 단일 쿼리: JOIN으로 한 번에 모든 데이터 가져오기
+    let query = `
+      SELECT 
+        c.*,
+        m.plate_number,
+        m.vehicle_name,
+        cu.name as customer_name,
+        cu.phone as customer_phone,
+        cu.postcode as customer_postcode,
+        cu.address as customer_address,
+        cu.detail_address as customer_detail_address
+      FROM contracts c
+      LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      WHERE c.deleted_at IS NULL
+    `
+    
+    const params = []
+    
+    // 주민등록번호로 필터링 (고객 포털용)
+    if (residentNumber) {
+      query += ` AND cu.resident_number = ?`
+      params.push(residentNumber)
+    }
+    
+    // 검색 조건 추가
+    if (search) {
+      query += ` AND (
+        c.contract_number LIKE ? OR
+        cu.name LIKE ? OR
+        m.plate_number LIKE ?
+      )`
+      const searchPattern = `%${search}%`
+      params.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    query += ` ORDER BY c.created_at DESC LIMIT ${limit} OFFSET ${offset}`
+    
+    const stmt = DB.prepare(query)
+    const result = params.length > 0 
+      ? await stmt.bind(...params).all()
+      : await stmt.all()
+    
+    const contracts = result.results || []
+    
+    return c.json({
+      data: contracts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error: any) {
+    console.error('❌ 계약서 목록 조회 실패:', error)
+    return c.json({ 
+      error: '계약서 목록을 불러오는데 실패했습니다',
+      message: error?.message || String(error)
+    }, 500)
   }
-  
-  query += ` ORDER BY c.created_at DESC`
-  
-  const stmt = DB.prepare(query)
-  const result = params.length > 0 
-    ? await stmt.bind(...params).all()
-    : await stmt.all()
-  
-  return c.json(result.results)
 })
 
-// 오토바이별 계약 이력 조회
-app.get('/api/motorcycles/:id/contracts', async (c) => {
+// 오토바이별 계약 이력 조회 (인증 필요)
+app.get('/api/motorcycles/:id/contracts', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const motorcycleId = c.req.param('id')
   
@@ -2425,8 +3233,8 @@ app.get('/api/motorcycles/:id/contracts', async (c) => {
           bc.status, 
           bc.created_at, 
           bc.updated_at,
-          NULL as completed_at, 
-          NULL as cancelled_at,
+          bc.completed_at, 
+          bc.cancelled_at,
           'business' as contract_source,
           bc.company_name as customer_name, 
           bc.company_code as resident_number, 
@@ -2504,7 +3312,7 @@ app.get('/api/contracts/:id/sign', async (c) => {
     FROM contracts c
     JOIN motorcycles m ON c.motorcycle_id = m.id
     LEFT JOIN customers cu ON c.customer_id = cu.id
-    WHERE c.id = ?
+    WHERE c.id = ? AND c.deleted_at IS NULL
   `).bind(id).first()
   
   if (!result) {
@@ -2523,7 +3331,14 @@ app.get('/api/contracts/:id/sign', async (c) => {
 app.put('/api/contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { signature_data, id_card_photo } = await c.req.json()
+  const { 
+    signature_data, 
+    id_card_photo,
+    motorcycle_photo_front,
+    motorcycle_photo_back,
+    motorcycle_photo_left,
+    motorcycle_photo_right
+  } = await c.req.json()
   
   // 계약서 조회
   const contract = await DB.prepare(`
@@ -2541,9 +3356,25 @@ app.put('/api/contracts/:id/sign', async (c) => {
   // 서명 추가 및 상태 업데이트
   await DB.prepare(`
     UPDATE contracts 
-    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET signature_data = ?, 
+        id_card_photo = ?, 
+        motorcycle_photo_front = ?,
+        motorcycle_photo_back = ?,
+        motorcycle_photo_left = ?,
+        motorcycle_photo_right = ?,
+        motorcycle_photo_upload_date = datetime('now', '+9 hours'),
+        status = 'active', 
+        updated_at = datetime('now', '+9 hours')
     WHERE id = ?
-  `).bind(signature_data, id_card_photo || '', id).run()
+  `).bind(
+    signature_data, 
+    id_card_photo || '', 
+    motorcycle_photo_front || '',
+    motorcycle_photo_back || '',
+    motorcycle_photo_left || '',
+    motorcycle_photo_right || '',
+    id
+  ).run()
   
   // 오토바이 상태 업데이트
   await DB.prepare(`
@@ -2559,9 +3390,13 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  // 계약서 조회
+  // 계약서 전체 정보 조회 (오토바이 정보 포함)
   const contract = await DB.prepare(`
-    SELECT motorcycle_id, status FROM contracts WHERE id = ?
+    SELECT c.*, cu.name as customer_name, m.chassis_number, m.plate_number, m.vehicle_name
+    FROM contracts c
+    LEFT JOIN customers cu ON c.customer_id = cu.id
+    LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
+    WHERE c.id = ?
   `).bind(id).first() as any
   
   if (!contract) {
@@ -2572,19 +3407,51 @@ app.put('/api/contracts/:id/complete', authMiddleware, async (c) => {
     return c.json({ error: '이미 완료된 계약서입니다' }, 400)
   }
   
+  const today = new Date().toISOString().split('T')[0]
+  
   // 계약서 상태를 완료로 변경
   await DB.prepare(`
     UPDATE contracts 
-    SET status = 'completed', updated_at = datetime("now") 
+    SET status = 'completed', 
+        completed_at = ?,
+        updated_at = datetime("now", "+9 hours") 
     WHERE id = ?
-  `).bind(id).run()
+  `).bind(today, id).run()
+  
+  // 오토바이 정보 조회
+  const motorcycle = await DB.prepare(`
+    SELECT plate_number, owner_name FROM motorcycles WHERE id = ?
+  `).bind(contract.motorcycle_id).first()
   
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
     UPDATE motorcycles 
-    SET status = 'available', updated_at = datetime("now") 
+    SET status = 'available', updated_at = datetime("now", "+9 hours") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
+  
+  // 계약 완료 이력을 motorcycle_history에 저장 (chassis_number, change_type 포함)
+  await DB.prepare(`
+    INSERT INTO motorcycle_history (
+      motorcycle_id, change_type, field_name, old_value, new_value, 
+      changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, current_contractor_name, change_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+  `).bind(
+    contract.motorcycle_id,
+    'contract_completed',  // change_type 추가
+    '계약 완료',
+    `계약자: ${contract.customer_name || '알 수 없음'}`,
+    `완료일: ${today}`,
+    null, // changed_by (user_id)
+    '시스템',
+    `📋 계약번호: ${contract.contract_number}\n👤 계약자: ${contract.customer_name || '알 수 없음'}\n📅 계약기간: ${contract.start_date} ~ ${contract.end_date}\n✅ 완료일: ${today}`,
+    contract.chassis_number,  // chassis_number 추가
+    String((motorcycle as any)?.plate_number || ''),
+    String((motorcycle as any)?.owner_name || ''),
+    String(contract.customer_name || '')  // 계약자 이름 (완료되는 계약의 계약자)
+  ).run()
+  
+  console.log(`✅ 계약 완료 이력 저장: ${contract.contract_number}, 고객: ${contract.customer_name}, 차대번호: ${contract.chassis_number}`)
   
   return c.json({ message: '계약이 완료 처리되었습니다' })
 })
@@ -2635,7 +3502,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
         address = ?, 
         detail_address = ?,
         license_type = ?,
-        updated_at = datetime("now")
+        updated_at = datetime("now", "+9 hours")
       WHERE id = ?
     `).bind(
       data.customer_name, 
@@ -2679,7 +3546,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
           SET status = 'cancelled', 
               end_date = ?,
               cancelled_at = ?,
-              updated_at = datetime("now") 
+              updated_at = datetime("now", "+9 hours") 
           WHERE id = ?
         `).bind(today, today, contractData.id).run()
         
@@ -2711,14 +3578,23 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     }
   }
   
+  // ⭐ 오토바이 ID 검증 및 변환 (먼저 해야 함!)
+  const motorcycleId = Number(data.motorcycle_id)
+  if (!data.motorcycle_id || isNaN(motorcycleId)) {
+    console.error('❌ motorcycle_id가 누락되었거나 유효하지 않습니다:', data.motorcycle_id, 'type:', typeof data.motorcycle_id)
+    return c.json({ error: '오토바이 정보가 누락되었거나 유효하지 않습니다' }, 400)
+  }
+  
+  console.log('✅ motorcycle_id 검증 성공:', motorcycleId)
+  
   // 같은 오토바이의 기존 활성 계약을 완료 처리
-  console.log('🔄 Checking for existing active contracts for motorcycle:', data.motorcycle_id)
+  console.log('🔄 Checking for existing active contracts for motorcycle:', motorcycleId)
   
   // 1. 개인 계약 완료 처리 (덮어쓰기)
   const existingContracts = await DB.prepare(`
     SELECT * FROM contracts 
     WHERE motorcycle_id = ? AND status = 'active'
-  `).bind(data.motorcycle_id).all()
+  `).bind(motorcycleId).all()
   
   if (existingContracts.results.length > 0) {
     console.log(`📋 Found ${existingContracts.results.length} active personal contract(s), replacing them...`)
@@ -2728,7 +3604,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
       // 기존 계약을 'cancelled' 상태로 변경하고 종료일을 오늘로 설정
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'cancelled', end_date = ?, cancelled_at = ?, updated_at = datetime("now") 
+        SET status = 'cancelled', end_date = ?, cancelled_at = ?, updated_at = datetime("now", "+9 hours") 
         WHERE id = ?
       `).bind(today, today, oldContract.id).run()
       
@@ -2759,7 +3635,7 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   const existingBusinessContracts = await DB.prepare(`
     SELECT * FROM business_contracts 
     WHERE motorcycle_id = ? AND status = 'active'
-  `).bind(data.motorcycle_id).all()
+  `).bind(motorcycleId).all()
   
   if (existingBusinessContracts.results.length > 0) {
     console.log(`📋 Found ${existingBusinessContracts.results.length} active business contract(s), replacing them...`)
@@ -2768,9 +3644,12 @@ app.post('/api/contracts', authMiddleware, async (c) => {
       
       await DB.prepare(`
         UPDATE business_contracts 
-        SET status = 'cancelled', end_date = ?, updated_at = datetime("now") 
+        SET status = 'cancelled', 
+            end_date = ?, 
+            cancelled_at = ?,
+            updated_at = datetime("now", "+9 hours") 
         WHERE id = ?
-      `).bind(today, oldContract.id).run()
+      `).bind(today, today, oldContract.id).run()
       
       console.log(`✅ Replaced business contract: ${oldContract.contract_number}`)
     }
@@ -2782,21 +3661,52 @@ app.post('/api/contracts', authMiddleware, async (c) => {
   const motorcycle = await DB.prepare(`
     SELECT insurance_company, insurance_start_date, insurance_end_date, driving_range 
     FROM motorcycles WHERE id = ?
-  `).bind(data.motorcycle_id).first() as any
+  `).bind(motorcycleId).first() as any
   
-  // status를 pending으로 저장 (서명 전 상태)
-  const statusToSave = data.signature_data ? 'active' : 'pending'
+  if (!motorcycle) {
+    console.error('❌ 오토바이를 찾을 수 없습니다. ID:', motorcycleId)
+    return c.json({ error: `오토바이를 찾을 수 없습니다 (ID: ${motorcycleId})` }, 404)
+  }
+  
+  console.log('✅ 오토바이 정보 조회 성공:', motorcycle)
+  
+  // 임시렌트는 무조건 진행중(active) 상태로 저장
+  // 다른 계약은 서명 데이터 유무로 판단
+  const statusToSave = (data.contract_type === 'temp_rent') ? 'active' : (data.signature_data ? 'active' : 'pending')
+  
+  console.log('🔍 INSERT 직전 데이터 확인:', {
+    contract_type: data.contract_type,
+    motorcycle_id: motorcycleId,
+    customer_id: data.customer_id,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    end_date_type: typeof data.end_date,
+    end_date_empty: !data.end_date,
+    monthly_fee: data.monthly_fee,
+    deposit: data.deposit,
+    contractNumber,
+    statusToSave,
+    kstNow,
+    motorcycle_driving_range: motorcycle.driving_range,
+    motorcycle_insurance_company: motorcycle.insurance_company
+  })
+  
+  // 🚨 end_date 필수 값 검증
+  if (!data.end_date || data.end_date === '' || data.end_date === 'undefined') {
+    console.error('❌ end_date가 비어있거나 유효하지 않습니다:', data.end_date)
+    return c.json({ error: '계약 종료일이 필요합니다' }, 400)
+  }
   
   const result = await DB.prepare(`
     INSERT INTO contracts (
       contract_type, motorcycle_id, customer_id, start_date, end_date,
-      monthly_fee, deposit, special_terms, signature_data, id_card_photo, contract_number, status, 
-      insurance_company, insurance_start_date, insurance_end_date, insurance_age_limit, driving_range,
-      created_at, updated_at
+      monthly_fee, deposit, special_terms, signature_data, contract_number, status, 
+      created_at, updated_at, id_card_photo,
+      insurance_age_limit, insurance_company, insurance_start_date, insurance_end_date, driving_range
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.contract_type,
-    data.motorcycle_id,
+    motorcycleId,
     data.customer_id,
     data.start_date,
     data.end_date,
@@ -2804,43 +3714,49 @@ app.post('/api/contracts', authMiddleware, async (c) => {
     data.deposit || 0,
     data.special_terms || '',
     data.signature_data || '',
-    data.id_card_photo || '',
     contractNumber,
     statusToSave,
+    kstNow,
+    kstNow,
+    data.id_card_photo || '',
+    motorcycle?.driving_range || '',
     motorcycle?.insurance_company || '',
     motorcycle?.insurance_start_date || '',
     motorcycle?.insurance_end_date || '',
-    motorcycle?.driving_range || '',
-    motorcycle?.driving_range || '',
-    kstNow,
-    kstNow
+    motorcycle?.driving_range || ''
   ).run()
+  
+  console.log('✅ INSERT 성공:', result.meta.last_row_id)
   
   const newContractId = result.meta.last_row_id
   
-  // 새 계약 이력 기록
-  await recordContractHistory(
-    DB,
-    Number(newContractId),
-    data.motorcycle_id,
-    data.customer_id,
-    contractNumber,
-    data.contract_type,
-    'created',
-    null,
-    statusToSave,  // 실제 저장된 상태 사용
-    data.start_date,
-    data.end_date,
-    data.monthly_fee,
-    data.deposit || 0,
-    data.special_terms || '',
-    statusToSave === 'pending' ? '계약 생성 (서명 대기)' : '새 계약 생성'
-  )
+  // 새 계약 이력 기록 (에러 발생해도 계약 생성은 성공)
+  try {
+    await recordContractHistory(
+      DB,
+      Number(newContractId),
+      motorcycleId,
+      data.customer_id,
+      contractNumber,
+      data.contract_type,
+      'created',
+      null,
+      statusToSave,  // 실제 저장된 상태 사용
+      data.start_date,
+      data.end_date,
+      data.monthly_fee,
+      data.deposit || 0,
+      data.special_terms || '',
+      statusToSave === 'pending' ? '계약 생성 (서명 대기)' : '새 계약 생성'
+    )
+  } catch (historyError: any) {
+    console.error(`⚠️ 계약 이력 저장 실패 (계약은 정상 생성됨): ${contractNumber}`, historyError)
+  }
   
   // 오토바이 상태 업데이트 (active 상태일 때만)
   if (statusToSave === 'active') {
     await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
-      .bind('rented', data.motorcycle_id).run()
+      .bind('rented', motorcycleId).run()
   }
   
   // ⭐ SMS 전송 (부가 기능 - 실패해도 계약서 저장에 영향 없음)
@@ -2916,7 +3832,7 @@ app.post('/api/public/contracts', async (c) => {
       // 고객 정보 업데이트 (전화번호 포함)
       await DB.prepare(`
         UPDATE customers 
-        SET name = ?, phone = ?, resident_number = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?, updated_at = datetime("now")
+        SET name = ?, phone = ?, resident_number = ?, postcode = ?, address = ?, detail_address = ?, license_type = ?, updated_at = datetime("now", "+9 hours")
         WHERE id = ?
       `).bind(
         data.customer_name, 
@@ -2965,7 +3881,7 @@ app.post('/api/public/contracts', async (c) => {
       for (const contract of existingContracts.results) {
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', updated_at = datetime("now", "+9 hours") 
           WHERE id = ?
         `).bind((contract as any).id).run()
       }
@@ -3041,7 +3957,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
           address = ?, 
           detail_address = ?,
           license_type = ?,
-          updated_at = datetime("now")
+          updated_at = datetime("now", "+9 hours")
         WHERE id = ?
       `).bind(
         data.customer_name, 
@@ -3113,7 +4029,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
             UPDATE contracts 
             SET status = 'cancelled', 
                 end_date = date('now'), 
-                updated_at = datetime("now") 
+                updated_at = datetime("now", "+9 hours") 
             WHERE id = ?
           `).bind(contractData.id).run()
           
@@ -3140,7 +4056,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       for (const contract of existingContracts.results) {
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', updated_at = datetime("now", "+9 hours") 
           WHERE id = ?
         `).bind((contract as any).id).run()
         console.log(`✅ [Admin] Completed personal contract: ${(contract as any).contract_number}`)
@@ -3158,7 +4074,7 @@ app.post('/api/contracts-admin-save', authMiddleware, async (c) => {
       for (const contract of existingBusinessContracts.results) {
         await DB.prepare(`
           UPDATE business_contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', updated_at = datetime("now", "+9 hours") 
           WHERE id = ?
         `).bind((contract as any).id).run()
         console.log(`✅ [Admin] Completed business contract: ${(contract as any).contract_number}`)
@@ -3216,8 +4132,15 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   const id = c.req.param('id')
   const { status } = await c.req.json()
   
-  // 계약서 정보 조회
-  const contract = await DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first()
+  // 개인 계약서 정보 조회
+  let contract = await DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first()
+  let isBusinessContract = false
+  
+  // 개인 계약이 없으면 업체 계약 조회
+  if (!contract) {
+    contract = await DB.prepare('SELECT * FROM business_contracts WHERE id = ?').bind(id).first()
+    isBusinessContract = true
+  }
   
   if (!contract) {
     return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
@@ -3229,55 +4152,65 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
   // 계약서 상태 업데이트 (기록은 보존)
   // 해지/완료 시 종료일을 오늘 날짜로 자동 설정
   const today = new Date().toISOString().split('T')[0]
-  let endDate = oldContract.end_date
+  let endDate = isBusinessContract ? oldContract.contract_end_date : oldContract.end_date
   
   if (status === 'completed' || status === 'cancelled') {
     endDate = today
     const dateField = status === 'cancelled' ? 'cancelled_at' : 'completed_at'
-    await DB.prepare(`UPDATE contracts SET status = ?, end_date = ?, ${dateField} = ?, updated_at = datetime("now") WHERE id = ?`)
-      .bind(status, today, today, id).run()
-    console.log(`📅 Contract #${id} ${status} - end_date and ${dateField} set to ${today}`)
+    const tableName = isBusinessContract ? 'business_contracts' : 'contracts'
+    const endDateField = isBusinessContract ? 'contract_end_date' : 'end_date'
     
-    // 이력 기록: 계약 해지/완료
-    await recordContractHistory(
-      DB,
-      Number(id),
-      oldContract.motorcycle_id,
-      oldContract.customer_id,
-      oldContract.contract_number,
-      oldContract.contract_type,
-      status,
-      oldStatus,
-      status,
-      oldContract.start_date,
-      endDate,
-      oldContract.monthly_fee,
-      oldContract.deposit,
-      oldContract.special_terms,
-      status === 'cancelled' ? '수동 해지' : '계약 완료'
-    )
+    await DB.prepare(`UPDATE ${tableName} SET status = ?, ${endDateField} = ?, ${dateField} = ?, updated_at = datetime("now", "+9 hours") WHERE id = ?`)
+      .bind(status, today, today, id).run()
+    console.log(`📅 ${isBusinessContract ? 'Business ' : ''}Contract #${id} ${status} - ${endDateField} and ${dateField} set to ${today}`)
+    
+    // 이력 기록: 계약 해지/완료 (개인 계약만)
+    if (!isBusinessContract) {
+      await recordContractHistory(
+        DB,
+        Number(id),
+        oldContract.motorcycle_id,
+        oldContract.customer_id,
+        oldContract.contract_number,
+        oldContract.contract_type,
+        status,
+        oldStatus,
+        status,
+        oldContract.start_date,
+        endDate,
+        oldContract.monthly_fee,
+        oldContract.deposit,
+        oldContract.special_terms,
+        status === 'cancelled' ? '수동 해지' : '계약 완료'
+      )
+    } else {
+      console.log(`ℹ️ 업체 계약 해지/완료 - contract_history 기록 생략 (customer_id 없음)`)
+    }
   } else {
-    await DB.prepare('UPDATE contracts SET status = ?, updated_at = datetime("now") WHERE id = ?')
+    const tableName = isBusinessContract ? 'business_contracts' : 'contracts'
+    await DB.prepare(`UPDATE ${tableName} SET status = ?, updated_at = datetime("now", "+9 hours") WHERE id = ?`)
       .bind(status, id).run()
       
-    // 이력 기록: 상태 변경
-    await recordContractHistory(
-      DB,
-      Number(id),
-      oldContract.motorcycle_id,
-      oldContract.customer_id,
-      oldContract.contract_number,
-      oldContract.contract_type,
-      'updated',
-      oldStatus,
-      status,
-      oldContract.start_date,
-      endDate,
-      oldContract.monthly_fee,
-      oldContract.deposit,
-      oldContract.special_terms,
-      `상태 변경: ${oldStatus} → ${status}`
-    )
+    // 이력 기록: 상태 변경 (개인 계약만, 업체 계약은 별도 처리)
+    if (!isBusinessContract) {
+      await recordContractHistory(
+        DB,
+        Number(id),
+        oldContract.motorcycle_id,
+        oldContract.customer_id,
+        oldContract.contract_number,
+        oldContract.contract_type,
+        'updated',
+        oldStatus,
+        status,
+        oldContract.start_date,
+        endDate,
+        oldContract.monthly_fee,
+        oldContract.deposit,
+        oldContract.special_terms,
+        `상태 변경: ${oldStatus} → ${status}`
+      )
+    }
   }
   
   // 계약 해지/완료시 처리
@@ -3288,7 +4221,7 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
     await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
       .bind('available', motorcycleId).run()
     
-    // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지)
+    // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지, owner_name도 유지)
     await DB.prepare(`
       UPDATE motorcycles 
       SET monthly_fee = NULL,
@@ -3296,12 +4229,11 @@ app.patch('/api/contracts/:id/status', authMiddleware, async (c) => {
           deposit = NULL,
           contract_start_date = NULL,
           contract_end_date = NULL,
-          owner_name = '',
-          updated_at = datetime("now") 
+          updated_at = datetime("now", "+9 hours") 
       WHERE id = ?
     `).bind(motorcycleId).run()
     
-    console.log(`✅ Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic and insurance info preserved)`)
+    console.log(`✅ ${isBusinessContract ? 'Business ' : ''}Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic info, insurance info, and owner_name preserved)`)
     
     // ⭐ SMS 전송 (계약 해지 알림)
     try {
@@ -3381,7 +4313,7 @@ app.put('/api/contracts/:id/insurance', authMiddleware, async (c) => {
           insurance_start_date = ?,
           insurance_end_date = ?,
           insurance_age_limit = ?,
-          updated_at = datetime("now") 
+          updated_at = datetime("now", "+9 hours") 
       WHERE id = ?
     `).bind(
       data.insurance_company,
@@ -3427,9 +4359,9 @@ app.delete('/api/contracts/:id', authMiddleware, async (c) => {
     // 소프트 삭제 + 상태를 cancelled로 변경
     await DB.prepare(`
       UPDATE contracts 
-      SET deleted_at = datetime("now"), 
+      SET deleted_at = datetime("now", "+9 hours"), 
           status = 'cancelled', 
-          cancelled_at = datetime("now")
+          cancelled_at = datetime("now", "+9 hours")
       WHERE id = ?
     `).bind(id).run()
     
@@ -3499,7 +4431,7 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
       return c.json({ error: '해당 오토바이를 찾을 수 없습니다' }, 404)
     }
     
-    // 모든 계약 이력 조회 (삭제된 것 포함)
+    // 1. 모든 계약 이력 조회 (삭제된 것 포함)
     const contracts = await DB.prepare(`
       SELECT 
         c.id,
@@ -3515,20 +4447,203 @@ app.get('/api/motorcycles/history/search', authMiddleware, async (c) => {
         c.deleted_at,
         cu.name as customer_name,
         cu.phone as customer_phone,
-        cu.resident_number
+        cu.resident_number,
+        'contract' as history_type
       FROM contracts c
       JOIN customers cu ON c.customer_id = cu.id
       WHERE c.motorcycle_id = ?
-      ORDER BY c.created_at DESC
     `).bind((motorcycle as any).id).all()
+    
+    // 2. 오토바이 변경 이력 조회 (보험, 정비, 폐지 등)
+    const changes = await DB.prepare(`
+      SELECT 
+        mh.id,
+        mh.change_type,
+        mh.field_name,
+        mh.old_value,
+        mh.new_value,
+        mh.change_date as created_at,
+        mh.notes,
+        u.username as changed_by_name,
+        'change' as history_type
+      FROM motorcycle_history mh
+      LEFT JOIN users u ON mh.changed_by = u.id
+      WHERE mh.motorcycle_id = ?
+    `).bind((motorcycle as any).id).all()
+    
+    // 3. 통합 이력 생성 (계약 + 변경 이력)
+    const allHistory = [
+      ...(contracts.results || []),
+      ...(changes.results || [])
+    ]
+    
+    // 4. 시간순으로 정렬 (최신순)
+    allHistory.sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateB - dateA
+    })
+    
+    console.log(`✅ 통합 이력 조회: 계약 ${contracts.results?.length || 0}건, 변경 ${changes.results?.length || 0}건, 총 ${allHistory.length}건`)
     
     return c.json({
       motorcycle: motorcycle,
-      history: contracts.results
+      history: allHistory
     })
   } catch (error) {
     console.error('사용 이력 조회 오류:', error)
     return c.json({ error: '사용 이력 조회에 실패했습니다', details: error.message }, 500)
+  }
+})
+
+// 기존 계약 이력을 motorcycle_history로 마이그레이션
+app.post('/api/motorcycles/migrate-contract-history', authMiddleware, async (c) => {
+  try {
+    const DB = c.env.DB || c.env.db
+    const user = c.get('user')
+    
+    // 관리자 권한 체크
+    if (user?.role !== 'super_admin' && user?.id !== 1) {
+      return c.json({ error: '권한이 없습니다' }, 403)
+    }
+    
+    console.log(`🔄 [History Migration] 계약 이력 마이그레이션 시작...`)
+    
+    // 1. 모든 계약 조회 (완료/취소된 계약)
+    const contracts = await DB.prepare(`
+      SELECT 
+        c.id,
+        c.contract_number,
+        c.contract_type,
+        c.motorcycle_id,
+        c.customer_id,
+        c.start_date,
+        c.end_date,
+        c.monthly_fee,
+        c.deposit,
+        c.status,
+        c.created_at,
+        c.completed_at,
+        c.deleted_at,
+        cu.name as customer_name,
+        m.chassis_number,
+        m.plate_number
+      FROM contracts c
+      LEFT JOIN customers cu ON c.customer_id = cu.id
+      LEFT JOIN motorcycles m ON c.motorcycle_id = m.id
+      WHERE c.status IN ('completed', 'cancelled') OR c.deleted_at IS NOT NULL
+      ORDER BY c.created_at ASC
+    `).all()
+    
+    let migratedCount = 0
+    let skippedCount = 0
+    
+    for (const contract of (contracts.results || [])) {
+      const c = contract as any
+      
+      // 이미 마이그레이션되었는지 확인
+      const existing = await DB.prepare(`
+        SELECT id FROM motorcycle_history 
+        WHERE motorcycle_id = ? 
+          AND change_type = 'contract_completed'
+          AND notes LIKE ?
+      `).bind(c.motorcycle_id, `%${c.contract_number}%`).first()
+      
+      if (existing) {
+        skippedCount++
+        continue
+      }
+      
+      // motorcycle_history에 저장
+      const changeType = c.deleted_at ? 'contract_cancelled' : 'contract_completed'
+      const fieldName = c.deleted_at ? '계약 해지' : '계약 완료'
+      const actionDate = c.completed_at || c.deleted_at || c.created_at
+      
+      await DB.prepare(`
+        INSERT INTO motorcycle_history (
+          motorcycle_id,
+          chassis_number,
+          change_type,
+          field_name,
+          old_value,
+          new_value,
+          notes,
+          current_plate_number,
+          current_owner_name,
+          current_contractor_name,
+          change_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+      `).bind(
+        c.motorcycle_id,
+        c.chassis_number,
+        changeType,
+        fieldName,
+        `계약자: ${c.customer_name || '알 수 없음'}`,
+        `${c.deleted_at ? '해지' : '완료'}일: ${actionDate}`,
+        `📋 계약번호: ${c.contract_number}\n👤 계약자: ${c.customer_name || '알 수 없음'}\n📅 계약기간: ${c.start_date} ~ ${c.end_date}\n💰 일대여료: ${Number(c.monthly_fee || 0).toLocaleString()}원\n✅ ${c.deleted_at ? '해지' : '완료'}일: ${actionDate}`,
+        String(c.plate_number || ''),
+        String(c.owner_name || ''),
+        String(c.customer_name || '')
+      ).run()
+      
+      migratedCount++
+    }
+    
+    console.log(`✅ [History Migration] 완료: 마이그레이션 ${migratedCount}건, 건너뜀 ${skippedCount}건`)
+    
+    return c.json({
+      message: '계약 이력 마이그레이션이 완료되었습니다',
+      migrated: migratedCount,
+      skipped: skippedCount,
+      total: contracts.results?.length || 0
+    })
+    
+  } catch (error: any) {
+    console.error('❌ [History Migration] 마이그레이션 실패:', error)
+    return c.json({
+      error: '마이그레이션 중 오류가 발생했습니다',
+      details: error.message
+    }, 500)
+  }
+})
+
+// 오토바이 이력 삭제
+app.delete('/api/motorcycle-history/:id', authMiddleware, async (c) => {
+  try {
+    const DB = c.env.DB || c.env.db
+    const historyId = c.req.param('id')
+    
+    console.log(`🗑️ [Motorcycle History] 이력 삭제 요청: ID=${historyId}`)
+    
+    // 이력 존재 확인
+    const history = await DB.prepare(
+      `SELECT * FROM motorcycle_history WHERE id = ?`
+    ).bind(historyId).first()
+    
+    if (!history) {
+      console.error(`❌ [Motorcycle History] 이력을 찾을 수 없음: ID=${historyId}`)
+      return c.json({ error: '이력을 찾을 수 없습니다' }, 404)
+    }
+    
+    console.log(`📋 [Motorcycle History] 삭제할 이력:`, history)
+    
+    // 이력 삭제
+    await DB.prepare(
+      `DELETE FROM motorcycle_history WHERE id = ?`
+    ).bind(historyId).run()
+    
+    console.log(`✅ [Motorcycle History] 이력 삭제 완료: ID=${historyId}`)
+    return c.json({ success: true, message: '이력이 삭제되었습니다' })
+    
+  } catch (error: any) {
+    console.error('❌ [Motorcycle History] 이력 삭제 에러:', {
+      message: error.message,
+      stack: error.stack
+    })
+    return c.json({ 
+      error: '이력 삭제 중 오류가 발생했습니다',
+      details: error.message 
+    }, 500)
   }
 })
 
@@ -3606,7 +4721,7 @@ app.put('/api/company-settings', authMiddleware, async (c) => {
         SET company_name = ?, business_number = ?, representative_name = ?,
             phone = ?, address = ?, bank_name = ?, account_number = ?, account_holder = ?,
             manager_phone1 = ?, manager_phone2 = ?,
-            updated_at = datetime("now")
+            updated_at = datetime("now", "+9 hours")
         WHERE id = ?
       `).bind(
         data.company_name,
@@ -3659,11 +4774,15 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     const DB = c.env.DB || c.env.db
     const data = await c.req.json()
     
-    console.log('📋 [Business Contract] 요청 데이터:', {
+    console.log('📋 [Business Contract] 요청 데이터 전체:', JSON.stringify(data, null, 2))
+    console.log('📋 [Business Contract] 주요 필드:', {
       motorcycle_id: data.motorcycle_id,
       company_name: data.company_name,
+      company_code: data.company_code,
       business_phone: data.business_phone,
-      representative_phone: data.representative_phone
+      representative_phone: data.representative_phone,
+      contract_start_date: data.contract_start_date,
+      contract_end_date: data.contract_end_date
     })
     
     // 오토바이 정보 조회 (driving_range를 가져오기 위함)
@@ -3678,14 +4797,14 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
     
     console.log('✅ [Business Contract] 오토바이 조회 성공:', motorcycle)
   
-  // 계약서 번호 생성 (B-YYYYMMDD-XXXX 형식)
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const countResult = await DB.prepare(
-    `SELECT COUNT(*) as count FROM business_contracts WHERE contract_number LIKE ?`
-  ).bind(`B-${today}-%`).first()
+  // 계약서 번호 생성 (B-YYYYMMDD-HHMMSS-XXX 형식으로 변경하여 충돌 방지)
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+  const timeStr = now.toISOString().slice(11, 19).replace(/:/g, ''); // HHMMSS
+  const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0'); // 000-999
+  const contractNumber = `B-${today}-${timeStr}-${randomSuffix}`;
   
-  const count = (countResult as any).count + 1
-  const contractNumber = `B-${today}-${String(count).padStart(4, '0')}`
+  console.log('📋 [Business Contract] 생성된 계약서 번호:', contractNumber);
   
   // 같은 오토바이의 기존 활성 계약을 완료 처리
   console.log('🔄 [Business] Checking for existing active contracts for motorcycle:', data.motorcycle_id)
@@ -3699,11 +4818,14 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
   if (existingContracts.results.length > 0) {
     console.log(`📋 [Business] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
     for (const contract of existingContracts.results) {
+      const today = new Date().toISOString().split('T')[0]
       await DB.prepare(`
         UPDATE contracts 
-        SET status = 'completed', updated_at = datetime('now') 
+        SET status = 'completed', 
+            completed_at = ?,
+            updated_at = datetime('now', '+9 hours') 
         WHERE id = ?
-      `).bind((contract as any).id).run()
+      `).bind(today, (contract as any).id).run()
       console.log(`✅ [Business] Completed personal contract: ${(contract as any).contract_number}`)
     }
   }
@@ -3717,11 +4839,14 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
   if (existingBusinessContracts.results.length > 0) {
     console.log(`📋 [Business] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
     for (const contract of existingBusinessContracts.results) {
+      const today = new Date().toISOString().split('T')[0]
       await DB.prepare(`
         UPDATE business_contracts 
-        SET status = 'completed', updated_at = datetime('now') 
+        SET status = 'completed', 
+            completed_at = ?,
+            updated_at = datetime('now', '+9 hours') 
         WHERE id = ?
-      `).bind((contract as any).id).run()
+      `).bind(today, (contract as any).id).run()
       console.log(`✅ [Business] Completed business contract: ${(contract as any).contract_number}`)
     }
   }
@@ -3794,34 +4919,116 @@ app.post('/api/business-contracts', authMiddleware, async (c) => {
 
 // 업체 계약서 목록 조회
 app.get('/api/business-contracts', async (c) => {
-  const DB = c.env.DB || c.env.db
-  const residentNumber = c.req.query('resident_number')
-  
-  let query = `
-    SELECT 
-      bc.*,
-      m.plate_number, m.vehicle_name, m.chassis_number
-    FROM business_contracts bc
-    JOIN motorcycles m ON bc.motorcycle_id = m.id
-    WHERE 1=1
-  `
-  
-  const params = []
-  
-  // 주민등록번호로 필터링 (고객 포털용 - 대표자 주민번호)
-  if (residentNumber) {
-    query += ` AND bc.representative_resident_number = ?`
-    params.push(residentNumber)
+  try {
+    const DB = c.env.DB || c.env.db
+    const residentNumber = c.req.query('resident_number')
+    const search = c.req.query('search') || ''
+    const page = parseInt(c.req.query('page') || '1')
+    const limit = parseInt(c.req.query('limit') || '50')
+    const offset = (page - 1) * limit
+    
+    // 0단계: 전체 개수 조회 (검색 조건 포함)
+    let countQuery = `SELECT COUNT(*) as total FROM business_contracts bc WHERE 1=1`
+    const countParams = []
+    
+    if (residentNumber) {
+      countQuery += ` AND bc.representative_resident_number = ?`
+      countParams.push(residentNumber)
+    }
+    
+    // 검색 조건 추가
+    if (search) {
+      countQuery += ` AND (
+        bc.contract_number LIKE ? OR
+        bc.company_name LIKE ? OR
+        bc.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      countParams.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    const countStmt = DB.prepare(countQuery)
+    const countResult = countParams.length > 0 
+      ? await countStmt.bind(...countParams).first()
+      : await countStmt.first()
+    const total = countResult?.total || 0
+    
+    // 1단계: 업체 계약서만 먼저 조회 (JOIN 없이, 페이지네이션 적용, 검색 조건 포함)
+    let query = `
+      SELECT * FROM business_contracts bc
+      WHERE 1=1
+    `
+    
+    const params = []
+    
+    // 주민등록번호로 필터링 (고객 포털용 - 대표자 주민번호)
+    if (residentNumber) {
+      query += ` AND bc.representative_resident_number = ?`
+      params.push(residentNumber)
+    }
+    
+    // 검색 조건 추가
+    if (search) {
+      query += ` AND (
+        bc.contract_number LIKE ? OR
+        bc.company_name LIKE ? OR
+        bc.motorcycle_id IN (SELECT id FROM motorcycles WHERE plate_number LIKE ?)
+      )`
+      const searchPattern = `%${search}%`
+      params.push(searchPattern, searchPattern, searchPattern)
+    }
+    
+    query += ` ORDER BY bc.created_at DESC LIMIT ${limit} OFFSET ${offset}`
+    
+    const stmt = DB.prepare(query)
+    const result = params.length > 0 
+      ? await stmt.bind(...params).all()
+      : await stmt.all()
+    
+    const contracts = result.results || []
+    
+    // 2단계: 필요한 motorcycle_id 수집
+    const motorcycleIds = [...new Set(contracts.map(c => c.motorcycle_id).filter(id => id))]
+    
+    // 3단계: 오토바이 정보 조회
+    let motorcycles = []
+    if (motorcycleIds.length > 0) {
+      const mResult = await DB.prepare(
+        `SELECT id, plate_number, vehicle_name, chassis_number FROM motorcycles WHERE id IN (${motorcycleIds.join(',')})`
+      ).all()
+      motorcycles = mResult.results || []
+    }
+    
+    // 4단계: 데이터 병합
+    const motorcycleMap = Object.fromEntries(motorcycles.map(m => [m.id, m]))
+    
+    const enrichedContracts = contracts.map(contract => {
+      const motorcycle = motorcycleMap[contract.motorcycle_id] || {}
+      
+      return {
+        ...contract,
+        plate_number: motorcycle.plate_number,
+        vehicle_name: motorcycle.vehicle_name,
+        chassis_number: motorcycle.chassis_number
+      }
+    })
+    
+    return c.json({
+      data: enrichedContracts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error: any) {
+    console.error('❌ 업체 계약서 목록 조회 실패:', error)
+    return c.json({ 
+      error: '업체 계약서 목록을 불러오는데 실패했습니다',
+      message: error?.message || String(error)
+    }, 500)
   }
-  
-  query += ` ORDER BY bc.created_at DESC`
-  
-  const stmt = DB.prepare(query)
-  const result = params.length > 0 
-    ? await stmt.bind(...params).all()
-    : await stmt.all()
-  
-  return c.json(result.results)
 })
 
 // 업체 계약서 상세 조회
@@ -3874,7 +5081,7 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
       m.insurance_company, m.insurance_start_date, m.insurance_end_date
     FROM business_contracts bc
     JOIN motorcycles m ON bc.motorcycle_id = m.id
-    WHERE bc.id = ?
+    WHERE bc.id = ? AND bc.deleted_at IS NULL
   `).bind(id).first()
   
   if (!result) {
@@ -3896,7 +5103,13 @@ app.get('/api/business-contracts/:id/sign', async (c) => {
 app.put('/api/business-contracts/:id/sign', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
-  const { signature_data } = await c.req.json()
+  const { 
+    signature_data,
+    motorcycle_photo_front,
+    motorcycle_photo_back,
+    motorcycle_photo_left,
+    motorcycle_photo_right
+  } = await c.req.json()
   
   // 계약서 조회 (업체 정보와 함께)
   const contract = await DB.prepare(`
@@ -3920,9 +5133,25 @@ app.put('/api/business-contracts/:id/sign', async (c) => {
   // 서명 추가 및 상태 업데이트
   await DB.prepare(`
     UPDATE business_contracts 
-    SET signature_data = ?, id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET signature_data = ?, 
+        id_card_photo = ?, 
+        motorcycle_photo_front = ?,
+        motorcycle_photo_back = ?,
+        motorcycle_photo_left = ?,
+        motorcycle_photo_right = ?,
+        motorcycle_photo_upload_date = datetime('now', '+9 hours'),
+        status = 'active', 
+        updated_at = datetime('now', '+9 hours')
     WHERE id = ?
-  `).bind(signature_data, idCardPhoto, id).run()
+  `).bind(
+    signature_data, 
+    idCardPhoto, 
+    motorcycle_photo_front || '',
+    motorcycle_photo_back || '',
+    motorcycle_photo_left || '',
+    motorcycle_photo_right || '',
+    id
+  ).run()
   
   // 오토바이 상태 업데이트
   await DB.prepare(`
@@ -3938,9 +5167,13 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   
-  // 계약서 조회
+  // 계약서 전체 정보 조회 (오토바이 정보 포함)
   const contract = await DB.prepare(`
-    SELECT motorcycle_id, status FROM business_contracts WHERE id = ?
+    SELECT bc.*, comp.company_name, m.chassis_number, m.plate_number, m.vehicle_name
+    FROM business_contracts bc
+    LEFT JOIN companies comp ON bc.company_id = comp.id
+    LEFT JOIN motorcycles m ON bc.motorcycle_id = m.id
+    WHERE bc.id = ?
   `).bind(id).first() as any
   
   if (!contract) {
@@ -3951,19 +5184,51 @@ app.put('/api/business-contracts/:id/complete', authMiddleware, async (c) => {
     return c.json({ error: '이미 완료된 계약서입니다' }, 400)
   }
   
+  const today = new Date().toISOString().split('T')[0]
+  
   // 계약서 상태를 완료로 변경
   await DB.prepare(`
     UPDATE business_contracts 
-    SET status = 'completed', updated_at = datetime("now") 
+    SET status = 'completed', 
+        completed_at = ?,
+        updated_at = datetime("now", "+9 hours") 
     WHERE id = ?
-  `).bind(id).run()
+  `).bind(today, id).run()
+  
+  // 오토바이 정보 조회
+  const motorcycle = await DB.prepare(`
+    SELECT plate_number, owner_name FROM motorcycles WHERE id = ?
+  `).bind(contract.motorcycle_id).first()
   
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
     UPDATE motorcycles 
-    SET status = 'available', updated_at = datetime("now") 
+    SET status = 'available', updated_at = datetime("now", "+9 hours") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
+  
+  // 계약 완료 이력을 motorcycle_history에 저장 (chassis_number, change_type 포함)
+  await DB.prepare(`
+    INSERT INTO motorcycle_history (
+      motorcycle_id, change_type, field_name, old_value, new_value, 
+      changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, current_contractor_name, change_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+  `).bind(
+    contract.motorcycle_id,
+    'business_contract_completed',  // change_type 추가
+    '업체계약 완료',
+    `업체: ${contract.company_name || '알 수 없음'}`,
+    `완료일: ${today}`,
+    null, // changed_by (user_id)
+    '시스템',
+    `📋 계약번호: ${contract.contract_number}\n🏢 업체: ${contract.company_name || '알 수 없음'}\n📅 계약기간: ${contract.contract_start_date || contract.start_date} ~ ${contract.contract_end_date || contract.end_date}\n✅ 완료일: ${today}`,
+    contract.chassis_number,  // chassis_number 추가
+    String((motorcycle as any)?.plate_number || ''),
+    String((motorcycle as any)?.owner_name || ''),
+    String(contract.company_name || '')  // 업체 계약자 이름
+  ).run()
+  
+  console.log(`✅ 업체계약 완료 이력 저장: ${contract.contract_number}, 업체: ${contract.company_name}, 차대번호: ${contract.chassis_number}`)
   
   return c.json({ message: '계약이 완료 처리되었습니다' })
 })
@@ -3991,7 +5256,7 @@ app.delete('/api/business-contracts/:id', authMiddleware, async (c) => {
   // 오토바이 상태를 '휴차중'으로 변경
   await DB.prepare(`
     UPDATE motorcycles 
-    SET status = 'available', updated_at = datetime("now") 
+    SET status = 'available', updated_at = datetime("now", "+9 hours") 
     WHERE id = ?
   `).bind(contract.motorcycle_id).run()
   
@@ -4475,25 +5740,56 @@ app.get('/api/contract-shares', authMiddleware, async (c) => {
 })
 
 // SMS 전송 API (계약서 공유 링크 전송)
-// SMS 전송 (인증 필요) - 정비관리 시스템 방식 (EC2 경유)
-app.post('/api/send-sms', authMiddleware, async (c) => {
+// SMS 전송 (인증 불필요로 변경) - 정비관리 시스템 방식 (EC2 경유)
+app.post('/api/send-sms', async (c) => {
   try {
     const body = await c.req.json()
+    console.log('📥 SMS API 요청 받음:', body)
+    
     const { phone, share_url, customer_name, contract_type, to, message: customMessage } = body
     
-    // 메시지 결정 (커스텀 메시지 또는 계약서 메시지)
-    let contractTypeLabel = '렌트 계약서'  // 기본값을 렌트 계약서로 변경
-    if (contract_type === 'business') {
-      contractTypeLabel = '업체 계약서'
-    } else if (contract_type === 'loan') {
-      contractTypeLabel = '차용증 계약서'
-    } else if (contract_type === 'individual' || contract_type === 'lease' || contract_type === 'rent') {
-      contractTypeLabel = '렌트 계약서'
+    // 메시지 결정 (커스텀 메시지 우선, 없으면 기본 메시지)
+    let message = customMessage
+    
+    if (!message) {
+      // 메시지가 없으면 기본 메시지 생성
+      let contractTypeLabel = '전자계약서'
+      if (contract_type === 'business') {
+        contractTypeLabel = '업체 계약서'
+      } else if (contract_type === 'loan') {
+        contractTypeLabel = '차용증 계약서'
+      } else if (contract_type === 'work') {
+        contractTypeLabel = '업무위탁계약서'
+      }
+      
+      message = `[Z-BIKE ${contractTypeLabel}]\n\n${customer_name || '고객'}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
     }
     
-    const defaultMessage = `[Z-BIKE ${contractTypeLabel}]\n\n${customer_name}님 계약내용 확인후 서명해주세요.\n\n링크: ${share_url}\n\n* 72시간 이내 서명 부탁드립니다.`
-    const message = customMessage || defaultMessage
     const phoneNumber = to || phone
+    
+    console.log('🔍 유효성 검사:', { 
+      phoneNumber, 
+      hasMessage: !!message, 
+      messageLength: message?.length 
+    })
+    
+    if (!phoneNumber) {
+      console.error('❌ 전화번호 없음')
+      return c.json({ 
+        success: false, 
+        message: '전화번호가 필요합니다',
+        debug: { phone: phoneNumber, hasMessage: !!message }
+      }, 400)
+    }
+    
+    if (!message) {
+      console.error('❌ 메시지 없음')
+      return c.json({ 
+        success: false, 
+        message: '메시지가 필요합니다',
+        debug: { phone: phoneNumber, hasMessage: !!message }
+      }, 400)
+    }
     
     // 하이픈이 있는 전화번호 형식으로 변환 (010-1234-5678)
     const formattedPhone = phoneNumber.replace(/[^0-9]/g, '').replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
@@ -4504,42 +5800,43 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
       customer_name
     })
     
-    // AWS Lambda Function URL을 통한 SMS 전송
-    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://zf3aoethwx2ctssywatlpte4je0swebx.lambda-url.ap-northeast-2.on.aws/'
+    // Cloudflare Tunnel을 통한 EC2 SMS 서버 경유
+    // Cloudflare Workers → Cloudflare Tunnel → AWS EC2
+    const SMS_AWS_LAMBDA_URL = c.env.SMS_AWS_LAMBDA_URL || 'https://campus-ing-blocking-mother.trycloudflare.com/api/sms/send-direct'
     
-    console.log('📤 AWS Lambda SMS 전송:', SMS_AWS_LAMBDA_URL)
+    console.log('📤 EC2 SMS 서버 경유 (Cloudflare Tunnel):', SMS_AWS_LAMBDA_URL)
     
     const requestBody = {
-      action: 'send',
-      phone: formattedPhone,
+      receiver: formattedPhone,
       message: message
     }
     
     console.log('📤 전송 데이터:', requestBody)
     
     try {
-      console.log('🔄 Calling AWS Lambda Function...')
+      console.log('🔄 Fetching EC2 server...')
       
-      // AWS Lambda Function URL 호출
+      // 정비관리 시스템과 동일한 방식으로 fetch
       const response = await fetch(SMS_AWS_LAMBDA_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'Cloudflare-Workers'
         },
         body: JSON.stringify(requestBody)
       })
       
       console.log('✅ Fetch completed:', response.status)
       
-      console.log('📥 Lambda 응답 상태:', response.status, response.statusText)
+      console.log('📥 EC2 응답 상태:', response.status, response.statusText)
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ Lambda 오류:', errorText)
+        console.error('❌ EC2 서버 오류:', errorText)
         return c.json({ 
           success: false, 
-          message: `Lambda 오류: ${response.status} ${response.statusText}`,
+          message: `EC2 서버 오류: ${response.status} ${response.statusText}`,
           debug: {
             status: response.status,
             error: errorText,
@@ -4548,27 +5845,17 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
         }, 500)
       }
       
-      // Lambda Function URL 응답은 { statusCode, body } 형식
-      const lambdaResponse = await response.json()
-      console.log('📊 Lambda 전체 응답:', lambdaResponse)
+      const result = await response.json()
       
-      // body가 있으면 파싱 (Lambda Function URL 형식)
-      let result = lambdaResponse
-      if (lambdaResponse.body) {
-        result = typeof lambdaResponse.body === 'string' 
-          ? JSON.parse(lambdaResponse.body) 
-          : lambdaResponse.body
-      }
-      
-      console.log('📊 Lambda SMS 응답:', result)
+      console.log('📊 EC2 SMS 응답:', result)
       
       if (result.success) {
-        console.log('✅ SMS 전송 성공 (AWS Lambda)')
+        console.log('✅ SMS 전송 성공 (EC2 경유)')
         return c.json({ 
           success: true, 
           message: 'SMS가 성공적으로 전송되었습니다',
           phone: formattedPhone,
-          provider: 'aligo-lambda',
+          provider: 'aligo-ec2',
           data: result
         })
       } else {
@@ -4580,10 +5867,10 @@ app.post('/api/send-sms', authMiddleware, async (c) => {
         }, 500)
       }
     } catch (fetchError) {
-      console.error('❌ Lambda 연결 실패:', fetchError)
+      console.error('❌ EC2 서버 연결 실패:', fetchError)
       return c.json({ 
         success: false, 
-        message: `Lambda 연결 실패: ${fetchError.message}`,
+        message: `EC2 서버 연결 실패: ${fetchError.message}`,
         debug: {
           error: fetchError.message,
           type: fetchError.name,
@@ -4667,7 +5954,7 @@ app.put('/api/loan-contracts/:id/sign', async (c) => {
   // borrower_signature와 borrower_id_card_photo 필드로 저장
   await DB.prepare(`
     UPDATE loan_contracts 
-    SET borrower_signature = ?, borrower_id_card_photo = ?, status = 'active', updated_at = datetime("now")
+    SET borrower_signature = ?, borrower_id_card_photo = ?, status = 'active', updated_at = datetime('now', '+9 hours')
     WHERE id = ?
   `).bind(signature_data, id_card_photo || '', id).run()
   
@@ -4697,7 +5984,7 @@ app.post('/api/loan-contracts', authMiddleware, async (c) => {
           postcode = ?,
           address = ?, 
           detail_address = ?,
-          updated_at = datetime("now")
+          updated_at = datetime("now", "+9 hours")
         WHERE id = ?
       `).bind(
         data.borrower_name, 
@@ -4847,12 +6134,79 @@ app.post('/api/loan-contracts/public', async (c) => {
 })
 
 // 차용증 상태 변경
+// 업체 계약 상태 변경 (해지/완료 등)
+app.patch('/api/business-contracts/:id/status', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { status } = await c.req.json()
+  
+  // 업체 계약서 정보 조회
+  const contract = await DB.prepare('SELECT * FROM business_contracts WHERE id = ?').bind(id).first()
+  
+  if (!contract) {
+    return c.json({ error: '업체 계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  const oldContract = contract as any
+  const oldStatus = oldContract.status
+  
+  // 계약서 상태 업데이트
+  const today = new Date().toISOString().split('T')[0]
+  
+  if (status === 'completed' || status === 'cancelled') {
+    const dateField = status === 'cancelled' ? 'cancelled_at' : 'completed_at'
+    
+    await DB.prepare(`
+      UPDATE business_contracts 
+      SET status = ?, contract_end_date = ?, ${dateField} = ?, updated_at = datetime("now", "+9 hours") 
+      WHERE id = ?
+    `).bind(status, today, today, id).run()
+    
+    console.log(`📅 Business Contract #${id} ${status} - contract_end_date and ${dateField} set to ${today}`)
+    
+    // ✅ 업체 계약 해지/완료 시 오토바이 상태 변경 추가 (개인 계약과 동일하게)
+    const motorcycleId = oldContract.motorcycle_id
+    
+    if (motorcycleId) {
+      // 1. 오토바이 상태를 '휴차중(available)'으로 변경
+      await DB.prepare('UPDATE motorcycles SET status = ? WHERE id = ?')
+        .bind('available', motorcycleId).run()
+      
+      // 2. 오토바이의 계약 정보만 초기화 (기본정보와 보험정보는 유지, owner_name도 유지)
+      await DB.prepare(`
+        UPDATE motorcycles 
+        SET monthly_fee = NULL,
+            contract_type_text = NULL,
+            deposit = NULL,
+            contract_start_date = NULL,
+            contract_end_date = NULL,
+            updated_at = datetime("now", "+9 hours") 
+        WHERE id = ?
+      `).bind(motorcycleId).run()
+      
+      console.log(`✅ Business Contract ${status} - Motorcycle #${motorcycleId} reset to available with contract info cleared (basic info, insurance info, and owner_name preserved)`)
+    }
+  } else {
+    await DB.prepare(`
+      UPDATE business_contracts 
+      SET status = ?, updated_at = datetime("now", "+9 hours") 
+      WHERE id = ?
+    `).bind(status, id).run()
+  }
+  
+  return c.json({ 
+    message: '업체 계약서 상태가 변경되었습니다',
+    old_status: oldStatus,
+    new_status: status
+  })
+})
+
 app.patch('/api/loan-contracts/:id/status', async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
   const { status } = await c.req.json()
   
-  await DB.prepare('UPDATE loan_contracts SET status = ?, updated_at = datetime("now") WHERE id = ?')
+  await DB.prepare('UPDATE loan_contracts SET status = ?, updated_at = datetime("now", "+9 hours") WHERE id = ?')
     .bind(status, id).run()
   
   return c.json({ message: '상태가 변경되었습니다' })
@@ -4886,7 +6240,7 @@ app.post('/api/loan-contracts/:id/deduction', authMiddleware, async (c) => {
   const newStatus = newRemainingAmount === 0 ? 'completed' : loan.status
   await DB.prepare(`
     UPDATE loan_contracts 
-    SET remaining_amount = ?, total_deducted = ?, last_deduction_date = DATE('now'), status = ?, updated_at = datetime("now")
+    SET remaining_amount = ?, total_deducted = ?, last_deduction_date = DATE('now'), status = ?, updated_at = datetime("now", "+9 hours")
     WHERE id = ?
   `).bind(newRemainingAmount, newTotalDeducted, newStatus, id).run()
   
@@ -4912,6 +6266,35 @@ app.get('/api/loan-contracts/:id/deductions', authMiddleware, async (c) => {
 })
 
 // 차용증 삭제 (인증 필요)
+// 차용증 상환완료 처리 (인증 필요)
+app.put('/api/loan-contracts/:id/complete', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  // 차용증 존재 확인
+  const loan = await DB.prepare('SELECT * FROM loan_contracts WHERE id = ?').bind(id).first() as any
+  
+  if (!loan) {
+    return c.json({ error: '차용증을 찾을 수 없습니다' }, 404)
+  }
+  
+  if (loan.status === 'completed') {
+    return c.json({ error: '이미 상환완료된 차용증입니다' }, 400)
+  }
+  
+  // 차용증 상태를 완료로 변경
+  await DB.prepare(`
+    UPDATE loan_contracts 
+    SET status = 'completed', 
+        updated_at = datetime("now", "+9 hours") 
+    WHERE id = ?
+  `).bind(id).run()
+  
+  console.log(`✅ 차용증 상환완료 처리: ID=${id}, 차용인=${loan.borrower_name}`)
+  
+  return c.json({ message: '차용증이 상환완료 처리되었습니다' })
+})
+
 app.delete('/api/loan-contracts/:id', authMiddleware, async (c) => {
   const DB = c.env.DB || c.env.db
   const id = c.req.param('id')
@@ -5353,7 +6736,7 @@ app.post('/api/import/motorcycles', authMiddleware, async (c) => {
           plate_number, vehicle_name, chassis_number, mileage, model_year,
           insurance_company, insurance_start_date, insurance_end_date,
           status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available', datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available', datetime('now', '+9 hours'))
       `).bind(
         bike.plate_number || '',
         bike.vehicle_name || '',
@@ -5417,7 +6800,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
         if (!customer) {
           const result = await DB.prepare(`
             INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
           `).bind(
             contract.customer_name || '미입력',
             contract.customer_phone,
@@ -5450,7 +6833,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
         const result = await DB.prepare(`
           INSERT INTO motorcycles (
             plate_number, vehicle_name, driving_range, status, created_at
-          ) VALUES (?, ?, ?, 'active', datetime('now'))
+          ) VALUES (?, ?, ?, 'active', datetime('now', '+9 hours'))
         `).bind(
           contract.plate_number || '미등록',
           contract.vehicle_name || '미입력',
@@ -5482,7 +6865,7 @@ app.post('/api/import/contracts', authMiddleware, async (c) => {
           contract_number, contract_type, motorcycle_id, customer_id,
           start_date, end_date, monthly_fee, deposit,
           contract_data, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now', '+9 hours'))
       `).bind(
         contractNumber,
         finalType,
@@ -5581,7 +6964,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
       if (!customer) {
         const result = await DB.prepare(`
           INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
         `).bind(
           data.customer_name, 
           data.phone, 
@@ -5601,7 +6984,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
       // 전화번호가 없으면 이름만으로 새 고객 생성 (약식 계약)
       const result = await DB.prepare(`
         INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
       `).bind(
         data.customer_name, 
         '', // 전화번호 없음
@@ -5655,11 +7038,14 @@ app.post('/api/temp-rent-contracts', async (c) => {
     if (existingContracts.results.length > 0) {
       console.log(`📋 [TempRent] Found ${existingContracts.results.length} active personal contract(s), completing them...`)
       for (const contract of existingContracts.results) {
+        const today = new Date().toISOString().split('T')[0]
         await DB.prepare(`
           UPDATE contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime("now", "+9 hours") 
           WHERE id = ?
-        `).bind((contract as any).id).run()
+        `).bind(today, (contract as any).id).run()
         console.log(`✅ [TempRent] Completed personal contract: ${(contract as any).contract_number}`)
       }
     }
@@ -5673,11 +7059,14 @@ app.post('/api/temp-rent-contracts', async (c) => {
     if (existingBusinessContracts.results.length > 0) {
       console.log(`📋 [TempRent] Found ${existingBusinessContracts.results.length} active business contract(s), completing them...`)
       for (const contract of existingBusinessContracts.results) {
+        const today = new Date().toISOString().split('T')[0]
         await DB.prepare(`
           UPDATE business_contracts 
-          SET status = 'completed', updated_at = datetime("now") 
+          SET status = 'completed', 
+              completed_at = ?,
+              updated_at = datetime("now", "+9 hours") 
           WHERE id = ?
-        `).bind((contract as any).id).run()
+        `).bind(today, (contract as any).id).run()
         console.log(`✅ [TempRent] Completed business contract: ${(contract as any).contract_number}`)
       }
     }
@@ -5688,7 +7077,7 @@ app.post('/api/temp-rent-contracts', async (c) => {
         contract_number, contract_type, motorcycle_id, customer_id,
         start_date, end_date, monthly_fee, deposit, special_terms,
         signature_data, id_card_photo, status, created_at
-      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, ?, 'active', datetime('now'))
+      ) VALUES (?, 'temp_rent', ?, ?, ?, ?, ?, 0, ?, ?, ?, 'active', datetime('now', '+9 hours'))
     `).bind(
       contractNumber,
       data.motorcycle_id,
@@ -6022,7 +7411,7 @@ app.get('/dashboard', (c) => {
     <html lang="ko">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=1280, initial-scale=0.5, user-scalable=yes">
         <title>Z-BIKE 전자계약서</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -6041,26 +7430,29 @@ app.get('/dashboard', (c) => {
     <body class="bg-gray-100">
         <!-- 헤더 -->
         <div class="bg-white shadow-md">
-            <div class="container mx-auto px-4 py-4">
+            <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1 sm:mr-2 text-blue-600"></i>
                         운영현황
                     </h1>
-                    <div class="flex items-center space-x-4">
-                        <!-- 슈퍼관리자 전용: 관리자 관리 버튼 -->
+                    <div class="flex items-center space-x-2 sm:space-x-4">
+                        <!-- 슈퍼관리자 전용: 관리자 관리 버튼 (모바일에서는 아이콘만) -->
                         <a href="/static/admin-management.html" id="adminManagementBtn" class="hidden text-gray-600 hover:text-blue-600 font-medium">
-                            <i class="fas fa-users-cog mr-1"></i>관리자 관리
+                            <i class="fas fa-users-cog mr-0 sm:mr-1"></i>
+                            <span class="hidden sm:inline">관리자 관리</span>
                         </a>
                         <a href="/static/settings.html" class="text-gray-600 hover:text-blue-600 font-medium">
-                            <i class="fas fa-cog mr-1"></i>설정
+                            <i class="fas fa-cog mr-0 sm:mr-1"></i>
+                            <span class="hidden sm:inline">설정</span>
                         </a>
-                        <div class="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <i class="fas fa-user-shield text-blue-600"></i>
-                            <span id="userRoleBadge" class="text-sm font-bold text-blue-700"></span>
+                        <div class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <i class="fas fa-user-shield text-blue-600 text-sm sm:text-base"></i>
+                            <span id="userRoleBadge" class="text-xs sm:text-sm font-bold text-blue-700"></span>
                         </div>
-                        <button onclick="logout()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition">
-                            <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                        <button onclick="logout()" class="px-2 sm:px-4 py-1.5 sm:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition text-sm sm:text-base">
+                            <i class="fas fa-sign-out-alt mr-0 sm:mr-1"></i>
+                            <span class="hidden sm:inline">로그아웃</span>
                         </button>
                     </div>
                 </div>
@@ -6068,142 +7460,153 @@ app.get('/dashboard', (c) => {
         </div>
 
         <!-- 메인 콘텐츠 -->
-        <div class="container mx-auto px-4 py-8">
+        <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
             <!-- 운영 통계 카드 4개 -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <!-- 총 바이크 -->
-                <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('all')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-motorcycle"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-motorcycle"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">총 바이크</div>
-                            <div id="totalCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">총 바이크</div>
+                            <div id="totalCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 사용중 -->
-                <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('rented')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-check-circle"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-check-circle"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">사용중</div>
-                            <div id="rentedCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">사용중</div>
+                            <div id="rentedCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 휴차중 -->
-                <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('available')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-pause-circle"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-pause-circle"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">휴차중</div>
-                            <div id="availableCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">휴차중</div>
+                            <div id="availableCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 정비/폐지 -->
-                <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg" 
+                <div class="stat-card bg-gradient-to-br from-red-500 to-red-600 text-white p-4 sm:p-6 rounded-xl shadow-lg" 
                      onclick="filterByStatus('maintenance_scrapped')">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="text-4xl"><i class="fas fa-tools"></i></div>
+                    <div class="flex items-center justify-between mb-2 sm:mb-4">
+                        <div class="text-4xl sm:text-5xl"><i class="fas fa-tools"></i></div>
                         <div class="text-right">
-                            <div class="text-sm opacity-90">정비/폐지</div>
-                            <div id="maintenanceCount" class="text-3xl font-bold">0</div>
+                            <div class="text-sm sm:text-base opacity-90">정비/폐지</div>
+                            <div id="maintenanceCount" class="text-3xl sm:text-4xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- 추가 통계 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <!-- 오토바이 관리 -->
-                <div class="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition" onclick="window.location.href='/static/motorcycles.html'">
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition" onclick="window.location.href='/static/motorcycles.html'">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">오토바이 관리</p>
-                            <p class="text-lg font-bold text-blue-600">바로가기</p>
+                            <p class="text-gray-600 text-base sm:text-sm">오토바이 관리</p>
+                            <p class="text-xl sm:text-lg font-bold text-blue-600">바로가기</p>
                         </div>
-                        <div class="text-3xl text-blue-600"><i class="fas fa-motorcycle"></i></div>
+                        <div class="text-4xl sm:text-5xl text-blue-600"><i class="fas fa-motorcycle"></i></div>
                     </div>
                 </div>
 
                 <!-- 총 고객 수 -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-md">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">총 고객</p>
-                            <p id="totalCustomers" class="text-2xl font-bold text-gray-800">0</p>
+                            <p class="text-gray-600 text-base sm:text-sm">총 고객</p>
+                            <p id="totalCustomers" class="text-2xl sm:text-3xl font-bold text-gray-800">0</p>
                         </div>
-                        <div class="text-3xl text-green-600"><i class="fas fa-users"></i></div>
+                        <div class="text-4xl sm:text-5xl text-green-600"><i class="fas fa-users"></i></div>
                     </div>
                 </div>
 
                 <!-- 차용 대금 -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-md">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-600 text-sm">차용 대금</p>
-                            <p id="totalLoanAmount" class="text-2xl font-bold text-gray-800">0원</p>
+                            <p class="text-gray-600 text-base sm:text-sm">차용 대금</p>
+                            <p id="totalLoanAmount" class="text-2xl sm:text-3xl font-bold text-gray-800">0원</p>
                         </div>
-                        <div class="text-3xl text-orange-600"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="text-4xl sm:text-5xl text-orange-600"><i class="fas fa-file-invoice-dollar"></i></div>
                     </div>
                 </div>
             </div>
 
             <!-- 빠른 액세스 -->
-            <div class="bg-white p-6 rounded-xl shadow-md">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                <h2 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">
                     <i class="fas fa-bolt mr-2 text-yellow-500"></i>빠른 액세스
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                     <!-- Row 1 -->
-                    <a href="/static/motorcycle-register.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-plus-circle text-3xl text-blue-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">오토바이 등록</p>
+                    <a href="/static/motorcycle-register.html" class="bg-blue-50 hover:bg-blue-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-plus-circle text-4xl sm:text-5xl text-blue-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">오토바이 등록</p>
                     </a>
-                    <a href="/static/customer-register.html" class="bg-cyan-50 hover:bg-cyan-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-user-plus text-3xl text-cyan-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">고객 등록</p>
+                    <a href="/static/customer-register.html" class="bg-cyan-50 hover:bg-cyan-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-user-plus text-4xl sm:text-5xl text-cyan-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">고객 등록</p>
                     </a>
-                    <a href="/static/companies.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-building text-3xl text-indigo-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업체 등록</p>
+                    <a href="/static/companies.html" class="bg-indigo-50 hover:bg-indigo-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-building text-4xl sm:text-5xl text-indigo-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업체 등록</p>
                     </a>
-                    <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-file-signature text-3xl text-green-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">개인계약서 작성</p>
+                    <a href="/static/contract-new.html" class="bg-green-50 hover:bg-green-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-file-signature text-4xl sm:text-5xl text-green-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">개인계약서 작성</p>
                     </a>
-                    <a href="/static/business-contract-new.html" class="bg-teal-50 hover:bg-teal-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-handshake text-3xl text-teal-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업체계약서 작성</p>
+                    <a href="/static/business-contract-new.html" class="bg-teal-50 hover:bg-teal-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-handshake text-4xl sm:text-5xl text-teal-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업체계약서 작성</p>
                     </a>
                     
                     <!-- Row 2 -->
-                    <a href="/static/loan-new.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-file-invoice-dollar text-3xl text-yellow-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">차용증 작성</p>
+                    <a href="/static/loan-new.html" class="bg-yellow-50 hover:bg-yellow-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-file-invoice-dollar text-4xl sm:text-5xl text-yellow-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">차용증 작성</p>
                     </a>
-                    <a href="/static/customers-simple.html" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-users text-3xl text-blue-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">고객 목록</p>
+                    <a href="/static/customers-simple.html" class="bg-blue-50 hover:bg-blue-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-users text-4xl sm:text-5xl text-blue-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">고객 목록</p>
                     </a>
-                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-folder-open text-3xl text-orange-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">계약서 목록</p>
+                    <a href="/static/contracts.html" class="bg-orange-50 hover:bg-orange-100 p-4 sm:p-5 rounded-lg text-center transition relative">
+                        <i class="fas fa-folder-open text-4xl sm:text-5xl text-orange-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">계약서 목록</p>
+                        <div class="absolute top-2 right-2 bg-orange-600 text-white text-xs sm:text-sm font-bold px-2 py-1 rounded-full">
+                            <span id="activeContractsCount">0</span>
+                        </div>
                     </a>
-                    <a href="/static/loans.html" class="bg-red-50 hover:bg-red-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-receipt text-3xl text-red-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">차용증 목록</p>
+                    <a href="/static/loans.html" class="bg-red-50 hover:bg-red-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-receipt text-4xl sm:text-5xl text-red-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">차용증 목록</p>
                     </a>
-                    <a href="/static/companies-list.html" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition">
-                        <i class="fas fa-building text-3xl text-purple-600 mb-2"></i>
-                        <p class="text-sm font-medium text-gray-700">업체 목록</p>
+                    <a href="/static/companies-list.html" class="bg-purple-50 hover:bg-purple-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-building text-4xl sm:text-5xl text-purple-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업체 목록</p>
+                    </a>
+                    <a href="/static/work-contracts.html" class="bg-pink-50 hover:bg-pink-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-file-contract text-4xl sm:text-5xl text-pink-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">업무위탁계약서</p>
+                    </a>
+                    <a href="/static/backup.html" class="bg-green-50 hover:bg-green-100 p-4 sm:p-5 rounded-lg text-center transition">
+                        <i class="fas fa-database text-4xl sm:text-5xl text-green-600 mb-2 sm:mb-3"></i>
+                        <p class="text-base sm:text-sm font-medium text-gray-700">백업 관리</p>
                     </a>
                 </div>
             </div>
@@ -6334,6 +7737,11 @@ app.get('/dashboard', (c) => {
                 document.getElementById('totalCustomers').textContent = data.customers;
                 document.getElementById('totalLoanAmount').textContent = 
                     (data.contracts.total_loan_amount || 0).toLocaleString() + '원';
+                
+                // 진행중 계약 건수 표시 (계약서 목록 카드)
+                const activeContractsCount = data.contracts.active_contracts_count || 0;
+                document.getElementById('activeContractsCount').textContent = activeContractsCount;
+                console.log('✅ 진행중 계약 건수:', activeContractsCount);
             }
             
             // 상태별 필터링 (오토바이 관리 페이지로 이동)
@@ -6661,6 +8069,79 @@ app.post('/api/upload/id-card', async (c) => {
   }
 })
 
+// 일반 파일 업로드 (오토바이 사진 등) (R2 Storage)
+app.post('/api/upload', async (c) => {
+  const R2 = c.env.R2_ID_CARDS
+  
+  if (!R2) {
+    return c.json({ error: 'R2 storage not configured' }, 500)
+  }
+  
+  try {
+    const formData = await c.req.formData()
+    const file = formData.get('file') as File
+    
+    if (!file) {
+      return c.json({ error: '파일이 없습니다.' }, 400)
+    }
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+      return c.json({ error: '이미지 파일만 업로드 가능합니다.' }, 400)
+    }
+    
+    // 파일 크기 검증 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+      return c.json({ error: '파일 크기는 10MB 이하여야 합니다.' }, 400)
+    }
+    
+    // 파일을 ArrayBuffer로 변환
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = new Uint8Array(arrayBuffer)
+    
+    // 파일 확장자 추출
+    const ext = file.name.split('.').pop() || 'jpg'
+    
+    // 파일명 생성 (타임스탬프 + 랜덤)
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    const fileName = `motorcycle-photos/${timestamp}-${random}.${ext}`
+    
+    console.log('📤 R2에 파일 업로드:', {
+      fileName,
+      originalName: file.name,
+      type: file.type,
+      size: file.size,
+      sizeKB: (file.size / 1024).toFixed(2) + 'KB'
+    })
+    
+    // R2에 업로드
+    await R2.put(fileName, buffer, {
+      httpMetadata: {
+        contentType: file.type
+      }
+    })
+    
+    // Workers를 통한 공개 URL 생성
+    const justFileName = fileName.replace('motorcycle-photos/', '')
+    const publicUrl = `/api/r2/motorcycle-photos/${justFileName}`
+    
+    console.log('✅ R2 업로드 성공:', publicUrl)
+    
+    return c.json({
+      success: true,
+      url: publicUrl,
+      fileName: fileName
+    })
+  } catch (error) {
+    console.error('❌ R2 업로드 실패:', error)
+    return c.json({ 
+      error: '파일 업로드 중 오류가 발생했습니다.',
+      details: error.message 
+    }, 500)
+  }
+})
+
 // 업체 등록
 app.post('/api/companies', async (c) => {
   const DB = c.env.DB || c.env.db
@@ -6680,8 +8161,27 @@ app.post('/api/companies', async (c) => {
       id_card_photo: data.id_card_photo?.startsWith('http') ? 'URL (R2)' : `Base64 (${data.id_card_photo?.length} bytes)`
     })
 
-    // 사업자번호 중복 체크 제거 (자동 생성되므로 중복 불가)
-    // AUTO-YYYYMMDD-XXX 형식으로 항상 고유함
+    // ✅ 중복 체크: 업체명 + 대표자 전화번호 조합으로 확인
+    const existingCompany = await DB.prepare(`
+      SELECT id, company_name, representative, representative_phone 
+      FROM companies 
+      WHERE company_name = ? AND representative_phone = ?
+      LIMIT 1
+    `).bind(data.company_name, data.representative_phone).first()
+
+    if (existingCompany) {
+      console.log('⚠️ 중복된 업체 발견:', existingCompany)
+      return c.json({ 
+        error: '이미 등록된 업체입니다.',
+        details: `업체명 "${data.company_name}"과 전화번호 "${data.representative_phone}"가 일치하는 업체가 이미 존재합니다.`,
+        duplicate: true,
+        existing_company: {
+          id: existingCompany.id,
+          company_name: existingCompany.company_name,
+          representative: existingCompany.representative
+        }
+      }, 409) // 409 Conflict
+    }
 
     // 업체 정보 저장
     // business_number는 고유 제약조건이 있으므로 현재 타임스탬프를 추가하여 고유성 보장
@@ -6702,7 +8202,7 @@ app.post('/api/companies', async (c) => {
         status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now', '+9 hours'), datetime('now', '+9 hours'))
     `).bind(
       data.company_name,
       uniqueBusinessNumber, // 타임스탬프를 추가하여 고유성 보장
@@ -6717,6 +8217,9 @@ app.post('/api/companies', async (c) => {
     ).run()
 
     console.log('✅ 업체 등록 성공:', result.meta.last_row_id)
+
+    // 자동 백업
+    await autoBackupDatabase(DB, 'INSERT', 'companies', result.meta.last_row_id as number)
 
     return c.json({
       success: true,
@@ -6825,6 +8328,7 @@ app.get('/api/companies', async (c) => {
         id,
         company_name,
         company_code,
+        business_number,
         representative,
         representative_phone,
         representative_resident_number,
@@ -6839,9 +8343,19 @@ app.get('/api/companies', async (c) => {
       WHERE status = 'active'
       ORDER BY created_at DESC
     `).all()
+    
+    // 프론트엔드 호환성을 위해 필드명 매핑
+    const mappedCompanies = (companies.results || []).map(company => ({
+      ...company,
+      // 별칭 필드 추가 (기존 코드와의 호환성)
+      phone: company.representative_phone,
+      address: company.representative_address,
+      postcode: company.representative_postcode,
+      detail_address: company.representative_detail_address
+    }))
 
-    console.log('📋 업체 목록 조회:', companies.results?.length || 0, '개')
-    return c.json(companies.results || [])
+    console.log('📋 업체 목록 조회:', mappedCompanies.length, '개')
+    return c.json(mappedCompanies)
   } catch (error) {
     console.error('❌ 업체 목록 조회 실패:', error)
     return c.json({ error: '업체 목록 조회 중 오류가 발생했습니다.' }, 500)
@@ -6888,11 +8402,15 @@ app.delete('/api/companies/:id', async (c) => {
     // Soft delete - status를 'inactive'로 변경
     await env.DB.prepare(`
       UPDATE companies 
-      SET status = 'inactive', updated_at = datetime("now")
+      SET status = 'inactive', updated_at = datetime("now", "+9 hours")
       WHERE id = ?
     `).bind(id).run()
 
     console.log('🗑️ 업체 삭제 완료:', company.company_name, `(ID: ${id})`)
+    
+    // 자동 백업
+    await autoBackupDatabase(env.DB, 'DELETE', 'companies', parseInt(id))
+    
     return c.json({ 
       success: true, 
       message: '업체가 성공적으로 삭제되었습니다.',
@@ -6947,7 +8465,7 @@ app.put('/api/companies/:id', async (c) => {
     // 세션 검증
     console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
-      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now')
+      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now', '+9 hours')
     `).bind(sessionId).first()
     
     if (!session) {
@@ -7065,6 +8583,10 @@ app.put('/api/companies/:id', async (c) => {
     }
 
     console.log('✅ 업체 수정 완료:', companyName)
+    
+    // 자동 백업
+    await autoBackupDatabase(DB, 'UPDATE', 'companies', parseInt(id))
+    
     return c.json({ 
       success: true, 
       message: '업체 정보가 성공적으로 수정되었습니다.',
@@ -7122,6 +8644,42 @@ app.get('/api/r2/id-cards/:fileName', async (c) => {
   }
 })
 
+// R2 오토바이 사진 서빙 (공개 접근)
+app.get('/api/r2/motorcycle-photos/:fileName', async (c) => {
+  const R2 = c.env.R2_ID_CARDS
+  
+  if (!R2) {
+    return c.json({ error: 'R2 storage not configured' }, 500)
+  }
+  
+  try {
+    const fileName = c.req.param('fileName')
+    const fullPath = `motorcycle-photos/${fileName}`
+    
+    console.log('📥 R2 오토바이 사진 요청:', fullPath)
+    
+    const object = await R2.get(fullPath)
+    
+    if (!object) {
+      console.error('❌ R2에서 오토바이 사진을 찾을 수 없음:', fullPath)
+      return c.notFound()
+    }
+    
+    console.log('✅ R2 오토바이 사진 로드 성공:', fullPath)
+    
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000', // 1년 캐시
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
+  } catch (error) {
+    console.error('❌ R2 오토바이 사진 로드 실패:', error)
+    return c.json({ error: '이미지를 불러올 수 없습니다.' }, 500)
+  }
+})
+
 // 관리자 전용: 기존 신분증 URL 마이그레이션
 app.post('/api/admin/migrate-id-card-urls', async (c) => {
   const DB = c.env.DB || c.env.db
@@ -7141,7 +8699,7 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
     // 세션 검증
     console.log('🔍 세션 검증 중...')
     const session = await DB.prepare(`
-      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now')
+      SELECT * FROM sessions WHERE id = ? AND expires_at > datetime('now', '+9 hours')
     `).bind(sessionId).first()
     
     if (!session) {
@@ -7183,7 +8741,7 @@ app.post('/api/admin/migrate-id-card-urls', async (c) => {
         // URL 업데이트
         await DB.prepare(`
           UPDATE companies 
-          SET id_card_photo = ?, updated_at = datetime('now')
+          SET id_card_photo = ?, updated_at = datetime('now', '+9 hours')
           WHERE id = ?
         `).bind(newUrl, company.id).run()
         
@@ -7288,4 +8846,675 @@ app.get('/api/sms/status', superAdminMiddleware, async (c) => {
   })
 })
 
-export default app
+// ==================== 업무위탁계약서 API ====================
+
+// 업무위탁계약서 생성 (인증 불필요)
+app.post('/api/work-contracts', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const data = await c.req.json()
+  
+  try {
+    const session = c.get('session')
+    const created_by = session?.username || null
+    const user = session?.user
+    
+    // 계약번호 생성 (WORK-YYYYMMDD-XXX)
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const count = await DB.prepare(`
+      SELECT COUNT(*) as count FROM work_contracts 
+      WHERE substr(contract_number, 6, 8) = ?
+    `).bind(today).first()
+    
+    const sequence = String((count as any).count + 1).padStart(3, '0')
+    const contract_number = `WORK-${today}-${sequence}`
+    
+    // 오토바이 정보 조회 (motorcycle_id가 있는 경우)
+    let motorcycleInfo: any = null
+    if (data.motorcycle_id) {
+      motorcycleInfo = await DB.prepare(`
+        SELECT id, plate_number, chassis_number, owner_name FROM motorcycles WHERE id = ?
+      `).bind(data.motorcycle_id).first()
+      
+      if (!motorcycleInfo) {
+        return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
+      }
+    }
+    
+    // 계약서 저장
+    const result = await DB.prepare(`
+      INSERT INTO work_contracts (
+        contract_number, motorcycle_id, worker_name, worker_phone, worker_id_number,
+        worker_address, special_terms, created_by, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now", "+9 hours"))
+    `).bind(
+      contract_number,
+      data.motorcycle_id || null,
+      data.worker_name,
+      data.worker_phone,
+      data.worker_id_number || '',
+      data.worker_address || '',
+      data.special_terms || '',
+      created_by
+    ).run()
+    
+    // motorcycle_history에 이력 저장 (motorcycle_id가 있는 경우)
+    if (data.motorcycle_id && motorcycleInfo) {
+      await DB.prepare(`
+        INSERT INTO motorcycle_history (
+          motorcycle_id, change_type, field_name, old_value, new_value, 
+          changed_by, changed_by_name, notes, chassis_number, current_plate_number, current_owner_name, current_contractor_name, change_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+      `).bind(
+        data.motorcycle_id,
+        'work_contract_created',
+        '임시렌트 계약 생성',
+        '',
+        `근로자: ${data.worker_name}`,
+        user?.id || null,
+        user?.name || created_by || '시스템',
+        `📋 계약번호: ${contract_number}\n👤 근로자: ${data.worker_name}\n📞 전화번호: ${data.worker_phone}\n📅 생성일: ${today}`,
+        motorcycleInfo.chassis_number,
+        String(motorcycleInfo.plate_number || ''),
+        String(motorcycleInfo.owner_name || ''),
+        String(data.worker_name || '')  // 임시렌트 계약자(근로자) 이름
+      ).run()
+      
+      console.log(`✅ 임시렌트 계약 이력 저장 완료: ${contract_number}, 오토바이: ${motorcycleInfo.plate_number}`)
+    }
+    
+    return c.json({
+      success: true,
+      id: result.meta.last_row_id,
+      contract_number,
+      message: '업무위탁계약서가 생성되었습니다'
+    })
+  } catch (error: any) {
+    console.error('업무위탁계약서 생성 오류:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// 업무위탁계약서 목록 조회 (인증 필요)
+app.get('/api/work-contracts', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  const result = await DB.prepare(`
+    SELECT * FROM work_contracts 
+    WHERE deleted_at IS NULL
+    ORDER BY created_at DESC
+  `).all()
+  
+  return c.json(result.results || [])
+})
+
+// 업무위탁계약서 상세 조회 (인증 필요)
+app.get('/api/work-contracts/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare('SELECT * FROM work_contracts WHERE id = ?').bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
+// 업무위탁계약서 서명용 조회 (인증 불필요)
+app.get('/api/work-contracts/:id/sign', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  const result = await DB.prepare('SELECT * FROM work_contracts WHERE id = ? AND deleted_at IS NULL').bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+  }
+  
+  return c.json(result)
+})
+
+// 업무위탁계약서 서명 제출 (인증 불필요)
+app.post('/api/work-contracts/:id/signature', async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  const { worker_signature, id_card_image } = await c.req.json()
+  
+  try {
+    // 계약서 조회
+    const contract = await DB.prepare(`
+      SELECT * FROM work_contracts WHERE id = ?
+    `).bind(id).first() as any
+    
+    if (!contract) {
+      return c.json({ error: '계약서를 찾을 수 없습니다' }, 404)
+    }
+    
+    // 이미 서명된 계약서인지 확인
+    if (contract.status === 'active' && contract.worker_signature) {
+      return c.json({ error: '이미 서명된 계약서입니다' }, 400)
+    }
+    
+    // 갑 도장은 고정된 이미지 경로 사용
+    const companySignature = '/static/company-seal.png'
+    
+    // 서명 저장
+    await DB.prepare(`
+      UPDATE work_contracts 
+      SET company_signature = ?, 
+          worker_signature = ?, 
+          id_card_image = ?,
+          status = 'active',
+          signed_at = datetime("now", "+9 hours"),
+          updated_at = datetime("now", "+9 hours")
+      WHERE id = ?
+    `).bind(companySignature, worker_signature, id_card_image || '', id).run()
+    
+    return c.json({ 
+      success: true, 
+      message: '계약서 서명이 완료되었습니다' 
+    })
+  } catch (error: any) {
+    console.error('서명 저장 오류:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// 업무위탁계약서 삭제 (인증 필요)
+app.delete('/api/work-contracts/:id', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  const id = c.req.param('id')
+  
+  try {
+    // Soft delete with proper await
+    const result = await DB.prepare(`
+      UPDATE work_contracts 
+      SET deleted_at = datetime("now", "+9 hours")
+      WHERE id = ?
+    `).bind(id).run()
+    
+    // Verify the update was successful
+    if (result.meta?.changes === 0) {
+      return c.json({ 
+        success: false, 
+        message: '계약서를 찾을 수 없습니다' 
+      }, 404)
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: '계약서가 삭제되었습니다' 
+    })
+  } catch (error: any) {
+    console.error('계약서 삭제 오류:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// 관리자 전용: 완료된 계약의 completed_at 날짜 채우기 마이그레이션
+app.post('/api/admin/migrate-completed-dates', authMiddleware, async (c) => {
+  const DB = c.env.DB || c.env.db
+  
+  try {
+    console.log('🔄 완료 날짜 마이그레이션 시작...')
+    
+    // 1. 개인 계약: completed 상태인데 completed_at이 NULL인 것들
+    const personalContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM contracts 
+      WHERE status = 'completed' AND completed_at IS NULL
+    `).all()
+    
+    console.log(`📋 개인 계약 마이그레이션 대상: ${personalContracts.results?.length || 0}건`)
+    
+    for (const contract of personalContracts.results || []) {
+      const c = contract as any
+      // updated_at을 completed_at으로 복사
+      await DB.prepare(`
+        UPDATE contracts 
+        SET completed_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 개인 계약 ${c.contract_number}: completed_at = ${c.updated_at}`)
+    }
+    
+    // 2. 개인 계약: cancelled 상태인데 cancelled_at이 NULL인 것들
+    const cancelledContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM contracts 
+      WHERE status = 'cancelled' AND cancelled_at IS NULL
+    `).all()
+    
+    console.log(`📋 개인 계약(취소) 마이그레이션 대상: ${cancelledContracts.results?.length || 0}건`)
+    
+    for (const contract of cancelledContracts.results || []) {
+      const c = contract as any
+      await DB.prepare(`
+        UPDATE contracts 
+        SET cancelled_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 개인 계약(취소) ${c.contract_number}: cancelled_at = ${c.updated_at}`)
+    }
+    
+    // 3. 업체 계약: completed 상태인데 completed_at이 NULL인 것들
+    const businessContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM business_contracts 
+      WHERE status = 'completed' AND completed_at IS NULL
+    `).all()
+    
+    console.log(`📋 업체 계약 마이그레이션 대상: ${businessContracts.results?.length || 0}건`)
+    
+    for (const contract of businessContracts.results || []) {
+      const c = contract as any
+      await DB.prepare(`
+        UPDATE business_contracts 
+        SET completed_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 업체 계약 ${c.contract_number}: completed_at = ${c.updated_at}`)
+    }
+    
+    // 4. 업체 계약: cancelled 상태인데 cancelled_at이 NULL인 것들
+    const cancelledBusinessContracts = await DB.prepare(`
+      SELECT id, contract_number, updated_at 
+      FROM business_contracts 
+      WHERE status = 'cancelled' AND cancelled_at IS NULL
+    `).all()
+    
+    console.log(`📋 업체 계약(취소) 마이그레이션 대상: ${cancelledBusinessContracts.results?.length || 0}건`)
+    
+    for (const contract of cancelledBusinessContracts.results || []) {
+      const c = contract as any
+      await DB.prepare(`
+        UPDATE business_contracts 
+        SET cancelled_at = DATE(updated_at)
+        WHERE id = ?
+      `).bind(c.id).run()
+      console.log(`✅ 업체 계약(취소) ${c.contract_number}: cancelled_at = ${c.updated_at}`)
+    }
+    
+    const totalCount = 
+      (personalContracts.results?.length || 0) + 
+      (cancelledContracts.results?.length || 0) + 
+      (businessContracts.results?.length || 0) +
+      (cancelledBusinessContracts.results?.length || 0)
+    
+    return c.json({
+      success: true,
+      message: `✅ 마이그레이션 완료: 총 ${totalCount}건 업데이트`,
+      details: {
+        personal_completed: personalContracts.results?.length || 0,
+        personal_cancelled: cancelledContracts.results?.length || 0,
+        business_completed: businessContracts.results?.length || 0,
+        business_cancelled: cancelledBusinessContracts.results?.length || 0
+      }
+    })
+  } catch (error: any) {
+    console.error('❌ 마이그레이션 실패:', error)
+    return c.json({
+      success: false,
+      error: error.message
+    }, 500)
+  }
+})
+
+// ============================================
+// 백업 관리 API
+// ============================================
+
+// 백업 로그 조회
+app.get('/api/backups/logs', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+
+    const logs = await DB.prepare(`
+      SELECT 
+        id,
+        action_type,
+        table_name,
+        record_id,
+        backup_time,
+        created_at
+      FROM backup_logs
+      ORDER BY backup_time DESC
+      LIMIT 100
+    `).all()
+
+    console.log('📋 백업 로그 조회:', logs.results?.length || 0, '개')
+    return c.json(logs.results || [])
+  } catch (error) {
+    console.error('❌ 백업 로그 조회 실패:', error)
+    return c.json({ error: '백업 로그 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 전체 데이터베이스 백업 (JSON 형식)
+app.get('/api/backups/export', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+    const R2 = env.R2_BACKUPS
+
+    // 모든 테이블 데이터 조회
+    const tables = [
+      'admin_users',
+      'users',
+      'motorcycles', 
+      'customers',
+      'contracts',
+      'business_contracts',
+      'work_contracts',
+      'loan_contracts',
+      'loan_deductions',
+      'companies',
+      'contract_history',
+      'contract_shares',
+      'motorcycle_history',
+      'backup_logs'
+    ]
+
+    const backup: Record<string, any[]> = {}
+
+    for (const table of tables) {
+      try {
+        let query = `SELECT * FROM ${table}`
+        
+        // 이미지 데이터가 포함된 테이블은 이미지 필드 제외
+        if (table === 'contracts') {
+          query = `SELECT id, contract_type, contract_number, motorcycle_id, customer_id, 
+                   start_date, end_date, monthly_fee, deposit, special_terms, 
+                   status, insurance_age_limit, created_at, updated_at,
+                   'excluded' as signature_data, 'excluded' as id_card_photo 
+                   FROM ${table}`
+        } else if (table === 'admin_users') {
+          query = `SELECT id, username, role, email, created_at, updated_at FROM ${table}`
+        } else if (table === 'companies') {
+          query = `SELECT id, company_name, company_code, business_number, representative,
+                   representative_phone, representative_resident_number, 
+                   representative_postcode, representative_address, representative_detail_address,
+                   status, created_at, updated_at,
+                   'excluded' as id_card_photo FROM ${table}`
+        }
+        
+        const data = await DB.prepare(query).all()
+        backup[table] = data.results || []
+        console.log(`📦 ${table}: ${backup[table].length}개 레코드`)
+      } catch (error) {
+        console.error(`⚠️ ${table} 백업 실패:`, error)
+        backup[table] = []
+      }
+    }
+
+    // 백업 메타데이터
+    const backupData = {
+      metadata: {
+        backup_time: getKSTDateTime(),
+        backup_type: 'manual',
+        version: '1.0',
+        total_records: Object.values(backup).reduce((sum, arr) => sum + arr.length, 0)
+      },
+      data: backup
+    }
+
+    console.log('✅ 전체 데이터베이스 백업 완료:', backupData.metadata.total_records, '개 레코드')
+
+    // JSON으로 변환
+    const backupJson = JSON.stringify(backupData, null, 2)
+    const timestamp = Date.now()
+    const filename = `manual-backup-${timestamp}.json`
+
+    // R2에 저장 (R2가 있는 경우에만)
+    if (R2) {
+      try {
+        await R2.put(filename, backupJson, {
+          httpMetadata: {
+            contentType: 'application/json'
+          },
+          customMetadata: {
+            backupTime: backupData.metadata.backup_time,
+            backupType: 'manual',
+            totalRecords: String(backupData.metadata.total_records)
+          }
+        })
+        console.log(`✅ R2에 수동 백업 저장 완료: ${filename}`)
+      } catch (r2Error) {
+        console.error('⚠️ R2 저장 실패 (다운로드는 계속 진행):', r2Error)
+      }
+    }
+
+    // 백업 로그 기록
+    try {
+      await DB.prepare(`
+        INSERT INTO backup_logs (
+          action_type, table_name, record_id, backup_time
+        ) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+      `).bind('MANUAL_FULL_BACKUP', 'all_tables', null).run()
+      console.log('✅ 수동 백업 로그 기록 완료')
+    } catch (logError) {
+      console.error('⚠️ 백업 로그 기록 실패:', logError)
+    }
+
+    // JSON 파일로 다운로드
+    return c.json(backupData, 200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="zbike-backup-${timestamp}.json"`
+    })
+  } catch (error) {
+    console.error('❌ 데이터베이스 백업 실패:', error)
+    return c.json({ error: '데이터베이스 백업 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 특정 테이블만 백업
+app.get('/api/backups/export/:table', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+    const R2 = env.R2_BACKUPS
+    const table = c.req.param('table')
+
+    // 허용된 테이블 목록
+    const allowedTables = [
+      'users', 'motorcycles', 'customers', 'contracts', 
+      'business_contracts', 'work_contracts', 'loan_contracts',
+      'insurances', 'companies', 'contract_history', 'motorcycle_history'
+    ]
+
+    if (!allowedTables.includes(table)) {
+      return c.json({ error: '유효하지 않은 테이블명입니다.' }, 400)
+    }
+
+    const data = await DB.prepare(`SELECT * FROM ${table}`).all()
+
+    const backupData = {
+      metadata: {
+        backup_time: getKSTDateTime(),
+        backup_type: 'manual_table',
+        table_name: table,
+        total_records: data.results?.length || 0
+      },
+      data: data.results || []
+    }
+
+    console.log(`✅ ${table} 테이블 백업 완료:`, backupData.metadata.total_records, '개 레코드')
+
+    // JSON으로 변환
+    const backupJson = JSON.stringify(backupData, null, 2)
+    const timestamp = Date.now()
+    const filename = `manual-${table}-backup-${timestamp}.json`
+
+    // R2에 저장 (R2가 있는 경우에만)
+    if (R2) {
+      try {
+        await R2.put(filename, backupJson, {
+          httpMetadata: {
+            contentType: 'application/json'
+          },
+          customMetadata: {
+            backupTime: backupData.metadata.backup_time,
+            backupType: 'manual_table',
+            tableName: table,
+            totalRecords: String(backupData.metadata.total_records)
+          }
+        })
+        console.log(`✅ R2에 ${table} 테이블 백업 저장 완료: ${filename}`)
+      } catch (r2Error) {
+        console.error('⚠️ R2 저장 실패 (다운로드는 계속 진행):', r2Error)
+      }
+    }
+
+    // 백업 로그 기록
+    try {
+      await DB.prepare(`
+        INSERT INTO backup_logs (
+          action_type, table_name, record_id, backup_time
+        ) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+      `).bind('MANUAL_TABLE_BACKUP', table, null).run()
+      console.log(`✅ ${table} 백업 로그 기록 완료`)
+    } catch (logError) {
+      console.error('⚠️ 백업 로그 기록 실패:', logError)
+    }
+
+    return c.json(backupData, 200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="zbike-${table}-backup-${timestamp}.json"`
+    })
+  } catch (error) {
+    console.error('❌ 테이블 백업 실패:', error)
+    return c.json({ error: '테이블 백업 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 수동 백업 로그 기록
+app.post('/api/backups/manual', async (c) => {
+  try {
+    const { env } = c
+    const DB = env.DB || env.db
+
+    // 수동 백업 로그 기록
+    await DB.prepare(`
+      INSERT INTO backup_logs (
+        action_type,
+        table_name,
+        record_id,
+        backup_time
+      ) VALUES ('MANUAL_BACKUP', 'ALL', NULL, datetime('now', '+9 hours'))
+    `).run()
+
+    console.log('✅ 수동 백업 로그 기록 완료')
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('❌ 수동 백업 로그 기록 실패:', error)
+    return c.json({ error: '로그 기록 실패' }, 500)
+  }
+})
+
+// 수동 정기 백업 트리거
+app.post('/api/backups/trigger', async (c) => {
+  try {
+    const { env } = c
+
+    console.log('🔧 수동 백업 트리거 시작...')
+    const result = await performScheduledBackup(env)
+
+    return c.json({
+      success: true,
+      message: '백업이 성공적으로 완료되었습니다.',
+      ...result
+    })
+  } catch (error) {
+    console.error('❌ 수동 백업 실패:', error)
+    return c.json({ error: '백업 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// R2에 저장된 백업 목록 조회
+app.get('/api/backups/list', async (c) => {
+  try {
+    const { env } = c
+    const R2 = env.R2_BACKUPS
+
+    if (!R2) {
+      return c.json({ error: 'R2 백업 스토리지가 설정되지 않았습니다.' }, 500)
+    }
+
+    const listed = await R2.list()
+
+    const backups = listed.objects.map(obj => ({
+      filename: obj.key,
+      size: obj.size,
+      uploaded: obj.uploaded,
+      customMetadata: obj.customMetadata
+    }))
+
+    // 최신순으로 정렬
+    backups.sort((a, b) => new Date(b.uploaded).getTime() - new Date(a.uploaded).getTime())
+
+    console.log('📋 백업 목록 조회:', backups.length, '개')
+    return c.json(backups)
+  } catch (error) {
+    console.error('❌ 백업 목록 조회 실패:', error)
+    return c.json({ error: '백업 목록 조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// R2에서 특정 백업 다운로드
+app.get('/api/backups/download/:filename', async (c) => {
+  try {
+    const { env } = c
+    const R2 = env.R2_BACKUPS
+    const filename = c.req.param('filename')
+
+    if (!R2) {
+      return c.json({ error: 'R2 백업 스토리지가 설정되지 않았습니다.' }, 500)
+    }
+
+    const object = await R2.get(filename)
+
+    if (!object) {
+      return c.json({ error: '백업 파일을 찾을 수 없습니다.' }, 404)
+    }
+
+    const data = await object.text()
+
+    return c.json(JSON.parse(data), 200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="${filename}"`
+    })
+  } catch (error) {
+    console.error('❌ 백업 다운로드 실패:', error)
+    return c.json({ error: '백업 다운로드 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// ============================================
+// Scheduled 이벤트 핸들러 (Cron Trigger)
+// ============================================
+export default {
+  async fetch(request: Request, env: Bindings, ctx: ExecutionContext) {
+    return app.fetch(request, env, ctx)
+  },
+  async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
+    console.log('⏰ Cron Trigger 실행:', new Date(event.scheduledTime).toISOString())
+    
+    try {
+      const result = await performScheduledBackup(env)
+      console.log('✅ 정기 백업 완료:', result)
+    } catch (error) {
+      console.error('❌ 정기 백업 실패:', error)
+    }
+  }
+}

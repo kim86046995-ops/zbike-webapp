@@ -259,6 +259,22 @@
             sessionStorage.removeItem('loans_cache_time');
             console.log('🗑️ 차용증 캐시 클리어');
         }
+        
+        // 오래된 캐시 정리 (10분 이상 된 캐시 삭제)
+        function cleanupOldCache() {
+            try {
+                const cacheTime = sessionStorage.getItem('loans_cache_time');
+                if (cacheTime) {
+                    const age = Date.now() - parseInt(cacheTime);
+                    if (age > 600000) { // 10분 이상
+                        clearLoansCache();
+                        console.log('🧹 오래된 캐시 자동 삭제 (10분 경과)');
+                    }
+                }
+            } catch (err) {
+                console.error('캐시 정리 실패:', err);
+            }
+        }
 
         async function loadData(forceRefresh = false) {
             if (!checkAuth()) return;
@@ -289,21 +305,35 @@
                 });
                 allLoans = res.data;
                 
-                // 캐시에 저장
-                sessionStorage.setItem(cacheKey, JSON.stringify(allLoans));
-                sessionStorage.setItem(cacheTimeKey, now.toString());
+                // 캐시에 저장 (서명 이미지 제외로 용량 절감)
+                try {
+                    const cacheData = allLoans.map(loan => ({
+                        ...loan,
+                        borrower_signature: loan.borrower_signature ? '[IMAGE]' : null,
+                        lender_signature: loan.lender_signature ? '[IMAGE]' : null
+                    }));
+                    sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                } catch (storageErr) {
+                    console.warn('⚠️ 캐시 저장 실패 (용량 초과):', storageErr);
+                    // 캐시 저장 실패해도 계속 진행
+                }
                 
                 applyFilters();
             } catch (err) {
                 console.error('차용증 데이터 로드 실패:', err);
                 
                 // 에러 시 캐시 확인
-                const cachedData = sessionStorage.getItem('loans_cache');
-                if (cachedData) {
-                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
-                    allLoans = JSON.parse(cachedData);
-                    applyFilters();
-                    return;
+                try {
+                    const cachedData = sessionStorage.getItem('loans_cache');
+                    if (cachedData) {
+                        console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
+                        allLoans = JSON.parse(cachedData);
+                        applyFilters();
+                        return;
+                    }
+                } catch (cacheErr) {
+                    console.error('캐시 로드 실패:', cacheErr);
                 }
                 
                 alert('데이터 로드 실패: ' + err.message);
@@ -315,10 +345,11 @@
             const filterStatus = document.getElementById('filter').value;
 
             filteredLoans = allLoans.filter(loan => {
-                // 연체 상태 계산
+                // 상태 계산 (상환완료는 항상 completed 유지)
                 const today = new Date();
                 const repaymentDate = new Date(loan.repayment_date);
-                const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+                const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                    (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
 
                 const matchSearch = !searchTerm || 
                     (loan.loan_number && loan.loan_number.toLowerCase().includes(searchTerm)) ||
@@ -380,7 +411,8 @@
             filteredLoans.forEach((loan, index) => {
                 const today = new Date();
                 const repaymentDate = new Date(loan.repayment_date);
-                const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+                const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                    (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
                 
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
@@ -443,11 +475,17 @@
                         </td>
                         <td class="px-3 py-3 text-center">
                             <button onclick="event.stopPropagation(); showDetail(${loan.id})" 
-                                class="text-orange-600 hover:text-orange-800 mx-1">
+                                class="text-orange-600 hover:text-orange-800 mx-1" title="상세보기">
                                 <i class="fas fa-eye"></i>
                             </button>
+                            ${statusText !== '상환완료' ? `
+                            <button onclick="event.stopPropagation(); completeLoan(${loan.id})" 
+                                class="text-green-600 hover:text-green-800 mx-1" title="상환완료">
+                                <i class="fas fa-check-circle"></i>
+                            </button>
+                            ` : ''}
                             <button onclick="event.stopPropagation(); deleteConfirm(${loan.id})" 
-                                class="text-red-600 hover:text-red-800 mx-1">
+                                class="text-red-600 hover:text-red-800 mx-1" title="삭제">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -482,7 +520,8 @@
             filteredLoans.forEach(loan => {
                 const today = new Date();
                 const repaymentDate = new Date(loan.repayment_date);
-                const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+                const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                    (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
                 
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
@@ -542,11 +581,17 @@
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="event.stopPropagation(); showDetail(${loan.id})" 
-                                    class="text-orange-600 hover:text-orange-800 touch-target">
+                                    class="text-orange-600 hover:text-orange-800 touch-target" title="상세보기">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                                ${statusText !== '상환완료' ? `
+                                <button onclick="event.stopPropagation(); completeLoan(${loan.id})" 
+                                    class="text-green-600 hover:text-green-800 touch-target" title="상환완료">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                ` : ''}
                                 <button onclick="event.stopPropagation(); deleteConfirm(${loan.id})" 
-                                    class="text-red-600 hover:text-red-800 touch-target">
+                                    class="text-red-600 hover:text-red-800 touch-target" title="삭제">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -611,7 +656,8 @@
 
             const today = new Date();
             const repaymentDate = new Date(loan.repayment_date);
-            const actualStatus = (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
+            const actualStatus = loan.status === 'completed' ? 'completed' : 
+                                (loan.status === 'active' && today > repaymentDate) ? 'overdue' : loan.status;
             
             const statusColors = {
                 'active': 'text-green-600',
@@ -623,8 +669,8 @@
             let statusText = '';
             let statusColorClass = statusColors[actualStatus];
             if (actualStatus === 'active') {
-                // 서명 데이터가 없으면 "서명대기", 있으면 "진행중"
-                if (!loan.signature_data || loan.signature_data === '') {
+                // borrower_signature 필드로 확인 (차용증 테이블)
+                if (!loan.borrower_signature || loan.borrower_signature === '') {
                     statusText = '서명대기';
                     statusColorClass = 'text-blue-600';
                 } else {
@@ -653,7 +699,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> <span id="modal-company-name">로딩중...</span></p>
                             <p><strong>사업자번호:</strong> <span id="modal-business-number">로딩중...</span></p>
-                            <p><strong>대표자:</strong> <span id="modal-representative-name">로딩중...</span></p>
+                            <p style="display: flex; align-items: center;"><strong>대표자:</strong> <span id="modal-representative-name">로딩중...</span><img src="/static/stamp-kim.png?v=20260512" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
                             <p><strong>총괄매니저:</strong> <span id="modal-manager-phone">로딩중...</span></p>
                         </div>
                     </div>
@@ -776,7 +822,7 @@
 
                         <p class="font-bold mt-3 mb-2">제12조 (계약의 효력)</p>
                         <p class="ml-4">
-                            본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.
+                            본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인) 및 차용금 지급이 완료됨으로써 법적효력이 발생합니다.
                         </p>
 
                         ${loan.special_terms ? `
@@ -821,9 +867,12 @@
                             ${loan.borrower_id_card_photo ? `
                                 <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
                                     <h4 class="font-bold mb-3 text-center text-lg">차용인 신분증</h4>
-                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;">
-                                        <img src="${loan.borrower_id_card_photo}" alt="차용인 신분증" style="width: 100%; height: 100%; object-fit: contain;">
+                                    <div class="border rounded bg-white mx-auto cursor-pointer hover:opacity-90 transition-opacity" style="width: 100%; max-width: 480px; aspect-ratio: 85/54; display: flex; align-items: center; justify-content: center;" onclick="openImageModal('${loan.borrower_id_card_photo}')" title="클릭하여 확대">
+                                        <img src="${loan.borrower_id_card_photo}" alt="차용인 신분증" style="width: 100%; height: 100%; object-fit: contain; pointer-events: none;">
                                     </div>
+                                    <p class="text-center text-sm text-blue-600 mt-2 cursor-pointer hover:text-blue-800" onclick="openImageModal('${loan.borrower_id_card_photo}')">
+                                        <i class="fas fa-search-plus mr-1"></i>클릭하여 확대
+                                    </p>
                                 </div>
                             ` : ''}
                         </div>
@@ -873,6 +922,21 @@
         function closeModal(event) {
             if (event && event.target !== event.currentTarget) return;
             document.getElementById('modal').classList.add('hidden');
+        }
+
+        async function completeLoan(id) {
+            if (!confirm('이 차용증을 상환완료 처리하시겠습니까?\n\n상환완료 후에는 목록에서 "상환완료" 상태로 표시됩니다.')) return;
+            
+            try {
+                const sid = localStorage.getItem('sessionId');
+                await axios.put(`/api/loan-contracts/${id}/complete`, {}, {
+                    headers: { 'X-Session-ID': sid }
+                });
+                alert('✅ 상환완료 처리되었습니다.');
+                loadData();
+            } catch (err) {
+                alert('상환완료 처리 실패: ' + (err.response?.data?.error || err.message));
+            }
         }
 
         async function deleteConfirm(id) {
@@ -972,8 +1036,35 @@
         document.getElementById('search').addEventListener('input', applyFilters);
         document.getElementById('filter').addEventListener('change', applyFilters);
 
+        // 이미지 모달 함수
+        function openImageModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = imageSrc;
+            modal.classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+        }
+
         // 페이지 로드 시 실행
-        window.addEventListener('DOMContentLoaded', loadData);
+        window.addEventListener('DOMContentLoaded', () => {
+            cleanupOldCache(); // 오래된 캐시 정리
+            loadData();
+        });
     </script>
+
+    <!-- 이미지 확대 모달 -->
+    <div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-95 z-[9999] flex items-center justify-center" onclick="closeImageModal()">
+        <button onclick="closeImageModal(); event.stopPropagation();" class="absolute top-4 right-4 text-white hover:text-gray-300 text-4xl z-[10000] w-14 h-14 rounded-full bg-black bg-opacity-50 flex items-center justify-center">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="w-full h-full p-4 flex items-center justify-center" onclick="event.stopPropagation()">
+            <img id="modalImage" src="" alt="확대 이미지" class="max-w-full max-h-full object-contain rounded-lg">
+        </div>
+    </div>
 </body>
 </html>
+<!-- Updated Fri Apr  3 02:51:46 UTC 2026 -->

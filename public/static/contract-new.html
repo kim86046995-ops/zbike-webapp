@@ -180,7 +180,7 @@
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label class="cursor-pointer">
-                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" onchange="toggleContractType()" checked>
+                            <input type="radio" name="contract_type" value="lease" required class="peer hidden" checked onchange="toggleContractType()">
                             <div class="border-2 border-gray-300 rounded-lg p-6 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
                                 <i class="fas fa-calendar-alt text-3xl text-green-600 mb-2"></i>
                                 <p class="font-bold text-lg">리스</p>
@@ -201,6 +201,22 @@
                                 <i class="fas fa-bolt text-3xl text-blue-600 mb-2"></i>
                                 <p class="font-bold text-lg">임시렌트</p>
                                 <p class="text-sm text-gray-600 mt-2">단기 임시 대여</p>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <!-- 법인 계약 토글 버튼 -->
+                    <div class="mt-4 pt-4 border-t">
+                        <label class="cursor-pointer flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg hover:border-purple-400 transition" id="corporateToggle">
+                            <input type="checkbox" id="isCorporate" class="hidden" onchange="toggleCorporate()">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" id="corporateIcon">
+                                    <i class="fas fa-building text-2xl text-gray-400"></i>
+                                </div>
+                                <div class="text-left">
+                                    <p class="font-bold text-lg" id="corporateLabel">법인 계약</p>
+                                    <p class="text-sm text-gray-600">클릭하여 법인 계약으로 전환</p>
+                                </div>
                             </div>
                         </label>
                     </div>
@@ -272,19 +288,19 @@
 
                 <!-- 임시렌트 전용 폼 -->
                 <div id="tempRentForm" class="hidden space-y-6">
-                    <!-- 2-1. 고객 선택 버튼 -->
+                    <!-- 2-1. 고객/업체 선택 버튼 -->
                     <div class="bg-white rounded-lg shadow-md p-6">
                         <h2 class="text-xl font-bold mb-4">
                             <i class="fas fa-user-check mr-2 text-purple-600"></i>
-                            2-1. 고객 선택 (선택사항)
+                            2-1. 고객/업체 선택 (선택사항)
                         </h2>
-                        <button type="button" onclick="showCustomerModal()" class="w-full bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 font-bold text-lg transition-colors">
+                        <button type="button" onclick="showTempCustomerModal()" class="w-full bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 font-bold text-lg transition-colors">
                             <i class="fas fa-users mr-2"></i>
-                            <span id="selectedCustomerText">고객 선택하기 (클릭)</span>
+                            <span id="selectedTempCustomerText">고객/업체 선택하기 (클릭)</span>
                         </button>
                         <p class="text-sm text-gray-500 mt-2">
                             <i class="fas fa-info-circle mr-1"></i>
-                            기존 고객을 선택하면 정보가 자동으로 입력됩니다. 신규 고객은 직접 입력해주세요.
+                            기존 고객(개인) 또는 업체를 선택하면 정보가 자동으로 입력됩니다. 원래 계약 오토바이 고장 시 대차 정보를 관리할 수 있습니다.
                         </p>
                     </div>
 
@@ -327,18 +343,6 @@
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-bold mb-2">상세주소</label>
                                 <input type="text" id="tempDetailAddress" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="상세주소 입력">
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-bold mb-2">
-                                    <i class="fas fa-id-card mr-1 text-blue-500"></i>면허종류
-                                </label>
-                                <select id="tempLicenseType" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                                    <option value="">선택</option>
-                                    <option value="2종소형">2종소형</option>
-                                    <option value="2종보통">2종보통</option>
-                                    <option value="1종보통">1종보통</option>
-                                    <option value="1종대형">1종대형</option>
-                                </select>
                             </div>
                         </div>
                     </div>
@@ -526,8 +530,12 @@
                             <input type="date" id="startDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold mb-2">계약 종료일 *</label>
-                            <input type="date" id="endDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <label class="block text-sm font-bold mb-2">
+                                계약 종료일
+                                <span class="text-xs text-gray-500 font-normal ml-2">(미입력 시 무기한)</span>
+                            </label>
+                            <input type="date" id="endDate" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            <p class="text-xs text-gray-500 mt-1">비워두면 무기한 계약으로 등록됩니다</p>
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-2">
@@ -594,14 +602,14 @@
                     </h2>
                     <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-6">
                         <div class="prose prose-sm max-w-none">
-                            <div class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
+                            <div id="landlordInfo" class="mb-6 p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-600">
                                 <h3 class="font-bold text-lg mb-3">임대인 (업체) 정보</h3>
                                 <div class="space-y-1 text-gray-800">
-                                    <p><span class="font-semibold">상호명:</span> 대성</p>
-                                    <p><span class="font-semibold">사업자등록번호:</span> 487-39-01128</p>
-                                    <p><span class="font-semibold">대표자:</span> 김상춘</p>
-                                    <p><span class="font-semibold">주소:</span> 광주광역시 광산구 신가삼효로 31</p>
-                                    <p><span class="font-semibold">연락처:</span> 010-3997-6991</p>
+                                    <p><span class="font-semibold">상호명:</span> <span id="landlordName">제트바이크</span></p>
+                                    <p><span class="font-semibold">사업자등록번호:</span> <span id="landlordBusinessNumber">331-18-02703</span></p>
+                                    <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> <span id="landlordRepresentative">김용현</span><img id="landlordStamp" src="/static/stamp-kim.png?v=20260805" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
+                                    <p><span class="font-semibold">주소:</span> <span id="landlordAddress">전남광주통합특별시 광산구 목련로 315</span></p>
+                                    <p><span class="font-semibold">연락처:</span> <span id="landlordPhone">010-3997-6991</span></p>
                                 </div>
                             </div>
                             
@@ -1107,6 +1115,55 @@
                 </div>
             </div>
         </div>
+
+        <!-- 임시렌트 전용 고객/업체 선택 모달 -->
+        <div id="tempCustomerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <!-- 모달 헤더 -->
+                <div class="bg-purple-600 text-white p-4 flex items-center justify-between">
+                    <h3 class="text-xl font-bold">
+                        <i class="fas fa-user-check mr-2"></i>
+                        고객/업체 선택 (임시렌트)
+                    </h3>
+                    <button type="button" onclick="hideTempCustomerModal()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <!-- 탭 메뉴 -->
+                <div class="flex border-b">
+                    <button type="button" onclick="switchTempTab('customer')" id="tempTabCustomer" class="flex-1 px-4 py-3 font-bold text-purple-600 border-b-2 border-purple-600">
+                        <i class="fas fa-user mr-2"></i>개인 고객
+                    </button>
+                    <button type="button" onclick="switchTempTab('company')" id="tempTabCompany" class="flex-1 px-4 py-3 font-bold text-gray-500 hover:text-purple-600">
+                        <i class="fas fa-building mr-2"></i>업체
+                    </button>
+                </div>
+                
+                <!-- 모달 본문 -->
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                    <!-- 검색창 -->
+                    <div class="mb-4 sticky top-0 bg-white z-10 pb-4">
+                        <label class="block text-sm font-bold mb-2">
+                            <i class="fas fa-search mr-1 text-purple-500"></i>
+                            이름/전화번호/주소로 검색
+                        </label>
+                        <input 
+                            type="text" 
+                            id="tempCustomerSearchInput" 
+                            placeholder="고객/업체 이름, 전화번호 또는 주소 입력..." 
+                            oninput="filterTempCustomerList()"
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg"
+                        >
+                    </div>
+                    
+                    <!-- 고객/업체 목록 -->
+                    <div id="tempCustomerListModal" class="space-y-3">
+                        <!-- 고객/업체 목록이 여기에 렌더링됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -1188,7 +1245,7 @@
             const normalForm = document.getElementById('normalContractForm');
             const tempForm = document.getElementById('tempRentForm');
             
-            console.log('Contract type selected:', contractType); // 디버깅용
+            console.log('Contract type selected:', contractType);
             
             if (!normalForm || !tempForm) {
                 console.error('Form elements not found');
@@ -1203,6 +1260,52 @@
                 normalForm.classList.remove('hidden');
                 tempForm.classList.add('hidden');
                 console.log('Showing normal form');
+            }
+        }
+        
+        // 법인 계약 토글 함수
+        function toggleCorporate() {
+            const isCorporate = document.getElementById('isCorporate').checked;
+            const corporateToggle = document.getElementById('corporateToggle');
+            const corporateIcon = document.getElementById('corporateIcon');
+            const corporateLabel = document.getElementById('corporateLabel');
+            
+            if (isCorporate) {
+                // 법인 선택됨 - 아형동 법인 정보로 변경
+                document.getElementById('landlordName').textContent = '(주)아형동';
+                document.getElementById('landlordBusinessNumber').textContent = '431-81-03914';
+                document.getElementById('landlordRepresentative').textContent = '김상춘';
+                document.getElementById('landlordAddress').textContent = '전남 광주광역시 광산구 목련로 315';
+                document.getElementById('landlordPhone').textContent = '010-3997-6991';
+                document.getElementById('landlordStamp').src = '/static/stamp-ahyeongdong.png?v=' + Date.now();
+                
+                // UI 업데이트
+                corporateToggle.classList.remove('border-gray-300');
+                corporateToggle.classList.add('border-purple-600', 'bg-purple-50');
+                corporateIcon.classList.remove('border-gray-300');
+                corporateIcon.classList.add('border-purple-600', 'bg-purple-600');
+                corporateIcon.innerHTML = '<i class="fas fa-building text-2xl text-white"></i>';
+                corporateLabel.textContent = '법인 계약 (활성)';
+                
+                console.log('법인 계약 활성화: 아형동');
+            } else {
+                // 법인 해제됨 - 제트바이크 개인사업자 정보로 복원
+                document.getElementById('landlordName').textContent = '제트바이크';
+                document.getElementById('landlordBusinessNumber').textContent = '331-18-02703';
+                document.getElementById('landlordRepresentative').textContent = '김용현';
+                document.getElementById('landlordAddress').textContent = '전남광주통합특별시 광산구 목련로 315';
+                document.getElementById('landlordPhone').textContent = '010-3997-6991';
+                document.getElementById('landlordStamp').src = '/static/stamp-kim.png?v=20260805';
+                
+                // UI 업데이트
+                corporateToggle.classList.remove('border-purple-600', 'bg-purple-50');
+                corporateToggle.classList.add('border-gray-300');
+                corporateIcon.classList.remove('border-purple-600', 'bg-purple-600');
+                corporateIcon.classList.add('border-gray-300');
+                corporateIcon.innerHTML = '<i class="fas fa-building text-2xl text-gray-400"></i>';
+                corporateLabel.textContent = '법인 계약';
+                
+                console.log('법인 계약 해제: 대성');
             }
         }
 
@@ -1284,7 +1387,7 @@
                 loadCustomers(); // 고객 목록 로드
                 loadCompanySettings(); // 회사 설정 로드
                 initSignaturePad();
-                initTempSignatureCanvas(); // 임시렌트 서명 캔버스 초기화
+                // initTempSignatureCanvas(); // 임시렌트는 서명 불필요로 제거
                 initAdminSignatureCanvas(); // 계약자 서명 캔버스 초기화
             }
             
@@ -1354,6 +1457,19 @@
 
         async function loadMotorcycles() {
             try {
+                // 캐시 확인 (5분 유효)
+                const cacheKey = 'motorcycles_cache';
+                const cacheTimeKey = 'motorcycles_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                    motorcycles = JSON.parse(cachedData);
+                    console.log('✅ 캐시된 오토바이 목록 사용:', motorcycles.length, '대');
+                    return;
+                }
+                
                 // 모든 오토바이를 가져옴 (페지된 것만 제외)
                 const sessionId = localStorage.getItem('sessionId');
                 const response = await axios.get('/api/motorcycles', {
@@ -1369,6 +1485,16 @@
                     const bNum = b.plate_number || b.chassis_number || '';
                     return aNum.localeCompare(bNum);
                 });
+                
+                // 캐시에 저장
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(motorcycles));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                } catch (e) {
+                    console.warn('캐시 저장 실패:', e);
+                }
+                
+                console.log('✅ 오토바이 목록 로드:', motorcycles.length, '대');
             } catch (error) {
                 console.error('Error loading motorcycles:', error);
                 alert('오토바이 목록을 불러오는데 실패했습니다');
@@ -1722,13 +1848,42 @@
         // ========== 고객 모달 관련 함수 ==========
         async function loadCustomers() {
             try {
+                // 캐시 확인 (5분 유효)
+                const cacheKey = 'customers_cache';
+                const cacheTimeKey = 'customers_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                    customers = JSON.parse(cachedData);
+                    console.log('✅ 캐시된 고객 목록 사용:', customers.length, '명');
+                    return;
+                }
+                
                 const response = await axios.get('/api/customers', {
                     headers: {
                         'X-Session-ID': sessionId
                     }
                 });
                 customers = response.data;
-                console.log('고객 목록 로드:', customers.length);
+                
+                // ✅ 가나다순(ㄱ,ㄴ,ㄷ,ㄹ...) 정렬 추가
+                customers.sort((a, b) => {
+                    const nameA = (a.name || '').trim();
+                    const nameB = (b.name || '').trim();
+                    return nameA.localeCompare(nameB, 'ko-KR');
+                });
+                
+                // 캐시에 저장
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(customers));
+                    sessionStorage.setItem(cacheTimeKey, now.toString());
+                } catch (e) {
+                    console.warn('캐시 저장 실패:', e);
+                }
+                
+                console.log('✅ 고객 목록 로드:', customers.length, '명 (가나다순 정렬 완료)');
             } catch (error) {
                 console.error('고객 목록 로드 실패:', error);
                 alert('고객 목록을 불러오는데 실패했습니다.');
@@ -1947,6 +2102,25 @@
             const tempResidentNumberInput = document.getElementById('tempResidentNumber');
             if (tempResidentNumberInput) tempResidentNumberInput.value = customer.resident_number || '';
             
+            // ✅ 임시렌트 주소 정보 자동 입력 추가
+            const tempPostcodeInput = document.getElementById('tempPostcode');
+            if (tempPostcodeInput) {
+                tempPostcodeInput.value = customer.postcode || '';
+                console.log('📮 [임시렌트] 우편번호 입력:', customer.postcode);
+            }
+            
+            const tempAddressInput = document.getElementById('tempAddress');
+            if (tempAddressInput) {
+                tempAddressInput.value = customer.address || '';
+                console.log('🏠 [임시렌트] 기본주소 입력:', customer.address);
+            }
+            
+            const tempDetailAddressInput = document.getElementById('tempDetailAddress');
+            if (tempDetailAddressInput) {
+                tempDetailAddressInput.value = customer.detail_address || '';
+                console.log('🏘️ [임시렌트] 상세주소 입력:', customer.detail_address);
+            }
+            
             // 고객 전체 데이터 로그 (디버깅용)
             console.log('✅ 고객 정보 자동 입력 완료:', {
                 이름: customer.name,
@@ -1955,6 +2129,8 @@
                 우편번호: customer.postcode || '⚠️ 없음',
                 기본주소: customer.address || '⚠️ 없음',
                 상세주소: customer.detail_address || '⚠️ 없음',
+                임시렌트우편번호입력: tempPostcodeInput ? '✅ 입력됨' : '❌ 필드없음',
+                임시렌트주소입력: tempAddressInput ? '✅ 입력됨' : '❌ 필드없음',
                 전체데이터: customer
             });
             
@@ -2163,6 +2339,8 @@
                 return;
             }
 
+            console.log('🔍 [Safari Debug] selectedMotorcycleId:', selectedMotorcycleId, 'type:', typeof selectedMotorcycleId);
+            
             if (!selectedMotorcycleId) {
                 alert('오토바이를 선택해주세요');
                 return;
@@ -2180,11 +2358,13 @@
             const customerName = document.getElementById('customerName').value;
             const customerPhone = document.getElementById('phone').value;
             
+            console.log('🔍 [Safari Debug] Preparing contract data with motorcycle_id:', selectedMotorcycleId);
+            
             // 계약 데이터 준비 (서명과 신분증 제외)
             pendingContractData = {
                 contract_type: contractType,
                 customer_id: selectedCustomerId,  // 고객 ID 추가
-                motorcycle_id: selectedMotorcycleId,
+                motorcycle_id: Number(selectedMotorcycleId),  // 명시적으로 숫자로 변환
                 // 오토바이 제원 정보 추가
                 motorcycle_plate: selectedMotorcycle?.plate_number || '',
                 motorcycle_name: selectedMotorcycle?.vehicle_name || '',
@@ -2546,7 +2726,7 @@
                 const contractData = {
                     contract_type: contractType,
                     customer_id: selectedCustomerId,
-                    motorcycle_id: selectedMotorcycleId,
+                    motorcycle_id: Number(selectedMotorcycleId),
                     // 오토바이 제원 정보
                     motorcycle_plate: selectedMotorcycle?.plate_number || '',
                     motorcycle_name: selectedMotorcycle?.vehicle_name || '',
@@ -2595,9 +2775,12 @@
                 // 8. 성공 메시지 표시
                 alert(`✅ 계약서가 즉시 완료되었습니다!\n\n📋 계약서 번호: ${contractNumber}\n📊 상태: 완료 (active)\n💾 서명 및 신분증이 저장되었습니다.\n\n계약서 목록 페이지로 이동합니다.`);
 
-                // 9. 계약서 목록으로 이동
+                // 9. 캐시 클리어 후 계약서 목록으로 이동
                 setTimeout(() => {
-                    window.location.href = '/static/contracts.html';
+                    sessionStorage.removeItem('contracts_cache');
+                    sessionStorage.removeItem('contracts_cache_time');
+                    console.log('🗑️ 계약서 캐시 클리어 완료');
+                    window.location.href = '/static/contracts.html?refresh=1';
                 }, 2000);
 
             } catch (error) {
@@ -2641,8 +2824,13 @@
                 
                 console.log(`✅ 계약서 저장 완료 (ID: ${contractId}, 번호: ${contractNumber})`);
                 
-                // 2. 공유 링크 생성 (계약 ID 포함)
-                const shareUrl = `${window.location.origin}/contract-sign?contract_id=${contractId}`;
+                // ✅ 계약서 목록 캐시 클리어 (새로고침 시 즉시 반영)
+                sessionStorage.removeItem('contracts_cache');
+                sessionStorage.removeItem('contracts_cache_time');
+                console.log('🗑️ 계약서 목록 캐시 클리어 완료');
+                
+                // 2. 공유 링크 생성 (계약 ID 포함) - static 경로로 직접 링크
+                const shareUrl = `${window.location.origin}/static/contract-sign.html?contract_id=${contractId}`;
                 console.log('🔗 공유 링크:', shareUrl);
                 
                 // 3. SMS 전송
@@ -2714,14 +2902,43 @@
                     }
                 }
                 
-                // 계약서 목록으로 이동
+                // 계약서 목록으로 이동 (캐시 무시 플래그 추가)
                 setTimeout(() => {
-                    window.location.href = '/static/contracts.html';
+                    window.location.href = '/static/contracts.html?refresh=' + Date.now();
                 }, 3000);
                 
             } catch (error) {
-                console.error('계약서 저장 실패:', error);
-                alert('계약서 저장에 실패했습니다:\n\n' + (error.response?.data?.error || error.message));
+                console.error('❌ 계약서 저장 실패 상세:', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    stack: error.stack
+                });
+                
+                let errorMessage = '계약서 저장에 실패했습니다.\n\n';
+                
+                if (error.response) {
+                    // 서버 응답이 있는 경우
+                    errorMessage += `상태 코드: ${error.response.status}\n`;
+                    errorMessage += `오류: ${error.response.data?.error || error.response.data?.details || '알 수 없는 오류'}\n`;
+                    
+                    // 500 에러인 경우 더 자세한 정보
+                    if (error.response.status === 500) {
+                        errorMessage += `\n서버 내부 오류가 발생했습니다.\n`;
+                        errorMessage += `잠시 후 다시 시도해주세요.\n`;
+                        if (error.response.data?.details) {
+                            errorMessage += `\n상세: ${error.response.data.details}`;
+                        }
+                    }
+                } else if (error.request) {
+                    // 요청은 전송되었지만 응답이 없는 경우
+                    errorMessage += '서버와 연결할 수 없습니다.\n인터넷 연결을 확인해주세요.';
+                } else {
+                    // 요청 설정 중 오류 발생
+                    errorMessage += error.message;
+                }
+                
+                alert(errorMessage);
             }
         }
         
@@ -2939,14 +3156,13 @@
                 // 계약 데이터 생성 (이름만 필수, 나머지는 선택)
                 const contractData = {
                     contract_type: 'temp_rent',
-                    motorcycle_id: selectedMotorcycleId,
+                    motorcycle_id: Number(selectedMotorcycleId),
                     customer_name: customerName,
                     phone: document.getElementById('tempPhone').value.trim() || '',
                     resident_number: document.getElementById('tempResidentNumber').value.trim() || '',
                     postcode: document.getElementById('tempPostcode').value.trim() || '',
                     address: document.getElementById('tempAddress').value.trim() || '',
                     detail_address: document.getElementById('tempDetailAddress').value.trim() || '',
-                    license_type: document.getElementById('tempLicenseType').value || '2종소형',
                     start_date: document.getElementById('tempStartDate').value || new Date().toISOString().split('T')[0],
                     end_date: document.getElementById('tempEndDate').value || new Date().toISOString().split('T')[0],
                     daily_fee: unformatNumber(document.getElementById('tempDailyFee').value || '0'),
@@ -2968,8 +3184,11 @@
                 
                 alert(`✅ 임시렌트 약식 계약서가 생성되었습니다!\n\n계약번호: ${response.data.contract_number}\n고객: ${customerName}`);
                 
-                // 계약서 목록으로 이동
-                window.location.href = '/static/contracts.html';
+                // 캐시 클리어 후 계약서 목록으로 이동
+                sessionStorage.removeItem('contracts_cache');
+                sessionStorage.removeItem('contracts_cache_time');
+                console.log('🗑️ 계약서 캐시 클리어 완료');
+                window.location.href = '/static/contracts.html?refresh=1';
                 
             } catch (error) {
                 console.error('❌ 임시렌트 계약서 생성 실패:', error);
@@ -3253,9 +3472,14 @@
                 const insuranceAgeLimit = document.getElementById('drivingRange').value || '전연령';
                 console.log('📝 보험운전범위:', insuranceAgeLimit);
                 
+                // 종료일 처리: 비어있으면 9999-12-31로 설정
+                const endDateValue = document.getElementById('endDate').value;
+                const finalEndDate = endDateValue || '9999-12-31';
+                console.log('📝 종료일:', endDateValue ? endDateValue : '미입력 → 9999-12-31 (무기한)');
+                
                 const contractData = {
                     contract_type: contractType === 'lease' ? 'individual' : contractType,
-                    motorcycle_id: selectedMotorcycleId,
+                    motorcycle_id: Number(selectedMotorcycleId),
                     customer_name: customerName,
                     customer_phone: customerPhone,
                     resident_number: document.getElementById('residentNumber').value || '',
@@ -3263,7 +3487,7 @@
                     license_type: insuranceAgeLimit,  // 면허종류
                     insurance_age_limit: insuranceAgeLimit,  // 보험운전범위
                     start_date: document.getElementById('startDate').value || '',
-                    end_date: document.getElementById('endDate').value || '',
+                    end_date: finalEndDate,
                     monthly_fee: unformatNumber(document.getElementById('dailyFee').value || '0'),  // 일차감금액을 monthly_fee로 저장
                     deposit: unformatNumber(document.getElementById('deposit').value || '0'),
                     special_terms: document.getElementById('specialTerms').value || '',
@@ -3586,6 +3810,192 @@
             
             modalCtx.lineTo(x, y);
             modalCtx.stroke();
+        }
+
+        // ==========================================
+        // 임시렌트 전용 고객/업체 선택 함수
+        // ==========================================
+        let tempCustomerTab = 'customer'; // 'customer' or 'company'
+        let tempCustomers = [];
+        let tempCompanies = [];
+        let tempAllList = [];
+
+        function showTempCustomerModal() {
+            document.getElementById('tempCustomerModal').classList.remove('hidden');
+            loadTempCustomersAndCompanies();
+        }
+
+        function hideTempCustomerModal() {
+            document.getElementById('tempCustomerModal').classList.add('hidden');
+            document.getElementById('tempCustomerSearchInput').value = '';
+        }
+
+        function switchTempTab(tab) {
+            tempCustomerTab = tab;
+            
+            // 탭 스타일 변경
+            const customerTab = document.getElementById('tempTabCustomer');
+            const companyTab = document.getElementById('tempTabCompany');
+            
+            if (tab === 'customer') {
+                customerTab.className = 'flex-1 px-4 py-3 font-bold text-purple-600 border-b-2 border-purple-600';
+                companyTab.className = 'flex-1 px-4 py-3 font-bold text-gray-500 hover:text-purple-600';
+            } else {
+                customerTab.className = 'flex-1 px-4 py-3 font-bold text-gray-500 hover:text-purple-600';
+                companyTab.className = 'flex-1 px-4 py-3 font-bold text-purple-600 border-b-2 border-purple-600';
+            }
+            
+            // 목록 새로고침
+            filterTempCustomerList();
+        }
+
+        async function loadTempCustomersAndCompanies() {
+            try {
+                const sid = localStorage.getItem('sessionId');
+                
+                // 개인 고객 목록 로드
+                const customersRes = await axios.get('/api/customers', {
+                    headers: { 'X-Session-ID': sid }
+                });
+                tempCustomers = customersRes.data.map(c => ({ ...c, type: 'customer' }));
+                
+                // 업체 목록 로드
+                const companiesRes = await axios.get('/api/companies', {
+                    headers: { 'X-Session-ID': sid }
+                });
+                tempCompanies = companiesRes.data.map(c => ({ ...c, type: 'company' }));
+                
+                // 전체 목록 합치기
+                tempAllList = [...tempCustomers, ...tempCompanies];
+                
+                console.log('✅ 임시렌트 고객/업체 목록 로드 완료:', {
+                    customers: tempCustomers.length,
+                    companies: tempCompanies.length
+                });
+                
+                filterTempCustomerList();
+            } catch (err) {
+                console.error('❌ 임시렌트 고객/업체 목록 로드 실패:', err);
+                alert('고객/업체 목록을 불러오는 데 실패했습니다.');
+            }
+        }
+
+        function filterTempCustomerList() {
+            const searchTerm = document.getElementById('tempCustomerSearchInput').value.toLowerCase().trim();
+            
+            // 현재 탭에 따라 필터링
+            let listToShow = tempCustomerTab === 'customer' ? tempCustomers : tempCompanies;
+            
+            if (searchTerm) {
+                listToShow = listToShow.filter(item => {
+                    const name = (item.name || item.company_name || '').toLowerCase();
+                    const phone = (item.phone || '').toLowerCase();
+                    const address = (item.address || '').toLowerCase();
+                    
+                    return name.includes(searchTerm) || phone.includes(searchTerm) || address.includes(searchTerm);
+                });
+            }
+            
+            renderTempCustomerList(listToShow);
+        }
+
+        function renderTempCustomerList(list) {
+            const listContainer = document.getElementById('tempCustomerListModal');
+            
+            if (list.length === 0) {
+                const hasSearchTerm = document.getElementById('tempCustomerSearchInput').value.trim();
+                const typeName = tempCustomerTab === 'customer' ? '고객' : '업체';
+                
+                if (hasSearchTerm) {
+                    listContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-search text-4xl text-gray-400 mb-3"></i>
+                            <p class="text-gray-600 mb-2">검색 결과가 없습니다</p>
+                            <p class="text-sm text-gray-500">다른 이름이나 전화번호로 검색해보세요</p>
+                        </div>
+                    `;
+                } else {
+                    listContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-exclamation-circle text-4xl text-yellow-500 mb-3"></i>
+                            <p class="text-gray-600 mb-4">등록된 ${typeName}이 없습니다</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            listContainer.innerHTML = list.map(item => {
+                const isCustomer = item.type === 'customer';
+                const name = isCustomer ? item.name : item.company_name;
+                const maskedResidentNumber = item.resident_number 
+                    ? item.resident_number.substring(0, 6) + '-*******'
+                    : item.business_number || '-';
+                
+                return `
+                    <div onclick="selectTempCustomerFromModal(${item.id}, '${item.type}')" 
+                         class="border-2 border-gray-300 hover:border-purple-400 rounded-lg p-4 cursor-pointer transition-all active:scale-95">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="font-bold text-xl text-gray-800">${name}</h3>
+                                    <span class="bg-${isCustomer ? 'blue' : 'orange'}-100 text-${isCustomer ? 'blue' : 'orange'}-800 text-xs px-2 py-1 rounded-full">
+                                        ${isCustomer ? '개인' : '업체'}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    <p class="text-gray-600">
+                                        <i class="fas fa-phone w-5 text-blue-500"></i>
+                                        <span class="font-semibold">전화:</span> ${item.phone || '-'}
+                                    </p>
+                                    <p class="text-gray-600">
+                                        <i class="fas fa-id-card w-5 text-purple-500"></i>
+                                        <span class="font-semibold">${isCustomer ? '주민번호' : '사업자번호'}:</span> ${maskedResidentNumber}
+                                    </p>
+                                    <p class="text-gray-600 md:col-span-2">
+                                        <i class="fas fa-map-marker-alt w-5 text-red-500"></i>
+                                        <span class="font-semibold">주소:</span> ${item.address || '-'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <i class="fas fa-chevron-right text-2xl text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectTempCustomerFromModal(id, type) {
+            const list = type === 'customer' ? tempCustomers : tempCompanies;
+            const selectedItem = list.find(item => item.id === id);
+            if (!selectedItem) return;
+            
+            const isCustomer = type === 'customer';
+            const name = isCustomer ? selectedItem.name : selectedItem.company_name;
+            
+            // 임시렌트 폼에 정보 자동 입력
+            document.getElementById('tempCustomerName').value = name || '';
+            document.getElementById('tempPhone').value = selectedItem.phone || '';
+            document.getElementById('tempResidentNumber').value = 
+                isCustomer ? (selectedItem.resident_number || '') : (selectedItem.business_number || '');
+            document.getElementById('tempPostcode').value = selectedItem.postcode || '';
+            document.getElementById('tempAddress').value = selectedItem.address || '';
+            document.getElementById('tempDetailAddress').value = selectedItem.detail_address || '';
+            
+            // 선택 버튼 텍스트 업데이트
+            const typeText = isCustomer ? '개인' : '업체';
+            document.getElementById('selectedTempCustomerText').textContent = 
+                `선택됨: ${name} (${typeText})`;
+            
+            console.log('✅ 임시렌트 고객/업체 선택:', { id, type, name });
+            
+            // 모달 닫기
+            hideTempCustomerModal();
+            
+            // 성공 알림
+            alert(`✅ ${name} (${typeText})이(가) 선택되었습니다.`);
         }
     </script>
 

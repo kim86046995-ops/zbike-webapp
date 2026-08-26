@@ -19,7 +19,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-building text-blue-600 mr-3"></i>
+                            <i class="fas fa-building text-purple-600 mr-3"></i>
                             업체정보 등록
                         </h1>
                         <p class="text-gray-600 mt-2">사업자 계약을 위한 업체 정보를 등록합니다. 신분증은 최초 1회만 등록하시면 됩니다.</p>
@@ -37,7 +37,7 @@
                 <!-- 업체 기본 정보 -->
                 <div class="mb-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                        <i class="fas fa-briefcase text-blue-600 mr-2"></i>
+                        <i class="fas fa-briefcase text-purple-600 mr-2"></i>
                         업체 기본 정보
                     </h2>
                     
@@ -48,7 +48,7 @@
                                 상호명 <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="companyName" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 placeholder="예: (주)테스트컴퍼니">
                         </div>
 
@@ -76,7 +76,7 @@
                 <!-- 대표자 정보 -->
                 <div class="mb-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                        <i class="fas fa-user-tie text-blue-600 mr-2"></i>
+                        <i class="fas fa-user-tie text-purple-600 mr-2"></i>
                         대표자 정보
                     </h2>
                     
@@ -87,7 +87,7 @@
                                 대표자명 <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="representative" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 placeholder="홍길동">
                         </div>
 
@@ -97,7 +97,7 @@
                                 대표자 연락처 <span class="text-red-500">*</span>
                             </label>
                             <input type="tel" id="representativePhone" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 placeholder="010-1234-5678">
                         </div>
 
@@ -107,7 +107,7 @@
                                 대표자 주민번호 <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="representativeResidentNumber" required maxlength="14"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 placeholder="900806-1******">
                         </div>
                     </div>
@@ -116,7 +116,7 @@
                 <!-- 대표자 주소 -->
                 <div class="mb-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                        <i class="fas fa-home text-blue-600 mr-2"></i>
+                        <i class="fas fa-home text-purple-600 mr-2"></i>
                         대표자 주소
                     </h2>
                     
@@ -131,7 +131,7 @@
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                                     placeholder="우편번호">
                                 <button type="button" onclick="searchRepresentativeAddress()"
-                                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                                    class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
                                     <i class="fas fa-search mr-1"></i> 검색
                                 </button>
                             </div>
@@ -153,7 +153,7 @@
                                 상세주소
                             </label>
                             <input type="text" id="representativeDetailAddress"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 placeholder="상세주소 입력">
                         </div>
                     </div>
@@ -162,7 +162,7 @@
                 <!-- 신분증 업로드 -->
                 <div class="mb-6">
                     <h2 class="text-xl font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                        <i class="fas fa-id-card text-blue-600 mr-2"></i>
+                        <i class="fas fa-id-card text-purple-600 mr-2"></i>
                         대표자 신분증 (1회 등록)
                     </h2>
                     
@@ -176,7 +176,7 @@
                             <p class="text-sm text-gray-500 mb-4">JPG, PNG 형식 (최대 10MB)</p>
                             
                             <label for="idCardPhoto" class="inline-block cursor-pointer">
-                                <div class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                <div class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
                                     <i class="fas fa-upload mr-2"></i>
                                     파일 선택
                                 </div>
@@ -186,7 +186,7 @@
                         <img id="idCardImage" class="hidden max-w-full max-h-64 mx-auto rounded-lg shadow-lg">
                     </div>
                     <p class="text-sm text-gray-600 mt-2">
-                        <i class="fas fa-info-circle text-blue-600 mr-1"></i>
+                        <i class="fas fa-info-circle text-purple-600 mr-1"></i>
                         신분증은 최초 1회만 등록하며, 모든 계약에서 재사용됩니다.
                     </p>
                 </div>
@@ -194,7 +194,7 @@
                 <!-- 등록 버튼 -->
                 <div class="flex gap-4">
                     <button type="submit"
-                        class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
                         <i class="fas fa-save mr-2"></i>
                         등록하기
                     </button>
@@ -210,35 +210,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
     <script>
-        // 버전 체크 및 강제 새로고침
-        const CURRENT_VERSION = '2026-02-22-v6'; // R2 Storage 적용!
-        const storedVersion = localStorage.getItem('company-register-version');
-        
-        if (storedVersion !== CURRENT_VERSION) {
-            console.log('🔄 새 버전 감지, 캐시 삭제 중...', { old: storedVersion, new: CURRENT_VERSION });
-            localStorage.setItem('company-register-version', CURRENT_VERSION);
-            
-            // Service Worker 캐시 삭제
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) {
-                        registration.unregister();
-                    }
-                });
-            }
-            
-            // 캐시 스토리지 삭제
-            if ('caches' in window) {
-                caches.keys().then(function(names) {
-                    for (let name of names) {
-                        caches.delete(name);
-                    }
-                });
-            }
-            
-            console.log('✅ 캐시 삭제 완료, 페이지 새로고침');
-            window.location.reload(true);
-        }
+        // 로그인 없이 사용 가능 (공개 등록 페이지)
         
         document.addEventListener('DOMContentLoaded', function() {
             // 페이지 로드 시 업체 코드 자동 생성 및 표시
@@ -284,7 +256,6 @@
             return companyCode;
         }
 
-        // 사업장 주소 검색
         // 대표자 주소 검색
         function searchRepresentativeAddress() {
             new daum.Postcode({
@@ -314,6 +285,17 @@
                     console.log('📸 신분증 업로드:', file.name, (file.size / 1024 / 1024).toFixed(2) + 'MB');
                 };
                 reader.readAsDataURL(file);
+            }
+        }
+
+        // 폼 초기화
+        function resetForm() {
+            if (confirm('입력한 내용을 모두 초기화하시겠습니까?')) {
+                document.getElementById('companyForm').reset();
+                document.getElementById('idCardPreview').classList.remove('hidden');
+                document.getElementById('idCardImage').classList.add('hidden');
+                generateCompanyCode(); // 새 코드 생성
+                console.log('🔄 폼 초기화 완료');
             }
         }
 
@@ -400,11 +382,18 @@
                     });
                     console.log('✅ 서버 응답:', response.status, response.data);
                     
+                    // 캐시 무효화 (업체 계약서 작성 페이지용)
+                    sessionStorage.removeItem('companies_cache');
+                    sessionStorage.removeItem('companies_cache_time');
+                    console.log('🗑️ 업체 캐시 클리어 완료');
+                    
                     alert('✅ 업체 정보가 성공적으로 등록되었습니다!\n\n업체명: ' + formData.company_name + '\n업체 코드: ' + formData.company_code + '\n업체 ID: ' + response.data.id);
                     
-                    // 업체 목록 페이지로 자동 이동
-                    console.log('🔄 업체 목록 페이지로 이동 중...');
-                    window.location.href = '/static/companies-list.html';
+                    // 로그인 페이지로 이동
+                    console.log('🔄 로그인 페이지로 이동 중...');
+                    setTimeout(() => {
+                        window.location.href = '/static/login.html';
+                    }, 2000);
                 } catch (error) {
                     console.error('❌ 등록 실패 전체 에러 객체:', error);
                     console.error('❌ 등록 실패 상세:', {
@@ -424,21 +413,15 @@
                         const status = error.response.status;
                         const serverError = error.response.data?.error;
                         const serverDetails = error.response.data?.details;
-                        const existingCompany = error.response.data?.existing_company;
                         
                         console.log('🔍 에러 분석:', { 
                             status, 
                             serverError, 
                             serverDetails,
-                            existingCompany,
                             fullData: error.response.data 
                         });
                         
-                        if (status === 409) {
-                            // 중복 업체
-                            errorMessage = '⚠️ 이미 등록된 업체입니다!';
-                            errorDetails = `\n\n업체명: ${existingCompany?.company_name || formData.company_name}\n대표자: ${existingCompany?.representative || formData.representative}\n전화번호: ${formData.representative_phone}\n\n💡 동일한 업체명과 전화번호로 등록된 업체가 이미 존재합니다.\n업체 목록에서 기존 업체를 확인하세요.`;
-                        } else if (status === 400) {
+                        if (status === 400) {
                             errorMessage = serverError || '이미 등록된 사업자번호입니다.';
                             errorDetails = '\n\n💡 다른 사업자번호로 시도해주세요.';
                         } else if (status === 500) {
@@ -455,9 +438,11 @@
                             errorDetails = '\n\n상태 코드: ' + status;
                         }
                     } else if (error.request) {
-                        errorMessage = '서버와 통신할 수 없습니다.';
-                        errorDetails = '\n\n💡 네트워크 연결을 확인해주세요.';
+                        // 요청은 보냈지만 응답을 못 받음
+                        errorMessage = '서버로부터 응답이 없습니다.';
+                        errorDetails = '\n\n💡 네트워크 연결을 확인하거나 잠시 후 다시 시도해주세요.';
                     } else {
+                        // 요청 설정 중에 오류 발생
                         errorMessage = error.message;
                     }
                     
@@ -466,14 +451,6 @@
             };
             reader.readAsDataURL(idCardFile);
         });
-
-        // 폼 초기화
-        function resetForm() {
-            document.getElementById('companyForm').reset();
-            document.getElementById('idCardPreview').classList.remove('hidden');
-            document.getElementById('idCardImage').classList.add('hidden');
-            document.getElementById('sameAsBusinessAddress').checked = false;
-        }
     </script>
 </body>
 </html>

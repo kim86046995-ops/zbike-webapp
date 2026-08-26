@@ -198,37 +198,46 @@
             document.getElementById('userName').textContent = `${userInfo.username} 님`;
         }
 
-        // 통계 데이터 로드
+        // 통계 데이터 로드 (캐싱 + 병렬 처리로 최적화)
         async function loadStats() {
+            const cacheKey = 'dashboard_stats_cache';
+            const cacheTimeKey = 'dashboard_stats_cache_time';
+            const now = Date.now();
+            
+            // 캐시 확인 (1분 이내)
+            const cachedData = sessionStorage.getItem(cacheKey);
+            const cacheTime = sessionStorage.getItem(cacheTimeKey);
+            
+            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 60000) {
+                console.log('✅ 캐시된 통계 즉시 표시');
+                const stats = JSON.parse(cachedData);
+                updateStatsUI(stats);
+                return;
+            }
+            
             try {
-                // 업체 수
-                const companiesRes = await axios.get('/api/companies');
-                const companies = companiesRes.data;
-                document.getElementById('companiesCount').textContent = companies.length;
-
-                // 최근 업체 표시
-                displayRecentCompanies(companies.slice(0, 5));
-
-                // 오토바이 수
-                try {
-                    const motorcyclesRes = await axios.get('/api/motorcycles');
-                    document.getElementById('motorcyclesCount').textContent = motorcyclesRes.data.length || 0;
-                } catch (error) {
-                    document.getElementById('motorcyclesCount').textContent = '0';
-                }
-
-                // 계약 수
-                try {
-                    const contractsRes = await axios.get('/api/business-contracts');
-                    const activeContracts = contractsRes.data.filter(c => c.status === 'active');
-                    document.getElementById('contractsCount').textContent = activeContracts.length || 0;
-                } catch (error) {
-                    document.getElementById('contractsCount').textContent = '0';
-                }
-
-                // 사용자 수 (임시)
-                document.getElementById('usersCount').textContent = '1';
-
+                // 모든 API 호출을 병렬로 처리 (속도 대폭 향상)
+                const [companiesRes, motorcyclesRes, contractsRes] = await Promise.all([
+                    axios.get('/api/companies').catch(() => ({ data: [] })),
+                    axios.get('/api/motorcycles').catch(() => ({ data: [] })),
+                    axios.get('/api/business-contracts').catch(() => ({ data: [] }))
+                ]);
+                
+                const stats = {
+                    companiesCount: companiesRes.data.length,
+                    motorcyclesCount: motorcyclesRes.data.length,
+                    contractsCount: contractsRes.data.filter(c => c.status === 'active').length,
+                    usersCount: 1,
+                    recentCompanies: companiesRes.data.slice(0, 5)
+                };
+                
+                // 캐시에 저장
+                sessionStorage.setItem(cacheKey, JSON.stringify(stats));
+                sessionStorage.setItem(cacheTimeKey, now.toString());
+                
+                // UI 업데이트
+                updateStatsUI(stats);
+                
             } catch (error) {
                 console.error('❌ 통계 로드 실패:', error);
                 document.getElementById('companiesCount').textContent = '0';
@@ -236,6 +245,15 @@
                 document.getElementById('contractsCount').textContent = '0';
                 document.getElementById('usersCount').textContent = '0';
             }
+        }
+        
+        // UI 업데이트 함수
+        function updateStatsUI(stats) {
+            document.getElementById('companiesCount').textContent = stats.companiesCount;
+            document.getElementById('motorcyclesCount').textContent = stats.motorcyclesCount;
+            document.getElementById('contractsCount').textContent = stats.contractsCount;
+            document.getElementById('usersCount').textContent = stats.usersCount;
+            displayRecentCompanies(stats.recentCompanies);
         }
 
         // 최근 업체 표시

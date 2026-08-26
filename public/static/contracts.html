@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.25, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -12,7 +12,44 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     
+    <!-- Swiper.js CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
     <style>
+        /* 모바일 최적화 */
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+        
+        /* 컨테이너 최대 너비 제한 해제 */
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                max-width: 768px !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 1024px !important;
+            }
+        }
+        
         /* A4 출력 스타일 - 원본 그대로 출력 */
         @media print {
             body {
@@ -299,6 +336,22 @@
             background: white;
             transform: scale(1.1);
         }
+        
+        /* ✅ Select dropdown 스타일 개선 - 모든 옵션 표시 */
+        select#typeFilter,
+        select#statusFilter {
+            appearance: auto; /* 브라우저 기본 드롭다운 사용 */
+            -webkit-appearance: auto;
+            -moz-appearance: auto;
+        }
+        
+        /* 모바일에서 드롭다운 높이 제한 제거 */
+        @media (max-width: 768px) {
+            select#typeFilter,
+            select#statusFilter {
+                font-size: 16px; /* iOS zoom 방지 */
+            }
+        }
     </style>
     
     
@@ -339,57 +392,83 @@
     <div class="min-h-screen">
         <!-- 헤더 -->
         <header class="bg-purple-600 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-                <a href="/dashboard" class="text-xl font-bold flex items-center hover:bg-purple-700 px-3 py-2 rounded-lg transition-colors cursor-pointer">
+            <div class="w-full px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+                <a href="/dashboard" class="text-lg md:text-xl font-bold flex items-center hover:bg-purple-700 px-2 md:px-3 py-2 rounded-lg transition-colors cursor-pointer">
                     <i class="fas fa-arrow-left mr-2"></i>
-                    <span>계약서 목록</span>
+                    <span class="hidden sm:inline">계약서 목록</span>
+                    <span class="sm:hidden">목록</span>
                 </a>
-                <a href="/static/contract-new.html" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-purple-50">
-                    <i class="fas fa-plus mr-2"></i>새 계약서 작성
-                </a>
+                <div class="flex gap-2">
+                    <a href="/static/backup.html" class="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-bold hover:bg-green-700">
+                        <i class="fas fa-database mr-1 md:mr-2"></i>
+                        <span class="hidden sm:inline">백업 관리</span>
+                        <span class="sm:hidden">백업</span>
+                    </a>
+                    <a href="/static/contract-new.html" class="bg-white text-purple-600 px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-bold hover:bg-purple-50">
+                        <i class="fas fa-plus mr-1 md:mr-2"></i>
+                        <span class="hidden sm:inline">새 계약서 작성</span>
+                        <span class="sm:hidden">작성</span>
+                    </a>
+                </div>
             </div>
         </header>
 
         <!-- 메인 컨텐츠 -->
-        <main class="container mx-auto px-4 py-8">
+        <main class="w-full px-4 py-4 md:py-8">
             <!-- 필터 -->
-            <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-4 items-center">
-                <div>
-                    <label class="block text-sm font-bold mb-2">계약 타입</label>
-                    <select id="typeFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
-                        <option value="">전체</option>
-                        <option value="lease">리스</option>
-                        <option value="rent">렌트</option>
-                        <option value="business">업체리스/렌트</option>
-                        <option value="temp_rent">임시렌트</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-2">상태</label>
-                    <select id="statusFilter" onchange="filterContracts()" class="px-3 py-2 border rounded-lg">
-                        <option value="">전체</option>
-                        <option value="active">계약중</option>
-                        <option value="completed">계약종료</option>
-                        <option value="cancelled">계약종료</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-bold mb-2">검색</label>
-                    <input type="text" id="searchInput" onkeyup="filterContracts()" placeholder="계약번호, 고객명, 번호판" class="w-full px-3 py-2 border rounded-lg">
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">회사명</label>
+                        <select id="companyFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="">전체</option>
+                            <option value="대성">대성</option>
+                            <option value="(주)아형동">(주)아형동</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">계약 타입</label>
+                        <select id="typeFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" style="max-height: none;">
+                            <option value="">전체</option>
+                            <option value="lease">리스</option>
+                            <option value="rent">렌트</option>
+                            <option value="loan">차용증</option>
+                            <option value="business">업체</option>
+                            <option value="temp_rent">임시</option>
+                            <option value="completed">완료</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">상태</label>
+                        <select id="statusFilter" onchange="filterContracts()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="active">진행중</option>
+                            <option value="completed,cancelled">계약완료</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">검색</label>
+                        <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="계약번호, 고객명, 번호판" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
                 </div>
             </div>
 
             <!-- SMS 발신 버튼 -->
-            <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded border-gray-300">
-                    <label for="selectAll" class="font-medium text-gray-700">전체 선택</label>
-                    <span id="selectedCount" class="text-sm text-gray-500">(0개 선택됨)</span>
+            <div class="bg-white rounded-lg shadow-md p-3 md:p-4 mb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    <div class="flex items-center gap-2 md:gap-3">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-4 h-4 md:w-5 md:h-5 rounded border-gray-300">
+                        <label for="selectAll" class="text-sm md:text-base font-medium text-gray-700">전체 선택</label>
+                        <span id="selectedCount" class="text-xs md:text-sm text-gray-500">(0개 선택됨)</span>
+                    </div>
+                    
+                    <!-- 상단 페이지네이션 -->
+                    <div id="topPagination" class="flex justify-center"></div>
+                    
+                    <button onclick="sendBulkSMS()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-2 rounded-lg text-sm md:text-base font-medium transition flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>선택 항목 SMS 발신</span>
+                    </button>
                 </div>
-                <button onclick="sendBulkSMS()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center gap-2">
-                    <i class="fas fa-paper-plane"></i>
-                    선택 항목 SMS 발신
-                </button>
             </div>
 
             <!-- 계약서 목록 -->
@@ -400,6 +479,9 @@
                     <p class="mt-2">로딩 중...</p>
                 </div>
             </div>
+            
+            <!-- 페이지네이션 -->
+            <div id="pagination"></div>
         </main>
     </div>
 
@@ -456,6 +538,10 @@
         let companySettings = null;
         let sessionId = localStorage.getItem('sessionId');
         let currentUser = null; // 현재 사용자 정보
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentSearch = '';
+        let searchTimeout = null;
 
         // 슈퍼관리자 체크 함수
         function isSuperAdmin() {
@@ -542,6 +628,22 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const typeParam = urlParams.get('type');
                 const statusParam = urlParams.get('status');
+                const refreshParam = urlParams.get('refresh');
+                
+                // refresh 파라미터가 있으면 캐시 클리어
+                if (refreshParam) {
+                    clearContractsCache();
+                    console.log('🔄 URL refresh 파라미터로 캐시 클리어');
+                    
+                    // URL에서 refresh 파라미터 제거 (깔끔하게)
+                    const newUrl = window.location.pathname + 
+                        (typeParam || statusParam ? '?' + 
+                            (typeParam ? 'type=' + typeParam : '') + 
+                            (typeParam && statusParam ? '&' : '') + 
+                            (statusParam ? 'status=' + statusParam : '') 
+                        : '');
+                    window.history.replaceState({}, '', newUrl);
+                }
                 
                 // 계약 유형 필터 설정
                 if (typeParam) {
@@ -561,8 +663,8 @@
                     statusFilterElement.value = statusParam;
                 }
                 
-                loadCompanySettings();
-                loadContracts();
+                await loadCompanySettings();
+                await loadContracts();
             }
         });
 
@@ -584,133 +686,283 @@
             }
         }
 
-        // 캐시 클리어 함수
-        function clearContractsCache() {
-            sessionStorage.removeItem('contracts_cache');
-            sessionStorage.removeItem('contracts_cache_time');
-            console.log('🗑️ 계약서 캐시 클리어');
+        // 검색 debounce (500ms 대기 후 서버 검색)
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const searchValue = document.getElementById('searchInput').value.trim();
+                currentSearch = searchValue;
+                currentPage = 1; // 검색 시 1페이지로 리셋
+                await loadContracts();
+            }, 500);
+        }
+        
+        // 페이지 변경
+        async function changePage(page) {
+            if (page < 1 || page > totalPages) return;
+            
+            // 즉시 UI 업데이트 (반응성)
+            currentPage = page;
+            
+            // 로딩 표시
+            const listEl = document.getElementById('contractList');
+            listEl.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <p class="text-gray-600 mt-4">페이지 ${page} 로딩 중...</p>
+                </div>
+            `;
+            
+            // 페이지네이션 버튼 즉시 업데이트
+            renderPagination();
+            
+            // 데이터 로드
+            await loadContracts();
+        }
+        
+        // 페이지네이션 UI 렌더링
+        function renderPagination() {
+            const paginationEl = document.getElementById('pagination');
+            const topPaginationEl = document.getElementById('topPagination');
+            
+            if (totalPages <= 1) {
+                if (paginationEl) paginationEl.innerHTML = '';
+                if (topPaginationEl) topPaginationEl.innerHTML = '';
+                return;
+            }
+            
+            // 간단한 페이지 정보 (상단용)
+            const simpleHtml = `
+                <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} 
+                        class="px-2 py-1 ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'hover:text-purple-600'}">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="font-medium">${currentPage} / ${totalPages}</span>
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} 
+                        class="px-2 py-1 ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'hover:text-purple-600'}">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 전체 페이지네이션 (하단용)
+            let html = '<div class="flex justify-center items-center gap-2 mt-6">';
+            
+            // 이전 버튼
+            html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-2 border rounded-lg ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}">&larr; 이전</button>`;
+            
+            // 페이지 번호 (최대 7개 표시)
+            const maxVisible = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+            
+            if (startPage > 1) {
+                html += `<button onclick="changePage(1)" class="px-3 py-2 border rounded-lg bg-white hover:bg-gray-50">1</button>`;
+                if (startPage > 2) html += '<span class="px-2">...</span>';
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="changePage(${i})" class="px-3 py-2 border rounded-lg ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white hover:bg-gray-50'}">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += '<span class="px-2">...</span>';
+                html += `<button onclick="changePage(${totalPages})" class="px-3 py-2 border rounded-lg bg-white hover:bg-gray-50">${totalPages}</button>`;
+            }
+            
+            // 다음 버튼
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-2 border rounded-lg ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}">다음 &rarr;</button>`;
+            
+            html += '</div>';
+            
+            // 상단과 하단 모두 렌더링
+            if (topPaginationEl) topPaginationEl.innerHTML = simpleHtml;
+            if (paginationEl) paginationEl.innerHTML = html;
+        }
+        
+        // API에서 계약 목록 로드 (통합 API 사용 - 최적화)
+        async function loadContractsFromAPI(page = 1, search = '') {
+            const startTime = performance.now();
+            try {
+                console.log('🚀 loadContractsFromAPI 시작:', { page, search });
+                currentPage = page;
+                currentSearch = search;
+                
+                // 통합 API 호출 (서버에서 이미 정렬됨)
+                const params = new URLSearchParams({ page: page.toString(), limit: '50' });
+                if (search) params.append('search', search);
+                
+                console.log('📡 API 요청:', `/api/contracts?${params.toString()}`);
+                const apiStartTime = performance.now();
+                
+                const response = await axios.get(`/api/contracts?${params.toString()}`);
+                
+                const apiEndTime = performance.now();
+                console.log(`⏱️ API 응답 시간: ${(apiEndTime - apiStartTime).toFixed(0)}ms`);
+                
+                // 서버에서 이미 정렬된 데이터 (프론트엔드 정렬 불필요)
+                contracts = response.data.data || [];
+                
+                // 페이지네이션 정보
+                const pagination = response.data.pagination || {};
+                currentPage = pagination.page || 1;
+                totalPages = pagination.totalPages || 1;
+                
+                console.log('📊 전체 계약:', pagination.total || 0, '개 - 페이지:', currentPage, '/', totalPages);
+                
+                filteredContracts = contracts;
+                try {
+                    const filterStartTime = performance.now();
+                    filterContracts(); // 타입/상태 필터 적용
+                    const filterEndTime = performance.now();
+                    console.log(`⏱️ 필터 처리 시간: ${(filterEndTime - filterStartTime).toFixed(0)}ms`);
+                } catch (filterError) {
+                    console.error('❌ filterContracts 에러:', filterError);
+                    // 필터 에러가 발생해도 전체 목록은 표시
+                    renderContracts();
+                }
+                
+                const endTime = performance.now();
+                console.log(`⏱️ 전체 로딩 시간: ${(endTime - startTime).toFixed(0)}ms`);
+            } catch (error) {
+                console.error('❌ loadContractsFromAPI 에러:', error);
+                console.error('❌ 에러 상세:', error.response?.data, error.message, error.stack);
+                // 에러 시에도 빈 배열로 초기화하고 UI 업데이트
+                contracts = [];
+                filteredContracts = [];
+                // renderContracts()를 직접 호출하여 빈 상태 UI 표시
+                renderContracts();
+                // 에러를 상위로 전파
+                throw error;
+            }
         }
 
         async function loadContracts(forceRefresh = false) {
+            console.log('🔄 loadContracts 시작');
+            
+            // 로딩 UI 표시
+            const listEl = document.getElementById('contractList');
+            listEl.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                    <p class="text-lg font-bold text-gray-800">계약서 목록 불러오는 중...</p>
+                </div>
+            `;
+            
             try {
-                const cacheKey = 'contracts_cache';
-                const cacheTimeKey = 'contracts_cache_time';
-                const now = Date.now();
-                
-                // 강제 새로고침이면 캐시 클리어
-                if (forceRefresh) {
-                    clearContractsCache();
-                }
-                
-                // 강제 새로고침이 아닐 때만 캐시 확인 (3분 이내)
-                if (!forceRefresh) {
-                    const cachedData = sessionStorage.getItem(cacheKey);
-                    const cacheTime = sessionStorage.getItem(cacheTimeKey);
-                    
-                    // 캐시가 유효하면 즉시 표시
-                    if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
-                        console.log('✅ 캐시된 계약서 데이터 즉시 표시');
-                        contracts = JSON.parse(cachedData);
-                        filteredContracts = contracts;
-                        filterContracts();
-                        return;
-                    }
-                }
-                
-                // 개인 계약서와 업체 계약서를 모두 불러오기
-                const [personalResponse, businessResponse] = await Promise.all([
-                    axios.get('/api/contracts'),
-                    axios.get('/api/business-contracts')
-                ]);
-                
-                // 개인 계약서 데이터 (원본 contract_type 유지)
-                const personalContracts = personalResponse.data.map(c => ({
-                    ...c,
-                    // contract_type은 원본 유지 (temp_rent, lease, rent 등)
-                }));
-                
-                // 업체 계약서 데이터
-                const businessContracts = businessResponse.data.map(c => ({
-                    ...c,
-                    contract_type: 'business',
-                    customer_name: c.company_name,  // 업체명을 customer_name으로 매핑
-                    plate_number: c.plate_number || ''  // 번호판 정보
-                }));
-                
-                // 두 목록을 합치고 생성일 기준 정렬
-                contracts = [...personalContracts, ...businessContracts].sort((a, b) => {
-                    return new Date(b.created_at) - new Date(a.created_at);
-                });
-                
-                // 캐시에 저장
-                sessionStorage.setItem(cacheKey, JSON.stringify(contracts));
-                sessionStorage.setItem(cacheTimeKey, now.toString());
-                
-                filteredContracts = contracts;
-                console.log(`✅ 계약서 목록 로드 완료: 개인 ${personalContracts.length}건, 업체 ${businessContracts.length}건`);
-                filterContracts(); // URL 파라미터 필터를 적용하기 위해 filterContracts 호출
+                await loadContractsFromAPI(currentPage, currentSearch);
+                console.log('✅ loadContracts 완료');
             } catch (error) {
-                console.error('Error loading contracts:', error);
+                console.error('❌ 계약서 목록 로드 실패:', error);
                 
-                // 에러 시 캐시 확인
-                const cachedData = sessionStorage.getItem('contracts_cache');
-                if (cachedData) {
-                    console.log('⚠️ 에러 발생, 캐시된 데이터 표시');
-                    contracts = JSON.parse(cachedData);
-                    filteredContracts = contracts;
-                    filterContracts();
+                // 401 에러인 경우 로그인 페이지로
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('sessionId');
+                    localStorage.removeItem('user');
+                    window.location.href = '/static/login.html?redirect=' + encodeURIComponent(window.location.pathname);
                     return;
                 }
                 
-                document.getElementById('contractList').innerHTML = `
-                    <div class="text-center py-12 text-red-500">
-                        <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
-                        <p>계약서 목록을 불러오는데 실패했습니다</p>
+                listEl.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-lg font-bold text-gray-800 mb-2">계약서 목록을 불러오는데 실패했습니다</p>
+                        <p class="text-sm text-gray-600 mb-4">${error.response?.data?.error || error.message || '알 수 없는 오류'}</p>
+                        <div class="space-x-2">
+                            <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-redo mr-2"></i>새로고침
+                            </button>
+                        </div>
                     </div>
                 `;
             }
         }
 
         function filterContracts() {
+            const companyFilter = document.getElementById('companyFilter').value;
             const typeFilter = document.getElementById('typeFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            
+            console.log('🔍 필터 시작 - 회사명:', companyFilter, '타입:', typeFilter, '상태:', statusFilter);
+            console.log('📊 전체 계약 수:', contracts.length);
 
             filteredContracts = contracts.filter(c => {
-                // 타입 매칭 로직 개선
-                let matchType = !typeFilter;
-                if (typeFilter) {
-                    if (typeFilter === 'temp_rent') {
-                        // 임시렌트
-                        matchType = c.contract_type === 'temp_rent';
-                    } else if (typeFilter === 'business') {
-                        // 업체 계약서
-                        matchType = c.contract_type === 'business';
-                    } else if (typeFilter === 'lease') {
-                        // 개인 리스
-                        matchType = c.contract_type === 'lease' || c.contract_type === 'individual';
-                    } else if (typeFilter === 'rent') {
-                        // 개인 렌트
-                        matchType = c.contract_type === 'rent';
+                // 회사명 매칭 (최우선)
+                let matchCompany = !companyFilter;
+                if (companyFilter) {
+                    if (companyFilter === '대성') {
+                        // 대성 = 일반 개인 계약서 (source_type이 'personal')
+                        matchCompany = c.source_type === 'personal';
+                    } else {
+                        // 법인 계약서 = company_name으로 필터링
+                        matchCompany = c.company_name === companyFilter;
                     }
                 }
                 
-                const matchStatus = !statusFilter || c.status === statusFilter;
-                const matchSearch = !searchInput || 
-                    c.contract_number.toLowerCase().includes(searchInput) ||
-                    (c.customer_name && c.customer_name.toLowerCase().includes(searchInput)) ||
-                    (c.plate_number && c.plate_number.toLowerCase().includes(searchInput));
+                // 타입 매칭 로직 개선
+                let matchType = !typeFilter;
+                if (typeFilter) {
+                    if (typeFilter === 'completed') {
+                        // 완료: completed 또는 cancelled 상태
+                        matchType = c.status === 'completed' || c.status === 'cancelled';
+                    } else if (typeFilter === 'temp_rent') {
+                        // 임시렌트 (약식, 정식 모두 포함, pending도 포함)
+                        matchType = c.contract_type === 'temp_rent' && (c.status === 'active' || c.status === 'pending');
+                        console.log('🔎 임시렌트 체크:', c.contract_number, 'contract_type:', c.contract_type, 'status:', c.status, 'matchType:', matchType);
+                    } else if (typeFilter === 'business') {
+                        // 업체 계약서 (pending도 포함)
+                        matchType = c.contract_type === 'business' && (c.status === 'active' || c.status === 'pending');
+                    } else if (typeFilter === 'lease') {
+                        // 개인 리스 (pending도 포함)
+                        matchType = (c.contract_type === 'lease' || c.contract_type === 'individual') && (c.status === 'active' || c.status === 'pending');
+                    } else if (typeFilter === 'rent') {
+                        // 개인 렌트 (pending도 포함)
+                        matchType = c.contract_type === 'rent' && (c.status === 'active' || c.status === 'pending');
+                    } else if (typeFilter === 'loan') {
+                        // 차용증 (pending도 포함)
+                        matchType = c.contract_type === 'loan' && (c.status === 'active' || c.status === 'pending');
+                    }
+                }
                 
-                return matchType && matchStatus && matchSearch;
+                // ✅ 상태 매칭 로직 - 계약 타입이 'completed'가 아닐 때만 적용
+                let matchStatus = true;
+                if (typeFilter !== 'completed') {
+                    // 계약 타입이 완료가 아니면 기본적으로 active와 pending 포함
+                    if (statusFilter === 'active') {
+                        matchStatus = c.status === 'active' || c.status === 'pending';  // pending도 포함
+                    } else if (statusFilter === 'completed,cancelled') {
+                        matchStatus = c.status === 'completed' || c.status === 'cancelled';
+                    } else {
+                        matchStatus = c.status === 'active' || c.status === 'pending';  // pending도 포함
+                    }
+                }
+                
+                const finalMatch = matchCompany && matchType && matchStatus;
+                
+                if (typeFilter === 'temp_rent') {
+                    console.log('✅ 임시렌트 최종 결과:', c.contract_number, 'matchType:', matchType, 'matchStatus:', matchStatus, '→ 표시:', finalMatch);
+                }
+                
+                return finalMatch;
             });
+            
+            console.log('🎯 필터 결과:', filteredContracts.length, '개');
 
             renderContracts();
         }
 
         function renderContracts() {
+            const renderStartTime = performance.now();
+            console.log('🎨 renderContracts() 시작, filteredContracts:', filteredContracts.length, '건');
             const listEl = document.getElementById('contractList');
             
             if (filteredContracts.length === 0) {
+                console.log('📭 계약서 없음 - 빈 상태 UI 표시');
                 listEl.innerHTML = `
                     <div class="text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
@@ -722,8 +974,11 @@
                 `;
                 return;
             }
-
-            listEl.innerHTML = filteredContracts.map(c => {
+            
+            console.log('✅ 계약서 목록 렌더링 시작...');
+            
+            // 즉시 렌더링 (requestAnimationFrame 제거)
+            const htmlArray = filteredContracts.map(c => {
                 const typeColors = {
                     'lease': 'bg-blue-100 text-blue-800',
                     'individual': 'bg-blue-100 text-blue-800',
@@ -740,11 +995,12 @@
                     // 임시렌트 (최우선 처리)
                     displayType = 'temp_rent';
                     displayTypeText = '임시렌트';
-                    // 약식 계약 여부 확인 (전화번호가 없거나 주민번호가 없으면 약식)
-                    const isSimplified = !c.customer_phone || c.customer_phone === '' || !c.resident_number || c.resident_number === '';
+                    // 약식 계약 여부 확인: 서명 데이터가 없으면 약식 (관리자 직접 저장)
+                    const isSimplified = !c.signature_data || c.signature_data === '';
                     if (isSimplified) {
                         displayTypeText = '임시렌트 (약식)';
                     }
+                    console.log('📋 임시렌트 계약:', c.contract_number, '서명:', c.signature_data ? '있음' : '없음', '약식:', isSimplified);
                 } else if (c.contract_type === 'business') {
                     // 업체 계약서: business_type에 따라 리스/렌트 구분
                     displayType = c.business_type || 'rent';
@@ -763,15 +1019,24 @@
                 
                 const statusColors = {
                     'active': 'bg-green-100 text-green-800',
+                    'pending': 'bg-blue-100 text-blue-800',  // pending 상태 색상 추가
                     'completed': 'bg-red-600 text-white',
                     'cancelled': 'bg-red-600 text-white'
                 };
                 
                 // 서명 여부에 따라 상태 텍스트 결정
                 let statusText = '';
-                if (c.status === 'active') {
-                    // 서명 데이터가 없으면 "서명대기", 있으면 "계약중"
-                    statusText = (!c.signature_data || c.signature_data === '') ? '서명대기' : '계약중';
+                if (c.status === 'pending') {
+                    // pending 상태: 서명 데이터 있으면 "진행중", 없으면 "서명대기"
+                    statusText = (c.signature_data && c.signature_data !== '') ? '진행중' : '서명대기';
+                } else if (c.status === 'active') {
+                    // 임시렌트는 무조건 "진행중"으로 표시
+                    if (c.contract_type === 'temp_rent') {
+                        statusText = '진행중';
+                    } else {
+                        // 다른 계약은 서명 데이터가 없으면 "서명대기", 있으면 "계약중"
+                        statusText = (!c.signature_data || c.signature_data === '') ? '서명대기' : '계약중';
+                    }
                 } else if (c.status === 'completed') {
                     statusText = '계약종료';
                 } else if (c.status === 'cancelled') {
@@ -780,8 +1045,9 @@
                     statusText = '진행중';  // 기본값
                 }
 
-                // 완료 버튼 표시 여부 (계약중이고 서명이 완료된 경우만)
-                const showCompleteButton = c.status === 'active' && c.signature_data && c.signature_data !== '';
+                // 완료 버튼 표시 여부 (active 상태이고 서명 완료된 경우만)
+                // pending 상태는 아직 고객이 서명하지 않았으므로 완료 버튼 없음
+                const showCompleteButton = c.status === 'active';
 
                 // 남은 일수 계산 (계약중인 경우만)
                 let remainingDays = '';
@@ -801,21 +1067,21 @@
                 }
 
                 return `
-                    <div class="bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-all">
-                        <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
-                            <div class="flex items-start gap-2">
-                                <input type="checkbox" class="contract-checkbox mt-1 w-5 h-5 rounded border-gray-300" 
+                    <div class="bg-white rounded-lg shadow-md p-3 md:p-4 hover:shadow-lg transition-all">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
+                            <div class="flex items-start gap-2 w-full sm:w-auto">
+                                <input type="checkbox" class="contract-checkbox mt-1 w-4 h-4 md:w-5 md:h-5 rounded border-gray-300 flex-shrink-0" 
                                        data-id="${c.id}" 
                                        data-type="${c.contract_type}"
                                        data-phone="${c.customer_phone || c.business_phone || ''}"
                                        data-name="${c.customer_name}"
                                        data-number="${c.contract_number}"
                                        onchange="updateSelectedCount()">
-                                <div>
-                                    <h3 class="text-lg font-bold text-gray-800 mb-1">
+                                <div class="flex-1">
+                                    <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1.5">
                                         ${c.contract_number}
                                     </h3>
-                                    <div class="flex gap-1">
+                                    <div class="flex flex-wrap gap-1">
                                         <span class="px-2 py-0.5 rounded-full text-xs font-bold ${c.status === 'completed' ? 'bg-gray-100 text-gray-800' : typeColors[displayType]}">
                                             ${displayTypeText || '렌트'}
                                     </span>
@@ -826,29 +1092,29 @@
                                 </div>
                             </div>
                             </div>
-                            <div class="flex gap-1 flex-wrap">
-                                <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-3 py-1.5 text-sm rounded hover:bg-purple-700">
-                                    <i class="fas fa-eye mr-1"></i>상세
+                            <div class="flex gap-1.5 flex-wrap w-full sm:w-auto justify-end">
+                                <button onclick="showDetail('${c.contract_type}', ${c.id})" class="bg-purple-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-purple-700 flex-1 sm:flex-none">
+                                    <i class="fas fa-eye mr-1"></i><span class="hidden sm:inline">상세</span>
                                 </button>
-                                <button onclick="quickDownloadPDF('${c.contract_type}', ${c.id})" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded hover:bg-green-700" title="PDF 다운로드">
+                                <button onclick="quickDownloadPDF('${c.contract_type}', ${c.id})" class="bg-green-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-green-700 flex-1 sm:flex-none" title="PDF 다운로드">
                                     <i class="fas fa-download"></i>
                                 </button>
                                 ${showCompleteButton ? `
-                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-orange-600 text-white px-3 py-1.5 text-sm rounded hover:bg-orange-700" title="계약 완료">
-                                    <i class="fas fa-check-circle mr-1"></i>완료
+                                <button onclick="completeContract('${c.contract_type}', ${c.id})" class="bg-orange-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-orange-700 flex-1 sm:flex-none" title="계약 완료">
+                                    <i class="fas fa-check-circle mr-1"></i><span class="hidden md:inline">완료</span>
                                 </button>
                                 ` : ''}
-                                <button onclick="deleteContract('${c.contract_type}', ${c.id})" class="bg-red-600 text-white px-3 py-1.5 text-sm rounded hover:bg-red-700">
+                                <button onclick="deleteContract('${c.contract_type}', ${c.id})" class="bg-red-600 text-white px-2.5 md:px-3 py-1.5 text-xs md:text-sm rounded hover:bg-red-700 flex-1 sm:flex-none">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm text-gray-600">
                             <div>
-                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> <span class="text-base font-bold text-gray-800">${c.customer_name}</span></p>
+                                <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.customer_name}</span></p>
                                 <p class="mb-1"><i class="fas fa-phone w-4 text-purple-600"></i> ${c.customer_phone || c.business_phone || '-'}</p>
-                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-base font-bold text-gray-800">${c.plate_number}</span> <span class="text-gray-600">(${c.vehicle_name})</span></p>
+                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.plate_number}</span> <span class="text-gray-600">(${c.vehicle_name})</span></p>
                             </div>
                             <div>
                                 <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.contract_start_date || c.start_date} ~ ${c.contract_end_date || c.end_date}</p>
@@ -862,20 +1128,66 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+                });
+                
+                listEl.innerHTML = htmlArray.join('');
+                const renderEndTime = performance.now();
+                console.log(`✅ renderContracts() 완료 - ${filteredContracts.length}건 렌더링됨 (${(renderEndTime - renderStartTime).toFixed(0)}ms)`);
+                renderPagination(); // 페이지네이션 UI 렌더링
         }
 
         async function showDetail(contractType, id) {
             console.log('🔍 상세보기 클릭:', { contractType, id });
+            
+            // 계약 상세 캐시 확인 (5분 유효) - 빠른 표시용으로만 사용
+            const detailCacheKey = `contract_detail_${contractType}_${id}`;
+            const cachedDetail = sessionStorage.getItem(detailCacheKey);
+            const cacheTime = sessionStorage.getItem(`${detailCacheKey}_time`);
+            const now = Date.now();
+            
+            // ⚠️ 긴급 수정: 서명 표시를 위해 캐시 사용 완전 비활성화
+            // 캐시가 있어도 무시하고 항상 API에서 전체 데이터(이미지 포함) 로드
+            console.log('🚫 캐시 사용 비활성화 - 항상 API에서 전체 데이터 로드 (서명 포함)');
+            
+            // 기존 캐시 코드 주석 처리
+            /*
+            if (cachedDetail && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                console.log('✅ 캐시된 계약 상세 즉시 표시 (이미지 제외)');
+                document.getElementById('detailModal').classList.remove('hidden');
+                currentContract = JSON.parse(cachedDetail);
+                renderDetail();
+                
+                // 진행중인 계약일 때만 해지 버튼 표시
+                const cancelBtn = document.getElementById('cancelContractBtn');
+                if (currentContract.status === 'active') {
+                    cancelBtn.style.display = 'block';
+                } else {
+                    cancelBtn.style.display = 'none';
+                }
+                
+                // ⚠️ 중요: 캐시된 데이터에는 이미지가 없으므로, 항상 API에서 전체 데이터를 다시 로드
+                console.log('🔄 백그라운드에서 전체 데이터(이미지 포함) 로드 시작...');
+                loadContractDetailInBackground(contractType, id, detailCacheKey);
+                
+                // active 상태인 계약서만 실시간 보험 정보 업데이트 시작
+                if (currentContract.status === 'active' && currentContract.motorcycle_id) {
+                    console.log('✅ [진행중 계약서] 실시간 보험 정보 업데이트 시작:', currentContract.contract_number);
+                    startInsuranceAutoUpdate();
+                }
+                
+                return;
+            }
+            */
+            
             try {
-                // 즉시 모달 표시 (로딩 상태)
+                // 즉시 모달 표시 (간단한 로딩 상태)
+                document.getElementById('detailModal').classList.remove('hidden');
                 document.getElementById('contractDetail').innerHTML = `
-                    <div class="text-center py-12">
-                        <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
-                        <p class="text-gray-600 mt-4 text-lg">계약서를 불러오는 중...</p>
+                    <div class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p class="text-gray-600 mt-3 text-base">로딩중...</p>
                     </div>
                 `;
-                document.getElementById('detailModal').classList.remove('hidden');
                 
                 let response;
                 if (contractType === 'business') {
@@ -889,8 +1201,20 @@
                 }
                 
                 console.log('✅ 계약서 데이터 로드 완료:', response.data);
-                console.log('🔍 고객 전화번호 확인:', response.data.customer_phone);
                 currentContract = response.data;
+                
+                // 캐시 저장 (이미지 제외로 용량 절감)
+                try {
+                    const { signature_data, id_card_photo, business_license_photo, 
+                            motorcycle_photo_front, motorcycle_photo_back, 
+                            motorcycle_photo_left, motorcycle_photo_right, ...cacheData } = currentContract;
+                    sessionStorage.setItem(detailCacheKey, JSON.stringify(cacheData));
+                    sessionStorage.setItem(`${detailCacheKey}_time`, now.toString());
+                    console.log('✅ 계약 상세 캐시 저장 (이미지 제외)');
+                } catch (e) {
+                    console.warn('⚠️ 캐시 저장 실패:', e.message);
+                }
+                
                 renderDetail();
                 console.log('✅ 모달 표시 완료');
                 
@@ -913,6 +1237,42 @@
                 alert('계약서 상세 정보를 불러오는데 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
+        
+        // 백그라운드에서 계약 상세 업데이트 (전체 데이터, 이미지 포함)
+        async function loadContractDetailInBackground(contractType, id, cacheKey) {
+            try {
+                let response;
+                if (contractType === 'business') {
+                    response = await axios.get(`/api/business-contracts/${id}`);
+                } else {
+                    response = await axios.get(`/api/contracts/${id}`);
+                }
+                
+                const now = Date.now();
+                const newData = response.data;
+                
+                // 전체 데이터(이미지 포함)로 currentContract 업데이트
+                console.log('🔄 백그라운드: 전체 데이터(이미지 포함) 로드 완료');
+                currentContract = newData;
+                
+                // 캐시에는 이미지 제외하고 저장
+                try {
+                    const { signature_data, id_card_photo, business_license_photo, 
+                            motorcycle_photo_front, motorcycle_photo_back, 
+                            motorcycle_photo_left, motorcycle_photo_right, ...cacheData } = newData;
+                    sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                    sessionStorage.setItem(`${cacheKey}_time`, now.toString());
+                } catch (e) {
+                    console.warn('⚠️ 백그라운드 캐시 저장 실패:', e.message);
+                }
+                
+                // 화면 다시 렌더링 (이제 이미지가 포함됨)
+                renderDetail();
+                console.log('✅ 백그라운드: 이미지 포함 화면 렌더링 완료');
+            } catch (error) {
+                console.warn('⚠️ 백그라운드 업데이트 실패 (무시):', error.message);
+            }
+        }
 
         // ==========================================
         // 진행 중인 계약서 보험 정보 실시간 업데이트
@@ -925,6 +1285,10 @@
         
         // 보험 정보 실시간 업데이트 시작
         function startInsuranceAutoUpdate() {
+            // ⚠️ 임시: 보험 자동 업데이트 비활성화 (API 에러 방지)
+            console.log('⏸️  [임시] 보험 정보 자동 업데이트 비활성화 (서명 표시 우선)');
+            return;
+            
             // 기존 인터벌 정리
             if (insuranceUpdateInterval) {
                 clearInterval(insuranceUpdateInterval);
@@ -954,6 +1318,10 @@
         
         // 오토바이 보험 정보 새로고침
         async function refreshInsuranceInfo() {
+            // ⚠️ 임시: 보험 정보 새로고침 비활성화
+            console.log('⏸️  [임시] 보험 정보 새로고침 비활성화');
+            return;
+            
             if (!currentContract || !currentContract.motorcycle_id) return;
             if (currentContract.status !== 'active') {
                 console.log('⚠️  계약 상태가 active가 아니므로 업데이트하지 않습니다:', currentContract.status);
@@ -1006,7 +1374,12 @@
             if (!currentContract || currentContract.status !== 'active') return;
             
             try {
-                await axios.put(`/api/contracts/${currentContract.id}/insurance`, {
+                // 업체 계약서와 개인 계약서 API 엔드포인트 구분
+                const apiEndpoint = currentContract.company_name 
+                    ? `/api/business-contracts/${currentContract.id}/insurance`
+                    : `/api/contracts/${currentContract.id}/insurance`;
+                
+                await axios.put(apiEndpoint, {
                     insurance_company: currentContract.insurance_company,
                     driving_range: currentContract.driving_range,
                     insurance_start_date: currentContract.insurance_start_date,
@@ -1016,6 +1389,7 @@
                 console.log('💾 [진행중 계약서] DB 보험 정보 업데이트 완료');
             } catch (error) {
                 console.error('[진행중 계약서] DB 보험 정보 업데이트 실패:', error);
+                // 에러 발생해도 화면 표시는 계속 진행
             }
         }
         
@@ -1032,6 +1406,17 @@
             if (!c) {
                 console.error('❌ currentContract가 없습니다');
                 return;
+            }
+            
+            // 🔍 디버깅: 개인 계약서 서명 데이터 확인
+            console.log('📝 개인 계약서 렌더링 시작');
+            console.log('🖊️ 서명 데이터 존재:', !!c.signature_data);
+            if (c.signature_data) {
+                console.log('📏 서명 데이터 길이:', c.signature_data.length);
+                console.log('🔤 서명 데이터 시작:', c.signature_data.substring(0, 50));
+            } else {
+                console.error('❌ 서명 데이터가 없습니다!');
+                console.log('📦 currentContract 전체:', Object.keys(c));
             }
             
             // 업체 계약서인 경우 별도 렌더링
@@ -1064,7 +1449,7 @@
                         <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> ${companySettings?.company_name || '대성'}</p>
                             <p><strong>업체계약번호:</strong> ${companySettings?.company_code || '487-39-01128'}</p>
-                            <p><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}</p>
+                            <p style="display: flex; align-items: center; flex-wrap: wrap;"><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}<span style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 100px; min-width: 100px; min-height: 100px; flex-shrink: 0; margin-left: 12px; border: 3px solid #4F46E5; border-radius: 50%; background: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);"><img src="/static/stamp-kim.png?v=20260520" alt="도장" style="width: 85px; height: 85px; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=color:#4F46E5;font-weight:bold;font-size:1.2rem;>인</span>'"></span></p>
                             <p><strong>총괄매니저:</strong> ${companySettings?.manager_phone1 || '-'}</p>
                         </div>
                     </div>
@@ -1095,12 +1480,20 @@
                         </div>
                     </div>
 
+                    <!-- 오토바이 출고 사진 -->
+                    <div class="border-2 border-blue-300 p-6 rounded-lg mb-6 bg-blue-50" id="deliveryPhotosSection">
+                        <h3 class="font-bold text-lg mb-4 text-blue-900">
+                            <i class="fas fa-camera mr-2"></i>오토바이 출고 상태 사진
+                        </h3>
+                        <div id="deliveryPhotosContent"></div>
+                    </div>
+
                     <!-- 계약 조건 -->
                     <div class="border-2 border-gray-300 p-6 rounded-lg mb-6">
                         <h3 class="font-bold text-lg mb-4">계약 조건</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <p><strong>계약 타입:</strong> ${c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스' : c.contract_type === 'rent' ? '렌트' : '업체리스/렌트'}</p>
-                            <p><strong>${c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스대여료' : '렌트대여료'}:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
+                            <p><strong>${c.contract_type === 'lease' || c.contract_type === 'individual' ? '리스 대여료' : c.contract_type === 'rent' ? '렌트 대여료' : '대여료'}:</strong> ${Number(c.monthly_fee).toLocaleString()}원</p>
                             <p><strong>계약 시작일:</strong> ${c.start_date}</p>
                             <p><strong>계약 종료일:</strong> ${c.end_date}</p>
                             <p class="col-span-2"><strong>선납금:</strong> ${Number(c.deposit || 0).toLocaleString()}원</p>
@@ -1239,11 +1632,16 @@
                         </p>
                     </div>
                     
-                    <!-- 약관 동의 표시 -->
+                    <!-- 약관 동의 표시 (항상 표시) -->
                     <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded mb-6 terms-agreement">
+                        ${c.signature_data ? `
                         <div class="mt-1 w-5 h-5 bg-green-600 rounded flex items-center justify-center">
                             <i class="fas fa-check text-white text-xs"></i>
                         </div>
+                        ` : `
+                        <div class="mt-1 w-5 h-5 bg-gray-300 rounded flex items-center justify-center">
+                        </div>
+                        `}
                         <label class="ml-3 text-base font-bold text-gray-800">
                             위 계약 약관을 모두 확인하였으며 이에 동의합니다 <span class="text-red-600">*</span>
                         </label>
@@ -1253,12 +1651,12 @@
                     <div class="border-2 border-gray-300 p-6 rounded-lg mb-6 signature-section">
                         <h3 class="font-bold text-lg mb-4 text-center">계약자 서명</h3>
                         <div class="space-y-6">
-                            <!-- 임차인 서명 - 모바일 최적화 (정사각형 10cm = 380px) -->
+                            <!-- 임차인 서명 - 모바일 최적화 (4:1 비율) -->
                             ${c.signature_data ? `
                                 <div class="border-2 border-gray-400 p-4 rounded-lg bg-white mb-6">
                                     <h4 class="font-bold mb-3 text-center text-lg">임차인 서명</h4>
-                                    <div class="border rounded bg-white mx-auto" style="width: 100%; max-width: 380px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;">
-                                        <img src="${c.signature_data}" alt="임차인 서명" style="width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
+                                    <div class="border rounded bg-white mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 = 100% / 4 */">
+                                        <img src="${c.signature_data}" alt="임차인 서명" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
                                     </div>
                                     <p class="text-center mt-3 font-bold">서명인: ${c.customer_name}</p>
                                     <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
@@ -1266,8 +1664,8 @@
                             ` : `
                                 <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50 mb-6">
                                     <h4 class="font-bold mb-3 text-center text-gray-500 text-lg">임차인 서명</h4>
-                                    <div class="flex items-center justify-center bg-white border rounded mx-auto" style="width: 100%; max-width: 380px; aspect-ratio: 1;">
-                                        <p class="text-gray-400">서명 없음</p>
+                                    <div class="flex items-center justify-center bg-white border rounded mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 */">
+                                        <p class="text-gray-400" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">서명 없음</p>
                                     </div>
                                 </div>
                             `}
@@ -1308,7 +1706,202 @@
                 pdfContent.innerHTML = html;
                 console.log('✅ PDF 컨테이너에 렌더링 완료');
             }
+            
+            // 출고 사진 갤러리 렌더링
+            renderDeliveryPhotos();
         }
+        
+        // 출고 사진 갤러리 렌더링
+        function renderDeliveryPhotos() {
+            const c = currentContract;
+            if (!c) return;
+            
+            const photos = [
+                { url: c.motorcycle_photo_front, label: '앞면 (정면)', icon: 'fa-arrow-up' },
+                { url: c.motorcycle_photo_back, label: '뒷면 (후면)', icon: 'fa-arrow-down' },
+                { url: c.motorcycle_photo_left, label: '왼쪽', icon: 'fa-arrow-left' },
+                { url: c.motorcycle_photo_right, label: '오른쪽', icon: 'fa-arrow-right' }
+            ];
+            
+            const validPhotos = photos.filter(p => p.url);
+            
+            const contentDiv = document.getElementById('deliveryPhotosContent');
+            const sectionDiv = document.getElementById('deliveryPhotosSection');
+            
+            // 요소가 없으면 함수 종료 (업체 계약서 등에서는 이 ID가 없음)
+            if (!contentDiv || !sectionDiv) {
+                console.log('📸 deliveryPhotosSection 요소 없음 (업체 계약서에서는 불필요)');
+                return;
+            }
+            
+            if (validPhotos.length === 0) {
+                sectionDiv.style.display = 'none';
+                return;
+            }
+            
+            sectionDiv.style.display = 'block';
+            
+            // 2x2 그리드로 썸네일 표시
+            const html = `
+                <div class="grid grid-cols-2 gap-4">
+                    ${photos.map((photo, index) => `
+                        <div class="border-2 ${photo.url ? 'border-blue-300' : 'border-gray-300'} rounded-lg overflow-hidden ${photo.url ? 'cursor-pointer hover:shadow-lg transition' : 'bg-gray-100'}">
+                            <div class="bg-gray-100 px-3 py-2 border-b ${photo.url ? 'border-blue-300' : 'border-gray-300'}">
+                                <span class="font-semibold text-sm ${photo.url ? 'text-blue-900' : 'text-gray-500'}">
+                                    <i class="fas ${photo.icon} ${photo.url ? 'text-blue-600' : 'text-gray-400'} mr-1"></i>${photo.label}
+                                </span>
+                            </div>
+                            <div class="p-2 bg-white">
+                                ${photo.url ? `
+                                    <img src="${photo.url}" 
+                                         alt="${photo.label}" 
+                                         class="w-full h-48 object-cover rounded cursor-pointer hover:opacity-80 transition"
+                                         onclick="openImageGallery(${index})"
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\'%3E%3Crect fill=\\'%23ddd\\' width=\\'200\\' height=\\'200\\'/%3E%3Ctext fill=\\'%23999\\' x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\'%3E이미지 로드 실패%3C/text%3E%3C/svg%3E'">
+                                ` : `
+                                    <div class="w-full h-48 flex items-center justify-center text-gray-400">
+                                        <div class="text-center">
+                                            <i class="fas fa-image text-4xl mb-2"></i>
+                                            <p class="text-sm">사진 없음</p>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                ${c.motorcycle_photo_upload_date ? `
+                    <div class="mt-4 text-center text-sm text-gray-600">
+                        <i class="far fa-calendar-alt mr-1"></i>
+                        촬영일: ${new Date(c.motorcycle_photo_upload_date).toLocaleString('ko-KR')}
+                    </div>
+                ` : ''}
+                
+                <div class="mt-4 text-center">
+                    <button onclick="openImageGallery(0)" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-expand mr-2"></i>전체화면으로 보기
+                    </button>
+                </div>
+            `;
+            
+            contentDiv.innerHTML = html;
+        }
+        
+        // 이미지 갤러리 열기 (Swiper)
+        window.modalSwiper = null;
+        
+        function openImageGallery(startIndex = 0) {
+            const c = currentContract;
+            if (!c) return;
+            
+            const photos = [
+                { url: c.motorcycle_photo_front, label: '앞면 (정면)' },
+                { url: c.motorcycle_photo_back, label: '뒷면 (후면)' },
+                { url: c.motorcycle_photo_left, label: '왼쪽' },
+                { url: c.motorcycle_photo_right, label: '오른쪽' }
+            ];
+            
+            const validPhotos = photos.filter(p => p.url);
+            if (validPhotos.length === 0) return;
+            
+            // 모달 표시
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('hidden');
+            
+            // 배경 클릭/터치 시 닫기
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeImageModal();
+                }
+            };
+            
+            // ESC 키로 닫기
+            document.addEventListener('keydown', handleEscKey);
+            
+            // Swiper 슬라이드 생성
+            const wrapper = document.getElementById('modalSwiperWrapper');
+            wrapper.innerHTML = validPhotos.map((photo, idx) => `
+                <div class="swiper-slide flex items-center justify-center">
+                    <div class="text-center w-full h-full flex flex-col items-center justify-center">
+                        <div class="swiper-zoom-container">
+                            <img src="${photo.url}" 
+                                 alt="${photo.label}"
+                                 class="max-w-full max-h-[80vh] object-contain rounded-lg"
+                                 style="user-select: none;">
+                        </div>
+                        <p class="text-white text-lg mt-4 font-semibold">${photo.label}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 기존 Swiper 제거
+            if (window.modalSwiper) {
+                window.modalSwiper.destroy(true, true);
+            }
+            
+            // Swiper 초기화
+            setTimeout(() => {
+                window.modalSwiper = new Swiper('.modalSwiper', {
+                    slidesPerView: 1,
+                    spaceBetween: 0,
+                    initialSlide: startIndex,
+                    zoom: {
+                        maxRatio: 5,
+                        minRatio: 1
+                    },
+                    navigation: {
+                        nextEl: '.swiper-button-next',
+                        prevEl: '.swiper-button-prev',
+                    },
+                    pagination: {
+                        el: '.swiper-pagination',
+                        type: 'fraction',
+                    },
+                    keyboard: {
+                        enabled: true,
+                    },
+                    on: {
+                        zoomChange: (swiper, scale, imageEl, slideEl) => {
+                            console.log('Zoom:', scale);
+                        }
+                    }
+                });
+                
+                // Swiper 컨테이너 클릭/터치 이벤트 전파 막기
+                const swiperContainer = document.getElementById('swiperContainer');
+                swiperContainer.onclick = function(e) {
+                    e.stopPropagation();
+                };
+                swiperContainer.ontouchend = function(e) {
+                    e.stopPropagation();
+                };
+                
+                console.log('✅ Swiper 갤러리 초기화 완료');
+            }, 100);
+        }
+        
+        // 이미지 모달 닫기 (전역 함수로 정의)
+        window.closeImageModal = function() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            if (window.modalSwiper) {
+                window.modalSwiper.destroy(true, true);
+                window.modalSwiper = null;
+            }
+            // ESC 키 이벤트 제거
+            document.removeEventListener('keydown', handleEscKey);
+        }
+        
+        // ESC 키 핸들러
+        function handleEscKey(e) {
+            if (e.key === 'Escape') {
+                window.closeImageModal();
+            }
+        }
+        
         function hideDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
             currentContract = null;
@@ -1370,6 +1963,11 @@
                     `💡 계약 정보만 초기화되었습니다.\n` +
                     `✅ 기본 정보와 보험 정보는 유지되어 다음 계약에 사용할 수 있습니다.`
                 );
+                
+                // 오토바이 목록 캐시 클리어 (계약자 정보 제거)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 오토바이 목록 캐시 클리어 완료');
                 
                 // 모달 닫기
                 hideDetailModal();
@@ -1634,6 +2232,8 @@
             }
 
             try {
+                console.log('✅ 계약 완료 처리 시작:', { contractType, id });
+                
                 if (contractType === 'business') {
                     // 업체 계약서 완료
                     await axios.put(`/api/business-contracts/${id}/complete`);
@@ -1643,9 +2243,24 @@
                 }
                 
                 alert('✅ 계약이 완료 처리되었습니다.\n\n해당 오토바이는 다시 계약할 수 있습니다.');
-                loadContracts(); // 목록 새로고침
+                
+                // 오토바이 목록 캐시 클리어 (계약자 정보 제거)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 오토바이 목록 캐시 클리어 완료');
+                
+                // 상세 모달이 열려있으면 닫기
+                const detailModal = document.getElementById('contractDetailModal');
+                if (detailModal && !detailModal.classList.contains('hidden')) {
+                    detailModal.classList.add('hidden');
+                }
+                
+                // 목록 즉시 새로고침 (캐시 무시)
+                console.log('🔄 계약서 목록 새로고침 시작');
+                await loadContracts(true);  // forceRefresh = true
+                console.log('✅ 계약서 목록 새로고침 완료');
             } catch (error) {
-                console.error('Error completing contract:', error);
+                console.error('❌ 계약 완료 처리 실패:', error);
                 alert('계약 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
@@ -1673,6 +2288,11 @@
                 
                 alert('계약서가 삭제되었습니다.\n\n※ 오토바이 번호판이나 차대번호로\n사용 이력은 계속 조회할 수 있습니다.');
                 
+                // 오토바이 목록 캐시 클리어 (계약자 정보 제거)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 오토바이 목록 캐시 클리어 완료');
+                
                 // 상세 모달이 열려있으면 닫기
                 const detailModal = document.getElementById('contractDetailModal');
                 if (detailModal && !detailModal.classList.contains('hidden')) {
@@ -1696,6 +2316,17 @@
             const c = currentContract;
             const statusTexts = { 'active': '계약중', 'completed': '완료', 'cancelled': '계약종료' };
             
+            // 🔍 디버깅: 서명 데이터 확인
+            console.log('📝 업체 계약서 렌더링 시작');
+            console.log('🖊️ 서명 데이터 존재:', !!c.signature_data);
+            if (c.signature_data) {
+                console.log('📏 서명 데이터 길이:', c.signature_data.length);
+                console.log('🔤 서명 데이터 시작:', c.signature_data.substring(0, 50));
+            } else {
+                console.error('❌ 서명 데이터가 없습니다!');
+                console.log('📦 currentContract 전체:', Object.keys(c));
+            }
+            
             // business_type 필드 사용 (리스/렌트 구분)
             const contractTypeText = c.business_type === 'lease' ? '리스' : '렌트';
             
@@ -1714,7 +2345,7 @@
                         <div class="grid grid-cols-3 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> 대성</p>
                             <p><strong>업체계약번호:</strong> 487-39-01128</p>
-                            <p><strong>대표자:</strong> 김상춘</p>
+                            <p style="display: flex; align-items: center; flex-wrap: wrap;"><strong>대표자:</strong> 김상춘<span style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 100px; min-width: 100px; min-height: 100px; flex-shrink: 0; margin-left: 12px; border: 3px solid #4F46E5; border-radius: 50%; background: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);"><img src="/static/stamp-kim.png?v=20260520" alt="도장" style="width: 85px; height: 85px; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=color:#4F46E5;font-weight:bold;font-size:1.2rem;>인</span>'"></span></p>
                         </div>
                     </div>
 
@@ -1807,122 +2438,119 @@
                                 </p>
                             </div>
 
-                            <!-- 대리 작성 동의 및 법적 효력 -->
-                            <div class="bg-red-50 border-l-4 border-red-400 p-3 rounded">
-                                <p class="font-bold text-red-800">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>대리 작성 동의 및 법적 효력
-                                </p>
-                                <p class="text-gray-700 mt-1">
-                                    업체 계약 특성상 <span class="font-bold text-red-700">업체 대표의 전화 또는 구두로 출고를 요청 시</span>, 
-                                    임차인의 최초 정보등록 정보를 사용하여 <span class="font-bold text-red-700">임대인이 계약서를 대리 작성해도 법적 효력이 발생</span>합니다.
-                                </p>
-                                <p class="text-gray-700 mt-2 font-bold text-red-800">
-                                    ✓ 본인은 이에 동의하며, 대리 작성된 계약서도 본 계약과 동일한 법적 효력을 갖는다는 것을 확인합니다.
-                                </p>
-                            </div>
                         </div>
 
-                        <p class="font-bold mt-4 mb-2">제1조 (계약의 목적 및 적용 범위)</p>
+                        <p class="font-bold mt-4 mb-2">제1조 (목적 및 계약 내용)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 본 계약은 임대인이 소유한 오토바이를 업체(임차인)에게 ${contractTypeText}하는 조건과 절차를 정함을 목적으로 합니다.</p>
-                            <p>② 업체가 추가로 오토바이를 출고하는 경우, 본 약관이 자동으로 적용되며 별도의 약관 동의는 필요하지 않습니다.</p>
-                            <p>③ 업체는 최초 계약 체결 시 등록한 업체 정보, 대표자 정보, 약관 동의, 서명 및 신분증이 이후 추가 계약에도 동일하게 적용됨에 동의합니다.</p>
+                            <p>① 본 계약은 업체 배달대행 목적의 리스/렌트 계약입니다.</p>
+                            <p>② 계약 타입: 위 기재된 계약 타입</p>
+                            <p>③ 계약 기간: 위 기재된 계약 기간</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제2조 (자동 계약서 생성)</p>
+                        <p class="font-bold mt-3 mb-2">제2조 (인도 및 관리)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 업체가 최초 계약 체결 시 등록한 정보는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
-                            <p>② 추가 출고 시에는 오토바이 선택, 계약 기간 및 금액 조건만 입력하면 계약서가 자동으로 생성됩니다.</p>
-                            <p>③ 업체 정보나 대표자 정보가 변경된 경우, 업체 목록에서 정보를 수정할 수 있습니다.</p>
+                            <p>① 대여인은 계약 시작일에 오토바이를 업체(임차인)에 인도하며, 업체(임차인)는 선량한 관리자의 주의로 관리해야 합니다.</p>
+                            <p>② 업체(임차인)는 오토바이의 정기 점검 및 청결 유지 의무를 부담합니다.</p>
+                            <p>③ 업체(임차인)는 운전자 연령 변경 시 즉시 대여인에게 알려 보험 변경할 수 있게 해야 하며, 고지하지 않은 상태로 운전 중 사고 시 모든 책임은 업체 대표자에게 있습니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제3조 (복수 계약 관리)</p>
+                        <p class="font-bold mt-3 mb-2">제3조 (사용 제한)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 업체는 여러 대의 오토바이를 동시에 ${contractTypeText}할 수 있습니다.</p>
-                            <p>② 각 오토바이마다 독립적인 계약서가 생성되며, 개별적으로 관리됩니다.</p>
-                            <p>③ 전체 계약서는 업체 목록에서 통합 조회가 가능합니다.</p>
+                            <p>① 오토바이는 업체(임차인)의 배달대행 업무에만 사용할 수 있습니다.</p>
+                            <p>② 업체(임차인)는 운전자가 도로교통법 등 관련 법규를 준수하도록 관리해야 합니다.</p>
+                            <p>③ 오토바이는 대여인이 지정한 운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제4조 (오토바이의 인도 및 관리)</p>
+                        <p class="font-bold mt-3 mb-2">제4조 (일차감 대여료 납부 방식)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 임대인은 계약 체결 시 오토바이를 정상 작동 상태로 업체에게 인도합니다.</p>
-                            <p>② 업체는 오토바이를 선량한 관리자의 주의로써 관리하여야 하며, 임의로 개조하거나 제3자에게 재대여할 수 없습니다.</p>
-                            <p>③ 업체는 정기적으로 오토바이의 안전 점검을 실시하여야 합니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제5조 (사용 제한)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 업체는 오토바이를 배달대행 업무 목적으로만 사용할 수 있습니다.</p>
-                            <p>② 업체 소속 라이더는 음주운전, 무면허 운전, 난폭운전 등 도로교통법을 위반하는 행위를 하여서는 안 됩니다.</p>
-                            <p>③ 오토바이는 임대인이 지정한 보험운전범위 조건을 충족하는 자만 운전할 수 있습니다.</p>
-                        </div>
-
-                        <p class="font-bold mt-3 mb-2">제6조 (대여료 납부)</p>
-                        <div class="ml-4 space-y-1">
-                            <p>① 업체는 계약서에 명시된 일금액을 매일 납부합니다.</p>
-                            <p>② 일금액: 위 기재된 일금액</p>
+                            <p>① 업체(임차인)는 배달대행 업무를 통해 발생한 일당에서 매일 일정 금액을 차감하는 방식으로 대여료를 납부합니다.</p>
+                            <p>② 일차감 금액: 위 기재된 일차감금액</p>
                             <p>③ 선납금: 위 기재된 선납금 (반환되지 않는 금액)</p>
-                            <p>④ 대여료는 업체의 정산 시스템을 통해 자동으로 공제됩니다.</p>
+                            <p>④ 차감 금액은 업체(임차인)의 일당 정산 시 대여인이 지정한 계좌로 입금해야 합니다.</p>
+                            <p>⑤ 모든 정산은 임대인과 업체(임차인)의 합의한 납부방식이 우선한다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제7조 (보험 및 사고 처리)</p>
+                        <p class="font-bold mt-3 mb-2">제5조 (정산 및 투명성)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 임대인은 오토바이에 대한 유상운송보험에 가입하여야 합니다.</p>
-                            <p>② 사고 발생 시 업체는 즉시 임대인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
-                            <p>③ 라이더의 고의 또는 과실로 발생한 사고의 자기부담금은 업체가 부담합니다.</p>
-                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책하는 사고는 업체가 전액 배상하여야 합니다.</p>
+                            <p>① 대여인은 업체(임차인)의 일당, 입금 금액, 누적 입금 내역을 전산 시스템을 통해 실시간으로 공개합니다.</p>
+                            <p>② 업체(임차인)는 언제든 본인의 입금 내역 및 납부 현황을 조회할 수 있습니다.</p>
+                            <p>③ 입금 내역에 이의가 있는 경우, 업체(임차인)는 즉시 제기하며 대여인은 3영업일 이내에 확인 및 답변합니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제8조 (정비 및 소모품)</p>
+                        <p class="font-bold mt-3 mb-2">제6조 (보험 및 사고 처리)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장 발생 시 수리비는 업체(임차인)가 전액 부담합니다.</p>
-                            <p>② 무상정비 제외 항목: 엔진, 미션, 구동계</p>
-                            <p>③ 무상정비 항목 제외 소모품: 업체 부담</p>
-                            <p>④ 라이더 과실에 의한 제반 수리비: 업체 전액 부담</p>
-                            <p>⑤ 업체는 정비가 필요한 경우 사전에 임대인에게 통지하고 승인을 받아야 합니다.</p>
+                            <p>① 대여인은 오토바이에 대한 자동차보험(유상운송보험)에 가입하여야 합니다.</p>
+                            <p>② 사고 발생 시 업체(임차인)는 즉시 대여인과 보험사에 통보하고, 보험 처리 절차에 협조해야 합니다.</p>
+                            <p>③ 업체(임차인)의 고의 또는 과실로 발생한 사고의 자기부담금은 업체(임차인)가 부담합니다.</p>
+                            <p>④ 음주운전, 무면허 운전 등 보험약관에서 면책 사유로 규정하는 사고는 업체(임차인)가 전액 배상합니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제9조 (계약의 해지)</p>
+                        <p class="font-bold mt-3 mb-2">제7조 (정비 및 소모품)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 업체가 다음 각 호에 해당하는 경우 임대인은 계약을 즉시 해지할 수 있습니다:</p>
-                            <p class="ml-4">- 정당한 사유 없이 3일 이상 연속하여 대여료를 납부하지 않은 경우</p>
-                            <p class="ml-4">- 중대한 법규 위반 시</p>
-                            <p class="ml-4">- 오토바이를 임의로 개조하거나 제3자에게 재대여한 경우</p>
-                            <p>② 계약 해지 시 업체는 오토바이를 즉시 반환하여야 하며, 미납 대여료 및 손해액을 선납금에서 공제합니다.</p>
+                            <p>① 엔진오일 교환 시기를 초과하여 이로 인한 고장이 발생한 경우, 수리비는 업체(임차인)가 전액 부담합니다.</p>
+                            <p>② 정비 및 수리가 필요한 경우, 업체(임차인)는 사전에 대여인에게 통지하고 승인을 받아야 합니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제10조 (계약 종료 시 반환)</p>
+                        <p class="font-bold mt-3 mb-2">제8조 (계약의 해지)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 계약 종료 시 업체는 오토바이를 원상태로 반환하여야 합니다.</p>
-                            <p>② 임대인은 반환 시 오토바이 상태를 확인하고, 손상이 있는 경우 수리비를 일차감분에서 차감하고 지급하며, 차감할 금액이 없을 시 임차인은 즉시 전액 배상합니다.</p>
+                            <p>① 대여인은 다음 각 호의 경우 계약을 즉시 해지할 수 있습니다:</p>
+                            <p class="ml-4">- 리스/렌트비가 일주일 이상 밀린 경우</p>
+                            <p class="ml-4">- 음주운전 등 중대한 법규 위반이 있는 경우</p>
+                            <p class="ml-4">- 업체(임차인)가 허위 정보를 제공한 경우</p>
+                            <p class="ml-4">- 보험 운전가능 연령을 위반한 경우</p>
+                            <p>② 해지 시 업체(임차인)는 즉시 오토바이를 반환하며, 미납 대여료 및 50일분 대여료를 손해액으로 지불합니다.</p>
                         </div>
 
-                        <p class="font-bold mt-3 mb-2">제11조 (정보 변경)</p>
+                        <p class="font-bold mt-3 mb-2">제9조 (중도 해지)</p>
                         <div class="ml-4 space-y-1">
-                            <p>① 업체 정보, 대표자 정보가 변경된 경우 업체는 즉시 임대인에게 통보하여야 합니다.</p>
-                            <p>② 정보 변경은 업체 목록에서 수정할 수 있으며, 변경 시점 이후 생성되는 계약서에 자동으로 반영됩니다.</p>
-                            <p>③ 이미 체결된 계약서의 정보는 변경되지 않습니다.</p>
+                            <p>① 업체(임차인)는 1개월 전 서면 통지로 계약을 중도 해지할 수 있습니다.</p>
+                            <p>② 중도 해지 시, 업체(임차인)는 위약금(일차감금액의 50일분)을 지불합니다.</p>
+                            <p>③ 리스 계약의 경우, 잔여 리스료(계약 종료일까지의 일차감금액 합계)를 일시 납부해야 합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제10조 (렌트 종료 시 반환)</p>
+                        <div class="ml-4 space-y-1">
+                            <p>① 렌트 종료 시 업체(임차인)는 오토바이를 즉시 반환해야 합니다.</p>
+                            <p>② 오토바이에 손상이 있는 경우, 수리비는 일차감분에서 차감하고 지급하며, 차감할 금액이 없을 시 업체(임차인)는 즉시 전액 배상합니다.</p>
+                        </div>
+
+                        <p class="font-bold mt-3 mb-2">제11조 (추가 오토바이 출고)</p>
+                        <div class="ml-4 space-y-1 bg-purple-50 p-3 rounded border border-purple-200">
+                            <p class="font-bold text-purple-800">① 간소화된 계약 절차</p>
+                            <p>대표자가 최초 계약 체결 시 등록한 업체 정보, 대표자 정보 및 제출 서류는 시스템에 저장되며, 이후 추가 오토바이 출고 시 자동으로 계약서에 반영됩니다.</p>
+                            <p class="font-bold text-purple-800 mt-2">② 자동 계약서 생성</p>
+                            <p>추가 오토바이 출고 시, 업체는 오토바이 선택 및 계약 조건(기간, 금액 등)만 입력하면 모든 계약서 서식이 자동으로 완성됩니다.</p>
+                            <p class="font-bold text-purple-800 mt-2">③ 동일한 약관 적용</p>
+                            <p>추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
+                            <p class="font-bold text-purple-800 mt-2">④ 정보 변경</p>
+                            <p>업체 정보 또는 대표자 정보가 변경된 경우, 업체는 즉시 대여인에게 서면으로 통지하고 변경된 서류를 제출해야 합니다.</p>
                         </div>
 
                         <p class="font-bold mt-3 mb-2">제12조 (분쟁 해결 및 기타)</p>
                         <div class="ml-4 space-y-1">
                             <p>① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
-                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
-                            <p>③ 추가 출고되는 모든 오토바이에 대해 본 약관이 동일하게 적용되며, 업체는 최초 계약 시 동의한 모든 조항을 준수해야 합니다.</p>
+                            <p>② 본 계약으로 인한 분쟁 발생 시 임대인과 업체(임차인)의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
+                            <p>③ 특약사항에 기재된 사항이 있는 경우 우선 적용됩니다.</p>
+                            <p>④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
                         </div>
 
-                        <p class="mt-4 text-center font-bold">
-                            본 계약을 증명하기 위하여 계약서를 작성하고 대표자가 서명합니다.
+                        <p class="mt-4 text-center text-gray-600">
+                            위 내용을 충분히 이해하고 계약서에 기재된 내용에 동의합니다.
                         </p>
                     </div>
                     
-                    <!-- 6. 약관 동의 표시 -->
+                    <!-- 6. 약관 동의 표시 (항상 표시) -->
                     <div class="flex items-start p-4 bg-yellow-50 border border-yellow-300 rounded mb-6 terms-agreement">
-                        <div class="mt-1 w-5 h-5 ${c.terms_agreed ? 'bg-green-600' : 'bg-red-600'} rounded flex items-center justify-center">
-                            <i class="fas ${c.terms_agreed ? 'fa-check' : 'fa-times'} text-white text-xs"></i>
+                        ${c.signature_data ? `
+                        <div class="mt-1 w-5 h-5 bg-green-600 rounded flex items-center justify-center">
+                            <i class="fas fa-check text-white text-xs"></i>
                         </div>
-                        <label class="ml-3 text-base font-bold ${c.terms_agreed ? 'text-gray-800' : 'text-red-600'}">
-                            위 계약 약관을 모두 확인하였으며 이에 ${c.terms_agreed ? '동의합니다' : '동의하지 않았습니다'} <span class="text-red-600">*</span>
+                        ` : `
+                        <div class="mt-1 w-5 h-5 bg-gray-300 rounded flex items-center justify-center">
+                        </div>
+                        `}
+                        <label class="ml-3 text-base font-bold text-gray-800">
+                            위 계약 약관을 모두 확인하였으며 이에 동의합니다 <span class="text-red-600">*</span>
                         </label>
                     </div>
 
@@ -1931,16 +2559,19 @@
                         <h3 class="font-bold text-lg mb-4 text-center">대표자 서명</h3>
                         ${c.signature_data ? `
                             <div class="border-2 border-gray-400 p-4 rounded-lg bg-white">
-                                <div class="border rounded bg-white" style="min-height: 150px;">
-                                    <img src="${c.signature_data}" alt="대표자 서명" class="w-full h-full" style="object-fit: contain;">
+                                <div class="border rounded mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; background-color: #f9f9f9; /* 배경색 추가 */">
+                                    <img src="${c.signature_data}" alt="대표자 서명" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;" onerror="console.error('❌ 이미지 로드 실패!', this.src.substring(0, 100));">
                                 </div>
                                 <p class="text-center mt-3 font-bold">서명인: ${c.representative}</p>
                                 <p class="text-center text-sm text-gray-600">서명일: ${new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                                <button onclick="window.open('${c.signature_data}')" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                    서명 이미지 크게 보기
+                                </button>
                             </div>
                         ` : `
                             <div class="border-2 border-gray-300 p-4 rounded-lg bg-gray-50">
-                                <div class="flex items-center justify-center bg-white border rounded" style="min-height: 150px;">
-                                    <p class="text-gray-400">서명 없음</p>
+                                <div class="flex items-center justify-center bg-white border rounded mx-auto" style="position: relative; width: 100%; max-width: 600px; padding-bottom: 25%; /* 4:1 비율 */">
+                                    <p class="text-gray-400" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">서명 없음</p>
                                 </div>
                             </div>
                         `}
@@ -1955,15 +2586,68 @@
                             </div>
                         </div>
                     ` : ''}
+                    
+                    <!-- 9. 오토바이 출고 사진 4장 -->
+                    ${(c.motorcycle_photo_front || c.motorcycle_photo_back || c.motorcycle_photo_left || c.motorcycle_photo_right) ? `
+                        <div class="border-2 border-blue-400 p-6 rounded-lg bg-blue-50 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-center">
+                                <i class="fas fa-motorcycle mr-2 text-blue-600"></i>
+                                오토바이 출고 상태 사진
+                            </h3>
+                            <p class="text-sm text-center text-gray-600 mb-4">출고일: ${c.motorcycle_photo_upload_date ? new Date(c.motorcycle_photo_upload_date).toLocaleDateString('ko-KR') : new Date(c.created_at).toLocaleDateString('ko-KR')}</p>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                ${c.motorcycle_photo_front ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-up mr-1"></i>앞면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_front}" alt="오토바이 앞면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_back ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-down mr-1"></i>뒷면
+                                        </div>
+                                        <img src="${c.motorcycle_photo_back}" alt="오토바이 뒷면" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_left ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-left mr-1"></i>왼쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_left}" alt="오토바이 왼쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                                
+                                ${c.motorcycle_photo_right ? `
+                                    <div class="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        <div class="bg-gray-200 px-3 py-2 text-center font-semibold text-sm">
+                                            <i class="fas fa-arrow-right mr-1"></i>오른쪽
+                                        </div>
+                                        <img src="${c.motorcycle_photo_right}" alt="오토바이 오른쪽" class="w-full" style="max-height: 300px; object-fit: contain;">
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
             
             document.getElementById('contractDetail').innerHTML = html;
+            
             // PDF 생성을 위해 pdfContent에도 동일한 HTML 삽입
             const pdfContentElement = document.getElementById('pdfContent');
             if (pdfContentElement) {
                 pdfContentElement.innerHTML = html;
             }
+            
+            // 출고 사진 갤러리 렌더링
+            renderDeliveryPhotos();
         }
 
         // 임시렌트 계약서 상세보기 렌더링
@@ -1986,7 +2670,7 @@
                         <div class="grid grid-cols-2 gap-3" style="font-size: 1.1rem;">
                             <p><strong>상호:</strong> ${companySettings?.company_name || '대성'}</p>
                             <p><strong>업체계약번호:</strong> ${companySettings?.company_code || '487-39-01128'}</p>
-                            <p><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}</p>
+                            <p style="display: flex; align-items: center; flex-wrap: wrap;"><strong>대표자:</strong> ${companySettings?.representative_name || '김상춘'}<span style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 100px; min-width: 100px; min-height: 100px; flex-shrink: 0; margin-left: 12px; border: 3px solid #4F46E5; border-radius: 50%; background: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);"><img src="/static/stamp-kim.png?v=20260520" alt="도장" style="width: 85px; height: 85px; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=color:#4F46E5;font-weight:bold;font-size:1.2rem;>인</span>'"></span></p>
                             <p><strong>총괄매니저:</strong> ${companySettings?.manager_phone1 || '-'}</p>
                         </div>
                     </div>
@@ -2010,6 +2694,15 @@
                             <p class="col-span-2"><strong>차대번호:</strong> <span style="font-family: monospace; letter-spacing: 0.05em; color: #1f2937; font-weight: 600;">${c.chassis_number || '-'}</span></p>
                             <p><strong>연식:</strong> ${c.model_year || '-'}</p>
                         </div>
+                    </div>
+
+
+                    <!-- 오토바이 출고 사진 -->
+                    <div class="border-2 border-blue-300 p-6 rounded-lg mb-6 bg-blue-50" id="deliveryPhotosSection">
+                        <h3 class="font-bold text-lg mb-4 text-blue-900">
+                            <i class="fas fa-camera mr-2"></i>오토바이 출고 상태 사진
+                        </h3>
+                        <div id="deliveryPhotosContent"></div>
                     </div>
 
                     <!-- 계약 조건 -->
@@ -2115,7 +2808,7 @@
                 imageModal = document.createElement('div');
                 imageModal.className = 'image-modal';
                 imageModal.innerHTML = `
-                    <div class="image-modal-close" onclick="closeImageModal()">
+                    <div class="image-modal-close" onclick="closeIdCardModal()">
                         <i class="fas fa-times"></i>
                     </div>
                     <img id="modalImage" src="" alt="신분증 확대">
@@ -2129,14 +2822,14 @@
                 // 배경 클릭시 닫기
                 imageModal.addEventListener('click', (e) => {
                     if (e.target === imageModal) {
-                        closeImageModal();
+                        closeIdCardModal();
                     }
                 });
                 
                 // ESC 키로 닫기
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && imageModal && imageModal.classList.contains('active')) {
-                        closeImageModal();
+                        closeIdCardModal();
                     }
                 });
             }
@@ -2147,7 +2840,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function closeImageModal() {
+        function closeIdCardModal() {
             if (imageModal) {
                 imageModal.classList.remove('active');
                 document.body.style.overflow = '';
@@ -2173,32 +2866,6 @@
             const allCheckboxes = document.querySelectorAll('.contract-checkbox');
             const selectAll = document.getElementById('selectAll');
             selectAll.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
-        }
-
-        // 계약 완료 처리
-        async function completeContract(contractType, id) {
-            if (!confirm('이 계약을 완료 처리하시겠습니까?')) return;
-            
-            try {
-                const sessionId = localStorage.getItem('sessionId');
-                const endpoint = contractType === 'business' 
-                    ? `/api/business-contracts/${id}/complete`
-                    : `/api/contracts/${id}/complete`;
-                
-                const response = await axios.put(endpoint, {}, {
-                    headers: { 'X-Session-ID': sessionId }
-                });
-                
-                if (response.data.success) {
-                    alert('✅ 계약이 완료 처리되었습니다.');
-                    loadContracts(); // 목록 새로고침
-                } else {
-                    alert('계약 완료 처리에 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('계약 완료 처리 실패:', error);
-                alert('계약 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
-            }
         }
 
         // 선택된 계약서들에 SMS 발신
@@ -2243,9 +2910,9 @@
                 
                 for (const contract of validContracts) {
                     try {
-                        const shareUrl = `${window.location.origin}/static/${contract.type === 'business' ? 'business-contract' : 'contract'}-sign.html?contract_id=${contract.id}`;
+                        const shareUrl = `${window.location.origin}/static/${contract.type === 'business' ? 'business-contract-sign' : 'contract-sign'}?contract_id=${contract.id}`;
                         
-                        await axios.post('/api/send-sms', {
+                        const response = await axios.post('/api/send-sms', {
                             phone: contract.phone,
                             customer_name: contract.name,
                             share_url: shareUrl
@@ -2253,27 +2920,68 @@
                             headers: { 'X-Session-ID': sessionId }
                         });
                         
+                        console.log(`✅ SMS 발송 성공 (${contract.name}):`, response.data);
                         successCount++;
                     } catch (err) {
-                        console.error(`SMS 발송 실패 (${contract.name}):`, err);
+                        console.error(`❌ SMS 발송 실패 (${contract.name}):`, err);
+                        console.error('에러 상세:', err.response?.data);
                         failCount++;
                     }
                 }
                 
-                alert(`✅ SMS 발송 완료\n\n성공: ${successCount}건\n실패: ${failCount}건`);
+                alert(`✅ SMS 발송 완료\n\n성공: ${successCount}건\n실패: ${failCount}건${failCount > 0 ? '\n\n❌ 실패한 SMS가 있습니다.\n브라우저 콘솔(F12)에서 자세한 오류를 확인하세요.' : ''}`);
+
                 
                 // 체크박스 초기화
                 document.querySelectorAll('.contract-checkbox').forEach(cb => cb.checked = false);
                 document.getElementById('selectAll').checked = false;
                 updateSelectedCount();
                 
+                // 목록 즉시 새로고침 (캐시 무시)
+                console.log('🔄 SMS 발송 후 계약서 목록 새로고침');
+                await loadContracts(true);  // forceRefresh = true
+                console.log('✅ 계약서 목록 새로고침 완료');
+                
             } catch (error) {
                 console.error('SMS 발송 오류:', error);
                 alert('SMS 발송 중 오류가 발생했습니다: ' + (error.response?.data?.error || error.message));
             }
         }
+    </script>
 
+    <!-- 이미지 확대 모달 -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-95 hidden z-[9999]">
+        <div class="relative w-full h-full flex items-center justify-center p-4">
+            <!-- 닫기 버튼 (모바일 친화적) -->
+            <button 
+                onclick="closeImageModal(); return false;"
+                class="absolute top-2 right-2 md:top-4 md:right-4 text-white hover:text-gray-300 z-[10000] 
+                       bg-black bg-opacity-50 rounded-full w-12 h-12 md:w-14 md:h-14 
+                       flex items-center justify-center text-2xl md:text-4xl
+                       active:bg-opacity-70 transition-all"
+                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <!-- Swiper 갤러리 -->
+            <div class="w-full h-full max-w-6xl max-h-screen" id="swiperContainer">
+                <div class="swiper modalSwiper h-full">
+                    <div class="swiper-wrapper" id="modalSwiperWrapper"></div>
+                    
+                    <!-- 네비게이션 버튼 -->
+                    <div class="swiper-button-next text-white"></div>
+                    <div class="swiper-button-prev text-white"></div>
+                    
+                    <!-- 페이지네이션 -->
+                    <div class="swiper-pagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     </script>
 </body>
 </html>
+<!-- Deploy 1775202422 -->
+<!-- Force deploy 1775204107 -->
+<!-- Force Update 1775205076 -->

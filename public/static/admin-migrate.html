@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>완료 날짜 마이그레이션</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">
+                <i class="fas fa-database mr-2 text-blue-600"></i>
+                완료 날짜 마이그레이션
+            </h1>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <h3 class="font-bold text-blue-800 mb-2">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    안내
+                </h3>
+                <p class="text-blue-700 text-sm mb-2">
+                    이 도구는 기존에 완료된 계약들의 실제 종료 날짜를 채워줍니다.
+                </p>
+                <ul class="text-blue-700 text-sm list-disc list-inside space-y-1">
+                    <li>완료(completed) 상태 → completed_at 채우기</li>
+                    <li>취소(cancelled) 상태 → cancelled_at 채우기</li>
+                    <li>updated_at 날짜를 사용합니다</li>
+                    <li>이미 날짜가 있는 계약은 건너뜁니다</li>
+                </ul>
+            </div>
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+                <h3 class="font-bold text-yellow-800 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    주의사항
+                </h3>
+                <p class="text-yellow-700 text-sm">
+                    이 작업은 한 번만 실행하면 됩니다. 이미 실행한 경우 다시 실행할 필요가 없습니다.
+                </p>
+            </div>
+            
+            <button 
+                id="migrateBtn"
+                onclick="runMigration()"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-colors mb-4"
+            >
+                <i class="fas fa-play-circle mr-2"></i>
+                마이그레이션 실행
+            </button>
+            
+            <div id="result" class="hidden">
+                <!-- 결과가 여기에 표시됩니다 -->
+            </div>
+            
+            <a href="/dashboard" class="block text-center text-blue-600 hover:text-blue-800 mt-4">
+                <i class="fas fa-arrow-left mr-2"></i>
+                대시보드로 돌아가기
+            </a>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        async function runMigration() {
+            const btn = document.getElementById('migrateBtn');
+            const resultDiv = document.getElementById('result');
+            
+            // 버튼 비활성화
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...';
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                
+                if (!sessionId) {
+                    alert('로그인이 필요합니다.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+                
+                console.log('🔄 마이그레이션 시작...');
+                
+                const response = await axios.post('/api/admin/migrate-completed-dates', {}, {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+                
+                console.log('✅ 마이그레이션 완료:', response.data);
+                
+                // 성공 결과 표시
+                resultDiv.className = 'bg-green-50 border-l-4 border-green-500 p-4';
+                resultDiv.innerHTML = `
+                    <h3 class="font-bold text-green-800 mb-2">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        마이그레이션 완료!
+                    </h3>
+                    <p class="text-green-700 mb-3">${response.data.message}</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="bg-white p-2 rounded">
+                            <div class="text-gray-600">개인 계약 (완료)</div>
+                            <div class="text-2xl font-bold text-green-600">${response.data.details.personal_completed}건</div>
+                        </div>
+                        <div class="bg-white p-2 rounded">
+                            <div class="text-gray-600">개인 계약 (취소)</div>
+                            <div class="text-2xl font-bold text-yellow-600">${response.data.details.personal_cancelled}건</div>
+                        </div>
+                        <div class="bg-white p-2 rounded">
+                            <div class="text-gray-600">업체 계약 (완료)</div>
+                            <div class="text-2xl font-bold text-green-600">${response.data.details.business_completed}건</div>
+                        </div>
+                        <div class="bg-white p-2 rounded">
+                            <div class="text-gray-600">업체 계약 (취소)</div>
+                            <div class="text-2xl font-bold text-yellow-600">${response.data.details.business_cancelled}건</div>
+                        </div>
+                    </div>
+                `;
+                
+                // 버튼 변경
+                btn.className = 'w-full bg-gray-400 text-white font-bold py-4 px-6 rounded-lg cursor-not-allowed mb-4';
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i>마이그레이션 완료';
+                
+            } catch (error) {
+                console.error('❌ 마이그레이션 실패:', error);
+                
+                // 실패 결과 표시
+                resultDiv.className = 'bg-red-50 border-l-4 border-red-500 p-4';
+                resultDiv.innerHTML = `
+                    <h3 class="font-bold text-red-800 mb-2">
+                        <i class="fas fa-times-circle mr-2"></i>
+                        마이그레이션 실패
+                    </h3>
+                    <p class="text-red-700">${error.response?.data?.error || error.message}</p>
+                `;
+                
+                // 버튼 재활성화
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-redo mr-2"></i>다시 시도';
+            }
+            
+            resultDiv.classList.remove('hidden');
+        }
+        
+        // 페이지 로드 시 인증 확인
+        window.addEventListener('DOMContentLoaded', () => {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/static/login.html';
+            }
+        });
+    </script>
+</body>
+</html>

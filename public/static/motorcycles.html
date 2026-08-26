@@ -20,17 +20,33 @@
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
         }
-        .insurance-progress {
-            transition: width 0.3s ease;
+        
+        /* 스크롤 성능 최적화 - 하드웨어 가속 */
+        #motorcycleList {
+            will-change: contents;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
+        
         .motorcycle-card {
             transition: all 0.3s ease;
             border-left: 4px solid #3b82f6;
+            /* 하드웨어 가속 활성화 */
+            will-change: transform;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         .motorcycle-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) translateZ(0);
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
+        
+        .insurance-progress {
+            transition: width 0.3s ease;
+        }
+        
         .motorcycle-card.status-available {
             border-left-color: #10b981;
         }
@@ -146,8 +162,8 @@
                         <input 
                             type="text" 
                             id="searchInput" 
-                            placeholder="번호판/계약자/명의자 검색..." 
-                            oninput="filterAndSortMotorcycles()"
+                            placeholder="번호판, 계약자, 명의자, 보험회사 검색..." 
+                            oninput="debouncedFilter()"
                             class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                     </div>
@@ -173,6 +189,7 @@
                         </label>
                         <select id="sortOrder" onchange="filterAndSortMotorcycles()" class="w-full px-3 py-2 border rounded-lg">
                             <option value="insurance_exp" selected>보험 만료일순</option>
+                            <option value="contract_exp">계약 만료일순</option>
                             <option value="created_desc">입력순 (최신)</option>
                             <option value="created_asc">입력순 (오래된)</option>
                             <option value="plate_asc">번호 빠른순</option>
@@ -184,9 +201,14 @@
 
                 <!-- 사용 이력 검색 -->
                 <div class="border-t pt-4 mt-4">
-                    <label class="block text-sm font-bold mb-2">
-                        <i class="fas fa-history mr-1 text-orange-500"></i>사용 이력 조회 (번호판 또는 차대번호)
-                    </label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-bold">
+                            <i class="fas fa-history mr-1 text-orange-500"></i>사용 이력 조회 (번호판 또는 차대번호)
+                        </label>
+                        <button onclick="migrateContractHistory()" class="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">
+                            <i class="fas fa-database mr-1"></i>기존 이력 통합
+                        </button>
+                    </div>
                     <div class="flex gap-2">
                         <input 
                             type="text" 
@@ -428,8 +450,11 @@
                                 </div>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-bold mb-2">사용페지</label>
-                                <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white" placeholder="오토바이 사용 관련 특이사항을 입력하세요"></textarea>
+                                <label class="block text-sm font-bold mb-2">사용페지 (참고용 메모)</label>
+                                <textarea id="usageNotes" rows="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 bg-white" placeholder="오토바이 사용 관련 특이사항을 입력하세요 (이력에 기록되지 않음)"></textarea>
+                                <button type="button" onclick="saveUsageNotes()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition">
+                                    <i class="fas fa-save mr-2"></i>특이사항 저장
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -504,6 +529,40 @@
             return dateStr;
         }
 
+        // UTC 시간을 한국 시간(KST)으로 변환
+        function toKST(utcDateStr) {
+            if (!utcDateStr) return new Date();
+            
+            // UTC 시간을 Date 객체로 변환
+            const utcDate = new Date(utcDateStr);
+            
+            // 한국 시간은 UTC+9 (9시간 더하기)
+            const kstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
+            
+            return kstDate;
+        }
+
+        // KST 시간을 포맷팅 (예: "2026. 4. 27. 오후 01:40")
+        function formatKSTDateTime(utcDateStr) {
+            if (!utcDateStr) return '-';
+            
+            const kstDate = toKST(utcDateStr);
+            
+            const dateStr = kstDate.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric'
+            });
+            
+            const timeStr = kstDate.toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            return `${dateStr} ${timeStr}`;
+        }
+
         // 카메라 권한 체크
         async function checkCameraPermission() {
             try {
@@ -565,6 +624,7 @@
                 // URL 파라미터로 전달된 상태 필터 확인
                 const urlParams = new URLSearchParams(window.location.search);
                 const statusParam = urlParams.get('status');
+                const forceRefreshParam = urlParams.get('_');  // 강제 새로고침 파라미터
                 
                 // 상태 필터 설정
                 if (statusParam) {
@@ -576,10 +636,18 @@
                     } else {
                         statusFilterElement.value = statusParam;
                     }
+                    
+                    // 사용중(rented) 상태일 때 자동으로 "계약 만료일순" 정렬 설정
+                    if (statusParam === 'rented') {
+                        const sortOrderElement = document.getElementById('sortOrder');
+                        sortOrderElement.value = 'contract_exp';
+                        console.log('✅ 사용중 상태 - 계약 만료일순으로 자동 정렬');
+                    }
                 }
                 
                 console.log('📋 오토바이 목록 로딩 시작...');
-                await loadMotorcycles();
+                // 강제 새로고침 파라미터가 있으면 캐시 무시
+                await loadMotorcycles(!!forceRefreshParam);
                 console.log('✅ 오토바이 목록 로딩 완료');
             } else {
                 console.log('❌ 인증 실패');
@@ -593,8 +661,29 @@
             console.log('🗑️ 오토바이 캐시 클리어');
         }
 
+        // 검색 즉각 반응 - 타이머 변수
+        let filterTimer = null;
+        
+        // 검색 입력 즉시 반응 (로컬 필터링으로 빠른 반응)
+        function debouncedFilter() {
+            // 이전 타이머 취소
+            if (filterTimer) {
+                clearTimeout(filterTimer);
+            }
+            
+            // 검색어 확인
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput ? searchInput.value.trim() : '';
+            console.log('🔍 [debouncedFilter] 검색어 입력됨:', searchTerm);
+            
+            // 즉시 로컬 필터링 (빠른 반응)
+            filterTimer = setTimeout(() => {
+                console.log('⏱️ [debouncedFilter] 타이머 완료 - filterAndSortMotorcycles 호출');
+                filterAndSortMotorcycles();
+            }, 300); // 300ms로 변경 (너무 짧으면 타이핑 중에 계속 실행됨)
+        }
+
         async function loadMotorcycles(forceRefresh = false) {
-            console.log('📡 데이터 로딩 시작');
             
             const listEl = document.getElementById('motorcycleList');
             
@@ -603,24 +692,37 @@
                 clearMotorcyclesCache();
             }
             
-            // 캐시된 데이터 확인 (3분 이내)
+            // 캐시된 데이터 확인 (5분 이내) - 강제 새로고침이 아닐 때만
+            if (!forceRefresh) {
+                const cacheKey = 'motorcycles_cache';
+                const cacheTimeKey = 'motorcycles_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                // 캐시가 유효하면 즉시 표시 (5분 이내)
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                    console.log('✅ 캐시된 데이터 즉시 표시');
+                    motorcycles = JSON.parse(cachedData);
+                    motorcycles.forEach(m => {
+                        motorcycleContracts[m.id] = m.customer_name || '';
+                    });
+                    filterAndSortMotorcycles();
+                    return;
+                } else if (cachedData) {
+                    // 캐시가 만료되었지만 즉시 표시하고 백그라운드에서 업데이트
+                    motorcycles = JSON.parse(cachedData);
+                    motorcycles.forEach(m => {
+                        motorcycleContracts[m.id] = m.customer_name || '';
+                    });
+                    filterAndSortMotorcycles();
+                    // 백그라운드 업데이트는 계속 진행
+                }
+            }
+            
+            // 캐시 키 정의 (API 호출 후 저장용)
             const cacheKey = 'motorcycles_cache';
             const cacheTimeKey = 'motorcycles_cache_time';
-            const cachedData = sessionStorage.getItem(cacheKey);
-            const cacheTime = sessionStorage.getItem(cacheTimeKey);
-            const now = Date.now();
-            
-            // 캐시가 유효하면 즉시 표시
-            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 180000) {
-                console.log('✅ 캐시된 데이터 즉시 표시');
-                motorcycles = JSON.parse(cachedData);
-                motorcycles.forEach(m => {
-                    motorcycleContracts[m.id] = m.customer_name || '';
-                });
-                filterAndSortMotorcycles();
-                // 백그라운드에서 업데이트는 생략 (필요시 새로고침)
-                return;
-            }
             
             // 캐시가 없으면 로딩 표시
             listEl.innerHTML = `
@@ -632,10 +734,19 @@
             
             try {
                 const response = await axios.get('/api/motorcycles');
-                motorcycles = response.data;
-                console.log('✅ 오토바이 데이터 수신:', motorcycles.length, '대');
+                let rawData = response.data;
+                
+                // 중복 제거: 같은 ID를 가진 오토바이는 하나만 유지
+                const uniqueMap = new Map();
+                rawData.forEach(m => {
+                    if (!uniqueMap.has(m.id)) {
+                        uniqueMap.set(m.id, m);
+                    }
+                });
+                motorcycles = Array.from(uniqueMap.values());
                 
                 // 캐시에 저장
+                const now = Date.now();
                 sessionStorage.setItem(cacheKey, JSON.stringify(motorcycles));
                 sessionStorage.setItem(cacheTimeKey, now.toString());
                 
@@ -643,14 +754,10 @@
                 motorcycles.forEach(m => {
                     motorcycleContracts[m.id] = m.customer_name || '';
                 });
-                console.log('✅ 계약자 정보 매핑 완료');
                 
                 // 렌더링
-                console.log('🎨 카드 렌더링 시작...');
                 const sortOrder = document.getElementById('sortOrder').value;
-                console.log('🔍 현재 정렬 기준:', sortOrder);
                 filterAndSortMotorcycles();
-                console.log('✅ 카드 렌더링 완료');
             } catch (error) {
                 console.error('❌ 오토바이 목록 로딩 실패:', error);
                 
@@ -680,15 +787,26 @@
         }
 
         // 통계 카드 업데이트
-        function filterAndSortMotorcycles() {
+        async function filterAndSortMotorcycles() {
+            console.log('🔄 [filterAndSortMotorcycles] 필터링 시작');
+            
             // 검색어
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) {
+                console.error('❌ 검색 입력창을 찾을 수 없습니다');
+                return;
+            }
+            const searchTerm = searchInput.value.toLowerCase().trim();
             
             // 상태 필터
             const statusFilter = document.getElementById('statusFilter').value;
             
             // 정렬 기준
             const sortOrder = document.getElementById('sortOrder').value;
+            
+            // 디버깅 로그
+            console.log(`📊 [필터 조건] 검색어: "${searchTerm}" | 상태: "${statusFilter}" | 정렬: "${sortOrder}"`);
+            console.log(`📦 [데이터] 전체 오토바이 수: ${motorcycles.length}개`);
             
             // 필터링
             let filtered = motorcycles.filter(m => {
@@ -713,25 +831,100 @@
                     }
                 }
                 
-                // 검색어 필터 (번호판, 계약자, 명의자)
+                // 검색어 필터 (번호판, 명의자, 계약자, 보험회사만 - 차대번호는 사용이력조회에서만 검색)
                 if (searchTerm) {
                     const plateNumber = (m.plate_number || '').toLowerCase();
-                    const chassisNumber = (m.chassis_number || '').toLowerCase();
                     const ownerName = (m.owner_name || '').toLowerCase();
                     const contractorName = (motorcycleContracts[m.id] || '').toLowerCase();
+                    const insuranceCompany = (m.insurance_company || '').toLowerCase();
                     
-                    return plateNumber.includes(searchTerm) || 
-                           chassisNumber.includes(searchTerm) ||
+                    // ✅ 공백으로 구분된 여러 검색어 처리 - 숫자 4자리만 추출 (예: "2636 9264" → ["2636", "9264"])
+                    const searchTerms = searchTerm.split(/\s+/).filter(t => t.length > 0);
+                    
+                    // 각 검색어에서 숫자만 추출 (4자리 숫자 패턴)
+                    const numberSearchTerms = searchTerms
+                        .map(term => term.match(/\d{4}/g))  // 4자리 연속 숫자만 추출
+                        .flat()
+                        .filter(Boolean);  // null/undefined 제거
+                    
+                    let plateMatches = false;
+                    
+                    // 숫자 검색어가 있으면 번호판에서 4자리 숫자 추출 후 비교
+                    if (numberSearchTerms.length > 0) {
+                        // 번호판에서 4자리 연속 숫자만 추출 (예: "금주읍의1983" → ["1983"])
+                        const plateNumbers = plateNumber.match(/\d{4}/g) || [];
+                        
+                        // 검색어 중 하나라도 번호판의 4자리 숫자와 일치하면 매칭
+                        plateMatches = numberSearchTerms.some(searchNum => 
+                            plateNumbers.includes(searchNum)
+                        );
+                        
+                        console.log(`🔍 [다중 검색] 입력: "${searchTerm}" | 숫자추출: [${numberSearchTerms.join(', ')}] | 번호판: ${plateNumber} (숫자: [${plateNumbers.join(', ')}]) | 매칭: ${plateMatches}`);
+                    } else {
+                        // 숫자가 아닌 검색어는 기존 방식 사용
+                        const plateClean = plateNumber.replace(/[\s\-]+/g, '');
+                        const searchClean = searchTerm.replace(/[\s\-]+/g, '');
+                        plateMatches = plateClean.includes(searchClean);
+                    }
+                    
+                    // 다른 필드는 원본 검색어로 포함 여부만 확인 (차대번호 제외)
+                    const matchesSearch = plateMatches ||
                            ownerName.includes(searchTerm) || 
-                           contractorName.includes(searchTerm);
+                           contractorName.includes(searchTerm) ||
+                           insuranceCompany.includes(searchTerm);
+                    
+                    // 검색어가 있는데 매칭되지 않으면 제외
+                    if (!matchesSearch) {
+                        return false;
+                    }
                 }
                 
                 return true;
             });
             
+            // 검색어가 있고 결과가 없으면 폐지 전 번호로 API 재검색
+            if (searchTerm && filtered.length === 0) {
+                try {
+                    const response = await axios.get(`/api/motorcycles?search=${encodeURIComponent(searchTerm)}`);
+                    const searchResults = response.data;
+                    
+                    if (searchResults && searchResults.length > 0) {
+                        
+                        // 검색 결과를 전역 motorcycles 배열에 추가 (중복 방지)
+                        const existingIds = new Set(motorcycles.map(m => m.id));
+                        searchResults.forEach(m => {
+                            if (!existingIds.has(m.id)) {
+                                motorcycles.push(m);
+                                motorcycleContracts[m.id] = m.customer_name || '';
+                            }
+                        });
+                        
+                        // 캐시 업데이트
+                        sessionStorage.setItem('motorcycles_cache', JSON.stringify(motorcycles));
+                        
+                        // 필터링 재실행 (이제 결과가 있을 것)
+                        filtered = motorcycles.filter(m => {
+                            if (statusFilter) {
+                                if (statusFilter === 'maintenance') {
+                                    if (m.status !== 'maintenance' && m.status !== 'scrapped') return false;
+                                } else if (statusFilter === 'rented') {
+                                    if (!m.customer_name) return false;
+                                } else if (m.status !== statusFilter) {
+                                    return false;
+                                }
+                            }
+                            
+                            // 재검색 결과는 무조건 포함
+                            return searchResults.some(sr => sr.id === m.id);
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ 폐지 전 번호 검색 실패:', error);
+                }
+            }
+            
             // 정렬
             filtered.sort((a, b) => {
-                console.log(`🔢 정렬 기준: ${sortOrder}`);
                 
                 // 1순위: 사용페지(scrapped) 오토바이는 항상 맨 아래
                 if (a.status === 'scrapped' && b.status !== 'scrapped') return 1;
@@ -761,12 +954,18 @@
                         const aInspection = a.inspection_end_date || '9999-12-31';
                         const bInspection = b.inspection_end_date || '9999-12-31';
                         return aInspection.localeCompare(bInspection);
+                    case 'contract_exp':
+                        // 계약 만료일이 가까운 순 (계약 없으면 맨 뒤로)
+                        const aContract = a.end_date || '9999-12-31';
+                        const bContract = b.end_date || '9999-12-31';
+                        return aContract.localeCompare(bContract);
                     default:
                         return b.id - a.id;
                 }
             });
             
-            console.log('📋 정렬 후 첫 3대:', filtered.slice(0, 3).map(m => `${m.plate_number}: ${m.insurance_end_date}`));
+            // 디버깅: 검색 결과 개수 로그
+            console.log(`✅ 검색 결과: ${filtered.length}개 (전체: ${motorcycles.length}개)`);
             
             renderMotorcycles(filtered);
         }
@@ -801,9 +1000,9 @@
         }
 
         function renderMotorcycles(filteredMotorcycles = motorcycles) {
-            console.log('🎨 renderMotorcycles 호출:', filteredMotorcycles.length, '대');
+            console.log(`🖼️ [renderMotorcycles] 렌더링 시작 - ${filteredMotorcycles.length}개 오토바이`);
+            
             const listEl = document.getElementById('motorcycleList');
-            console.log('📍 motorcycleList 요소:', listEl ? '찾음' : '없음');
             
             if (!listEl) {
                 console.error('❌ motorcycleList 요소를 찾을 수 없습니다!');
@@ -811,7 +1010,6 @@
             }
             
             if (filteredMotorcycles.length === 0) {
-                console.log('📭 오토바이가 없습니다');
                 listEl.innerHTML = `
                     <div class="col-span-full text-center py-12 text-gray-500">
                         <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
@@ -821,11 +1019,8 @@
                         </button>
                     </div>
                 `;
-                console.log('✅ 빈 상태 메시지 렌더링 완료');
                 return;
             }
-
-            console.log('🔄 카드 HTML 생성 시작...');
             const html = filteredMotorcycles.map(m => {
                 const statusConfig = {
                     'available': { bg: 'bg-green-100', text: 'text-green-800', icon: 'fa-check-circle', label: '휴차중', border: 'status-available' },
@@ -847,7 +1042,7 @@
                 const displayLabel = m.status === 'scrapped' ? (m.plate_number ? '번호판' : '차대번호') : '번호판';
 
                 return `
-                    <div class="motorcycle-card ${status.border} bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="motorcycle-card ${status.border} bg-white rounded-lg shadow-md overflow-hidden" data-motorcycle-id="${m.id}">
                         <!-- 상단: 번호판/차대번호 클릭 영역 -->
                         <div class="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-1 cursor-pointer hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all active:scale-95" onclick="showHistory(${m.id})">
                             <div class="flex justify-between items-center">
@@ -857,11 +1052,31 @@
                                     </p>
                                     <p class="text-white text-lg font-black tracking-tight">${displayNumber}</p>
                                 </div>
-                                <div class="flex flex-col items-center">
-                                    <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-history text-xs text-white"></i>
+                                <div class="flex gap-2 items-center">
+                                    <!-- 이력 버튼 -->
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-history text-xs text-white"></i>
+                                        </div>
+                                        <p class="text-white text-xs mt-0 font-medium">이력</p>
                                     </div>
-                                    <p class="text-white text-xs mt-0 font-medium">이력</p>
+                                    <!-- 정비 버튼 (정비중이 아닐 때만 표시) -->
+                                    ${m.status !== 'maintenance' ? `
+                                    <div class="flex flex-col items-center" onclick="event.stopPropagation(); startMaintenance(${m.id}, '${m.plate_number}')">
+                                        <div class="w-6 h-6 bg-orange-500 bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
+                                            <i class="fas fa-wrench text-xs text-white"></i>
+                                        </div>
+                                        <p class="text-white text-xs mt-0 font-medium">정비</p>
+                                    </div>
+                                    ` : `
+                                    <!-- 정비 완료 버튼 (정비중일 때 표시) -->
+                                    <div class="flex flex-col items-center" onclick="event.stopPropagation(); completeMaintenance(${m.id}, '${m.plate_number}')">
+                                        <div class="w-6 h-6 bg-green-500 bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all">
+                                            <i class="fas fa-check text-xs text-white"></i>
+                                        </div>
+                                        <p class="text-white text-xs mt-0 font-medium">완료</p>
+                                    </div>
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -871,7 +1086,7 @@
                             <div class="flex justify-between items-start mb-0.5">
                                 <div>
                                     <h3 class="text-xs font-bold text-gray-800">${m.vehicle_name}</h3>
-                                    <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year}년식</p>
+                                    <p class="text-xs text-gray-500"><i class="fas fa-calendar-alt mr-1"></i>${m.model_year || '-'}년식</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span id="status-badge-${m.id}" class="info-badge ${status.bg} ${status.text} text-xs">
@@ -964,15 +1179,23 @@
                                         <i class="fas fa-user w-3 text-blue-500 mr-1"></i>
                                         <div>
                                             <p class="text-xs text-gray-500">명의자</p>
-                                            <p class="font-semibold text-gray-700 truncate">${m.owner_name}</p>
+                                            <p class="font-semibold text-gray-700 truncate">${m.owner_name || '-'}</p>
                                         </div>
                                     </div>
-                                    <div class="flex items-center">
-                                        <i class="fas fa-id-card w-3 text-green-500 mr-1"></i>
-                                        <div>
-                                            <p class="text-xs text-gray-500">연령</p>
-                                            <p class="font-semibold text-gray-700 text-xs">${m.driving_range}</p>
+                                    <div>
+                                        <div class="flex items-center mb-0.5">
+                                            <i class="fas fa-id-card w-3 text-green-500 mr-1"></i>
+                                            <div>
+                                                <p class="text-xs text-gray-500">연령</p>
+                                                <p class="font-semibold text-gray-700 text-xs">${m.driving_range || '-'}</p>
+                                            </div>
                                         </div>
+                                        ${m.usage_notes ? `
+                                        <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200 col-span-2 usage-notes-area">
+                                            <i class="fas fa-sticky-note w-3 text-orange-500 mr-0.5 mt-0.5 flex-shrink-0"></i>
+                                            <p class="text-xs text-gray-700 whitespace-pre-wrap leading-tight">${m.usage_notes}</p>
+                                        </div>
+                                        ` : '<div class="col-span-2 usage-notes-area"></div>'}
                                     </div>
                                     <div class="flex items-center col-span-2" id="contractor-info-${m.id}">
                                         <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
@@ -1004,17 +1227,17 @@
                 `;
             }).join('');
             
-            console.log('🔧 HTML 문자열 생성 완료, DOM에 적용 중...');
             listEl.innerHTML = html;
-            console.log('✅ 카드 렌더링 완료, DOM 업데이트됨');
             
-            // 렌더링 후 각 오토바이의 계약 정보 및 검사 기간 로드
-            console.log('📋 계약/검사 정보 로딩 시작...');
-            motorcycles.forEach(m => {
-                loadContractInfo(m.id);
-                loadInspectionInfo(m);
+            // 렌더링 후 검사 기간 정보만 로드 (계약 정보는 이미 백엔드에서 JOIN으로 가져왔음)
+            // requestAnimationFrame으로 DOM 업데이트 후 실행 보장
+            requestAnimationFrame(() => {
+                filteredMotorcycles.forEach(m => {
+                    // loadContractInfo 제거 - 이미 백엔드에서 JOIN으로 계약 정보 포함됨
+                    loadInspectionInfo(m);
+                    updateContractUI(m); // 백엔드 데이터로 직접 UI 업데이트
+                });
             });
-            console.log('✅ 모든 정보 로딩 요청 완료');
         }
         
         // 검사 기간 정보 로드 함수
@@ -1055,6 +1278,12 @@
                 
                 const inspectionBarEl = document.getElementById(`inspection-bar-${motorcycle.id}`);
                 if (inspectionBarEl) {
+                    // 기존 경고 메시지 제거 (중복 방지)
+                    const existingWarning = inspectionBarEl.nextElementSibling;
+                    if (existingWarning && existingWarning.classList.contains('bg-gradient-to-r')) {
+                        existingWarning.remove();
+                    }
+                    
                     inspectionBarEl.innerHTML = `
                         <div class="progress-bar ${progressClass}" style="width: ${progress.percentage}%">
                             ${progress.percentage > 15 ? `${progress.percentage}%` : ''}
@@ -1076,7 +1305,106 @@
         }
         
         // 계약 정보 로드 함수
-        async function loadContractInfo(motorcycleId) {
+        // 백엔드에서 받은 계약 정보로 UI 업데이트 (추가 API 호출 없음)
+        function updateContractUI(motorcycle) {
+            const motorcycleId = motorcycle.id;
+            
+            // 폐지 상태면 계약 정보 표시 안 함
+            if (motorcycle.status === 'scrapped') {
+                return;
+            }
+            
+            // 백엔드에서 이미 JOIN으로 가져온 계약 정보 사용
+            const hasContract = motorcycle.customer_name && motorcycle.contract_status === 'active';
+            
+            // 상태 배지 업데이트 (폐지, 수리중이 아닌 경우만)
+            if (motorcycle.status !== 'scrapped' && motorcycle.status !== 'maintenance') {
+                const statusBadge = document.getElementById(`status-badge-${motorcycleId}`);
+                const statusIcon = document.getElementById(`status-icon-${motorcycleId}`);
+                const statusLabel = document.getElementById(`status-label-${motorcycleId}`);
+                
+                if (statusBadge && statusIcon && statusLabel) {
+                    if (hasContract) {
+                        statusIcon.className = 'fas fa-motorcycle mr-1';
+                        
+                        // 계약 타입별 표시 및 색상 구분
+                        if (motorcycle.contract_type === 'temp_rent') {
+                            statusBadge.className = 'info-badge bg-orange-100 text-orange-800 text-xs';
+                            statusLabel.textContent = '사용중 (임시렌트)';
+                        } else if (motorcycle.contract_type === 'business') {
+                            statusBadge.className = 'info-badge bg-blue-100 text-blue-800 text-xs';
+                            statusLabel.textContent = '사용중 (업체)';
+                        } else if (motorcycle.contract_type === 'lease') {
+                            statusBadge.className = 'info-badge bg-blue-100 text-blue-800 text-xs';
+                            statusLabel.textContent = '사용중 (리스)';
+                        } else if (motorcycle.contract_type === 'rent') {
+                            statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
+                            statusLabel.textContent = '사용중 (렌트)';
+                        } else {
+                            statusBadge.className = 'info-badge bg-yellow-100 text-yellow-800 text-xs';
+                            statusLabel.textContent = '사용중';
+                        }
+                    } else {
+                        statusBadge.className = 'info-badge bg-green-100 text-green-800 text-xs';
+                        statusIcon.className = 'fas fa-check-circle mr-1';
+                        statusLabel.textContent = '휴차중';
+                    }
+                }
+            }
+            
+            if (hasContract) {
+                // 계약자 정보 업데이트
+                const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                if (contractorEl) {
+                    contractorEl.innerHTML = `
+                        <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
+                        <div>
+                            <p class="text-xs text-gray-500">계약자</p>
+                            <p class="font-bold text-gray-900 truncate">${motorcycle.customer_name || '-'}</p>
+                        </div>
+                    `;
+                }
+                
+                // 계약 기간 진행률 업데이트
+                if (motorcycle.start_date && motorcycle.end_date) {
+                    const contractProgress = calculateInsuranceProgress(motorcycle.start_date, motorcycle.end_date);
+                    
+                    const contractStatusEl = document.getElementById(`contract-status-${motorcycleId}`);
+                    if (contractStatusEl) {
+                        contractStatusEl.innerHTML = `
+                            <span class="font-bold ${contractProgress.isExpired ? 'text-red-600' : contractProgress.isExpiringSoon ? 'text-yellow-600' : 'text-blue-600'}">
+                                ${contractProgress.isExpired ? '⚠️ 만료' : `${contractProgress.remainingDays}일`}
+                            </span>
+                        `;
+                    }
+                    
+                    const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
+                    if (contractBarEl) {
+                        let progressClass = 'progress-safe';
+                        if (contractProgress.isExpired) progressClass = 'progress-danger';
+                        else if (contractProgress.isExpiringSoon) progressClass = 'progress-warning';
+                        else if (contractProgress.remainingPercentage < 50) progressClass = 'progress-warning';
+                        
+                        contractBarEl.innerHTML = `
+                            <div class="progress-bar ${progressClass}" style="width: ${contractProgress.percentage}%">
+                                ${contractProgress.percentage > 20 ? `${contractProgress.percentage}%` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    const contractDatesEl = document.getElementById(`contract-dates-${motorcycleId}`);
+                    if (contractDatesEl) {
+                        contractDatesEl.innerHTML = `
+                            <span>${motorcycle.start_date}</span>
+                            <span>${motorcycle.end_date}</span>
+                        `;
+                    }
+                }
+            }
+        }
+        
+        // 이전 loadContractInfo 함수 (사용 안 함 - 주석 처리)
+        async function loadContractInfo_OLD(motorcycleId) {
             try {
                 const response = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`);
                 const contracts = response.data;
@@ -1134,20 +1462,35 @@
                 }
                 
                 if (activeContract) {
-                    // 계약자 정보 업데이트
-                    const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
-                    if (contractorEl) {
-                        contractorEl.innerHTML = `
-                            <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
-                            <div>
-                                <p class="text-xs text-gray-500">계약자</p>
-                                <p class="font-bold text-gray-900 truncate">${activeContract.customer_name || '-'}</p>
-                            </div>
-                        `;
+                    // 계약자 정보 업데이트 (폐지 상태가 아닐 때만)
+                    if (motorcycle && motorcycle.status !== 'scrapped') {
+                        const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                        if (contractorEl) {
+                            contractorEl.innerHTML = `
+                                <i class="fas fa-user-tie w-3 text-purple-500 mr-1"></i>
+                                <div>
+                                    <p class="text-xs text-gray-500">계약자</p>
+                                    <p class="font-bold text-gray-900 truncate">${activeContract.customer_name || '-'}</p>
+                                </div>
+                            `;
+                        }
+                    } else if (motorcycle && motorcycle.status === 'scrapped') {
+                        // 폐지 상태면 계약자 정보 숨기기
+                        const contractorEl = document.getElementById(`contractor-info-${motorcycleId}`);
+                        if (contractorEl) {
+                            contractorEl.innerHTML = `
+                                <i class="fas fa-user-tie w-3 text-gray-400 mr-1"></i>
+                                <div>
+                                    <p class="text-xs text-gray-500">계약자</p>
+                                    <p class="font-bold text-gray-400 truncate">-</p>
+                                </div>
+                            `;
+                        }
                     }
                     
-                    // 계약 기간 프로그레스 바 업데이트
-                    const progress = calculateInsuranceProgress(activeContract.start_date, activeContract.end_date);
+                    // 계약 기간 프로그레스 바 업데이트 (폐지 상태가 아닐 때만)
+                    if (motorcycle && motorcycle.status !== 'scrapped') {
+                        const progress = calculateInsuranceProgress(activeContract.start_date, activeContract.end_date);
                     
                     let progressClass = 'progress-safe';
                     let warningMessage = '';
@@ -1181,13 +1524,20 @@
                     }
                     
                     // 상태 배지 옆에 남은 일수 추가 (크고 진한 색상)
-                    if (statusLabel) {
+                    const statusLabelEl = document.getElementById(`status-label-${motorcycleId}`);
+                    if (statusLabelEl) {
                         const remainingDaysHtml = `<span class="font-extrabold ml-2 text-base ${progress.remainingDays <= 10 ? 'text-red-700' : progress.remainingDays <= 30 ? 'text-yellow-700' : 'text-blue-700'}">${progress.isExpired ? '⚠️ 만료' : `${progress.remainingDays}일`}</span>`;
-                        statusLabel.innerHTML = statusLabel.textContent + remainingDaysHtml;
+                        statusLabelEl.innerHTML = statusLabelEl.textContent + remainingDaysHtml;
                     }
                     
                     const contractBarEl = document.getElementById(`contract-bar-${motorcycleId}`);
                     if (contractBarEl) {
+                        // 기존 경고 메시지 제거 (중복 방지)
+                        const existingWarning = contractBarEl.nextElementSibling;
+                        if (existingWarning && existingWarning.classList.contains('bg-gradient-to-r')) {
+                            existingWarning.remove();
+                        }
+                        
                         contractBarEl.innerHTML = `
                             <div class="progress-bar ${progressClass}" style="width: ${progress.percentage}%">
                                 ${progress.percentage > 15 ? `${progress.percentage}%` : ''}
@@ -1205,6 +1555,7 @@
                             <span>${activeContract.end_date || '-'}</span>
                         `;
                     }
+                    } // 폐지 상태가 아닐 때만 계약 기간 정보 업데이트
                 }
             } catch (error) {
                 console.error(`Error loading contract info for motorcycle ${motorcycleId}:`, error);
@@ -1215,7 +1566,10 @@
             try {
                 console.log('🔍 오토바이 이력 조회 시작:', motorcycleId);
                 
-                // 즉시 모달 표시 (로딩 상태)
+                // 즉시 모달 표시 (먼저 표시)
+                document.getElementById('historyModal').classList.remove('hidden');
+                
+                // 로딩 상태 표시
                 document.getElementById('motorcycleInfo').innerHTML = `
                     <div class="text-center py-4">
                         <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
@@ -1228,11 +1582,9 @@
                         <p class="text-gray-600 mt-3">이력을 불러오는 중...</p>
                     </div>
                 `;
-                document.getElementById('historyModal').classList.remove('hidden');
                 
                 const sessionId = localStorage.getItem('sessionId');
                 const headers = sessionId ? { 'X-Session-ID': sessionId } : {};
-                console.log('📡 세션 ID:', sessionId ? '있음' : '없음');
                 
                 // 개별적으로 데이터 조회 (한 개 실패해도 나머지 표시)
                 let motorcycle = null;
@@ -1240,32 +1592,26 @@
                 let detailedHistory = [];
                 
                 try {
-                    console.log('📡 오토바이 정보 조회 중...');
                     const motorcycleResponse = await axios.get(`/api/motorcycles/${motorcycleId}`, { headers });
                     motorcycle = motorcycleResponse.data;
-                    console.log('✅ 오토바이 정보 조회 성공:', motorcycle);
                 } catch (error) {
-                    console.error('❌ 오토바이 정보 조회 실패:', error);
+                    console.error('오토바이 정보 조회 실패:', error);
                     throw new Error('오토바이 정보를 불러올 수 없습니다');
                 }
                 
                 try {
-                    console.log('📡 계약 이력 조회 중...');
                     const historyResponse = await axios.get(`/api/motorcycles/${motorcycleId}/contracts`, { headers });
                     contracts = historyResponse.data || [];
-                    console.log('✅ 계약 이력 조회 성공:', contracts.length, '건');
                 } catch (error) {
-                    console.error('❌ 계약 이력 조회 실패:', error);
+                    console.error('계약 이력 조회 실패:', error);
                     contracts = [];
                 }
                 
                 try {
-                    console.log('📡 상세 이력 조회 중...');
                     const detailedHistoryResponse = await axios.get(`/api/motorcycles/${motorcycleId}/history`, { headers });
                     detailedHistory = detailedHistoryResponse.data?.history || [];
-                    console.log('✅ 상세 이력 조회 성공:', detailedHistory.length, '건');
                 } catch (error) {
-                    console.error('❌ 상세 이력 조회 실패:', error);
+                    console.error('상세 이력 조회 실패:', error);
                     detailedHistory = [];
                 }
                 
@@ -1285,150 +1631,170 @@
                 document.getElementById('motorcycleInfo').innerHTML = `
                     <h3 class="text-lg font-bold mb-2">${motorcycle.vehicle_name}</h3>
                     <div class="grid grid-cols-2 gap-2 text-sm">
-                        <p><strong>번호판:</strong> ${motorcycle.plate_number || '(폐지됨)'}</p>
+                        <p>
+                            <strong>번호판:</strong> ${motorcycle.plate_number || '(폐지됨)'}
+                            ${motorcycle.status === 'scrapped' ? `
+                                <button 
+                                    onclick="editPlateNumber(${motorcycleId})" 
+                                    class="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                                    title="번호판 수정"
+                                >
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
+                        </p>
                         <p><strong>차대번호:</strong> ${motorcycle.chassis_number}</p>
                         <p><strong>연식:</strong> ${motorcycle.model_year}년</p>
                         ${previousPlateNumber ? `<p class="col-span-2 text-orange-600"><strong>폐지 전 번호판:</strong> ${previousPlateNumber}</p>` : ''}
                     </div>
                 `;
                 
-                // 계약 이력 표시
-                if (contracts.length === 0) {
+                // 계약 이력 및 상세 이력 통합 표시
+                if (contracts.length === 0 && (!detailedHistory || detailedHistory.length === 0)) {
                     document.getElementById('contractHistory').innerHTML = `
                         <div class="text-center py-8 text-gray-500">
                             <i class="fas fa-inbox text-4xl mb-2 opacity-50"></i>
-                            <p>계약 이력이 없습니다</p>
+                            <p>이력이 없습니다</p>
                         </div>
                     `;
                 } else {
-                    const statusColors = {
-                        'active': 'bg-green-100 text-green-800',
-                        'completed': 'bg-gray-100 text-gray-800',
-                        'cancelled': 'bg-red-100 text-red-800'
-                    };
-                    const statusTexts = {
-                        'active': '진행중',
-                        'completed': '완료',
-                        'cancelled': '취소'
-                    };
-                    const typeTexts = {
-                        'lease': '리스',
-                        'rent': '렌트',
-                        'individual': '개인',
-                        'temp_rent': '임시렌트'
-                    };
-                    const actionTypeTexts = {
-                        'created': '생성',
-                        'updated': '변경',
-                        'completed': '완료',
-                        'cancelled': '해지',
-                        'replaced': '대체'
-                    };
-                    const actionTypeColors = {
-                        'created': 'text-blue-600',
-                        'updated': 'text-purple-600',
-                        'completed': 'text-gray-600',
-                        'cancelled': 'text-red-600',
-                        'replaced': 'text-orange-600'
-                    };
+                    // 전역 변수에 저장 (상세보기용)
+                    if (detailedHistory && detailedHistory.length > 0) {
+                        currentHistoryData = detailedHistory;
+                    }
+                    
+                    // 모든 이력 통합 (계약 완료 이력 + 상세 이력)
+                    let allHistory = [];
+                    
+                    // 1. 완료된 계약만 이력으로 추가 (completed 또는 cancelled만)
+                    contracts
+                        .filter(c => c.status === 'completed' || c.status === 'cancelled')
+                        .forEach(contract => {
+                            // 실제 종료 날짜: completed_at 또는 cancelled_at (계약 기간 end_date가 아님!)
+                            const actualEndDate = contract.completed_at || contract.cancelled_at;
+                            console.log('📅 계약 종료일 확인:', {
+                                contract_number: contract.contract_number,
+                                status: contract.status,
+                                completed_at: contract.completed_at,
+                                cancelled_at: contract.cancelled_at,
+                                actualEndDate: actualEndDate,
+                                formatted: actualEndDate ? formatDate(actualEndDate) : '-'
+                            });
+                            
+                            const statusText = contract.status === 'completed' ? '계약 완료' : '계약 해지';
+                            const typeText = contract.contract_type === 'temp_rent' ? '임시렌트' : 
+                                           contract.contract_type === 'lease' ? '리스' : 
+                                           contract.contract_type === 'rent' ? '렌트' : '개인';
+                            
+                            allHistory.push({
+                                change_date: actualEndDate || contract.created_at,
+                                field_name: statusText,
+                                display: `${contract.contract_number} | ${contract.customer_name || contract.company_name || '알 수 없음'} | 계약기간: ${contract.start_date} ~ ${contract.end_date || '-'} | 실제종료: ${actualEndDate ? formatDate(actualEndDate) : '-'}`,
+                                type: 'contract',
+                                icon: 'fas fa-file-contract',
+                                color: 'text-blue-700',
+                                bgColor: 'bg-blue-50'
+                            });
+                        });
+                    
+                    // 2. 상세 이력 추가 (보험, 오토바이 정보 변경 등)
+                    if (detailedHistory && detailedHistory.length > 0) {
+                        console.log('🔍 상세 이력 데이터:', detailedHistory);
+                        detailedHistory.forEach((h, index) => {
+                            // 계약 완료/해지 이력은 제외 (위에서 이미 추가함)
+                            if (h.field_name !== '계약 완료' && h.field_name !== '업체계약 완료' && h.field_name !== '계약 해지') {
+                                console.log(`✅ 이력 추가 [${index}]:`, {
+                                    field_name: h.field_name,
+                                    current_plate_number: h.current_plate_number,
+                                    current_owner_name: h.current_owner_name,
+                                    current_contractor_name: h.current_contractor_name
+                                });
+                                allHistory.push({
+                                    change_date: h.change_date,
+                                    field_name: h.field_name,
+                                    display: `${h.old_value || '-'} → ${h.new_value || '-'}`,
+                                    type: 'detail',
+                                    icon: 'fas fa-edit',
+                                    color: 'text-purple-600',
+                                    bgColor: 'bg-purple-50',
+                                    changed_by_name: h.changed_by_name,
+                                    notes: h.notes,
+                                    index: index,
+                                    current_plate_number: h.current_plate_number,
+                                    current_owner_name: h.current_owner_name,
+                                    current_contractor_name: h.current_contractor_name
+                                });
+                            }
+                        });
+                    }
+                    
+                    console.log('📋 최종 통합 이력:', allHistory);
+                    
+                    // 날짜순 정렬 (최신순)
+                    allHistory.sort((a, b) => new Date(b.change_date) - new Date(a.change_date));
                     
                     let historyHtml = `
-                        <div class="space-y-6">
-                            <div>
-                                <h4 class="font-bold text-gray-700 mb-4">📋 계약 목록 (총 ${contracts.length}건)</h4>
-                                <div class="space-y-3">
-                                    ${contracts.map(contract => `
-                                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <p class="font-bold text-gray-800">${contract.contract_number || '번호없음'}</p>
-                                                    <p class="text-sm"><span class="font-bold text-gray-900">${contract.customer_name}</span> <span class="text-gray-600">(${contract.customer_phone})</span></p>
-                                                </div>
-                                                <div class="flex gap-2">
-                                                    <span class="px-2 py-1 rounded text-xs font-bold ${statusColors[contract.status]}">
-                                                        ${statusTexts[contract.status]}
-                                                    </span>
-                                                    <span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
-                                                        ${typeTexts[contract.contract_type] || contract.contract_type}
+                        <div>
+                            <h4 class="font-bold text-gray-700 mb-4 text-lg">📋 이력 (총 ${allHistory.length}건)</h4>
+                            <div class="space-y-2 max-h-[600px] overflow-y-auto">
+                                ${allHistory.map(h => `
+                                    <div class="${h.bgColor} p-3 rounded-lg border border-gray-200 hover:shadow-md transition-all">
+                                        <div class="flex items-start gap-3">
+                                            <div class="flex-shrink-0 w-8 h-8 ${h.bgColor} rounded-full flex items-center justify-center ${h.color}">
+                                                <i class="${h.icon}"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="font-bold ${h.color}">${h.field_name}</span>
+                                                    <span class="text-gray-500 text-xs">
+                                                        ${formatKSTDateTime(h.change_date)}
                                                     </span>
                                                 </div>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                                <p><strong>계약기간:</strong> ${contract.start_date && contract.end_date ? `${formatDate(contract.start_date)} ~ ${formatDate(contract.end_date)}` : '-'}</p>
-                                                <p><strong>월납부금:</strong> ${Number(contract.monthly_fee).toLocaleString()}원</p>
-                                                <p><strong>선납금:</strong> ${Number(contract.deposit || 0).toLocaleString()}원</p>
-                                                <p><strong>작성일:</strong> ${contract.created_at ? new Date(contract.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. ') : '-'}</p>
-                                                ${contract.status === 'cancelled' && contract.cancelled_at ? `
-                                                    <p class="text-red-600 font-bold col-span-2"><strong>해지일:</strong> ${formatDate(contract.cancelled_at)}</p>
-                                                ` : ''}
-                                                ${contract.status === 'completed' && contract.completed_at ? `
-                                                    <p class="text-gray-600 font-bold col-span-2"><strong>완료일:</strong> ${formatDate(contract.completed_at)}</p>
-                                                ` : ''}
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>`;
-                    
-                    // 상세 이력이 있으면 추가
-                    if (detailedHistory && detailedHistory.length > 0) {
-                        // 전역 변수에 저장 (상세보기용)
-                        currentHistoryData = detailedHistory;
-                        
-                        historyHtml += `
-                            <div class="border-t pt-4">
-                                <h4 class="font-bold text-gray-700 mb-3">📝 상세 이력 (총 ${detailedHistory.length}건)</h4>
-                                <div class="space-y-1.5 max-h-96 overflow-y-auto">
-                                    ${detailedHistory.map((h, index) => `
-                                        <div class="bg-white p-3 rounded border border-gray-200 text-sm hover:bg-gray-50 transition-colors">
-                                            <div class="flex justify-between items-start gap-2">
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center gap-2 mb-1">
-                                                        <span class="font-bold text-purple-600">
-                                                            <i class="fas fa-edit"></i>
-                                                            ${h.field_name || '변경'}
-                                                        </span>
-                                                        <span class="text-gray-500 text-xs">
-                                                            ${new Date(h.change_date).toLocaleDateString('ko-KR')} ${new Date(h.change_date).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}
-                                                        </span>
-                                                    </div>
-                                                    <div class="text-gray-700 pl-5">
-                                                        <span class="text-red-600 line-through">${h.old_value || '-'}</span>
-                                                        <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
-                                                        <span class="text-green-600 font-medium">${h.new_value || '-'}</span>
-                                                    </div>
-                                                    ${h.changed_by_name ? `
-                                                        <div class="text-xs mt-1 pl-5">
-                                                            <span class="text-gray-500">변경자:</span> <span class="font-bold text-gray-900">${h.changed_by_name}</span>
-                                                        </div>
-                                                    ` : ''}
-                                                    ${h.notes ? `
-                                                        <div class="text-xs text-gray-600 mt-1 pl-5 bg-gray-50 p-2 rounded">
-                                                            <i class="fas fa-comment-alt mr-1"></i>
-                                                            ${h.notes}
-                                                        </div>
-                                                    ` : ''}
+                                                <div class="text-sm text-gray-700">
+                                                    ${h.display}
                                                 </div>
+                                                ${h.changed_by_name ? `
+                                                    <div class="text-xs text-gray-500 mt-1">
+                                                        변경자: <span class="font-bold">${h.changed_by_name}</span>
+                                                    </div>
+                                                ` : ''}
+                                                ${h.current_plate_number || h.current_owner_name || h.current_contractor_name ? `
+                                                    <div class="text-xs text-blue-600 mt-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                                        <i class="fas fa-motorcycle mr-1"></i>
+                                                        ${h.current_plate_number ? `번호판: <span class="font-bold">${h.current_plate_number}</span>` : ''}
+                                                        ${h.current_plate_number && (h.current_owner_name || h.current_contractor_name) ? ' / ' : ''}
+                                                        ${h.current_owner_name ? `명의자: <span class="font-bold">${h.current_owner_name}</span>` : ''}
+                                                        ${h.current_owner_name && h.current_contractor_name ? ' / ' : ''}
+                                                        ${h.current_contractor_name ? `계약자: <span class="font-bold">${h.current_contractor_name}</span>` : ''}
+                                                    </div>
+                                                ` : ''}
+                                                ${h.notes && h.type === 'detail' ? `
+                                                    <div class="text-xs text-gray-600 mt-1 bg-white p-2 rounded">
+                                                        <i class="fas fa-comment-alt mr-1"></i>
+                                                        ${h.notes}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                            ${h.type === 'detail' && h.index !== undefined ? `
                                                 <button 
-                                                    onclick="showHistoryDetail(${index})"
+                                                    onclick="showHistoryDetail(${h.index})"
                                                     class="flex-shrink-0 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
                                                     title="상세보기"
                                                 >
                                                     <i class="fas fa-eye mr-1"></i>
                                                     상세
                                                 </button>
-                                            </div>
+                                            ` : ''}
                                         </div>
-                                    `).join('')}
-                                </div>
+                                    </div>
+                                `).join('')}
                             </div>
-                        `;
-                    }
+                        </div>
+                    `;
                     
-                    historyHtml += `</div>`;
                     document.getElementById('contractHistory').innerHTML = historyHtml;
                 }
-                
+                        
                 document.getElementById('historyModal').classList.remove('hidden');
             } catch (error) {
                 console.error('Error loading contract history:', error);
@@ -1492,9 +1858,9 @@
                         <!-- 변경 정보 -->
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-gray-50 p-3 rounded">
-                                <p class="text-xs text-gray-600 mb-1">변경 일시</p>
+                                <p class="text-xs text-gray-600 mb-1">변경 일시 (KST)</p>
                                 <p class="text-sm font-medium text-gray-800">
-                                    ${new Date(history.change_date).toLocaleString('ko-KR', {
+                                    ${toKST(history.change_date).toLocaleString('ko-KR', {
                                         year: 'numeric',
                                         month: '2-digit',
                                         day: '2-digit',
@@ -1532,6 +1898,30 @@
                                 <p class="text-sm text-gray-800 whitespace-pre-wrap">
                                     ${history.change_type === 'scrapped' && history.field_name === '폐지 처리' && history.old_value && history.old_value !== '-' ? `폐지 전 번호판: ${history.old_value}\n\n` : ''}${history.notes || ''}
                                 </p>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- 변경 당시 오토바이 정보 -->
+                        ${history.current_plate_number || history.current_owner_name ? `
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <p class="text-xs text-blue-600 font-semibold mb-3">
+                                    <i class="fas fa-motorcycle mr-1"></i>
+                                    변경 당시 오토바이 정보
+                                </p>
+                                <div class="grid grid-cols-2 gap-4">
+                                    ${history.current_plate_number ? `
+                                    <div>
+                                        <p class="text-xs text-gray-600 mb-1">번호판</p>
+                                        <p class="text-sm font-bold text-blue-700">${history.current_plate_number}</p>
+                                    </div>
+                                    ` : ''}
+                                    ${history.current_owner_name ? `
+                                    <div>
+                                        <p class="text-xs text-gray-600 mb-1">명의자</p>
+                                        <p class="text-sm font-bold text-blue-700">${history.current_owner_name}</p>
+                                    </div>
+                                    ` : ''}
+                                </div>
                             </div>
                         ` : ''}
                     </div>
@@ -1692,10 +2082,29 @@
                     const activeContract = contractResponse.data.find(c => c.status === 'active');
                     
                     if (activeContract) {
+                        // 계약 타입 변환
+                        let contractTypeText = '';
+                        const contractType = activeContract.contract_type;
+                        
+                        // 빈 문자열이거나 null/undefined인 경우 '개인'으로 기본값 설정
+                        if (!contractType || contractType.trim() === '') {
+                            contractTypeText = '개인';
+                        } else if (contractType === 'lease') {
+                            contractTypeText = '리스';
+                        } else if (contractType === 'rent') {
+                            contractTypeText = '렌트';
+                        } else if (contractType === 'temp_rent') {
+                            contractTypeText = '임시렌트';
+                        } else if (contractType === 'business') {
+                            contractTypeText = '업체';
+                        } else if (contractType === 'personal') {
+                            contractTypeText = '개인';
+                        } else {
+                            contractTypeText = contractType;
+                        }
+                        
                         document.getElementById('monthlyFee').value = activeContract.monthly_fee || '';
-                        document.getElementById('contractType').value = activeContract.contract_type === 'personal' ? '개인' : 
-                                                                         activeContract.contract_type === 'business' ? '업체' : 
-                                                                         activeContract.contract_type === 'temp_rent' ? '임시렌트' : '';
+                        document.getElementById('contractType').value = contractTypeText;
                         document.getElementById('deposit').value = activeContract.deposit || '';
                         document.getElementById('contractStartDate').value = activeContract.start_date || '';
                         document.getElementById('contractEndDate').value = activeContract.end_date || '';
@@ -1717,6 +2126,8 @@
                             document.getElementById('deposit').value = activeBusiness.deposit || '';
                             document.getElementById('contractStartDate').value = activeBusiness.contract_start_date || '';
                             document.getElementById('contractEndDate').value = activeBusiness.contract_end_date || '';
+                            
+                            console.log('✅ 업체 계약 정보 로드 완료');
                             
                             // 보험 정보
                             document.getElementById('insuranceCompany').value = m.insurance_company || '';
@@ -1805,6 +2216,7 @@
                 
                 console.log('✅ 기본 정보 수정 완료');
                 alert('✅ 기본 정보가 수정되었습니다');
+                hideModal();  // 모달 닫기
                 loadMotorcycles();
             } catch (error) {
                 console.error('❌ 기본 정보 저장 실패:', error);
@@ -1846,6 +2258,7 @@
                 
                 console.log('✅ 계약 정보 수정 완료');
                 alert('✅ 계약 정보가 수정되었습니다');
+                hideModal();  // 모달 닫기
                 loadMotorcycles();
             } catch (error) {
                 console.error('❌ 계약 정보 저장 실패:', error);
@@ -1854,6 +2267,81 @@
         }
 
         // 보험 정보 저장
+        // 특이사항 저장 (이력에 기록되지 않음)
+        async function saveUsageNotes() {
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('⚠️ 로그인이 필요합니다.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+
+                const id = document.getElementById('motorcycleId').value;
+                if (!id) {
+                    alert('오토바이 ID가 없습니다');
+                    return;
+                }
+                
+                const usageNotes = document.getElementById('usageNotes').value;
+                
+                await axios.put(`/api/motorcycles/${id}`, {
+                    usage_notes: usageNotes
+                }, {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+                
+                alert('✅ 특이사항이 저장되었습니다');
+                
+                // 카드의 메모 영역 즉시 업데이트
+                const motorcycleCard = document.querySelector(`[data-motorcycle-id="${id}"]`);
+                if (motorcycleCard) {
+                    // 기존 메모 영역 찾기
+                    const notesArea = motorcycleCard.querySelector('.usage-notes-area');
+                    if (notesArea) {
+                        if (usageNotes) {
+                            // 메모가 있으면 업데이트
+                            notesArea.innerHTML = `
+                                <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200">
+                                    <i class="fas fa-sticky-note w-3 text-orange-500 mr-0.5 mt-0.5 flex-shrink-0"></i>
+                                    <p class="text-xs text-gray-700 whitespace-pre-wrap leading-tight">${usageNotes}</p>
+                                </div>
+                            `;
+                        } else {
+                            // 메모가 없으면 영역 제거
+                            notesArea.innerHTML = '';
+                        }
+                    } else if (usageNotes) {
+                        // 메모 영역이 없었는데 새로 추가된 경우
+                        const infoGrid = motorcycleCard.querySelector('.grid.grid-cols-2.gap-1.text-xs');
+                        if (infoGrid) {
+                            const notesDiv = document.createElement('div');
+                            notesDiv.className = 'col-span-2 usage-notes-area';
+                            notesDiv.innerHTML = `
+                                <div class="flex items-start bg-orange-50 p-0.5 rounded border border-orange-200">
+                                    <i class="fas fa-sticky-note w-3 text-orange-500 mr-0.5 mt-0.5 flex-shrink-0"></i>
+                                    <p class="text-xs text-gray-700 whitespace-pre-wrap leading-tight">${usageNotes}</p>
+                                </div>
+                            `;
+                            // 계약자 정보 앞에 삽입
+                            const contractorInfo = motorcycleCard.querySelector('[id^="contractor-info-"]');
+                            if (contractorInfo) {
+                                contractorInfo.parentNode.insertBefore(notesDiv, contractorInfo);
+                            }
+                        }
+                    }
+                }
+                
+                // 캐시 무효화하고 즉시 반영
+                loadMotorcycles(true);
+            } catch (error) {
+                console.error('특이사항 저장 실패:', error);
+                alert(`❌ 특이사항 저장에 실패했습니다\n\n${error.response?.data?.error || error.message}`);
+            }
+        }
+
         async function saveInsuranceInfo() {
             console.log('🔄 보험 정보 저장 시작...');
             try {
@@ -1927,33 +2415,61 @@
                 console.log('✅ 보험 정보 업데이트 응답:', updateResponse.data);
                 console.log('✅ 보험 정보 업데이트 완료');
                 
+                // ✅ 성공 확인: success 필드 체크
+                if (!updateResponse.data || updateResponse.data.success === false) {
+                    throw new Error(updateResponse.data?.error || '업데이트 응답이 올바르지 않습니다');
+                }
+                
+                // 현재 오토바이 정보 조회
+                const currentMotorcycle = motorcycles.find(m => m.id == id);
+                const wasScrappedOrMaintenance = currentMotorcycle && (currentMotorcycle.status === 'scrapped' || currentMotorcycle.status === 'maintenance');
+                
                 // 모달 닫기
                 hideModal();
                 
-                // 4. 결과 메시지
+                // 4. 성공 메시지 (최우선 표시)
+                
                 if (activeContracts.length > 0) {
                     alert(
                         `✅ 보험 정보가 수정되었습니다\n\n` +
                         `업데이트된 계약: ${activeContracts.length}건\n` +
                         `• 계약 상태: 진행 중 (유지)\n` +
                         `• 계약서 보험 정보: 자동 업데이트됨\n` +
-                        `• 오토바이 상태: 그대로 유지`
+                        `• 오토바이 상태: ${wasScrappedOrMaintenance ? '그대로 유지 (차량번호도 변경해야 휴차중 전환)' : '그대로 유지'}`
                     );
                 } else {
-                    alert('✅ 보험 정보가 수정되었습니다');
-                }
-                
-                // 목록 새로고침 (await 완료 대기)
-                await loadMotorcycles();
-                
-                // 상세보기 다시 열기 (에러가 발생해도 계속 진행)
-                try {
-                    if (typeof showDetail === 'function') {
-                        showDetail(id);
+                    if (wasScrappedOrMaintenance) {
+                        alert('✅ 보험 정보가 수정되었습니다\n\n💡 휴차중으로 전환하려면 차량번호도 함께 변경해주세요!');
+                    } else {
+                        alert('✅ 보험 정보가 수정되었습니다');
                     }
-                } catch (detailError) {
-                    console.warn('⚠️ 상세보기 열기 실패 (무시):', detailError);
                 }
+                
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
+                // 목록 새로고침 (비동기로 처리하여 사용자 경험 개선)
+                console.log('🔄 오토바이 목록 새로고침 시작...');
+                loadMotorcycles(true).then(() => {
+                    console.log('✅ 목록 새로고침 완료');
+                }).catch(err => {
+                    console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
+                });
+                
+                // 이력 모달 다시 열기 (비동기로 처리)
+                setTimeout(async () => {
+                    try {
+                        if (typeof showHistory === 'function') {
+                            console.log('🔄 이력 모달 다시 열기...');
+                            await showHistory(id);
+                            console.log('✅ 이력 모달 열기 완료');
+                        }
+                    } catch (detailError) {
+                        console.warn('⚠️ 이력 모달 열기 실패 (무시):', detailError);
+                    }
+                }, 500); // 500ms 후 이력 모달 열기 (목록 로딩과 동시 진행)
             } catch (error) {
                 console.error('❌ 보험 정보 저장 실패:', error);
                 alert('❌ 보험 정보 저장에 실패했습니다\n\n' + (error.response?.data?.error || error.message));
@@ -1974,10 +2490,130 @@
             try {
                 await axios.delete(`/api/motorcycles/${id}`);
                 alert('✅ 삭제되었습니다');
-                loadMotorcycles();
+                
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+                
+                // 캐시를 무시하고 강제 새로고침
+                loadMotorcycles(true);
             } catch (error) {
                 console.error('Error deleting motorcycle:', error);
                 alert('❌ 삭제에 실패했습니다');
+            }
+        }
+
+        // 폐지 오토바이의 번호판 수정 (보험정보와 함께 변경 시 휴차중 전환)
+        async function editPlateNumber(id) {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                alert('⚠️ 로그인이 필요합니다.');
+                window.location.href = '/static/login.html';
+                return;
+            }
+
+            try {
+                // 현재 오토바이 정보 조회
+                const response = await axios.get(`/api/motorcycles/${id}`, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                const motorcycle = response.data;
+
+                // 번호판 입력 받기
+                const newPlateNumber = prompt(
+                    `🚗 번호판 변경\n\n` +
+                    `현재 번호판: ${motorcycle.plate_number || '(없음)'}\n` +
+                    `현재 차대번호: ${motorcycle.chassis_number}\n\n` +
+                    `💡 번호판을 변경하면:\n` +
+                    `   ✅ 폐지/정비 상태 → 자동으로 휴차중 전환\n` +
+                    `   ✅ 새 번호판으로 즉시 업데이트\n\n` +
+                    `새 번호판을 입력하세요:`,
+                    motorcycle.plate_number || ''
+                );
+
+                // 취소 시
+                if (newPlateNumber === null) {
+                    console.log('번호판 수정 취소됨');
+                    return;
+                }
+
+                // 빈 값 체크
+                const trimmedPlateNumber = newPlateNumber.trim();
+                if (!trimmedPlateNumber) {
+                    alert('❌ 번호판을 입력해주세요!');
+                    return;
+                }
+
+                // 변경 없음
+                if (trimmedPlateNumber === motorcycle.plate_number) {
+                    alert('ℹ️ 번호판이 동일합니다.');
+                    return;
+                }
+
+                // 서버에 업데이트
+                console.log('💾 번호판 업데이트 시작...', { id, plate_number: trimmedPlateNumber });
+                const updateResponse = await axios.put(`/api/motorcycles/${id}`, {
+                    plate_number: trimmedPlateNumber
+                }, {
+                    headers: { 'X-Session-ID': sessionId }
+                });
+                console.log('✅ 번호판 업데이트 완료:', updateResponse.data);
+
+                // ✅ 성공 확인: success 필드 체크
+                if (!updateResponse.data || updateResponse.data.success === false) {
+                    throw new Error(updateResponse.data?.error || '업데이트 응답이 올바르지 않습니다');
+                }
+
+                // 모달 닫기
+                hideModal();
+
+                // 성공 메시지 (최우선 표시)
+                if (motorcycle.status === 'scrapped' || motorcycle.status === 'maintenance') {
+                    alert(
+                        `✅ 번호판이 변경되었습니다\n\n` +
+                        `• 새 번호판: ${trimmedPlateNumber}\n` +
+                        `• 상태 변경: 폐지/정비 → 휴차중 ✅\n\n` +
+                        `💡 오토바이가 자동으로 휴차중 상태로 전환되었습니다!`
+                    );
+                } else {
+                    alert(`✅ 번호판이 변경되었습니다\n\n• 새 번호판: ${trimmedPlateNumber}`);
+                }
+
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
+
+                // 목록 새로고침 (비동기로 처리하여 사용자 경험 개선)
+                console.log('🔄 오토바이 목록 새로고침 시작...');
+                loadMotorcycles(true).then(() => {
+                    console.log('✅ 목록 새로고침 완료');
+                }).catch(err => {
+                    console.warn('⚠️ 목록 새로고침 실패 (무시):', err);
+                });
+
+                // 이력 모달 다시 열기 (비동기로 처리)
+                setTimeout(async () => {
+                    try {
+                        if (typeof showHistory === 'function') {
+                            console.log('🔄 이력 모달 다시 열기...');
+                            await showHistory(id);
+                            console.log('✅ 이력 모달 열기 완료');
+                        }
+                    } catch (detailError) {
+                        console.warn('⚠️ 이력 모달 열기 실패 (무시):', detailError);
+                    }
+                }, 500); // 500ms 후 이력 모달 열기 (목록 로딩과 동시 진행)
+
+            } catch (error) {
+                console.error('❌ 번호판 수정 실패:', error);
+                if (error.response?.status === 401) {
+                    alert('⚠️ 세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                } else {
+                    alert(`❌ 번호판 수정 실패:\n${error.response?.data?.error || error.message}`);
+                }
             }
         }
 
@@ -1995,31 +2631,85 @@
 
                 console.log(`🔄 계약 해지 시작: 오토바이 #${id}`);
 
-                // 1. 해당 오토바이의 진행중인 모든 계약 찾기
-                const contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
-                    headers: { 'X-Session-ID': sessionId }
-                });
+                // 1. 해당 오토바이의 진행중인 모든 계약 찾기 (개인 + 업체)
+                console.log(`🔍 [1/3] 진행중인 계약 조회 중...`);
+                let contractsResponse;
+                try {
+                    contractsResponse = await axios.get(`/api/motorcycles/${id}/contracts`, {
+                        headers: { 'X-Session-ID': sessionId }
+                    });
+                } catch (contractFetchError) {
+                    console.error('❌ 계약 조회 실패:', contractFetchError);
+                    if (contractFetchError.response?.status === 401) {
+                        alert('❌ 세션이 만료되었습니다. 다시 로그인해주세요.');
+                        window.location.href = '/static/login.html';
+                    } else {
+                        alert(`❌ 계약 정보를 조회할 수 없습니다.\n\n${contractFetchError.response?.data?.error || contractFetchError.message}\n\n다시 시도해주세요.`);
+                    }
+                    return;
+                }
                 
-                const activeContracts = contractsResponse.data.filter(c => c.status === 'active');
-                console.log(`📋 진행중인 계약 ${activeContracts.length}건 발견`);
+                const allContracts = contractsResponse.data;
+                const activeContracts = allContracts.filter(c => c.status === 'active');
+                const personalContracts = activeContracts.filter(c => c.contract_source === 'personal');
+                const businessContracts = activeContracts.filter(c => c.contract_source === 'business');
                 
-                // 2. 모든 진행중인 계약을 'cancelled' 상태로 변경
-                for (const contract of activeContracts) {
-                    console.log(`  - 계약 해지: ${contract.contract_number}`);
-                    await axios.patch(`/api/contracts/${contract.id}/status`, 
-                        { status: 'cancelled' },
+                console.log(`📋 진행중인 계약 ${activeContracts.length}건 발견 (개인: ${personalContracts.length}, 업체: ${businessContracts.length})`);
+                
+                if (activeContracts.length === 0) {
+                    // 진행중인 계약이 없으면 오토바이 상태만 변경
+                    console.log('ℹ️ 진행중인 계약이 없습니다. 오토바이 상태만 변경합니다.');
+                    await axios.patch(`/api/motorcycles/${id}/status`, 
+                        { status: 'available' },
                         { headers: { 'X-Session-ID': sessionId } }
                     );
+                    alert('✅ 오토바이 상태가 휴차중으로 변경되었습니다.\n\n(진행중인 계약이 없었습니다)');
+                    sessionStorage.clear();
+                    window.location.reload();
+                    return;
                 }
-                console.log(`✅ 계약서 해지 완료: ${activeContracts.length}건`);
                 
-                // 3. 오토바이 상태를 available로 변경 (계약정보만 초기화, 기본정보와 보험정보는 유지)
-                console.log(`🔄 오토바이 상태 변경: available`);
+                // 2. 개인 계약 해지
+                console.log(`🔄 [2/3] 개인 계약 ${personalContracts.length}건 해지 중...`);
+                for (const contract of personalContracts) {
+                    console.log(`  - 개인 계약 해지: ${contract.contract_number}`);
+                    try {
+                        await axios.patch(`/api/contracts/${contract.id}/status`, 
+                            { status: 'cancelled' },
+                            { headers: { 'X-Session-ID': sessionId } }
+                        );
+                        console.log(`  ✅ 해지 성공: ${contract.contract_number}`);
+                    } catch (cancelError) {
+                        console.error(`  ❌ 해지 실패: ${contract.contract_number}`, cancelError);
+                        throw new Error(`개인 계약 ${contract.contract_number} 해지 실패: ${cancelError.response?.data?.error || cancelError.message}`);
+                    }
+                }
+                
+                // 3. 업체 계약 해지 (같은 API 사용)
+                console.log(`🔄 [2/3] 업체 계약 ${businessContracts.length}건 해지 중...`);
+                for (const contract of businessContracts) {
+                    console.log(`  - 업체 계약 해지: ${contract.contract_number}`);
+                    try {
+                        await axios.patch(`/api/contracts/${contract.id}/status`, 
+                            { status: 'cancelled' },
+                            { headers: { 'X-Session-ID': sessionId } }
+                        );
+                        console.log(`  ✅ 해지 성공: ${contract.contract_number}`);
+                    } catch (cancelError) {
+                        console.error(`  ❌ 해지 실패: ${contract.contract_number}`, cancelError);
+                        throw new Error(`업체 계약 ${contract.contract_number} 해지 실패: ${cancelError.response?.data?.error || cancelError.message}`);
+                    }
+                }
+                
+                console.log(`✅ [2/3] 계약서 해지 완료: ${activeContracts.length}건`);
+                
+                // 4. 오토바이 상태를 available로 변경 (계약정보만 초기화, 기본정보와 보험정보는 유지)
+                console.log(`🔄 [3/3] 오토바이 상태 변경: available`);
                 await axios.patch(`/api/motorcycles/${id}/status`, 
                     { status: 'available' },
                     { headers: { 'X-Session-ID': sessionId } }
                 );
-                console.log(`✅ 오토바이 상태 변경 완료`);
+                console.log(`✅ [3/3] 오토바이 상태 변경 완료`);
                 
                 alert(
                     `✅ 계약이 해지되었습니다!\n\n` +
@@ -2031,7 +2721,14 @@
                     `💡 보험은 유지되어 다음 계약에 사용할 수 있습니다.`
                 );
                 
-                loadMotorcycles();
+                // 🔥 모든 캐시 강제 삭제
+                sessionStorage.clear();
+                localStorage.removeItem('motorcycles_cache');
+                localStorage.removeItem('motorcycles_cache_time');
+                console.log('🗑️ 모든 캐시 강제 삭제 완료');
+                
+                // 🔄 강제 새로고침 (캐시 무시)
+                window.location.href = window.location.href.split('?')[0] + '?_=' + Date.now();
             } catch (error) {
                 console.error('❌ 계약 해지 실패:', error);
                 alert(`❌ 계약 해지에 실패했습니다.\n\n${error.response?.data?.error || error.message}`);
@@ -2041,16 +2738,26 @@
         // 사용 폐지 (오토바이 정보 초기화, 이력은 보존)
         async function scrapMotorcycle(id) {
             // 확인 메시지
-            if (!confirm('⚠️ 오토바이를 폐지하시겠습니까?\n\n폐지하면:\n✓ 계약 이력은 모두 보존됩니다\n✓ 차대번호, 연식, 차량명만 남습니다\n✓ 기타 정보는 초기화됩니다\n\n⚠️ 이 작업은 되돌릴 수 없습니다!')) {
+            if (!confirm('⚠️ 오토바이를 폐지하시겠습니까?\n\n폐지하면:\n✓ 계약 이력은 모두 보존됩니다\n✓ 차량번호, 차량명, 연식, 차대번호, 키로수, 검사기간, 특약사항(메모)만 남습니다\n✓ 보험정보, 계약정보, 기타 정보는 초기화됩니다\n\n⚠️ 이 작업은 되돌릴 수 없습니다!')) {
                 return;
             }
 
             try {
-                await axios.post(`/api/motorcycles/${id}/scrap`, { 
-                    usage_notes: '폐지됨'
-                });
-                alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 차량 정보: 초기화 완료');
-                loadMotorcycles();
+                // ✅ usage_notes 파라미터 제거 - 기존 메모 보존
+                await axios.post(`/api/motorcycles/${id}/scrap`);
+                
+                // ✅ 모든 캐시 완전 무효화
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 모든 캐시 무효화 완료');
+                
+                alert('✅ 오토바이가 폐지 처리되었습니다.\n\n• 계약 이력: 모두 보존\n• 유지된 정보: 차량번호, 차량명, 연식, 차대번호, 키로수, 검사기간, 특약사항\n• 초기화된 정보: 보험정보, 계약정보, 기타 정보');
+                
+                // ✅ 캐시를 무시하고 강제 새로고침 (await로 완료 대기)
+                await loadMotorcycles(true);
+                console.log('✅ UI 업데이트 완료');
             } catch (error) {
                 console.error('Error scrapping motorcycle:', error);
                 alert('❌ 폐지 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
@@ -2080,25 +2787,63 @@
                 insurance_fee: parseInt(document.getElementById('insuranceFee').value),
                 vehicle_price: parseInt(document.getElementById('vehiclePrice').value),
                 usage_notes: document.getElementById('usageNotes').value || '',
-                status: 'available', // 항상 available로 설정
+                // ✅ 수정 시에는 status를 보내지 않음 (백엔드에서 자동 처리)
                 certificate_photo: certificatePhotoData || null
             };
+            
+            // 새로 등록 시에만 status 추가
+            if (!id) {
+                data.status = 'available';
+            }
 
             try {
-                if (id) {
-                    await axios.put(`/api/motorcycles/${id}`, data);
-                    alert('수정되었습니다');
-                } else {
-                    await axios.post('/api/motorcycles', data);
-                    alert('등록되었습니다');
-                }
+                // ✅ 서버 요청 먼저 완료 대기 (데이터 확정 후 UI 업데이트)
+                const savePromise = id 
+                    ? axios.put(`/api/motorcycles/${id}`, data)
+                    : axios.post('/api/motorcycles', data);
+                
+                await savePromise;
+                console.log('✅ 오토바이 저장 완료 - 서버 응답 확인');
+                
+                // ✅ 저장 완료 후 모달 닫기
                 hideModal();
-                loadMotorcycles();
+                
+                // ✅ 모든 캐시 완전 무효화 (대시보드 + 오토바이 목록)
+                sessionStorage.removeItem('motorcycles_cache');
+                sessionStorage.removeItem('motorcycles_cache_time');
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 모든 캐시 무효화 완료');
+                
+                // ✅ 서버 저장 완료 후 즉시 최신 데이터 가져오기 (forceRefresh=true)
+                await loadMotorcycles(true);
+                console.log('✅ UI 업데이트 완료');
+                
             } catch (error) {
                 console.error('Error saving motorcycle:', error);
-                alert('저장에 실패했습니다');
+                alert('저장에 실패했습니다: ' + (error.response?.data?.error || error.message));
+                // 에러 발생 시에도 다시 로드 (서버 상태 동기화)
+                await loadMotorcycles(true);
             }
         });
+
+        // 기존 계약 이력 통합 (마이그레이션)
+        async function migrateContractHistory() {
+            if (!confirm('⚠️ 기존 계약 이력을 통합 이력으로 마이그레이션하시겠습니까?\n\n이미 마이그레이션된 이력은 건너뜁니다.')) {
+                return;
+            }
+            
+            try {
+                console.log('🔄 계약 이력 마이그레이션 시작...');
+                const response = await axios.post('/api/motorcycles/migrate-contract-history');
+                
+                console.log('✅ 마이그레이션 완료:', response.data);
+                alert(`✅ 마이그레이션 완료!\n\n마이그레이션: ${response.data.migrated}건\n건너뜀: ${response.data.skipped}건\n총: ${response.data.total}건`);
+            } catch (error) {
+                console.error('❌ 마이그레이션 실패:', error);
+                alert('❌ 마이그레이션 실패: ' + (error.response?.data?.error || error.message));
+            }
+        }
 
         // 사용 이력 조회
         async function searchHistory() {
@@ -2150,8 +2895,39 @@
             
             const typeTexts = { 'lease': '리스', 'rent': '렌트', 'business': '업체리스/렌트' };
             const statusTexts = { 'active': '진행중', 'completed': '완료', 'cancelled': '취소', 'pending': '대기' };
+            const changeTypeTexts = { 
+                'update': '정보수정', 
+                'status_change': '상태변경', 
+                'insurance_update': '보험변경',
+                'inspection_update': '검사변경',
+                'scrapped': '폐지처리',
+                'maintenance': '정비'
+            };
             
             const historyHtml = history.map((h, index) => {
+                // 변경 이력인 경우
+                if (h.history_type === 'change') {
+                    return `
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-edit text-purple-600"></i>
+                                    <span class="font-bold text-purple-900">${changeTypeTexts[h.change_type] || h.change_type}</span>
+                                    <span class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-700">${h.field_name}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">${new Date(h.created_at).toLocaleString('ko-KR')}</span>
+                            </div>
+                            <div class="text-sm space-y-1">
+                                ${h.old_value ? `<p><strong>변경 전:</strong> ${h.old_value}</p>` : ''}
+                                ${h.new_value ? `<p><strong>변경 후:</strong> ${h.new_value}</p>` : ''}
+                                ${h.notes ? `<p class="text-gray-600 mt-2"><i class="fas fa-sticky-note mr-1"></i>${h.notes}</p>` : ''}
+                                ${h.changed_by_name ? `<p class="text-xs text-gray-500 mt-1">변경자: ${h.changed_by_name}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 계약 이력인 경우
                 const isDeleted = h.deleted_at !== null;
                 const statusBadge = isDeleted 
                     ? '<span class="px-2 py-1 text-xs rounded bg-red-100 text-red-600">삭제됨</span>'
@@ -2204,6 +2980,104 @@
                 </div>
                 ${historyHtml}
             `;
+        }
+
+        // ============================================
+        // 정비 관련 함수
+        // ============================================
+        
+        async function startMaintenance(motorcycleId, plateNumber) {
+            console.log('🔧 정비 시작:', motorcycleId, plateNumber);
+            
+            // 확인 문구
+            if (!confirm(`${plateNumber} 오토바이를 정비하시겠습니까?\n\n정비 상태로 변경되고 정비,폐지 카드로 이동합니다.`)) {
+                return;
+            }
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+                
+                console.log('📡 정비 상태 변경 API 호출...');
+                const response = await axios.patch(
+                    `/api/motorcycles/${motorcycleId}/status`,
+                    {
+                        status: 'maintenance',
+                        usage_notes: `정비 시작: ${new Date().toLocaleString('ko-KR')}`
+                    },
+                    {
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    }
+                );
+                
+                console.log('✅ 정비 상태 변경 성공:', response.data);
+                
+                // 캐시 삭제
+                clearMotorcyclesCache();
+                
+                // 필터를 "수리중"으로 변경하고 데이터 새로고침
+                document.getElementById('statusFilter').value = 'maintenance';
+                await loadMotorcycles(true);
+                
+                alert(`${plateNumber} 오토바이가 정비 상태로 변경되었습니다.`);
+                
+            } catch (error) {
+                console.error('❌ 정비 상태 변경 실패:', error);
+                alert('정비 상태 변경에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
+        }
+        
+        async function completeMaintenance(motorcycleId, plateNumber) {
+            console.log('✅ 정비 완료:', motorcycleId, plateNumber);
+            
+            // 확인 문구
+            if (!confirm(`${plateNumber} 오토바이 정비를 완료하시겠습니까?\n\n휴차중 상태로 변경되고 오토바이 관리 화면으로 이동합니다.`)) {
+                return;
+            }
+            
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                if (!sessionId) {
+                    alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+                
+                console.log('📡 휴차중 상태 변경 API 호출...');
+                const response = await axios.patch(
+                    `/api/motorcycles/${motorcycleId}/status`,
+                    {
+                        status: 'available',
+                        usage_notes: `정비 완료: ${new Date().toLocaleString('ko-KR')}`
+                    },
+                    {
+                        headers: {
+                            'X-Session-ID': sessionId
+                        }
+                    }
+                );
+                
+                console.log('✅ 휴차중 상태 변경 성공:', response.data);
+                
+                // 캐시 삭제
+                clearMotorcyclesCache();
+                
+                // 필터를 "휴차중"으로 변경하고 데이터 새로고침
+                document.getElementById('statusFilter').value = 'available';
+                await loadMotorcycles(true);
+                
+                alert(`${plateNumber} 오토바이 정비가 완료되었습니다.`);
+                
+            } catch (error) {
+                console.error('❌ 정비 완료 처리 실패:', error);
+                alert('정비 완료 처리에 실패했습니다: ' + (error.response?.data?.error || error.message));
+            }
         }
 
         function hideHistoryModal() {

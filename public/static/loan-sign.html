@@ -534,7 +534,7 @@
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
                             <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
-                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> ${representative}<img src="/static/stamp-kim.png?v=20260805" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
                             <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
                             <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
                         </div>
@@ -598,7 +598,7 @@
                         <div class="space-y-1 text-gray-800">
                             <p><span class="font-semibold">상호명:</span> ${companyName}</p>
                             <p><span class="font-semibold">사업자등록번호:</span> ${companyCode}</p>
-                            <p><span class="font-semibold">대표자:</span> ${representative}</p>
+                            <p style="display: flex; align-items: center; flex-wrap: nowrap;"><span class="font-semibold">대표자:</span> ${representative}<img src="/static/stamp-kim.png?v=20260805" alt="" style="width: 50px; height: 50px; object-fit: contain; margin-left: 8px; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'"></p>
                             <p><span class="font-semibold">주소:</span> ${companyAddress}</p>
                             <p><span class="font-semibold">연락처:</span> ${companyPhone}</p>
                         </div>
@@ -731,7 +731,7 @@
                                 <p class="text-gray-700">① 본 계약서에 명시되지 않은 사항은 일반 관례 및 민법의 규정에 따릅니다.</p>
                                 <p class="text-gray-700">② 본 계약으로 인한 분쟁 발생 시 임대인과 임차인의 합의가 안될시 임대인은 고려신용정보에 계약내용 모두를 위탁을 할수 있습니다.</p>
                                 <p class="text-gray-700">③ 위 기재된 특약사항이 있는 경우 특약사항이 본 계약서에 우선합니다.</p>
-                                <p class="text-gray-700">④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인)함으로써 법적 효력을 발생합니다.</p>
+                                <p class="text-gray-700">④ 본 계약은 당사자간 합의에 작성되었으며, 본 계약서에 서명(날인) 및 차용금 지급이 완료됨으로써 법적효력이 발생합니다.</p>
                             </div>
                         </div>
                     </div>
@@ -981,6 +981,11 @@
                     signature_data: signatureData,
                     id_card_photo: idCardPhoto
                 });
+                
+                // 대시보드 캐시 무효화 (즉시 반영)
+                sessionStorage.removeItem('dashboardStats');
+                sessionStorage.removeItem('dashboardStatsTime');
+                console.log('✅ 대시보드 캐시 무효화 완료');
                 
                 showCompleted();
             } catch (error) {

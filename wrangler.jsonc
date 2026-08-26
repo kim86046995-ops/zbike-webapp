@@ -17,8 +17,15 @@
     {
       "binding": "R2_ID_CARDS",
       "bucket_name": "zbike-id-cards"
+    },
+    {
+      "binding": "R2_BACKUPS",
+      "bucket_name": "zbike-backups"
     }
   ]
+  // Cron Triggers는 Cloudflare Dashboard에서 설정해야 합니다
+  // Pages > Settings > Functions > Cron Triggers
+  // Schedule: "0 18 * * *" (매일 UTC 18:00 = KST 03:00)
   // SMS 환경변수는 Cloudflare Pages Secrets로 관리됩니다
   // SMS_ENABLED, SMS_TEST_MODE, SMS_AWS_LAMBDA_URL, ADMIN_PHONE
 }
