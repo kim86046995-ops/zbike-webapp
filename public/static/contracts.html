@@ -847,22 +847,27 @@
             
             // 캐시 확인 (강제 새로고침이 아닐 때만)
             if (!forceRefresh) {
-                const cacheKey = 'contracts_cache';
-                const cacheTimeKey = 'contracts_cache_time';
-                const cachedData = sessionStorage.getItem(cacheKey);
-                const cacheTime = sessionStorage.getItem(cacheTimeKey);
-                const now = Date.now();
-                
-                // 캐시가 유효하면 즉시 표시 (5분 이내)
-                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
-                    console.log('✅ 캐시된 데이터 즉시 표시');
-                    const cached = JSON.parse(cachedData);
-                    contracts = cached.contracts || [];
-                    currentPage = cached.currentPage || 1;
-                    totalPages = cached.totalPages || 1;
-                    filteredContracts = contracts;
-                    filterContracts();
-                    return;
+                try {
+                    const cacheKey = 'contracts_cache';
+                    const cacheTimeKey = 'contracts_cache_time';
+                    const cachedData = sessionStorage.getItem(cacheKey);
+                    const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                    const now = Date.now();
+                    
+                    // 캐시가 유효하면 즉시 표시 (5분 이내)
+                    if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                        console.log('✅ 캐시된 데이터 즉시 표시');
+                        const cached = JSON.parse(cachedData);
+                        contracts = cached.contracts || [];
+                        currentPage = cached.currentPage || 1;
+                        totalPages = cached.totalPages || 1;
+                        filteredContracts = contracts;
+                        filterContracts();
+                        return;
+                    }
+                } catch (cacheError) {
+                    console.warn('⚠️ 캐시 읽기 실패 (무시):', cacheError);
+                    // 캐시 에러는 무시하고 계속 진행
                 }
             }
             
@@ -878,13 +883,33 @@
             try {
                 await loadContractsFromAPI(currentPage, currentSearch);
                 
-                // 캐시 저장
-                sessionStorage.setItem('contracts_cache', JSON.stringify({
-                    contracts: contracts,
-                    currentPage: currentPage,
-                    totalPages: totalPages
-                }));
-                sessionStorage.setItem('contracts_cache_time', Date.now().toString());
+                // 캐시 저장 시도 (용량 초과 시 무시)
+                try {
+                    // 최소한의 데이터만 저장 (ID, 계약번호, 상태만)
+                    const minimalContracts = contracts.map(c => ({
+                        id: c.id,
+                        contract_number: c.contract_number,
+                        customer_name: c.customer_name,
+                        company_name: c.company_name,
+                        motorcycle_plate: c.motorcycle_plate,
+                        status: c.status,
+                        contract_type: c.contract_type,
+                        source_type: c.source_type,
+                        start_date: c.start_date,
+                        end_date: c.end_date
+                    }));
+                    
+                    sessionStorage.setItem('contracts_cache', JSON.stringify({
+                        contracts: minimalContracts,
+                        currentPage: currentPage,
+                        totalPages: totalPages
+                    }));
+                    sessionStorage.setItem('contracts_cache_time', Date.now().toString());
+                    console.log('💾 캐시 저장 완료');
+                } catch (storageError) {
+                    console.warn('⚠️ 캐시 저장 실패 (용량 부족, 무시):', storageError);
+                    // 캐시 저장 실패는 무시하고 계속 진행
+                }
                 
                 console.log('✅ loadContracts 완료');
             } catch (error) {
