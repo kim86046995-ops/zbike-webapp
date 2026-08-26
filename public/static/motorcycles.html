@@ -860,22 +860,27 @@
                         );
                         
                         console.log(`🔍 [다중 검색] 입력: "${searchTerm}" | 숫자추출: [${numberSearchTerms.join(', ')}] | 번호판: ${plateNumber} (숫자: [${plateNumbers.join(', ')}]) | 매칭: ${plateMatches}`);
+                        
+                        // ✅ 숫자 검색일 때는 번호판만 매칭 (다른 필드 검색 제외)
+                        if (!plateMatches) {
+                            return false;
+                        }
                     } else {
                         // 숫자가 아닌 검색어는 기존 방식 사용
                         const plateClean = plateNumber.replace(/[\s\-]+/g, '');
                         const searchClean = searchTerm.replace(/[\s\-]+/g, '');
                         plateMatches = plateClean.includes(searchClean);
-                    }
-                    
-                    // 다른 필드는 원본 검색어로 포함 여부만 확인 (차대번호 제외)
-                    const matchesSearch = plateMatches ||
-                           ownerName.includes(searchTerm) || 
-                           contractorName.includes(searchTerm) ||
-                           insuranceCompany.includes(searchTerm);
-                    
-                    // 검색어가 있는데 매칭되지 않으면 제외
-                    if (!matchesSearch) {
-                        return false;
+                        
+                        // 다른 필드도 검색
+                        const matchesSearch = plateMatches ||
+                               ownerName.includes(searchTerm) || 
+                               contractorName.includes(searchTerm) ||
+                               insuranceCompany.includes(searchTerm);
+                        
+                        // 검색어가 있는데 매칭되지 않으면 제외
+                        if (!matchesSearch) {
+                            return false;
+                        }
                     }
                 }
                 
