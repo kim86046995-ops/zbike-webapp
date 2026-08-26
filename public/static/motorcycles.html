@@ -680,7 +680,7 @@
             filterTimer = setTimeout(() => {
                 console.log('⏱️ [debouncedFilter] 타이머 완료 - filterAndSortMotorcycles 호출');
                 filterAndSortMotorcycles();
-            }, 300); // 300ms로 변경 (너무 짧으면 타이핑 중에 계속 실행됨)
+            }, 500); // 500ms - 타이핑 완료 후 검색 실행
         }
 
         async function loadMotorcycles(forceRefresh = false) {
