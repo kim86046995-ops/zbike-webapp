@@ -845,6 +845,27 @@
         async function loadContracts(forceRefresh = false) {
             console.log('🔄 loadContracts 시작');
             
+            // 캐시 확인 (강제 새로고침이 아닐 때만)
+            if (!forceRefresh) {
+                const cacheKey = 'contracts_cache';
+                const cacheTimeKey = 'contracts_cache_time';
+                const cachedData = sessionStorage.getItem(cacheKey);
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                const now = Date.now();
+                
+                // 캐시가 유효하면 즉시 표시 (5분 이내)
+                if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                    console.log('✅ 캐시된 데이터 즉시 표시');
+                    const cached = JSON.parse(cachedData);
+                    contracts = cached.contracts || [];
+                    currentPage = cached.currentPage || 1;
+                    totalPages = cached.totalPages || 1;
+                    filteredContracts = contracts;
+                    filterContracts();
+                    return;
+                }
+            }
+            
             // 로딩 UI 표시
             const listEl = document.getElementById('contractList');
             listEl.innerHTML = `
@@ -856,6 +877,15 @@
             
             try {
                 await loadContractsFromAPI(currentPage, currentSearch);
+                
+                // 캐시 저장
+                sessionStorage.setItem('contracts_cache', JSON.stringify({
+                    contracts: contracts,
+                    currentPage: currentPage,
+                    totalPages: totalPages
+                }));
+                sessionStorage.setItem('contracts_cache_time', Date.now().toString());
+                
                 console.log('✅ loadContracts 완료');
             } catch (error) {
                 console.error('❌ 계약서 목록 로드 실패:', error);
