@@ -885,18 +885,26 @@
                 
                 // 캐시 저장 시도 (용량 초과 시 무시)
                 try {
-                    // 최소한의 데이터만 저장 (ID, 계약번호, 상태만)
+                    // 최소한의 데이터만 저장 (렌더링에 필요한 필드만)
                     const minimalContracts = contracts.map(c => ({
                         id: c.id,
                         contract_number: c.contract_number,
                         customer_name: c.customer_name,
+                        customer_phone: c.customer_phone,
                         company_name: c.company_name,
+                        business_phone: c.business_phone,
                         motorcycle_plate: c.motorcycle_plate,
+                        plate_number: c.plate_number,
+                        vehicle_name: c.vehicle_name,
                         status: c.status,
                         contract_type: c.contract_type,
+                        business_type: c.business_type,
                         source_type: c.source_type,
+                        signature_data: c.signature_data,
                         start_date: c.start_date,
-                        end_date: c.end_date
+                        end_date: c.end_date,
+                        contract_start_date: c.contract_start_date,
+                        contract_end_date: c.contract_end_date
                     }));
                     
                     sessionStorage.setItem('contracts_cache', JSON.stringify({
@@ -1169,7 +1177,7 @@
                             <div>
                                 <p class="mb-1"><i class="fas fa-user w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.customer_name}</span></p>
                                 <p class="mb-1"><i class="fas fa-phone w-4 text-purple-600"></i> ${c.customer_phone || c.business_phone || '-'}</p>
-                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.plate_number}</span> <span class="text-gray-600">(${c.vehicle_name})</span></p>
+                                <p><i class="fas fa-motorcycle w-4 text-purple-600"></i> <span class="text-sm md:text-base font-bold text-gray-800">${c.motorcycle_plate || c.plate_number || '-'}</span> <span class="text-gray-600">(${c.vehicle_name || '-'})</span></p>
                             </div>
                             <div>
                                 <p class="mb-1"><i class="fas fa-calendar w-4 text-purple-600"></i> ${c.contract_start_date || c.start_date} ~ ${c.contract_end_date || c.end_date}</p>
