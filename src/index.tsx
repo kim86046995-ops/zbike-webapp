@@ -6953,50 +6953,25 @@ app.post('/api/temp-rent-contracts', async (c) => {
       return c.json({ error: '오토바이를 찾을 수 없습니다' }, 404)
     }
 
-    // 고객 정보 생성 또는 가져오기 (약식 계약: 이름만으로도 가능)
+    // 임시렌트는 항상 새 고객 생성 (전화번호 중복 허용)
+    // 관리자가 직접 입력한 이름을 정확히 반영하기 위함
     let customerId = null
     
-    // 전화번호가 있으면 기존 고객 찾거나 생성
-    if (data.phone && data.phone.trim()) {
-      let customer = await DB.prepare('SELECT id FROM customers WHERE phone = ?')
-        .bind(data.phone).first() as any
-      
-      if (!customer) {
-        const result = await DB.prepare(`
-          INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
-        `).bind(
-          data.customer_name, 
-          data.phone, 
-          data.resident_number || '',
-          data.postcode || '',
-          data.address || '',
-          data.detail_address || '',
-          data.license_type || '2종소형'
-        ).run()
-        customerId = result.meta.last_row_id
-        console.log(`✅ [TempRent] 새 고객 생성 (전화번호 포함): ${customerId}`)
-      } else {
-        customerId = customer.id
-        console.log(`✅ [TempRent] 기존 고객 사용: ${customerId}`)
-      }
-    } else {
-      // 전화번호가 없으면 이름만으로 새 고객 생성 (약식 계약)
-      const result = await DB.prepare(`
-        INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
-      `).bind(
-        data.customer_name, 
-        '', // 전화번호 없음
-        data.resident_number || '',
-        data.postcode || '',
-        data.address || '',
-        data.detail_address || '',
-        data.license_type || '2종소형'
-      ).run()
-      customerId = result.meta.last_row_id
-      console.log(`✅ [TempRent] 약식 고객 생성 (이름만): ${customerId}, 이름: ${data.customer_name}`)
-    }
+    const result = await DB.prepare(`
+      INSERT INTO customers (name, phone, resident_number, postcode, address, detail_address, license_type, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+    `).bind(
+      data.customer_name, 
+      data.phone || '', 
+      data.resident_number || '',
+      data.postcode || '',
+      data.address || '',
+      data.detail_address || '',
+      data.license_type || '2종소형'
+    ).run()
+    
+    customerId = result.meta.last_row_id
+    console.log(`✅ [TempRent] 새 고객 생성: ${customerId}, 이름: ${data.customer_name}, 전화: ${data.phone || '없음'}`)
 
     // 계약서 데이터를 JSON으로 저장
     const contractData = {
