@@ -2709,12 +2709,12 @@
                     }
                 }
                 
-                // 3. 업체 계약 해지 (같은 API 사용)
+                // 3. 업체 계약 해지 (업체 계약 전용 API 사용)
                 console.log(`🔄 [2/3] 업체 계약 ${businessContracts.length}건 해지 중...`);
                 for (const contract of businessContracts) {
                     console.log(`  - 업체 계약 해지: ${contract.contract_number}`);
                     try {
-                        await axios.patch(`/api/contracts/${contract.id}/status`, 
+                        await axios.patch(`/api/business-contracts/${contract.id}/status`, 
                             { status: 'cancelled' },
                             { headers: { 'X-Session-ID': sessionId } }
                         );
