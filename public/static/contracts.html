@@ -794,7 +794,7 @@
             if (paginationEl) paginationEl.innerHTML = html;
         }
         
-        // API에서 계약 목록 로드 (통합 API 사용 - 최적화)
+        // API에서 계약 목록 로드 (개인 + 업체 계약 통합 조회)
         async function loadContractsFromAPI(page = 1, search = '') {
             const startTime = performance.now();
             try {
@@ -802,27 +802,57 @@
                 currentPage = page;
                 currentSearch = search;
                 
-                // 통합 API 호출 (서버에서 이미 정렬됨)
+                // 개인 계약과 업체 계약을 병렬로 조회
                 const params = new URLSearchParams({ page: page.toString(), limit: '50' });
                 if (search) params.append('search', search);
                 
-                console.log('📡 API 요청:', `/api/contracts?${params.toString()}`);
+                console.log('📡 API 요청 (개인 + 업체)');
                 const apiStartTime = performance.now();
                 
-                const response = await axios.get(`/api/contracts?${params.toString()}`);
+                // 병렬 요청
+                const [personalResponse, businessResponse] = await Promise.all([
+                    axios.get(`/api/contracts?${params.toString()}`).catch(err => {
+                        console.warn('⚠️ 개인 계약 조회 실패:', err);
+                        return { data: { data: [], pagination: { page: 1, total: 0, totalPages: 1 } } };
+                    }),
+                    axios.get(`/api/business-contracts?${params.toString()}`).catch(err => {
+                        console.warn('⚠️ 업체 계약 조회 실패:', err);
+                        return { data: { data: [], pagination: { page: 1, total: 0, totalPages: 1 } } };
+                    })
+                ]);
                 
                 const apiEndTime = performance.now();
                 console.log(`⏱️ API 응답 시간: ${(apiEndTime - apiStartTime).toFixed(0)}ms`);
                 
-                // 서버에서 이미 정렬된 데이터 (프론트엔드 정렬 불필요)
-                contracts = response.data.data || [];
+                // 개인 계약 + 업체 계약 병합
+                const personalContracts = (personalResponse.data.data || []).map(c => ({
+                    ...c,
+                    source_type: 'personal',
+                    motorcycle_plate: c.plate_number, // 통일
+                    customer_phone: c.customer_phone
+                }));
                 
-                // 페이지네이션 정보
-                const pagination = response.data.pagination || {};
-                currentPage = pagination.page || 1;
-                totalPages = pagination.totalPages || 1;
+                const businessContracts = (businessResponse.data.data || []).map(c => ({
+                    ...c,
+                    source_type: 'business',
+                    customer_name: c.company_name || c.representative,
+                    customer_phone: c.business_phone || c.representative_phone,
+                    motorcycle_plate: c.plate_number // 통일
+                }));
                 
-                console.log('📊 전체 계약:', pagination.total || 0, '개 - 페이지:', currentPage, '/', totalPages);
+                // 병합 및 정렬 (최신순)
+                contracts = [...personalContracts, ...businessContracts]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                
+                // 페이지네이션 정보 (두 API의 total 합산)
+                const personalTotal = personalResponse.data.pagination?.total || 0;
+                const businessTotal = businessResponse.data.pagination?.total || 0;
+                const total = personalTotal + businessTotal;
+                
+                currentPage = page;
+                totalPages = Math.ceil(total / 50);
+                
+                console.log('📊 전체 계약:', total, '개 (개인:', personalTotal, '업체:', businessTotal, ') - 페이지:', currentPage, '/', totalPages);
                 
                 filteredContracts = contracts;
                 try {
